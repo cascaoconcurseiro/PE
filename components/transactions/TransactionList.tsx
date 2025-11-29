@@ -70,11 +70,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             // Logic for Shared/Trip Display
                             const isShared = t.isShared || (t.sharedWith && t.sharedWith.length > 0);
                             const isTrip = !!t.tripId;
+                            const isInstallment = !!t.isInstallment && !!t.currentInstallment;
                             
                             // Amount Calculation Logic & Payer Info
                             let displayAmount = t.amount;
                             let subText = '';
-                            let amountLabel = '';
                             let payerName = 'Você';
                             
                             // Determine Payer Name
@@ -90,16 +90,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                     displayAmount = t.amount - splitsTotal; // Show net cost (my share)
                                     if (splitsTotal > 0) {
                                         subText = `Você pagou o total (${formatCurrency(t.amount)})`;
-                                        amountLabel = ' (Sua Parte)';
                                     }
                                 } else {
                                     // Someone else paid
-                                    // Assuming my share is the remainder (Total - Splits to others)
-                                    // Simplified logic: If I created the tx representing a shared expense paid by other, 
-                                    // usually the amount stored is the TOTAL, and my share is calculated.
                                     displayAmount = t.amount - splitsTotal;
                                     subText = `Pago por ${payerName}`;
-                                    amountLabel = ' (Você deve)';
                                 }
                             }
 
@@ -128,7 +123,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                                     {isCreditCard ? <CreditCard className="w-3 h-3" /> : <Wallet className="w-3 h-3" />}
                                                     {accountName}
                                                 </span>
-                                                {t.currentInstallment && <span className="bg-purple-100 text-purple-700 px-1.5 rounded text-[9px] font-bold">{t.currentInstallment}/{t.totalInstallments}</span>}
+                                                {isInstallment && (
+                                                    <span className="bg-purple-100 text-purple-700 px-1.5 rounded text-[9px] font-bold">
+                                                        {t.currentInstallment}/{t.totalInstallments}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -141,6 +140,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                             </span>
                                             
                                             {/* Subtext Logic */}
+                                            {isInstallment && t.originalAmount && !subText && (
+                                                <div className="text-[9px] font-medium text-slate-400 mt-0.5">
+                                                    Total: {formatCurrency(t.originalAmount)}
+                                                </div>
+                                            )}
+
                                             {subText ? (
                                                 <div className="flex items-center justify-end gap-1 text-[9px] font-medium text-slate-400 mt-0.5">
                                                     {payerName !== 'Você' ? (

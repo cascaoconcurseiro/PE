@@ -133,6 +133,7 @@ export interface Transaction extends BaseEntity {
   isInstallment?: boolean;
   currentInstallment?: number;
   totalInstallments?: number;
+  originalAmount?: number; // Total value of the purchase before splitting installments
   observation?: string;
 
   seriesId?: string;
