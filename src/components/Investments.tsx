@@ -122,7 +122,8 @@ export const Investments: React.FC<InvestmentsProps> = ({
         // Data extraction
         const ticker = (formData.get('ticker') as string).trim().toUpperCase();
         const inputQuantity = parseFloat(formData.get('quantity') as string);
-        const inputPrice = parseFloat(formData.get('price') as string); // In "Add New", Avg Price field acts as Purchase Price
+        // FIXED: Use 'averagePrice' from form instead of 'price'
+        const inputPrice = parseFloat(formData.get('averagePrice') as string); 
         const currentPrice = parseFloat(formData.get('currentPrice') as string);
         const currency = formData.get('currency') as string;
         const type = formData.get('type') as AssetType;
@@ -132,6 +133,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
         
         // Validation
         if (!sourceAccountId && !editingAsset) { alert("Selecione a conta de origem do dinheiro."); return; }
+        if (isNaN(inputPrice)) { alert("Preço inválido."); return; }
 
         const totalValue = inputQuantity * inputPrice;
 
@@ -278,7 +280,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
         let exchangeRate = 1;
 
         if (destAccount && destAccount.currency !== asset.currency) {
-            const rateStr = prompt(`O ativo é ${asset.currency} e a conta destino é ${destAccount.currency}.\nQual a taxa de câmbio? (1 ${asset.currency} = X ${destAccount.currency})`);
+            const rateStr = prompt(`O ativo é ${asset.currency} e a conta destino é ${destAccount.currency}.\nQual a taxa de câmbio?`);
             if (rateStr) exchangeRate = parseFloat(rateStr.replace(',', '.')) || 1;
         }
 
@@ -469,7 +471,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
                             className="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 dark:text-white appearance-none cursor-pointer"
                         >
                             <option value="ALL">Todos os Tipos</option>
-                            {Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}
+                            {(Object.values(AssetType) as string[]).map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
                     
@@ -661,7 +663,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Ticker</label><input name="ticker" required defaultValue={editingAsset?.ticker} placeholder="Ex: PETR4" className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 uppercase dark:text-white" /></div>
-                                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Tipo</label><select name="type" required defaultValue={editingAsset?.type || AssetType.STOCK} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white">{Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Tipo</label><select name="type" required defaultValue={editingAsset?.type || AssetType.STOCK} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white">{(Object.values(AssetType) as string[]).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                                 </div>
                                 <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Nome da Empresa/Fundo</label><input name="name" required defaultValue={editingAsset?.name} placeholder="Ex: Petróleo Brasileiro S.A." className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white" /></div>
                                 <div className="grid grid-cols-2 gap-4">

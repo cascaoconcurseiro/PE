@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, TransactionSplit, Frequency, AccountType, CustomCategory } from '../../types';
 import { Button } from '../ui/Button';
-import { 
-    Check, Plane, Users, ChevronDown, Calendar, Wallet, ArrowUpRight, ArrowDownLeft, 
-    RefreshCcw, Bell, BellRing, Repeat, Undo2, DollarSign, CreditCard, X, 
-    Pencil, User, Plus, Globe, Clock, Landmark, Banknote 
+import {
+    Check, Plane, Users, ChevronDown, Calendar, Wallet, ArrowUpRight, ArrowDownLeft,
+    RefreshCcw, Bell, BellRing, Repeat, Undo2, DollarSign, CreditCard, X,
+    Pencil, User, Plus, Globe, Clock, Landmark, Banknote
 } from 'lucide-react';
 import { getCategoryIcon, parseDate, formatCurrency } from '../../utils';
 import { AVAILABLE_CURRENCIES } from '../../services/currencyService';
@@ -25,17 +25,17 @@ interface TransactionFormProps {
     onNavigateToFamily?: () => void;
 }
 
-const AccountSelector = ({ 
-    label, 
-    accounts, 
-    selectedId, 
-    onSelect, 
+const AccountSelector = ({
+    label,
+    accounts,
+    selectedId,
+    onSelect,
     filterType,
     disabled = false
-}: { 
-    label: string, 
-    accounts: Account[], 
-    selectedId: string, 
+}: {
+    label: string,
+    accounts: Account[],
+    selectedId: string,
     onSelect: (id: string) => void,
     filterType?: 'NO_CREDIT' | 'ALL',
     disabled?: boolean
@@ -63,7 +63,7 @@ const AccountSelector = ({
     }, []);
 
     const getIcon = (type: AccountType) => {
-        switch(type) {
+        switch (type) {
             case AccountType.CREDIT_CARD: return <CreditCard className="w-5 h-5" />;
             case AccountType.INVESTMENT: return <Landmark className="w-5 h-5" />;
             case AccountType.SAVINGS: return <Banknote className="w-5 h-5" />;
@@ -72,7 +72,7 @@ const AccountSelector = ({
     };
 
     const getGradient = (type: AccountType) => {
-         switch(type) {
+        switch (type) {
             case AccountType.CREDIT_CARD: return 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white';
             case AccountType.INVESTMENT: return 'bg-gradient-to-br from-slate-700 to-slate-900 text-white';
             case AccountType.SAVINGS: return 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white';
@@ -84,7 +84,7 @@ const AccountSelector = ({
     return (
         <div className="relative" ref={containerRef}>
             <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">{label}</label>
-            <div 
+            <div
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 className={`
                     relative rounded-xl p-3 flex items-center gap-3 shadow-md transition-all cursor-pointer overflow-hidden
@@ -102,7 +102,7 @@ const AccountSelector = ({
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${selectedAccount ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}>
                     {getIcon(selectedAccount?.type || AccountType.CHECKING)}
                 </div>
-                
+
                 <div className="flex-1 overflow-hidden z-10">
                     <span className={`block text-sm font-bold truncate mb-0.5 ${selectedAccount ? 'text-white' : 'text-slate-900'}`}>
                         {selectedAccount?.name || 'Selecione uma conta'}
@@ -111,7 +111,7 @@ const AccountSelector = ({
                         {selectedAccount ? `${selectedAccount.type} • ${selectedAccount.currency}` : 'Toque para selecionar'}
                     </span>
                 </div>
-                
+
                 <ChevronDown className={`w-5 h-5 shrink-0 z-10 transition-transform ${isOpen ? 'rotate-180' : ''} ${selectedAccount ? 'text-white/70' : 'text-slate-400'}`} />
             </div>
 
@@ -121,7 +121,7 @@ const AccountSelector = ({
                         <div className="p-4 text-center text-slate-500 text-sm">Nenhuma conta disponível.</div>
                     ) : (
                         filteredAccounts.map(acc => (
-                            <div 
+                            <div
                                 key={acc.id}
                                 onClick={() => { onSelect(acc.id); setIsOpen(false); }}
                                 className={`p-3 flex items-center gap-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0 ${acc.id === selectedId ? 'bg-slate-50' : ''}`}
@@ -181,7 +181,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     const [tripId, setTripId] = useState('');
     const [tripAmountStr, setTripAmountStr] = useState('');
     const [isTripSelectorOpen, setIsTripSelectorOpen] = useState(false);
-    
+
     // Logic: Shared/Split
     const [isShared, setIsShared] = useState(false);
     const [splits, setSplits] = useState<TransactionSplit[]>([]);
@@ -199,7 +199,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     const [notificationDate, setNotificationDate] = useState(new Date().toISOString().split('T')[0]);
     const [reminderOption, setReminderOption] = useState<number | 'custom'>(0);
     const [isRefund, setIsRefund] = useState(false);
-    
+
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const topRef = useRef<HTMLDivElement>(null);
 
@@ -218,9 +218,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     const activeCurrency = selectedAccountObj?.currency || 'BRL';
     const tripCurrency = selectedTrip?.currency || 'BRL';
     const showTripCurrencyInput = tripId && selectedTrip && (tripCurrency !== activeCurrency || payerId !== 'me');
-    
+
     const isCreditCard = selectedAccountObj?.type === AccountType.CREDIT_CARD;
-    
+
     const isExpense = formMode === TransactionType.EXPENSE;
     const isIncome = formMode === TransactionType.INCOME;
     const isTransfer = formMode === TransactionType.TRANSFER;
@@ -247,11 +247,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             setIsShared(!!t.isShared || (!!t.payerId && t.payerId !== 'me'));
             setSplits(t.sharedWith || []);
             setEnableNotification(!!t.enableNotification);
-            
+
             if (t.enableNotification && t.notificationDate) {
                 setNotificationDate(t.notificationDate);
-                const dDate = new Date(t.date); dDate.setHours(12,0,0,0);
-                const nDate = new Date(t.notificationDate); nDate.setHours(12,0,0,0);
+                const dDate = new Date(t.date); dDate.setHours(12, 0, 0, 0);
+                const nDate = new Date(t.notificationDate); nDate.setHours(12, 0, 0, 0);
                 const diffTime = dDate.getTime() - nDate.getTime();
                 const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
                 setReminderOption([0, 1, 2, 7].includes(diffDays) ? diffDays : 'custom');
@@ -263,14 +263,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             setIsRecurring(!!t.isRecurring);
             setFrequency(t.frequency || Frequency.MONTHLY);
             setRecurrenceDay(t.recurrenceDay || new Date(t.date).getDate());
-            
+
             const isAccCC = accounts.find(a => a.id === t.accountId)?.type === AccountType.CREDIT_CARD;
-            setIsInstallment(!!t.isInstallment && (isAccCC || !!t.isInstallment)); 
-            
+            setIsInstallment(!!t.isInstallment && (isAccCC || !!t.isInstallment));
+
             setCurrentInstallment(t.currentInstallment || 1);
             setTotalInstallments(t.totalInstallments || 2);
             setIsRefund(!!t.isRefund);
-            
+
             topRef.current?.scrollIntoView({ behavior: 'smooth' });
         } else {
             // If switching modes, verify if account is valid for that mode
@@ -291,7 +291,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     useEffect(() => {
         if (enableNotification && reminderOption !== 'custom' && date) {
             const txDate = new Date(date);
-            txDate.setHours(12, 0, 0, 0); 
+            txDate.setHours(12, 0, 0, 0);
             const notifDate = new Date(txDate);
             notifDate.setDate(txDate.getDate() - (reminderOption as number));
             setNotificationDate(notifDate.toISOString().split('T')[0]);
@@ -313,7 +313,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Validation
         const errors: { [key: string]: string } = {};
         if (!activeAmount || activeAmount <= 0) errors.amount = 'Valor inválido';
@@ -332,7 +332,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
         // Logic for Exchange Rate / Foreign Currency
         let exchangeRate = 1;
-        
+
         if (showTripCurrencyInput && tripAmountStr) {
             const tripAmount = parseFloat(tripAmountStr.replace(',', '.'));
             if (tripAmount > 0 && activeAmount > 0) {
@@ -372,7 +372,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             date,
             type: formMode!,
             category: formMode === TransactionType.TRANSFER ? Category.TRANSFER : category,
-            accountId: accountId || (accounts[0] ? accounts[0].id : ''), 
+            accountId: (payerId && payerId !== 'me') ? 'EXTERNAL' : (accountId || (accounts[0] ? accounts[0].id : '')),
             destinationAccountId: isTransfer ? destinationAccountId : undefined,
             destinationAmount: isTransfer && destinationAccountId ? finalDestinationAmount : undefined,
             tripId: tripId || undefined,
@@ -383,7 +383,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             recurrenceDay: isRecurring ? recurrenceDay : undefined,
             lastGenerated: isRecurring ? date : undefined,
             frequency: isRecurring ? frequency : Frequency.ONE_TIME,
-            isInstallment: isCreditCard ? isInstallment : false, 
+            isInstallment: isCreditCard ? isInstallment : false,
             currentInstallment: isInstallment ? currentInstallment : undefined,
             totalInstallments: isInstallment ? totalInstallments : undefined,
             enableNotification,
@@ -422,7 +422,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     return (
         <div className="flex flex-col h-full bg-white relative">
             <div ref={topRef} />
-            
+
             {/* Header Tabs */}
             <div className="px-3 py-2 shrink-0 border-b border-slate-100 flex items-center gap-2">
                 <div className="flex bg-slate-100 p-1 rounded-xl relative shadow-inner flex-1">
@@ -470,12 +470,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                 <label className="text-xs font-bold text-slate-500 mb-1 block">Data</label>
                                 <div className="bg-slate-50 rounded-xl h-12 flex items-center px-3 border border-slate-200 relative group cursor-pointer focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
                                     <Calendar className="w-4 h-4 text-slate-400 mr-2" />
-                                    <input 
-                                        type="date" 
-                                        value={date} 
+                                    <input
+                                        type="date"
+                                        value={date}
                                         onClick={(e) => e.currentTarget.showPicker()}
-                                        onChange={e => setDate(e.target.value)} 
-                                        className="bg-transparent font-medium text-slate-700 text-sm outline-none w-full h-full cursor-pointer" 
+                                        onChange={e => setDate(e.target.value)}
+                                        className="bg-transparent font-medium text-slate-700 text-sm outline-none w-full h-full cursor-pointer"
                                     />
                                 </div>
                             </div>
@@ -517,7 +517,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     {/* Account Selection with Custom Selector */}
                     <div className="grid grid-cols-1 gap-3">
                         {payerId === 'me' ? (
-                            <AccountSelector 
+                            <AccountSelector
                                 label={isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}
                                 accounts={accounts}
                                 selectedId={accountId}
@@ -541,7 +541,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         )}
 
                         {isTransfer && (
-                            <AccountSelector 
+                            <AccountSelector
                                 label="Vai para (Destino)"
                                 accounts={accounts.filter(a => a.id !== accountId)}
                                 selectedId={destinationAccountId}
@@ -555,7 +555,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     {isExpense && (
                         <div className="space-y-3">
                             <div className="relative z-20">
-                                <div 
+                                <div
                                     onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)}
                                     className={`border rounded-2xl p-4 flex items-center gap-3 shadow-sm relative transition-all cursor-pointer ${tripId ? 'bg-violet-50 border-violet-200' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
                                 >
@@ -575,14 +575,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                     <>
                                         <div className="fixed inset-0 z-10" onClick={() => setIsTripSelectorOpen(false)} />
                                         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto custom-scrollbar">
-                                            <div 
+                                            <div
                                                 onClick={() => { setTripId(''); setIsTripSelectorOpen(false); }}
                                                 className="p-3 hover:bg-slate-50 cursor-pointer text-slate-600 font-medium text-sm border-b border-slate-50"
                                             >
                                                 Nenhuma
                                             </div>
                                             {trips.map(t => (
-                                                <div 
+                                                <div
                                                     key={t.id}
                                                     onClick={() => { setTripId(t.id); setIsTripSelectorOpen(false); }}
                                                     className={`p-3 hover:bg-violet-50 cursor-pointer flex items-center gap-3 ${tripId === t.id ? 'bg-violet-50' : ''}`}
@@ -594,7 +594,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                                 </div>
                                             ))}
                                             {onNavigateToTrips && (
-                                                <div 
+                                                <div
                                                     onClick={onNavigateToTrips}
                                                     className="p-3 hover:bg-violet-100 cursor-pointer flex items-center gap-2 text-violet-700 font-bold text-sm border-t border-slate-100 bg-violet-50"
                                                 >
@@ -613,8 +613,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                         <span className="font-bold text-xs uppercase tracking-wide">Valor na Moeda da Viagem ({tripCurrency})</span>
                                     </div>
                                     <div className="relative">
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             value={tripAmountStr}
                                             onChange={e => setTripAmountStr(e.target.value)}
                                             placeholder={`0,00 ${tripCurrency}`}
@@ -665,12 +665,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                 </select>
                                 {reminderOption === 'custom' && (
                                     <div className="bg-white border border-amber-200 rounded-xl p-2">
-                                        <input 
-                                            type="date" 
-                                            value={notificationDate} 
+                                        <input
+                                            type="date"
+                                            value={notificationDate}
                                             onClick={(e) => e.currentTarget.showPicker()}
-                                            onChange={e => setNotificationDate(e.target.value)} 
-                                            className="w-full p-2 text-sm font-bold text-slate-700 outline-none" 
+                                            onChange={e => setNotificationDate(e.target.value)}
+                                            className="w-full p-2 text-sm font-bold text-slate-700 outline-none"
                                         />
                                     </div>
                                 )}

@@ -5,7 +5,7 @@ import { convertToBRL, AVAILABLE_CURRENCIES } from '../services/currencyService'
 import {
     TrendingUp, Wallet, PieChart as PieChartIcon, DollarSign, ArrowUpRight, ArrowDownRight,
     Plus, Bitcoin, Building2, Landmark,
-    Activity, Search, Trash2, Edit2, X, Download, Printer, Minus, Save, AlertCircle, ArrowRightLeft, Filter, History
+    Activity, Search, Trash2, Edit2, X, Download, Printer, Minus, Save, AlertCircle, ArrowRightLeft, Filter, History, FileUp
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -469,7 +469,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
                             className="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 dark:text-white appearance-none cursor-pointer"
                         >
                             <option value="ALL">Todos os Tipos</option>
-                            {Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}
+                            {(Object.values(AssetType) as string[]).map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
                     
@@ -554,7 +554,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
                                              </div>
                                              <div className="flex gap-2">
                                                  <button onClick={() => { setSelectedAsset(asset); setIsSellModalOpen(true); }} className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">Vender</button>
-                                                 <button onClick={() => { setSelectedAsset(asset); setIsBuyModalOpen(true); }} className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">Comprar</button>
+                                                 <button onClick={() => { setSelectedAsset(asset); setIsAssetModalOpen(true); }} className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">Comprar</button>
                                              </div>
                                         </div>
                                     </div>
@@ -661,7 +661,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Ticker</label><input name="ticker" required defaultValue={editingAsset?.ticker} placeholder="Ex: PETR4" className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 uppercase dark:text-white" /></div>
-                                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Tipo</label><select name="type" required defaultValue={editingAsset?.type || AssetType.STOCK} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white">{Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Tipo</label><select name="type" required defaultValue={editingAsset?.type || AssetType.STOCK} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white">{(Object.values(AssetType) as string[]).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                                 </div>
                                 <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Nome da Empresa/Fundo</label><input name="name" required defaultValue={editingAsset?.name} placeholder="Ex: Petróleo Brasileiro S.A." className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white" /></div>
                                 <div className="grid grid-cols-2 gap-4">
