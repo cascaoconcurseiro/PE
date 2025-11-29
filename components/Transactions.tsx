@@ -491,7 +491,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                         <div className="space-y-3">
                             <div>
                                 <label className="text-xs font-bold text-slate-500 mb-1 block">Descrição</label>
-                                <input placeholder="Ex: Almoço, Uber, Salário" value={description} onChange={e => { setDescription(e.target.value); }} className="w-full text-lg font-bold text-slate-900 border-b-2 border-slate-100 pb-2 outline-none focus:border-indigo-500 bg-transparent placeholder:text-slate-300 transition-colors" />
+                                <input placeholder="Ex: Almoço, Uber, Salário" value={description} onChange={e => { setDescription(e.target.value); }} className="w-full text-lg font-medium text-slate-900 border-b-2 border-slate-100 pb-2 outline-none focus:border-indigo-500 bg-transparent placeholder:text-slate-400 transition-colors" />
                                 {errors.description && <p className="text-red-700 text-[10px] mt-0.5 pl-1 font-bold">{errors.description}</p>}
                             </div>
 
@@ -505,7 +505,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                             value={date} 
                                             onClick={(e) => e.currentTarget.showPicker()}
                                             onChange={e => setDate(e.target.value)} 
-                                            className="bg-transparent font-bold text-slate-700 text-sm outline-none w-full h-full cursor-pointer" 
+                                            className="bg-transparent font-medium text-slate-700 text-sm outline-none w-full h-full cursor-pointer" 
                                         />
                                     </div>
                                 </div>
@@ -518,7 +518,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                             <select value={category} onChange={e => setCategory(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
                                                 {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
-                                            <span className="pointer-events-none truncate text-sm font-bold text-slate-700 flex-1">{category}</span>
+                                            <span className="pointer-events-none truncate text-sm font-medium text-slate-700 flex-1">{category}</span>
                                         </div>
                                     ) : (
                                         <div className="bg-slate-50 rounded-xl h-12 flex items-center justify-center border border-slate-200"><span className="text-xs font-bold text-slate-400">Automático</span></div>
@@ -534,7 +534,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                     <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">{isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}</label>
                                     <div className={`relative rounded-xl p-3 flex items-center gap-3 shadow-md transition-all active:scale-[0.99] cursor-pointer overflow-hidden group ${!selectedAccountObj ? 'bg-white border border-slate-200' : selectedAccountObj.type === AccountType.CREDIT_CARD ? 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white' : 'bg-gradient-to-br from-slate-800 to-slate-900 text-white'}`}>
                                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${selectedAccountObj ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}><Wallet className="w-5 h-5" /></div>
-                                        <div className="flex-1 overflow-hidden z-10"><span className={`block text-sm font-bold truncate mb-0.5 ${selectedAccountObj ? 'text-white' : 'text-slate-900'}`}>{selectedAccountObj?.name || 'Selecione uma conta'}</span></div>
+                                        <div className="flex-1 overflow-hidden z-10"><span className={`block text-sm font-medium truncate mb-0.5 ${selectedAccountObj ? 'text-white' : 'text-slate-900'}`}>{selectedAccountObj?.name || 'Selecione uma conta'}</span></div>
                                         <ChevronDown className={`w-5 h-5 shrink-0 z-10 ${selectedAccountObj ? 'text-white/70' : 'text-slate-400'}`} />
                                         <select value={accountId} onChange={e => setAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">{accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
                                     </div>
@@ -547,7 +547,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                             <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700"><User className="w-5 h-5" /></div>
                                             <div>
                                                 <span className="block text-sm font-bold text-indigo-900">Pago por {familyMembers.find(m => m.id === payerId)?.name || 'Outro'}</span>
-                                                <span className="text-xs text-indigo-600">Não sai da sua conta</span>
+                                                <span className="text-xs text-indigo-600">Você deve este valor</span>
                                             </div>
                                         </div>
                                         <Button size="sm" variant="secondary" onClick={() => setIsSplitModalOpen(true)} className="text-xs h-8">Alterar</Button>
@@ -560,7 +560,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                     <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">Vai para (Destino)</label>
                                     <div className={`relative rounded-xl p-3 flex items-center gap-3 shadow-md transition-all active:scale-[0.99] cursor-pointer overflow-hidden group ${!destAccountObj ? 'bg-white border border-slate-200' : 'bg-gradient-to-br from-slate-800 to-slate-900 text-white'}`}>
                                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${destAccountObj ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}><Wallet className="w-5 h-5" /></div>
-                                        <div className="flex-1 overflow-hidden z-10"><span className={`block text-sm font-bold truncate mb-0.5 ${destAccountObj ? 'text-white' : 'text-slate-900'}`}>{destAccountObj?.name || 'Selecione o destino'}</span></div>
+                                        <div className="flex-1 overflow-hidden z-10"><span className={`block text-sm font-medium truncate mb-0.5 ${destAccountObj ? 'text-white' : 'text-slate-900'}`}>{destAccountObj?.name || 'Selecione o destino'}</span></div>
                                         <ChevronDown className={`w-5 h-5 shrink-0 z-10 ${destAccountObj ? 'text-white/70' : 'text-slate-400'}`} />
                                         <select value={destinationAccountId} onChange={e => setDestinationAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">{accounts.filter(a => a.id !== accountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
                                     </div>
@@ -569,79 +569,78 @@ export const Transactions: React.FC<TransactionsProps> = ({
                         </div>
 
                         {isExpense && (
-                            <div className="space-y-3">
-                                <div className="relative z-20">
-                                    <div 
-                                        onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)}
-                                        className={`border rounded-2xl p-4 flex items-center gap-3 shadow-sm relative transition-all cursor-pointer ${tripId ? 'bg-violet-50 border-violet-200' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
-                                    >
-                                        <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${tripId ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                            <Plane className="w-5 h-5" />
-                                        </div>
-                                        <div className="flex-1 overflow-hidden">
-                                            <span className={`block text-lg font-bold truncate mb-0.5 ${tripId ? 'text-violet-900' : 'text-slate-600'}`}>
-                                                {tripId ? trips.find(t => t.id === tripId)?.name : 'Vincular a uma Viagem'}
-                                            </span>
-                                            <span className="text-sm text-slate-500 font-medium truncate block">Opcional</span>
-                                        </div>
-                                        <ChevronDown className={`w-5 h-5 ${isTripSelectorOpen ? 'rotate-180' : ''} transition-transform text-slate-400`} />
+                            <div className="relative z-20">
+                                <div 
+                                    onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)}
+                                    className={`border rounded-2xl p-4 flex items-center gap-3 shadow-sm relative transition-all cursor-pointer ${tripId ? 'bg-violet-50 border-violet-200' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                                >
+                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${tripId ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                        <Plane className="w-5 h-5" />
                                     </div>
-
-                                    {isTripSelectorOpen && (
-                                        <>
-                                            <div className="fixed inset-0 z-10" onClick={() => setIsTripSelectorOpen(false)} />
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto custom-scrollbar">
-                                                <div 
-                                                    onClick={() => { setTripId(''); setIsTripSelectorOpen(false); }}
-                                                    className="p-3 hover:bg-slate-50 cursor-pointer text-slate-600 font-medium text-sm border-b border-slate-50"
-                                                >
-                                                    Nenhuma
-                                                </div>
-                                                {trips.map(t => (
-                                                    <div 
-                                                        key={t.id}
-                                                        onClick={() => { setTripId(t.id); setIsTripSelectorOpen(false); }}
-                                                        className={`p-3 hover:bg-violet-50 cursor-pointer flex items-center gap-3 ${tripId === t.id ? 'bg-violet-50' : ''}`}
-                                                    >
-                                                        <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-xs">
-                                                            <Plane className="w-4 h-4" />
-                                                        </div>
-                                                        <span className="text-slate-800 font-bold text-sm">{t.name}</span>
-                                                    </div>
-                                                ))}
-                                                {propOnNavigateToTrips && (
-                                                    <div 
-                                                        onClick={propOnNavigateToTrips}
-                                                        className="p-3 hover:bg-violet-100 cursor-pointer flex items-center gap-2 text-violet-700 font-bold text-sm border-t border-slate-100 bg-violet-50"
-                                                    >
-                                                        <Plus className="w-4 h-4" /> Criar Nova Viagem
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </>
-                                    )}
+                                    <div className="flex-1 overflow-hidden">
+                                        <span className={`block text-lg font-bold truncate mb-0.5 ${tripId ? 'text-violet-900' : 'text-slate-600'}`}>
+                                            {tripId ? trips.find(t => t.id === tripId)?.name : 'Vincular a uma Viagem'}
+                                        </span>
+                                        <span className="text-sm text-slate-500 font-medium truncate block">Opcional</span>
+                                    </div>
+                                    <ChevronDown className={`w-5 h-5 ${isTripSelectorOpen ? 'rotate-180' : ''} transition-transform text-slate-400`} />
                                 </div>
 
-                                {showTripCurrencyInput && (
-                                    <div className="bg-violet-50 rounded-2xl p-4 border border-violet-100 animate-in fade-in slide-in-from-top-1">
-                                        <div className="flex items-center gap-2 mb-2 text-violet-800">
-                                            <Globe className="w-4 h-4" />
-                                            <span className="font-bold text-xs uppercase tracking-wide">Valor na Moeda da Viagem ({tripCurrency})</span>
+                                {isTripSelectorOpen && (
+                                    <>
+                                        <div className="fixed inset-0 z-10" onClick={() => setIsTripSelectorOpen(false)} />
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto custom-scrollbar">
+                                            <div 
+                                                onClick={() => { setTripId(''); setIsTripSelectorOpen(false); }}
+                                                className="p-3 hover:bg-slate-50 cursor-pointer text-slate-600 font-medium text-sm border-b border-slate-50"
+                                            >
+                                                Nenhuma
+                                            </div>
+                                            {trips.map(t => (
+                                                <div 
+                                                    key={t.id}
+                                                    onClick={() => { setTripId(t.id); setIsTripSelectorOpen(false); }}
+                                                    className={`p-3 hover:bg-violet-50 cursor-pointer flex items-center gap-3 ${tripId === t.id ? 'bg-violet-50' : ''}`}
+                                                >
+                                                    <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-xs">
+                                                        <Plane className="w-4 h-4" />
+                                                    </div>
+                                                    <span className="text-slate-800 font-bold text-sm">{t.name}</span>
+                                                </div>
+                                            ))}
+                                            {/* 3. ATALHO PARA CRIAR VIAGEM */}
+                                            {propOnNavigateToTrips && (
+                                                <div 
+                                                    onClick={propOnNavigateToTrips}
+                                                    className="p-3 hover:bg-violet-100 cursor-pointer flex items-center gap-2 text-violet-700 font-bold text-sm border-t border-slate-100 bg-violet-50"
+                                                >
+                                                    <Plus className="w-4 h-4" /> Criar Nova Viagem
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="relative">
-                                            <input 
-                                                type="number" 
-                                                value={tripAmountStr}
-                                                onChange={e => setTripAmountStr(e.target.value)}
-                                                placeholder={`0,00 ${tripCurrency}`}
-                                                className="w-full bg-white border border-violet-200 rounded-xl p-3 text-violet-900 font-bold outline-none focus:ring-2 focus:ring-violet-400"
-                                            />
-                                        </div>
-                                        <p className="text-[10px] text-violet-600 mt-2">
-                                            O valor oficial da transação será em {activeCurrency} (R$ {amountStr}), mas será contabilizado como {formatCurrency(parseFloat(tripAmountStr) || 0, tripCurrency)} no orçamento da viagem.
-                                        </p>
-                                    </div>
+                                    </>
                                 )}
+                            </div>
+                        )}
+
+                        {showTripCurrencyInput && (
+                            <div className="bg-violet-50 rounded-2xl p-4 border border-violet-100 animate-in fade-in slide-in-from-top-1">
+                                <div className="flex items-center gap-2 mb-2 text-violet-800">
+                                    <Globe className="w-4 h-4" />
+                                    <span className="font-bold text-xs uppercase tracking-wide">Valor na Moeda da Viagem ({tripCurrency})</span>
+                                </div>
+                                <div className="relative">
+                                    <input 
+                                        type="number" 
+                                        value={tripAmountStr}
+                                        onChange={e => setTripAmountStr(e.target.value)}
+                                        placeholder={`0,00 ${tripCurrency}`}
+                                        className="w-full bg-white border border-violet-200 rounded-xl p-3 text-violet-900 font-bold outline-none focus:ring-2 focus:ring-violet-400"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-violet-600 mt-2">
+                                    O valor oficial da transação será em {activeCurrency} (R$ {amountStr}), mas será contabilizado como {formatCurrency(parseFloat(tripAmountStr) || 0, tripCurrency)} no orçamento da viagem.
+                                </p>
                             </div>
                         )}
 

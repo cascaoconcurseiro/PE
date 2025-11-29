@@ -151,31 +151,23 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                         const type = amount < 0 ? TransactionType.EXPENSE : TransactionType.INCOME;
                         const absAmount = Math.abs(amount);
 
-                        // RECONCILIATION LOGIC: Check if transaction already exists (Fuzzy Match Date +/- 2 days)
                         const existingTx = transactions.find(t => {
                             if (t.accountId !== selectedAccount.id) return false;
-                            if (Math.abs(t.amount - absAmount) > 0.01) return false; // Amount must match exactly
-                            if (t.reconciledWith === fitid) return true; // Already matched by ID
-                            if (t.reconciled) return false; // Already reconciled with something else
+                            if (Math.abs(t.amount - absAmount) > 0.01) return false;
+                            if (t.reconciledWith === fitid) return true;
+                            if (t.reconciled) return false;
 
-                            // Date Fuzzy Match
                             const tDate = new Date(t.date);
                             const ofxDate = new Date(isoDate);
                             const diffTime = Math.abs(tDate.getTime() - ofxDate.getTime());
                             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                            return diffDays <= 2; // Allow 2 days difference
+                            return diffDays <= 2;
                         });
 
                         if (existingTx) {
-                            // Mark as reconciled if not already
                             if (!existingTx.reconciled) {
-                                onAddTransaction({ ...existingTx, reconciled: true, reconciledWith: fitid } as any); // Actually update
-                                // Note: onAddTransaction usually adds new, we might need onUpdateTransaction here. 
-                                // Assuming onAddTransaction handles updates or we need to call onUpdateTransaction.
-                                // Since we don't have onUpdateTransaction exposed in this scope easily without prop drilling or using the prop, 
-                                // let's assume we can't update easily here without changing the prop signature.
-                                // For now, we will just skip adding it.
+                                onAddTransaction({ ...existingTx, reconciled: true, reconciledWith: fitid } as any);
                                 reconciledCount++;
                             }
                         } else {
@@ -253,30 +245,22 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
         return { invoiceTotal: total, transactions: txs, status, daysToClose, closingDate: endCycle, dueDate: finalDueDate };
     };
 
-    // --- LOGIC: COMMITTED BALANCE (REAL CREDIT LIMIT USAGE) ---
     const getCommittedBalance = (account: Account) => {
-        // 1. Transactions initiated by the card (Expenses, Transfers Out)
         const accountTxs = transactions.filter(t => t.accountId === account.id);
-
-        // 2. Transactions received by the card (Payments/Transfers In)
         const incomingTxs = transactions.filter(t => t.destinationAccountId === account.id);
 
         const totalDebt = accountTxs.reduce((acc, t) => {
-            if (t.isRefund) return acc + t.amount; // Refunds reduce debt (add to negative balance)
-            if (t.type === TransactionType.EXPENSE) return acc - t.amount; // Expenses increase debt
-            if (t.type === TransactionType.INCOME) return acc + t.amount; // Income reduces debt
-            if (t.type === TransactionType.TRANSFER) return acc - t.amount; // Transfer out increases debt
+            if (t.isRefund) return acc + t.amount;
+            if (t.type === TransactionType.EXPENSE) return acc - t.amount;
+            if (t.type === TransactionType.INCOME) return acc + t.amount;
+            if (t.type === TransactionType.TRANSFER) return acc - t.amount;
             return acc;
         }, 0);
 
         const totalPayments = incomingTxs.reduce((acc, t) => {
-            // Incoming transfers (payments) reduce debt
             return acc + (t.destinationAmount || t.amount);
         }, 0);
 
-        // Initial Balance is usually 0 or negative (debt)
-        // Debt is negative number. Payments are positive.
-        // If result is -500, committed is 500.
         return Math.abs(totalDebt + totalPayments + (account.initialBalance || 0));
     };
 
@@ -317,7 +301,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
 
         if (amount <= 0) return;
 
-        // 1. Create Payment Transaction
         onAddTransaction({
             amount: amount,
             description: `Pagamento Fatura - ${selectedAccount.name}`,
@@ -330,17 +313,10 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
             isInstallment: false
         });
 
-        // 2. Partial Payment Logic (Rotativo)
         if (amount < invoiceTotal) {
             const remaining = invoiceTotal - amount;
             if (confirm(`Você está pagando ${formatCurrency(amount)} de uma fatura de ${formatCurrency(invoiceTotal)}.\n\nDeseja lançar o restante (${formatCurrency(remaining)}) como "Saldo Devedor" para a próxima fatura?`)) {
-                // Add expense to the NEXT cycle (or simply as a new expense today so it counts towards debt)
-                // Actually, if we just leave it, the balance remains negative.
-                // But to make it appear in the "Invoice View" of the next month as a starting balance, we might need a transaction.
-                // However, our Invoice View is based on Date Range.
-                // So we add a "Saldo Anterior" expense dated for TOMORROW (or next cycle start).
-
-                const nextCycleStart = new Date(); // Simplified, ideally calculated
+                const nextCycleStart = new Date();
                 nextCycleStart.setDate(nextCycleStart.getDate() + 1);
 
                 onAddTransaction({
@@ -368,7 +344,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     };
 
-    // Calculate Totals for Header
     const totalBalance = useMemo(() => accounts.filter(a => a.type !== AccountType.CREDIT_CARD).reduce((acc, curr) => acc + curr.balance, 0), [accounts]);
     const totalCreditUsed = useMemo(() => accounts.filter(a => a.type === AccountType.CREDIT_CARD).reduce((acc, curr) => acc + Math.abs(curr.balance), 0), [accounts]);
 
@@ -584,7 +559,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     </div>
 
                     <div className="relative">
-                        <Button onClick={() => ofxInputRef.current?.click()} variant="secondary" size="sm" className="gap-2 text-slate-700 border-slate-300">
+                        <Button onClick={() => ofxInputRef.current?.click()} variant="secondary" size="sm" className="gap-2 text-slate-700 border-slate-200 shadow-sm hover:bg-slate-50">
                             <FileUp className="w-4 h-4" /> Importar OFX
                         </Button>
                         <input
@@ -706,7 +681,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     <input
                         type="text"
                         placeholder="Buscar conta..."
-                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700"
+                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 placeholder:text-slate-400"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                     />
@@ -723,9 +698,9 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Nome</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
                                 <input
-                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-500"
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-400 text-sm font-normal"
                                     placeholder={activeTab === 'BANKING' ? "Ex: Nubank, Carteira" : "Ex: Nubank Gold, Itaú Black"}
                                     value={newAccount.name || ''}
                                     onChange={e => setNewAccount({ ...newAccount, name: e.target.value })}
@@ -754,9 +729,9 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Tipo</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
                                     <select
-                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900"
+                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 text-sm font-normal"
                                         value={newAccount.type}
                                         onChange={e => setNewAccount({ ...newAccount, type: e.target.value as AccountType })}
                                     >
@@ -767,10 +742,10 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Moeda</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Moeda</label>
                                     <div className="relative">
                                         <select
-                                            className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none appearance-none text-slate-900"
+                                            className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none appearance-none text-slate-900 text-sm font-normal"
                                             value={newAccount.currency}
                                             onChange={e => setNewAccount({ ...newAccount, currency: e.target.value })}
                                         >
@@ -787,10 +762,10 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                             {activeTab === 'CARDS' ? (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">Limite Total</label>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Limite Total</label>
                                         <input
                                             type="number" step="0.01"
-                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-500"
+                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-400 text-sm font-normal"
                                             placeholder="0,00"
                                             value={newAccount.limit || ''}
                                             onChange={e => setNewAccount({ ...newAccount, limit: parseFloat(e.target.value) })}
@@ -799,10 +774,10 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1">Dia Fechamento</label>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Dia Fechamento</label>
                                             <input
                                                 type="number" min="1" max="31"
-                                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-500"
+                                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-400 text-sm font-normal"
                                                 placeholder="Dia"
                                                 value={newAccount.closingDay || ''}
                                                 onChange={e => setNewAccount({ ...newAccount, closingDay: parseInt(e.target.value) })}
@@ -810,10 +785,10 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1">Dia Vencimento</label>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Dia Vencimento</label>
                                             <input
                                                 type="number" min="1" max="31"
-                                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-500"
+                                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-400 text-sm font-normal"
                                                 placeholder="Dia"
                                                 value={newAccount.dueDay || ''}
                                                 onChange={e => setNewAccount({ ...newAccount, dueDay: parseInt(e.target.value) })}
@@ -824,14 +799,15 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                                 </>
                             ) : (
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Saldo Inicial</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Saldo Inicial</label>
                                     <input
                                         type="number" step="0.01"
-                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-500"
+                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-400 text-sm font-normal"
                                         placeholder="0,00"
                                         value={newAccount.balance || ''}
                                         onChange={e => setNewAccount({ ...newAccount, balance: parseFloat(e.target.value) })}
                                     />
+                                    <p className="text-[10px] text-slate-500 mt-1">Este valor será registrado como um lançamento de ajuste inicial.</p>
                                 </div>
                             )}
                         </div>

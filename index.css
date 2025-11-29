@@ -16,9 +16,27 @@
 
 @layer base {
   body {
-    font-family: 'Inter', sans-serif;
-    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300 antialiased;
     overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Padronização de Elementos de Formulário Enterprise */
+  input, select, textarea, button {
+    font-family: inherit;
+    @apply tracking-tight; 
+  }
+
+  /* Inputs mais limpos e profissionais */
+  input::placeholder, textarea::placeholder {
+    @apply text-slate-400 font-normal;
+  }
+  
+  /* Títulos e Cabeçalhos mais elegantes */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-semibold text-slate-900 dark:text-white;
   }
 }
 
