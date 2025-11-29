@@ -3,6 +3,47 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../services/db';
 import { Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset, CustomCategory, SyncStatus, UserProfile, AccountType, Category, TransactionType } from '../types';
 import { parseDate } from '../utils';
+import { z } from 'zod';
+
+// --- VALIDATION SCHEMAS ---
+const baseEntitySchema = z.object({
+  id: z.string(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  deleted: z.boolean().optional(),
+  syncStatus: z.string().optional(),
+});
+
+const accountSchema = baseEntitySchema.extend({
+  name: z.string(),
+  type: z.string(), // relaxed check to allow string, can assume enum
+  balance: z.number(),
+  initialBalance: z.number().optional(),
+  currency: z.string(),
+});
+
+const transactionSchema = baseEntitySchema.extend({
+  amount: z.number(),
+  date: z.string(),
+  description: z.string(),
+  type: z.string(),
+  category: z.string(),
+  accountId: z.string(),
+});
+
+// We define a loose schema for the backup file structure
+const backupSchema = z.object({
+  accounts: z.array(accountSchema).optional(),
+  transactions: z.array(transactionSchema).optional(),
+  trips: z.array(baseEntitySchema.passthrough()).optional(),
+  budgets: z.array(baseEntitySchema.passthrough()).optional(),
+  goals: z.array(baseEntitySchema.passthrough()).optional(),
+  familyMembers: z.array(baseEntitySchema.passthrough()).optional(),
+  assets: z.array(baseEntitySchema.passthrough()).optional(),
+  snapshots: z.array(baseEntitySchema.passthrough()).optional(),
+  customCategories: z.array(baseEntitySchema.passthrough()).optional(),
+}).passthrough();
+
 
 export const useDataStore = () => {
     // --- LIVE QUERIES ---
@@ -314,19 +355,29 @@ export const useDataStore = () => {
     };
 
     const handleImportData = async (data: any) => {
+        // Validate Data Schema
+        const result = backupSchema.safeParse(data);
+        if (!result.success) {
+            console.error("Validation Error:", result.error);
+            alert("O arquivo de backup contém dados inválidos ou corrompidos. A importação foi cancelada.");
+            return;
+        }
+
+        const validData = result.data;
+
         await db.transaction('rw', [db.accounts, db.transactions, db.trips, db.budgets, db.goals, db.familyMembers, db.assets, db.snapshots], async () => {
-            if (data.accounts) await db.accounts.bulkPut(data.accounts);
-            if (data.transactions) await db.transactions.bulkPut(data.transactions);
-            if (data.trips) await db.trips.bulkPut(data.trips);
-            if (data.budgets) await db.budgets.bulkPut(data.budgets);
-            if (data.goals) await db.goals.bulkPut(data.goals);
-            if (data.familyMembers) await db.familyMembers.bulkPut(data.familyMembers);
-            if (data.assets) await db.assets.bulkPut(data.assets);
-            if (data.snapshots) await db.snapshots.bulkPut(data.snapshots);
+            if (validData.accounts) await db.accounts.bulkPut(validData.accounts as Account[]);
+            if (validData.transactions) await db.transactions.bulkPut(validData.transactions as Transaction[]);
+            if (validData.trips) await db.trips.bulkPut(validData.trips as Trip[]);
+            if (validData.budgets) await db.budgets.bulkPut(validData.budgets as Budget[]);
+            if (validData.goals) await db.goals.bulkPut(validData.goals as Goal[]);
+            if (validData.familyMembers) await db.familyMembers.bulkPut(validData.familyMembers as FamilyMember[]);
+            if (validData.assets) await db.assets.bulkPut(validData.assets as Asset[]);
+            if (validData.snapshots) await db.snapshots.bulkPut(validData.snapshots as any);
         });
-        if (data.customCategories) {
-            setCustomCategories(data.customCategories);
-            localStorage.setItem('pdm_categories', JSON.stringify(data.customCategories));
+        if (validData.customCategories) {
+            setCustomCategories(validData.customCategories as CustomCategory[]);
+            localStorage.setItem('pdm_categories', JSON.stringify(validData.customCategories));
         }
         alert('Dados restaurados com sucesso!');
     };

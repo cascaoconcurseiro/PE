@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UserProfile, SyncStatus } from '../types';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -19,95 +19,25 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         password: ''
     });
 
-    // Check if a user is already registered locally
-    useEffect(() => {
-        const storedHash = localStorage.getItem('pdm_auth_hash');
-        if (storedHash) {
-            setIsLogin(true);
-        } else {
-            setIsLogin(false); // Force signup if no hash exists
-        }
-    }, []);
-
-    // Simple SHA-256 hash function
-    const hashPassword = async (password: string) => {
-        const msgBuffer = new TextEncoder().encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
 
-        try {
-            const hash = await hashPassword(formData.password);
-            const storedHash = localStorage.getItem('pdm_auth_hash');
-
-            if (isLogin) {
-                if (!storedHash) {
-                    setError('Nenhum usuário registrado neste dispositivo.');
-                    setIsLoading(false);
-                    return;
-                }
-
-                if (hash !== storedHash) {
-                    setError('Senha incorreta.');
-                    setIsLoading(false);
-                    return;
-                }
-
-                // Login successful
-                const storedName = localStorage.getItem('pdm_user_name') || 'Usuário Local';
-                const storedEmail = localStorage.getItem('pdm_user_email') || formData.email;
-                
-                const user: UserProfile = {
-                    id: 'local-user',
-                    name: storedName,
-                    email: storedEmail,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    syncStatus: SyncStatus.PENDING
-                };
-                onLogin(user);
-
-            } else {
-                // Registration (Signup)
-                if (storedHash) {
-                    if (!confirm('Já existe uma conta neste dispositivo. Criar uma nova substituirá a senha de acesso (mas manterá os dados). Deseja continuar?')) {
-                        setIsLoading(false);
-                        return;
-                    }
-                }
-
-                if (formData.password.length < 4) {
-                    setError('A senha deve ter pelo menos 4 caracteres.');
-                    setIsLoading(false);
-                    return;
-                }
-
-                // Save credentials locally
-                localStorage.setItem('pdm_auth_hash', hash);
-                localStorage.setItem('pdm_user_name', formData.name);
-                localStorage.setItem('pdm_user_email', formData.email);
-
-                const newUser: UserProfile = {
-                    id: 'local-user',
-                    name: formData.name,
-                    email: formData.email,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    syncStatus: SyncStatus.PENDING
-                };
-                onLogin(newUser);
-            }
-        } catch (err) {
-            setError('Erro ao processar autenticação.');
-        } finally {
+        // Simulate login/signup delay
+        setTimeout(() => {
             setIsLoading(false);
-        }
+            // Mock user for local-first app
+            const mockUser: UserProfile = {
+                id: 'local-user',
+                name: formData.name || 'Usuário Local',
+                email: formData.email,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                syncStatus: SyncStatus.PENDING
+            };
+            onLogin(mockUser);
+        }, 1000);
     };
 
     return (
@@ -127,21 +57,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     <p className="text-slate-400 text-lg">Seu futuro financeiro começa aqui.</p>
                 </div>
 
-                {/* Security Disclaimer */}
-                <div className="mb-6 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 backdrop-blur-sm">
-                    <div className="flex gap-3">
-                        <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                        <div className="text-xs text-amber-200">
-                            <p className="font-bold mb-1 text-amber-100">Armazenamento Local (Offline)</p>
-                            <p className="leading-relaxed opacity-90">
-                                Seus dados são salvos apenas neste dispositivo e <strong>não são criptografados</strong>.
-                                A senha abaixo serve apenas para restringir o acesso à interface.
-                                <strong> Não utilize em computadores públicos.</strong>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
                 <Card className="bg-white/95 backdrop-blur-xl border-none shadow-2xl">
                     <div className="mb-6 flex gap-4 border-b border-slate-200 pb-2">
                         <button
@@ -154,7 +69,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                             className={`flex-1 pb-2 text-sm font-bold transition-colors ${!isLogin ? 'text-emerald-700 border-b-2 border-emerald-600' : 'text-slate-500 hover:text-slate-800'}`}
                             onClick={() => { setIsLogin(false); setError(''); }}
                         >
-                            Configurar Acesso
+                            Criar Conta
                         </button>
                     </div>
 
@@ -169,14 +84,13 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                                         placeholder="Seu nome completo"
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        required={!isLogin}
                                     />
                                 </div>
                             </div>
                         )}
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-700 uppercase">E-mail (Identificação)</label>
+                            <label className="text-xs font-bold text-slate-700 uppercase">E-mail</label>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
                                 <input
@@ -185,16 +99,14 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                                     placeholder="seu@email.com"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                    required={!isLogin} // Optional on login if we rely on stored hash only, but keeping it for consistency/identification
+                                    required
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-1">
                             <div className="flex justify-between items-center">
-                                <label className="text-xs font-bold text-slate-700 uppercase">
-                                    {isLogin ? 'Senha de Acesso' : 'Criar Senha de Acesso'}
-                                </label>
+                                <label className="text-xs font-bold text-slate-700 uppercase">Senha</label>
                             </div>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
@@ -215,12 +127,19 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                             </div>
                         )}
 
+                        <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 flex gap-3 items-start">
+                             <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                             <div className="text-xs text-amber-800">
+                                 <strong>Aviso de Segurança:</strong> Seus dados são salvos localmente neste dispositivo e <strong>não são criptografados</strong>. Não utilize este aplicativo em computadores públicos ou compartilhados.
+                             </div>
+                        </div>
+
                         <Button
                             type="submit"
                             className="w-full h-14 text-base font-bold shadow-lg shadow-emerald-500/30 bg-emerald-600 hover:bg-emerald-700 mt-4 rounded-xl"
                             isLoading={isLoading}
                         >
-                            {isLogin ? 'Desbloquear Acesso' : 'Criar Perfil Local'} <ArrowRight className="w-5 h-5 ml-2" />
+                            {isLogin ? 'Acessar Meu Pé de Meia' : 'Criar Meu Pé de Meia'} <ArrowRight className="w-5 h-5 ml-2" />
                         </Button>
                     </form>
                 </Card>

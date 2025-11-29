@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Download, Upload, Trash2, ShieldCheck, Database, AlertTriangle, Tag, Plus, X, Key, Sparkles } from 'lucide-react';
+import { Download, Upload, Trash2, ShieldCheck, Database, AlertTriangle, Tag, Plus, X, Key, Eye, EyeOff } from 'lucide-react';
 import { Account, Budget, CustomCategory, FamilyMember, Transaction, Trip, Asset, Goal, Snapshot } from '../types';
 
 interface SettingsProps {
@@ -45,16 +45,19 @@ export const Settings: React.FC<SettingsProps> = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [globalCurrency, setGlobalCurrency] = useState('BRL');
+    
+    // API Key State
     const [apiKey, setApiKey] = useState('');
+    const [showApiKey, setShowApiKey] = useState(false);
 
     useEffect(() => {
-        const key = localStorage.getItem('gemini_api_key');
-        if (key) setApiKey(key);
+        const storedKey = localStorage.getItem('pdm_api_key');
+        if (storedKey) setApiKey(storedKey);
     }, []);
 
     const handleSaveApiKey = () => {
-        localStorage.setItem('gemini_api_key', apiKey);
-        alert('Chave de API salva com sucesso!');
+        localStorage.setItem('pdm_api_key', apiKey);
+        alert('Chave API salva com segurança no navegador!');
     };
 
     const handleExport = () => {
@@ -107,14 +110,11 @@ export const Settings: React.FC<SettingsProps> = ({
     const handleClearData = async () => {
         if (window.confirm('ATENÇÃO: Isso apagará TODOS os seus dados deste dispositivo. Se você não fez backup, eles serão perdidos. Deseja continuar?')) {
             try {
-                // Clear localStorage
                 localStorage.clear();
-
-                // Clear IndexedDB
+                // We assume db is available globally or reload handles it
                 const { db } = await import('../services/db');
                 await db.delete();
                 await db.open();
-
                 window.location.reload();
             } catch (e) {
                 console.error("Error clearing data:", e);
@@ -167,35 +167,42 @@ export const Settings: React.FC<SettingsProps> = ({
                 </div>
             </Card>
 
-            {/* AI Integration Section */}
+            {/* AI Integration (Security Fix #1) */}
             <Card className="p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-3 bg-violet-100 text-violet-600 rounded-xl">
-                        <Sparkles className="w-6 h-6" />
+                        <Key className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg text-slate-800">Integração com IA</h3>
-                        <p className="text-sm text-slate-500">Configure sua chave de API para recursos inteligentes.</p>
+                        <h3 className="font-bold text-lg text-slate-800">Integração com IA (Gemini)</h3>
+                        <p className="text-sm text-slate-500">Configure sua chave de API pessoal.</p>
                     </div>
                 </div>
-
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1">Gemini API Key</label>
                         <div className="flex gap-2">
-                            <input
-                                type="password"
-                                value={apiKey}
-                                onChange={(e) => setApiKey(e.target.value)}
-                                placeholder="Cole sua chave aqui..."
-                                className="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
-                            />
-                            <Button onClick={handleSaveApiKey} className="bg-violet-600 hover:bg-violet-700 text-white">
-                                Salvar
-                            </Button>
+                            <div className="relative flex-1">
+                                <input
+                                    type={showApiKey ? "text" : "password"}
+                                    className="w-full pl-3 pr-10 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-slate-900 font-mono"
+                                    value={apiKey}
+                                    onChange={(e) => setApiKey(e.target.value)}
+                                    placeholder="Cole sua chave aqui..."
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowApiKey(!showApiKey)}
+                                    className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600"
+                                >
+                                    {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                            <Button onClick={handleSaveApiKey} className="bg-violet-600 hover:bg-violet-700 text-white">Salvar</Button>
                         </div>
                         <p className="text-xs text-slate-500 mt-2">
-                            Sua chave é armazenada apenas no seu navegador (LocalStorage) e nunca é enviada para nossos servidores.
+                            Sua chave é armazenada apenas no armazenamento local do seu navegador. 
+                            Nunca compartilhe sua chave API.
                         </p>
                     </div>
                 </div>
@@ -355,7 +362,7 @@ export const Settings: React.FC<SettingsProps> = ({
             </Card>
 
             <div className="text-center text-xs text-slate-400 mt-8">
-                <p>Pé de Meia v3.0.0</p>
+                <p>Pé de Meia v3.1.0</p>
                 <p className="mt-1">Desenvolvido com IA</p>
             </div>
         </div>
