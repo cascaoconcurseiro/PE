@@ -226,8 +226,10 @@ export const Transactions: React.FC<TransactionsProps> = ({
     };
 
     const handleConfirmSplit = () => {
-        if (splits.length === 0) {
+        if (splits.length === 0 && payerId === 'me') {
             setIsShared(false);
+        } else {
+            setIsShared(true);
         }
         setIsSplitModalOpen(false);
     }
@@ -278,8 +280,6 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 assignedAmount: (activeAmount * s.percentage) / 100
             }));
 
-        // CORE FIX: Se alguém pagou (payerId != 'me'), FORÇAR isShared = true
-        // Isso garante que o módulo Shared.tsx processe essa transação como dívida.
         const isExternalPayer = payerId && payerId !== 'me';
         const shouldBeShared = formMode === TransactionType.EXPENSE && (isShared || finalSplits.length > 0 || isExternalPayer);
 
@@ -289,7 +289,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             date,
             type: formMode!,
             category: formMode === TransactionType.TRANSFER ? Category.TRANSFER : category,
-            accountId: accountId || (accounts[0] ? accounts[0].id : ''), // Fallback safe ID if payer is external
+            accountId: accountId || (accounts[0] ? accounts[0].id : ''), 
             destinationAccountId: isTransfer ? destinationAccountId : undefined,
             destinationAmount: isTransfer && destinationAccountId ? finalDestinationAmount : undefined,
             tripId: tripId || undefined,
@@ -315,7 +315,6 @@ export const Transactions: React.FC<TransactionsProps> = ({
         if (editingId && onUpdateTransaction) {
             onUpdateTransaction({ ...transactionData, id: editingId });
             if (updateFuture) {
-                // Update future logic (simplified)
                 const original = transactions.find(t => t.id === editingId);
                 if (original) {
                     const futureTxs = transactions.filter(t =>
@@ -352,9 +351,9 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 <div ref={topRef} />
                 <div className="px-3 py-2 shrink-0 border-b border-slate-100 flex items-center gap-2">
                     <div className="flex bg-slate-100 p-1 rounded-xl relative shadow-inner flex-1">
-                        <button onClick={() => setFormMode(TransactionType.EXPENSE)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isExpense ? 'bg-white text-red-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}><ArrowDownLeft className="w-3.5 h-3.5" /> Despesa</button>
-                        <button onClick={() => setFormMode(TransactionType.INCOME)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isIncome ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600'}`}><ArrowUpRight className="w-3.5 h-3.5" /> Receita</button>
-                        <button onClick={() => setFormMode(TransactionType.TRANSFER)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isTransfer ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}><RefreshCcw className="w-3.5 h-3.5" /> Transf.</button>
+                        <button onClick={() => setFormMode(TransactionType.EXPENSE)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isExpense ? 'bg-white text-red-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'}`}><ArrowDownLeft className="w-3.5 h-3.5" /> Despesa</button>
+                        <button onClick={() => setFormMode(TransactionType.INCOME)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isIncome ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'}`}><ArrowUpRight className="w-3.5 h-3.5" /> Receita</button>
+                        <button onClick={() => setFormMode(TransactionType.TRANSFER)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isTransfer ? 'bg-white text-blue-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'}`}><RefreshCcw className="w-3.5 h-3.5" /> Transf.</button>
                     </div>
                     {editingId && (
                         <div className="shrink-0">
@@ -417,64 +416,42 @@ export const Transactions: React.FC<TransactionsProps> = ({
                             </div>
                         </div>
 
-                        {/* --- QUEM PAGOU (PAYER) LOGIC --- */}
-                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                            {isExpense && (
-                                <div className="flex gap-2 p-1 bg-white rounded-lg border border-slate-200 mb-2">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setPayerId('me')}
-                                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${payerId === 'me' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}
-                                    >
-                                        Eu Paguei
-                                    </button>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setPayerId(familyMembers.length > 0 ? familyMembers[0].id : 'other')}
-                                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${payerId !== 'me' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}
-                                    >
-                                        Outro Pagou
-                                    </button>
-                                </div>
-                            )}
-
+                        {/* --- ACCOUNT SELECTION --- */}
+                        <div className="grid grid-cols-1 gap-3">
                             {payerId === 'me' ? (
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 mb-1 block">{isTransfer ? 'Sai de (Origem)' : isIncome ? 'Receber em' : 'Pagar com'}</label>
-                                    <div className="relative">
-                                        <Wallet className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                                        <select value={accountId} onChange={e => setAccountId(e.target.value)} className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-300 text-sm font-bold text-slate-700 bg-white outline-none focus:ring-2 focus:ring-indigo-500 appearance-none">
-                                            {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name} ({formatCurrency(acc.balance, acc.currency)})</option>)}
-                                        </select>
-                                        <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">{isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}</label>
+                                    <div className={`relative rounded-xl p-3 flex items-center gap-3 shadow-md transition-all active:scale-[0.99] cursor-pointer overflow-hidden group ${!selectedAccountObj ? 'bg-white border border-slate-200' : selectedAccountObj.type === AccountType.CREDIT_CARD ? 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white' : 'bg-gradient-to-br from-slate-800 to-slate-900 text-white'}`}>
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${selectedAccountObj ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}><Wallet className="w-5 h-5" /></div>
+                                        <div className="flex-1 overflow-hidden z-10"><span className={`block text-sm font-bold truncate mb-0.5 ${selectedAccountObj ? 'text-white' : 'text-slate-900'}`}>{selectedAccountObj?.name || 'Selecione uma conta'}</span></div>
+                                        <ChevronDown className={`w-5 h-5 shrink-0 z-10 ${selectedAccountObj ? 'text-white/70' : 'text-slate-400'}`} />
+                                        <select value={accountId} onChange={e => setAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">{accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
                                     </div>
                                 </div>
                             ) : (
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 mb-1 block">Quem pagou?</label>
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                                        <select 
-                                            value={payerId} onChange={e => setPayerId(e.target.value)} 
-                                            className="w-full pl-9 pr-4 py-3 rounded-xl border border-indigo-300 text-sm font-bold text-indigo-700 bg-indigo-50 outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
-                                        >
-                                            {familyMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                        </select>
-                                        <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">Status do Pagamento</label>
+                                    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700"><User className="w-5 h-5" /></div>
+                                            <div>
+                                                <span className="block text-sm font-bold text-indigo-900">Pago por {familyMembers.find(m => m.id === payerId)?.name || 'Outro'}</span>
+                                                <span className="text-xs text-indigo-600">Você deve este valor</span>
+                                            </div>
+                                        </div>
+                                        <Button size="sm" variant="secondary" onClick={() => setIsSplitModalOpen(true)} className="text-xs h-8">Alterar</Button>
                                     </div>
-                                    <p className="text-[10px] text-indigo-600 mt-1 pl-1 font-medium">*Isso criará uma dívida sua com esta pessoa.</p>
                                 </div>
                             )}
 
                             {isTransfer && (
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 mb-1 block">Para (Destino)</label>
-                                    <div className="relative">
-                                        <Wallet className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                                        <select value={destinationAccountId} onChange={e => setDestinationAccountId(e.target.value)} className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-300 text-sm font-bold text-slate-700 bg-white outline-none focus:ring-2 focus:ring-indigo-500 appearance-none">
-                                            {accounts.filter(a => a.id !== accountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                        </select>
-                                        <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">Vai para (Destino)</label>
+                                    <div className={`relative rounded-xl p-3 flex items-center gap-3 shadow-md transition-all active:scale-[0.99] cursor-pointer overflow-hidden group ${!destAccountObj ? 'bg-white border border-slate-200' : 'bg-gradient-to-br from-slate-800 to-slate-900 text-white'}`}>
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${destAccountObj ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}><Wallet className="w-5 h-5" /></div>
+                                        <div className="flex-1 overflow-hidden z-10"><span className={`block text-sm font-bold truncate mb-0.5 ${destAccountObj ? 'text-white' : 'text-slate-900'}`}>{destAccountObj?.name || 'Selecione o destino'}</span></div>
+                                        <ChevronDown className={`w-5 h-5 shrink-0 z-10 ${destAccountObj ? 'text-white/70' : 'text-slate-400'}`} />
+                                        <select value={destinationAccountId} onChange={e => setDestinationAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">{accounts.filter(a => a.id !== accountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
                                     </div>
                                 </div>
                             )}
@@ -496,7 +473,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                 <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isRecurring ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}><Repeat className="w-5 h-5" /><span className="text-[10px] font-bold">Repetir</span></button>
                                 {isExpense && <button type="button" onClick={() => setIsInstallment(!isInstallment)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isInstallment ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}><CreditCard className="w-5 h-5" /><span className="text-[10px] font-bold">Parcelar</span></button>}
                                 <button type="button" onClick={() => setEnableNotification(!enableNotification)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${enableNotification ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}><Bell className="w-5 h-5" /><span className="text-[10px] font-bold">Lembrar</span></button>
-                                {isExpense && <button type="button" onClick={() => setIsSplitModalOpen(true)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${splits.length > 0 ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}><Users className="w-5 h-5" /><span className="text-[10px] font-bold">Dividir</span></button>}
+                                {isExpense && <button type="button" onClick={() => setIsSplitModalOpen(true)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${splits.length > 0 || payerId !== 'me' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}><Users className="w-5 h-5" /><span className="text-[10px] font-bold">Dividir</span></button>}
                             </div>
                         </div>
 
@@ -573,25 +550,69 @@ export const Transactions: React.FC<TransactionsProps> = ({
                         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={handleConfirmSplit}></div>
                         <div className="bg-white w-full sm:max-w-md h-[85vh] sm:h-auto rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 flex flex-col animate-in slide-in-from-bottom-full duration-300">
                             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-3xl">
-                                <div><h3 className="font-bold text-slate-800 text-lg">Dividir Despesa</h3></div>
+                                <div><h3 className="font-bold text-slate-800 text-lg">Divisão e Pagamento</h3></div>
                                 <button onClick={handleConfirmSplit} className="p-2 bg-white rounded-full border border-slate-200"><X className="w-5 h-5 text-slate-600" /></button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar">
-                                <div className="space-y-3">
-                                    {familyMembers.map(member => {
-                                        const split = splits.find(s => s.memberId === member.id);
-                                        const isSelected = !!split;
-                                        return (
-                                            <div key={member.id} className={`rounded-2xl border transition-all overflow-hidden ${isSelected ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-white border-slate-200'}`}>
-                                                <div onClick={() => toggleSplitMember(member.id)} className="p-4 flex items-center justify-between cursor-pointer active:bg-indigo-50">
-                                                    <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{member.name[0]}</div><span className={`font-bold ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>{member.name}</span></div>
-                                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'}`}>{isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}</div>
-                                                </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+                                
+                                {/* 1. QUEM PAGOU? */}
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Quem pagou?</label>
+                                    <div className="flex gap-2 p-1 bg-slate-100 rounded-xl mb-3">
+                                        <button 
+                                            onClick={() => setPayerId('me')}
+                                            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-colors ${payerId === 'me' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            Eu Paguei
+                                        </button>
+                                        <button 
+                                            onClick={() => setPayerId(familyMembers.length > 0 ? familyMembers[0].id : 'other')}
+                                            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-colors ${payerId !== 'me' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            Outro Pagou
+                                        </button>
+                                    </div>
+
+                                    {payerId !== 'me' && (
+                                        <div className="relative animate-in fade-in slide-in-from-top-1">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <User className="h-5 w-5 text-indigo-500" />
                                             </div>
-                                        );
-                                    })}
+                                            <select 
+                                                value={payerId} onChange={e => setPayerId(e.target.value)} 
+                                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-900 font-bold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+                                            >
+                                                {familyMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                            </select>
+                                            <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-indigo-400 pointer-events-none" />
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="p-4 border-t border-slate-100 bg-white rounded-b-3xl"><Button onClick={handleConfirmSplit} className="w-full h-12 text-lg bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 shadow-lg">Confirmar Divisão</Button></div>
+
+                                {/* 2. QUEM DIVIDE? */}
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Dividir com quem?</label>
+                                    <div className="space-y-3">
+                                        {familyMembers.map(member => {
+                                            const split = splits.find(s => s.memberId === member.id);
+                                            const isSelected = !!split;
+                                            return (
+                                                <div key={member.id} className={`rounded-2xl border transition-all overflow-hidden ${isSelected ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-white border-slate-200'}`}>
+                                                    <div onClick={() => toggleSplitMember(member.id)} className="p-4 flex items-center justify-between cursor-pointer active:bg-indigo-50">
+                                                        <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{member.name[0]}</div><span className={`font-bold ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>{member.name}</span></div>
+                                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'}`}>{isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="p-4 bg-blue-50 rounded-xl text-xs text-blue-800 leading-relaxed border border-blue-100">
+                                    <p><strong>Nota:</strong> Se você selecionou que "Outro Pagou", o valor total da transação será registrado como uma dívida sua com essa pessoa, descontando a parte que você dividiu (se houver).</p>
+                                </div>
+
+                                <div className="pt-4"><Button onClick={handleConfirmSplit} className="w-full h-12 text-lg bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 shadow-lg">Confirmar</Button></div>
                             </div>
                         </div>
                     </div>
