@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, TransactionSplit, Frequency, AccountType } from '../../types';
 import { Button } from '../ui/Button';
 import { 
@@ -37,12 +37,34 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     onNavigateToTrips,
     onNavigateToFamily
 }) => {
+    // Sorted Accounts Logic: Checking/Cash First
+    const sortedAccounts = useMemo(() => {
+        return [...accounts].sort((a, b) => {
+            const score = (type: AccountType) => {
+                if (type === AccountType.CHECKING || type === AccountType.CASH) return 1;
+                if (type === AccountType.CREDIT_CARD) return 2;
+                return 3;
+            };
+            return score(a.type) - score(b.type);
+        });
+    }, [accounts]);
+
+    // Default Account Selection Logic
+    const getDefaultAccount = () => {
+        if (formMode === TransactionType.INCOME) {
+            // For income, prefer Checking/Cash/Savings
+            const preferred = sortedAccounts.find(a => a.type !== AccountType.CREDIT_CARD);
+            return preferred ? preferred.id : sortedAccounts[0]?.id || '';
+        }
+        return sortedAccounts[0]?.id || '';
+    };
+
     // State initialization
     const [amountStr, setAmountStr] = useState('');
     const [description, setDescription] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [category, setCategory] = useState<string>(Category.FOOD);
-    const [accountId, setAccountId] = useState(accounts[0]?.id || '');
+    const [accountId, setAccountId] = useState(getDefaultAccount());
     const [destinationAccountId, setDestinationAccountId] = useState('');
     const [destinationAmountStr, setDestinationAmountStr] = useState('');
     const [tripId, setTripId] = useState('');
@@ -136,10 +158,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             
             topRef.current?.scrollIntoView({ behavior: 'smooth' });
         } else {
-            // Reset for new
-            if (accounts.length > 0 && !accountId) setAccountId(accounts[0].id);
+            // Reset logic when switching modes (e.g. Expense -> Income) to ensure proper defaults
+            if (!accountId || (formMode === TransactionType.INCOME && isCreditCard)) {
+               setAccountId(getDefaultAccount());
+            }
         }
-    }, [initialData, accounts]);
+    }, [initialData, accounts, formMode]);
 
     // Force disable installments if switching to non-credit card
     useEffect(() => {
@@ -265,6 +289,34 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         }
     };
 
+    // Helper to group accounts for the dropdown
+    const renderAccountOptions = () => {
+        const banking = sortedAccounts.filter(a => a.type === AccountType.CHECKING || a.type === AccountType.CASH || a.type === AccountType.SAVINGS);
+        const credit = sortedAccounts.filter(a => a.type === AccountType.CREDIT_CARD);
+        const others = sortedAccounts.filter(a => a.type === AccountType.INVESTMENT || (a.type as any) === 'OTHER');
+
+        return (
+            <>
+                <option value="" disabled>Selecione...</option>
+                {banking.length > 0 && (
+                    <optgroup label="Contas e Carteira">
+                        {banking.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                    </optgroup>
+                )}
+                {credit.length > 0 && (
+                    <optgroup label="Cartões de Crédito">
+                        {credit.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                    </optgroup>
+                )}
+                {others.length > 0 && (
+                    <optgroup label="Investimentos e Outros">
+                        {others.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                    </optgroup>
+                )}
+            </>
+        );
+    };
+
     if (accounts.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in zoom-in-95">
@@ -381,7 +433,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                         {selectedAccountObj && <span className="text-[10px] opacity-80 block">{selectedAccountObj.type}</span>}
                                     </div>
                                     <ChevronDown className={`w-5 h-5 shrink-0 z-10 ${selectedAccountObj ? 'text-white/70' : 'text-slate-400'}`} />
-                                    <select value={accountId} onChange={e => setAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">{accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
+                                    <select value={accountId} onChange={e => setAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
+                                        {renderAccountOptions()}
+                                    </select>
                                 </div>
                             </div>
                         ) : (
