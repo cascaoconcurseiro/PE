@@ -161,7 +161,7 @@ const App = () => {
     const renderContent = () => {
         switch (activeView) {
             case View.DASHBOARD:
-                return <Dashboard accounts={calculatedAccounts} transactions={transactions} currentDate={currentDate} showValues={showValues} onEditRequest={handleRequestEdit} />;
+                return <Dashboard accounts={calculatedAccounts} transactions={transactions} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={handleRequestEdit} />;
             case View.ACCOUNTS:
                 return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} />;
             case View.TRANSACTIONS:
@@ -183,7 +183,7 @@ const App = () => {
             case View.SETTINGS:
                 return <Settings onImport={handlers.handleImportData} customCategories={customCategories} onAddCategory={handlers.handleAddCategory} onDeleteCategory={handlers.handleDeleteCategory} accounts={accounts} transactions={transactions} trips={trips} budgets={budgets} goals={goals} familyMembers={familyMembers} assets={assets} snapshots={snapshots} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} />;
             default:
-                return <Dashboard accounts={calculatedAccounts} transactions={transactions} currentDate={currentDate} showValues={showValues} />;
+                return <Dashboard accounts={calculatedAccounts} transactions={transactions} goals={goals} currentDate={currentDate} showValues={showValues} />;
         }
     };
 

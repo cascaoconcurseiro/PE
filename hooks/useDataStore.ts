@@ -55,12 +55,9 @@ export const useDataStore = () => {
         if (newTx.isInstallment && totalInstallments > 1) {
             const baseDate = parseDate(newTx.date);
             const seriesId = crypto.randomUUID();
-            const amountPerInstallment = newTx.amount / totalInstallments;
-
-            const sharedWithPerInstallment = newTx.sharedWith?.map(s => ({
-                ...s,
-                assignedAmount: s.assignedAmount / totalInstallments
-            }));
+            // Calculate base installment amount (floored to 2 decimals)
+            const baseInstallmentValue = Math.floor((newTx.amount / totalInstallments) * 100) / 100;
+            let accumulatedAmount = 0;
 
             for (let i = 0; i < totalInstallments; i++) {
                 // FIX: Prevent month skipping for dates like Jan 31
@@ -78,12 +75,28 @@ export const useDataStore = () => {
                 // Preserve time from baseDate
                 nextDate.setHours(baseDate.getHours(), baseDate.getMinutes(), baseDate.getSeconds(), baseDate.getMilliseconds());
 
+                // Calculate specific amount for this installment
+                let currentAmount = baseInstallmentValue;
+
+                // If it's the last installment, adjust the amount to match total exactly
+                if (i === totalInstallments - 1) {
+                    currentAmount = Number((newTx.amount - accumulatedAmount).toFixed(2));
+                }
+
+                accumulatedAmount += currentAmount;
+
+                // Adjust shared amounts proportionally if needed (simplified for now, ideally should follow same logic)
+                const currentSharedWith = newTx.sharedWith?.map(s => ({
+                    ...s,
+                    assignedAmount: Number(((s.assignedAmount / newTx.amount) * currentAmount).toFixed(2))
+                }));
+
                 newTransactionsList.push({
                     ...newTx,
                     id: crypto.randomUUID(),
-                    amount: amountPerInstallment,
+                    amount: currentAmount,
                     originalAmount: newTx.amount,
-                    sharedWith: sharedWithPerInstallment,
+                    sharedWith: currentSharedWith,
                     seriesId: seriesId,
                     date: nextDate.toISOString().split('T')[0],
                     currentInstallment: i + 1,

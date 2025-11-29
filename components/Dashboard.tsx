@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from 'react';
-import { Account, Transaction, TransactionType, AccountType } from '../types';
+import { Account, Transaction, TransactionType, AccountType, Goal } from '../types';
 import { Card } from './ui/Card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { TrendingUp, TrendingDown, Bell, Clock, Wallet, PieChart as PieIcon, ChevronLeft, ChevronRight, BarChart3, LineChart, AlertCircle } from 'lucide-react';
@@ -10,6 +10,7 @@ import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTr
 interface DashboardProps {
     accounts: Account[];
     transactions: Transaction[];
+    goals?: Goal[];
     currentDate?: Date;
     showValues: boolean;
     onEditRequest?: (id: string) => void;
@@ -20,7 +21,7 @@ const PrivacyBlur = ({ children, showValues, darkBg = false }: { children?: Reac
     return <span className={`blur-sm select-none ${darkBg ? 'opacity-80' : 'opacity-60'}`}>R$ ••••</span>;
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, currentDate = new Date(), showValues, onEditRequest }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, goals = [], currentDate = new Date(), showValues, onEditRequest }) => {
     const selectedYear = currentDate.getFullYear();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -38,9 +39,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
 
     // --- FINANCIAL LOGIC INTEGRATION ---
     // 1. Calculate Projection
-    const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() => 
-        calculateProjectedBalance(accounts, transactions, currentDate), 
-    [accounts, transactions, currentDate]);
+    const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() =>
+        calculateProjectedBalance(accounts, transactions, currentDate),
+        [accounts, transactions, currentDate]);
 
     // 2. Filter Transactions for Charts
     const monthlyTransactions = useMemo(() =>
@@ -69,16 +70,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
     // 4. Financial Health Check
     const healthStatus = analyzeFinancialHealth(monthlyIncome + pendingIncome, monthlyExpense + pendingExpenses);
 
-    // 5. Total Net Worth (All Accounts including Investments)
-    const netWorth = useMemo(() =>
-        accounts.reduce((acc, curr) => {
+    // 5. Total Net Worth (All Accounts + Goals - Credit Card Debt)
+    const netWorth = useMemo(() => {
+        const accountsTotal = accounts.reduce((acc, curr) => {
             // Subtract Credit Card Debt from Net Worth
             if (curr.type === AccountType.CREDIT_CARD) {
                 return acc - Math.abs(convertToBRL(curr.balance, curr.currency || 'BRL'));
             }
             return acc + convertToBRL(curr.balance, curr.currency || 'BRL');
-        }, 0),
-        [accounts]);
+        }, 0);
+
+        const goalsTotal = goals.reduce((acc, goal) => acc + goal.currentAmount, 0);
+
+        return accountsTotal + goalsTotal;
+    }, [accounts, goals]);
 
     // Annual Cash Flow Data (Using Effective Values)
     const cashFlowData = useMemo(() => {
@@ -99,7 +104,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
 
             const monthIndex = tDate.getMonth();
             const account = accounts.find(a => a.id === t.accountId);
-            
+
             // Calculate Effective Amount in BRL
             const effectiveAmount = calculateEffectiveTransactionValue(t);
             const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
@@ -152,7 +157,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
         .filter(([_, val]) => (val as number) > 0)
         .map(([name, value]) => ({ name, value: value as number }))
         .sort((a, b) => b.value - a.value), // Sort by value desc
-    [monthlyTransactions, accounts]);
+        [monthlyTransactions, accounts]);
 
     const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e'];
 
@@ -164,7 +169,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                 <div className="absolute top-0 right-0 p-6 opacity-10">
                     <LineChart className="w-40 h-40 text-white" />
                 </div>
-                
+
                 <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div>
                         <div className="flex items-center gap-2 mb-2 text-indigo-300">
@@ -224,7 +229,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                     </button>
                 </div>
 
-                <div 
+                <div
                     ref={scrollContainerRef}
                     className="
                         flex md:grid md:grid-cols-3 gap-4 
@@ -319,11 +324,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" className="stroke-slate-200 dark:stroke-slate-800" />
-                            <XAxis 
-                                dataKey="month" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fontSize: 10, fill: 'currentColor' }} 
+                            <XAxis
+                                dataKey="month"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 10, fill: 'currentColor' }}
                                 className="text-slate-500 dark:text-slate-400 font-medium"
                                 interval="preserveStartEnd"
                             />
@@ -340,10 +345,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                             />
                             <Tooltip
                                 formatter={(value: number) => showValues ? formatCurrency(value) : '****'}
-                                contentStyle={{ 
-                                    backgroundColor: 'var(--color-bg)', 
-                                    borderColor: 'var(--color-border)', 
-                                    borderRadius: '12px', 
+                                contentStyle={{
+                                    backgroundColor: 'var(--color-bg)',
+                                    borderColor: 'var(--color-border)',
+                                    borderRadius: '12px',
                                     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                                     color: 'var(--color-text)'
                                 }}
@@ -433,12 +438,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip 
-                                        formatter={(value: number) => showValues ? formatCurrency(value) : 'R$ ****'} 
-                                        contentStyle={{ 
-                                            borderRadius: '12px', 
-                                            border: 'none', 
-                                            backgroundColor: '#1e293b', 
+                                    <Tooltip
+                                        formatter={(value: number) => showValues ? formatCurrency(value) : 'R$ ****'}
+                                        contentStyle={{
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            backgroundColor: '#1e293b',
                                             color: '#fff',
                                             boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                                         }}
@@ -446,7 +451,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
-                            
+
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div className="text-center">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Gasto</span>

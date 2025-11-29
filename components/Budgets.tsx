@@ -24,50 +24,51 @@ export const Budgets: React.FC<BudgetsProps> = ({ transactions, budgets, onAddBu
         rollover: false
     });
 
-    // Calculate spending per category for the current month
-    const categorySpending = useMemo(() => {
-        const spending: Record<string, number> = {};
+    // Optimized Calculation: Aggregate spending by Category and Month in a single pass
+    const { categorySpending, rolloverBalances } = useMemo(() => {
         const currentMonth = currentDate.getMonth();
         const currentYear = currentDate.getFullYear();
+
+        // 1. Aggregate all expenses by "Category|Year|Month"
+        // Map key: "CategoryName|Year|Month" -> Amount
+        const spendingMap = new Map<string, number>();
+        const currentMonthSpending: Record<string, number> = {};
 
         transactions.forEach(t => {
             if (t.type === TransactionType.EXPENSE && !t.isRefund) {
                 const tDate = new Date(t.date);
-                if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear) {
-                    const cat = t.category;
-                    spending[cat] = (spending[cat] || 0) + t.amount;
+                const tYear = tDate.getFullYear();
+
+                // Only process current year for rollover logic
+                if (tYear === currentYear) {
+                    const tMonth = tDate.getMonth();
+                    const key = `${t.category}|${tYear}|${tMonth}`;
+                    const currentVal = spendingMap.get(key) || 0;
+                    spendingMap.set(key, currentVal + t.amount);
+
+                    // If it's the current month, also populate the simple spending object
+                    if (tMonth === currentMonth) {
+                        currentMonthSpending[t.category] = (currentMonthSpending[t.category] || 0) + t.amount;
+                    }
                 }
             }
         });
-        return spending;
-    }, [transactions, currentDate]);
 
-    // Calculate Rollover Balances (Accumulated savings/debt from previous months of the current year)
-    const rolloverBalances = useMemo(() => {
-        const balances: Record<string, number> = {};
-        const currentYear = currentDate.getFullYear();
-        const currentMonth = currentDate.getMonth();
+        // 2. Calculate Rollover for each budget
+        const rollovers: Record<string, number> = {};
 
         budgets.filter(b => b.rollover).forEach(budget => {
             let accumulated = 0;
-            // Iterate from Jan to Last Month
+            // Iterate from Jan (0) to Last Month (currentMonth - 1)
             for (let m = 0; m < currentMonth; m++) {
-                // Calculate spending for month 'm'
-                const spentInMonth = transactions.reduce((acc, t) => {
-                    if (t.type === TransactionType.EXPENSE && !t.isRefund && t.category === budget.categoryId) {
-                        const tDate = new Date(t.date);
-                        if (tDate.getMonth() === m && tDate.getFullYear() === currentYear) {
-                            return acc + t.amount;
-                        }
-                    }
-                    return acc;
-                }, 0);
-
+                const key = `${budget.categoryId}|${currentYear}|${m}`;
+                const spentInMonth = spendingMap.get(key) || 0;
                 accumulated += (budget.amount - spentInMonth);
             }
-            balances[budget.categoryId as string] = accumulated;
+            rollovers[budget.categoryId as string] = accumulated;
         });
-        return balances;
+
+        return { categorySpending: currentMonthSpending, rolloverBalances: rollovers };
     }, [transactions, budgets, currentDate]);
 
     const handleSave = (e: React.FormEvent) => {
