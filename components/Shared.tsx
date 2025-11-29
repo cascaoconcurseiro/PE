@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Transaction, Trip, FamilyMember, TransactionType, Account } from '../types';
 import { Card } from './ui/Card';
@@ -33,6 +32,7 @@ export const Shared: React.FC<SharedProps> = ({ transactions, trips, members, ac
         });
 
         transactions.forEach(t => {
+            // A. SHARED EXPENSES LOGIC (Acumula Dívida)
             if (t.isShared && t.type === TransactionType.EXPENSE) {
                 const payerId = t.payerId; // undefined means User paid
                 const splits = t.sharedWith || [];
@@ -52,7 +52,6 @@ export const Shared: React.FC<SharedProps> = ({ transactions, trips, members, ac
                     });
                 } else {
                     // CASE 2: Member Paid. User might owe Member (if User consumes remainder).
-                    // We assume User consumes the remainder of the split.
                     const totalSplits = splits.reduce((sum, s) => sum + s.assignedAmount, 0);
                     const userShare = t.amount - totalSplits;
 
@@ -65,6 +64,21 @@ export const Shared: React.FC<SharedProps> = ({ transactions, trips, members, ac
                             debts[payerId].regular -= userShare;
                         }
                     }
+                }
+            }
+
+            // B. SETTLEMENT LOGIC (Abate Dívida) - NEW
+            // Checks for transactions marked as 'Reembolso' linked to a specific member
+            if (t.category === 'Reembolso' && t.relatedMemberId && debts[t.relatedMemberId]) {
+                if (t.type === TransactionType.INCOME) {
+                    // I received money from Member -> They owe me less (Subtract from Positive Balance)
+                    debts[t.relatedMemberId].total -= t.amount;
+                    // We simply reduce from regular for display simplicity, or generic total
+                    debts[t.relatedMemberId].regular -= t.amount; 
+                } else if (t.type === TransactionType.EXPENSE) {
+                    // I paid money to Member -> I owe them less (Add to Negative Balance towards Zero)
+                    debts[t.relatedMemberId].total += t.amount;
+                    debts[t.relatedMemberId].regular += t.amount;
                 }
             }
         });
@@ -80,20 +94,26 @@ export const Shared: React.FC<SharedProps> = ({ transactions, trips, members, ac
 
         const member = members.find(m => m.id === settleMemberId);
         const account = accounts.find(a => a.id === settleAccountId);
-        const isPaying = parseFloat(settleAmount) < 0; // If original input (from debt total) was negative, we are paying
+        const originalBalance = parseFloat(settleAmount);
+        
+        // Logic: 
+        // If originalBalance > 0 (They owe Me), I am Receiving (Income).
+        // If originalBalance < 0 (I owe Them), I am Paying (Expense).
+        const isReceiving = originalBalance > 0;
 
         // Create Settlement Transaction
         onAddTransaction({
             amount: amountToSettle,
-            description: isPaying ? `Pagamento para ${member?.name}` : `Recebimento de ${member?.name}`,
+            description: isReceiving ? `Recebimento de ${member?.name}` : `Pagamento para ${member?.name}`,
             date: new Date().toISOString(),
-            type: isPaying ? TransactionType.EXPENSE : TransactionType.INCOME,
+            type: isReceiving ? TransactionType.INCOME : TransactionType.EXPENSE,
             category: 'Reembolso',
             accountId: settleAccountId,
-            isShared: false
+            isShared: false,
+            relatedMemberId: settleMemberId // CRITICAL: Link this tx to the member to affect calculation
         });
 
-        alert(`Acerto de ${formatCurrency(amountToSettle)} ${isPaying ? 'pago a' : 'recebido de'} ${member?.name} registrado na conta ${account?.name}.`);
+        alert(`Acerto de ${formatCurrency(amountToSettle)} ${isReceiving ? 'recebido de' : 'pago a'} ${member?.name} registrado na conta ${account?.name}.`);
         setSettleModalOpen(false);
         setSettleMemberId(null);
         setSettleAmount('');
@@ -176,9 +196,9 @@ export const Shared: React.FC<SharedProps> = ({ transactions, trips, members, ac
 
                     {members.map(member => {
                         const debt = debts[member.id] || { total: 0, regular: 0, travel: 0 };
-                        const isReceiving = debt.total > 0;
-                        const isPaying = debt.total < 0;
-                        const isSettled = Math.abs(debt.total) < 0.01;
+                        const isReceiving = debt.total > 0.01;
+                        const isPaying = debt.total < -0.01;
+                        const isSettled = !isReceiving && !isPaying;
 
                         return (
                             <div key={member.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative transition-all hover:shadow-md">
@@ -243,7 +263,7 @@ export const Shared: React.FC<SharedProps> = ({ transactions, trips, members, ac
                                         <button
                                             onClick={() => {
                                                 setSettleMemberId(member.id);
-                                                setSettleAmount(debt.total.toString()); // Pass signed amount
+                                                setSettleAmount(debt.total.toString()); // Pass signed amount (+ or -)
                                                 // Default to first checking account
                                                 const defaultAcc = accounts.find(a => a.type === 'CONTA CORRENTE' || a.type === 'DINHEIRO');
                                                 if (defaultAcc) setSettleAccountId(defaultAcc.id);
@@ -367,23 +387,34 @@ export const Shared: React.FC<SharedProps> = ({ transactions, trips, members, ac
             {/* SETTLEMENT MODAL */}
             {settleModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in">
-                    <Card className="w-full max-w-sm bg-white shadow-2xl" title="Registrar Recebimento">
+                    <Card className="w-full max-w-sm bg-white shadow-2xl" title="Registrar Acerto">
                         <div className="space-y-4">
                             <div className="text-center py-2">
-                                <p className="text-sm text-slate-600 mb-1">Receber de {members.find(m => m.id === settleMemberId)?.name}</p>
+                                <p className="text-sm text-slate-600 mb-1">
+                                    {parseFloat(settleAmount) > 0 ? 'Receber de' : 'Pagar para'} {members.find(m => m.id === settleMemberId)?.name}
+                                </p>
                                 <div className="text-left">
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Valor a Receber</label>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Valor do Acerto</label>
                                     <input
                                         type="number"
                                         className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 font-bold text-lg"
-                                        value={settleAmount}
-                                        onChange={(e) => setSettleAmount(e.target.value)}
+                                        // Display positive value in input
+                                        value={settleAmount ? Math.abs(parseFloat(settleAmount)) : ''}
+                                        onChange={(e) => {
+                                            // Keep the sign of the original intention (Receiving/Paying) but update magnitude
+                                            const newVal = parseFloat(e.target.value);
+                                            const originalSign = parseFloat(settleAmount) >= 0 ? 1 : -1;
+                                            setSettleAmount((newVal * originalSign).toString());
+                                        }}
+                                        placeholder="0,00"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Receber na Conta:</label>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">
+                                    {parseFloat(settleAmount) > 0 ? 'Receber na Conta:' : 'Pagar com a Conta:'}
+                                </label>
                                 <select
                                     className="w-full p-3 bg-white border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900"
                                     value={settleAccountId}
