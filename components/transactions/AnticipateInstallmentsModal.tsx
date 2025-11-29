@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { X, Clock, Check, Wallet, AlertCircle } from 'lucide-react';
-import { Transaction, Account } from '../../types';
+import { X, Clock, Check, Wallet, AlertCircle, ChevronDown } from 'lucide-react';
+import { Transaction, Account, AccountType } from '../../types';
 import { formatCurrency } from '../../utils';
 
 interface AnticipateInstallmentsModalProps {
@@ -11,7 +11,7 @@ interface AnticipateInstallmentsModalProps {
     transactions: Transaction[]; // All transactions
     initialTransaction: Transaction; // The transaction from which to find installments
     accounts: Account[];
-    onConfirmAnticipation: (ids: string[], date: string, accountId: string) => void;
+    onConfirmAnticipation: (ids: string[], date: string, accountId: string) => void; // Updated interface
 }
 
 export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalProps> = ({
@@ -61,10 +61,7 @@ export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalPr
             return;
         }
 
-        // Here we would create a single transaction for the total anticipated amount
-        // and mark the individual installments as settled.
-        // For simplicity, we'll just call the onConfirmAnticipation which updates the original txs.
-        onConfirmAnticipation(selectedInstallments, paymentDate, selectedAccountId);
+        onConfirmAnticipation(selectedInstallments, paymentDate, selectedAccountId); // Pass selectedAccountId
         onClose();
     };
 
