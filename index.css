@@ -1,15 +1,20 @@
 @import "tailwindcss";
 
+@theme {
+  --color-border: var(--color-gray-200);
+}
+
 @layer utilities {
   .dark {
     color-scheme: dark;
+    --color-border: var(--color-gray-800);
   }
 }
 
 @layer base {
   body {
     font-family: 'Inter', sans-serif;
-    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
     overscroll-behavior-y: none;
   }
 }
