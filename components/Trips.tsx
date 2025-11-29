@@ -234,12 +234,12 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
 
                 {/* TABS NAVIGATION */}
                 <div className="flex p-1 bg-slate-200 rounded-xl overflow-x-auto no-scrollbar no-print">
-                    <button onClick={() => setActiveTab('OVERVIEW')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'OVERVIEW' ? 'bg-white text-violet-800 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>Gastos</button>
-                    <button onClick={() => setActiveTab('ITINERARY')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'ITINERARY' ? 'bg-white text-violet-800 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>Roteiro</button>
-                    <button onClick={() => setActiveTab('CHECKLIST')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'CHECKLIST' ? 'bg-white text-violet-800 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>Checklist</button>
-                    <button onClick={() => setActiveTab('STATS')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'STATS' ? 'bg-white text-violet-800 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>Relatórios</button>
-                    <button onClick={() => setActiveTab('SHOPPING')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'SHOPPING' ? 'bg-white text-violet-800 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>Compras</button>
-                    <button onClick={() => setActiveTab('EXCHANGE')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'EXCHANGE' ? 'bg-white text-violet-800 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>Câmbio</button>
+                    <button onClick={() => setActiveTab('OVERVIEW')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'OVERVIEW' ? 'bg-white dark:bg-slate-700 text-violet-800 dark:text-violet-300 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>Gastos</button>
+                    <button onClick={() => setActiveTab('ITINERARY')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'ITINERARY' ? 'bg-white dark:bg-slate-700 text-violet-800 dark:text-violet-300 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>Roteiro</button>
+                    <button onClick={() => setActiveTab('CHECKLIST')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'CHECKLIST' ? 'bg-white dark:bg-slate-700 text-violet-800 dark:text-violet-300 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>Checklist</button>
+                    <button onClick={() => setActiveTab('STATS')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'STATS' ? 'bg-white dark:bg-slate-700 text-violet-800 dark:text-violet-300 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>Relatórios</button>
+                    <button onClick={() => setActiveTab('SHOPPING')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'SHOPPING' ? 'bg-white dark:bg-slate-700 text-violet-800 dark:text-violet-300 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>Compras</button>
+                    <button onClick={() => setActiveTab('EXCHANGE')} className={`flex-1 min-w-[80px] py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'EXCHANGE' ? 'bg-white dark:bg-slate-700 text-violet-800 dark:text-violet-300 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>Câmbio</button>
                 </div>
 
                 {/* TAB 1: OVERVIEW */}
@@ -324,7 +324,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
             </div>
 
             {trips.length === 0 && (
-                <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300">
+                <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
                     <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
                         <Plane className="w-8 h-8" />
                     </div>
@@ -338,7 +338,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
                 {trips.map(trip => (
                     <div
                         key={trip.id}
-                        className="group relative bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1"
+                        className="group relative bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1"
                         onClick={() => {
                             console.log('Clicou na viagem:', trip.id, trip.name);
                             setSelectedTripId(trip.id);

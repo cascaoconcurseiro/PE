@@ -16,13 +16,13 @@ const BlurValue = ({ value, show }: { value: number, show: boolean }) => {
 export const TransactionSummary: React.FC<TransactionSummaryProps> = ({ income, expense, balance, showValues }) => {
     return (
         <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col items-center justify-center">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Entradas</span>
                 <span className="text-sm font-black text-emerald-600">
                     <BlurValue value={income} show={showValues} />
                 </span>
             </div>
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col items-center justify-center">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Saídas</span>
                 <span className="text-sm font-black text-red-600">
                     <BlurValue value={expense} show={showValues} />

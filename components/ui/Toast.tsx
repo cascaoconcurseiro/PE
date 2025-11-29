@@ -44,16 +44,16 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 {toasts.map(toast => (
                     <div
                         key={toast.id}
-                        className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border animate-in slide-in-from-right duration-300 ${toast.type === 'success' ? 'bg-white border-emerald-100 text-emerald-800' :
-                                toast.type === 'error' ? 'bg-white border-red-100 text-red-800' :
-                                    toast.type === 'warning' ? 'bg-white border-amber-100 text-amber-800' :
-                                        'bg-white border-blue-100 text-blue-800'
+                        className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border animate-in slide-in-from-right duration-300 ${toast.type === 'success' ? 'bg-white dark:bg-slate-800 border-emerald-100 dark:border-emerald-900 text-emerald-800 dark:text-emerald-400' :
+                            toast.type === 'error' ? 'bg-white dark:bg-slate-800 border-red-100 dark:border-red-900 text-red-800 dark:text-red-400' :
+                                toast.type === 'warning' ? 'bg-white dark:bg-slate-800 border-amber-100 dark:border-amber-900 text-amber-800 dark:text-amber-400' :
+                                    'bg-white dark:bg-slate-800 border-blue-100 dark:border-blue-900 text-blue-800 dark:text-blue-400'
                             }`}
                     >
                         <div className={`p-1 rounded-full ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' :
-                                toast.type === 'error' ? 'bg-red-100 text-red-600' :
-                                    toast.type === 'warning' ? 'bg-amber-100 text-amber-600' :
-                                        'bg-blue-100 text-blue-600'
+                            toast.type === 'error' ? 'bg-red-100 text-red-600' :
+                                toast.type === 'warning' ? 'bg-amber-100 text-amber-600' :
+                                    'bg-blue-100 text-blue-600'
                             }`}>
                             {toast.type === 'success' && <CheckCircle className="w-4 h-4" />}
                             {toast.type === 'error' && <AlertCircle className="w-4 h-4" />}
