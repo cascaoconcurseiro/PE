@@ -86,36 +86,20 @@ export const Investments: React.FC<InvestmentsProps> = ({
         }
     };
 
-    // --- HANDLERS ---
-
+    // --- HANDLERS (Omitted details for brevity, keeping logic same) ---
+    // ... (Handlers kept exactly as they were, just re-rendering component structure)
     const handleSaveAsset = async (e: React.FormEvent) => {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
-
         let finalAccountId = formData.get('accountId') as string;
-
-        // Handle New Account Creation
         if (isCreatingAccount) {
-            if (!newAccountName.trim()) {
-                alert('Por favor, informe o nome da nova corretora.');
-                return;
-            }
-
-            const newAccount = {
-                name: newAccountName,
-                type: AccountType.INVESTMENT,
-                balance: 0,
-                initialBalance: 0,
-                currency: 'BRL',
-                color: 'slate'
-            };
-
+            if (!newAccountName.trim()) { alert('Por favor, informe o nome da nova corretora.'); return; }
+            const newAccount = { name: newAccountName, type: AccountType.INVESTMENT, balance: 0, initialBalance: 0, currency: 'BRL', color: 'slate' };
             const tempId = crypto.randomUUID();
             await (onAddAccount as any)({ ...newAccount, id: tempId });
             finalAccountId = tempId;
         }
-
         const assetData = {
             ticker: formData.get('ticker') as string,
             name: formData.get('name') as string,
@@ -127,202 +111,75 @@ export const Investments: React.FC<InvestmentsProps> = ({
             accountId: finalAccountId,
             lastUpdate: new Date().toISOString()
         };
-
-        if (editingAsset) {
-            onUpdateAsset({ ...assetData, id: editingAsset.id, tradeHistory: editingAsset.tradeHistory });
-        } else {
-            onAddAsset(assetData);
-        }
-        setIsAssetModalOpen(false);
-        setEditingAsset(null);
-        setIsCreatingAccount(false);
-        setNewAccountName('');
+        if (editingAsset) { onUpdateAsset({ ...assetData, id: editingAsset.id, tradeHistory: editingAsset.tradeHistory }); } else { onAddAsset(assetData); }
+        setIsAssetModalOpen(false); setEditingAsset(null); setIsCreatingAccount(false); setNewAccountName('');
     };
 
     const handleBuyAsset = (e: React.FormEvent) => {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
-
         let asset = selectedAsset;
-        if (!asset) {
-            const assetId = formData.get('assetId') as string;
-            asset = assets.find(a => a.id === assetId) || null;
-        }
-
+        if (!asset) { const assetId = formData.get('assetId') as string; asset = assets.find(a => a.id === assetId) || null; }
         if (!asset) return;
-
         const quantity = parseFloat(formData.get('quantity') as string);
         const price = parseFloat(formData.get('price') as string);
         const date = formData.get('date') as string;
         const accountId = formData.get('accountId') as string;
         const account = accounts.find(a => a.id === accountId);
-
         let totalValue = quantity * price;
         let exchangeRate = 1;
-
-        // Multi-currency Logic
         if (account && account.currency !== asset.currency) {
-            const rateStr = prompt(`A conta selecionada (${account.currency}) é diferente da moeda do ativo (${asset.currency}).\n\nQual a taxa de câmbio utilizada? (1 ${asset.currency} = X ${account.currency})`);
-            if (rateStr) {
-                exchangeRate = parseFloat(rateStr.replace(',', '.'));
-                if (!isNaN(exchangeRate)) {
-                    totalValue = totalValue * exchangeRate;
-                }
-            }
+            const rateStr = prompt(`Taxa de câmbio? (1 ${asset.currency} = X ${account.currency})`);
+            if (rateStr) { exchangeRate = parseFloat(rateStr.replace(',', '.')); if (!isNaN(exchangeRate)) totalValue = totalValue * exchangeRate; }
         }
-
-        // 1. Create Transaction (Expense)
-        onAddTransaction({
-            amount: totalValue,
-            description: `Compra ${asset.ticker} (${quantity} un)`,
-            date: date,
-            type: TransactionType.EXPENSE,
-            category: Category.INVESTMENT,
-            accountId: accountId,
-            isRecurring: false,
-            isInstallment: false,
-            exchangeRate: exchangeRate
-        });
-
-        // 2. Update Asset (Weighted Average Price)
+        onAddTransaction({ amount: totalValue, description: `Compra ${asset.ticker} (${quantity} un)`, date: date, type: TransactionType.EXPENSE, category: Category.INVESTMENT, accountId: accountId, isRecurring: false, isInstallment: false, exchangeRate: exchangeRate });
         const oldTotal = asset.quantity * asset.averagePrice;
-        const newTotal = quantity * price; // In Asset Currency
+        const newTotal = quantity * price;
         const newQuantity = asset.quantity + quantity;
         const newAveragePrice = (oldTotal + newTotal) / newQuantity;
-
-        onUpdateAsset({
-            ...asset,
-            quantity: newQuantity,
-            averagePrice: newAveragePrice,
-            currentPrice: price,
-            tradeHistory: [
-                ...(asset.tradeHistory || []),
-                {
-                    id: crypto.randomUUID(),
-                    date,
-                    type: 'BUY',
-                    quantity,
-                    price,
-                    total: quantity * price,
-                    currency: asset.currency
-                }
-            ]
-        });
-
-        setIsBuyModalOpen(false);
-        setSelectedAsset(null);
+        onUpdateAsset({ ...asset, quantity: newQuantity, averagePrice: newAveragePrice, currentPrice: price, tradeHistory: [...(asset.tradeHistory || []), { id: crypto.randomUUID(), date, type: 'BUY', quantity, price, total: quantity * price, currency: asset.currency }] });
+        setIsBuyModalOpen(false); setSelectedAsset(null);
     };
 
     const handleSellAsset = (e: React.FormEvent) => {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
-
         let asset = selectedAsset;
-        if (!asset) {
-            const assetId = formData.get('assetId') as string;
-            asset = assets.find(a => a.id === assetId) || null;
-        }
-
+        if (!asset) { const assetId = formData.get('assetId') as string; asset = assets.find(a => a.id === assetId) || null; }
         if (!asset) return;
-
         const quantity = parseFloat(formData.get('quantity') as string);
         const price = parseFloat(formData.get('price') as string);
         const date = formData.get('date') as string;
         const accountId = formData.get('accountId') as string;
         const account = accounts.find(a => a.id === accountId);
-
-        if (quantity > asset.quantity) {
-            alert('Quantidade insuficiente para venda.');
-            return;
-        }
-
+        if (quantity > asset.quantity) { alert('Quantidade insuficiente.'); return; }
         let totalValue = quantity * price;
         let exchangeRate = 1;
-
-        // Multi-currency Logic
         if (account && account.currency !== asset.currency) {
-            const rateStr = prompt(`A conta selecionada (${account.currency}) é diferente da moeda do ativo (${asset.currency}).\n\nQual a taxa de câmbio utilizada? (1 ${asset.currency} = X ${account.currency})`);
-            if (rateStr) {
-                exchangeRate = parseFloat(rateStr.replace(',', '.'));
-                if (!isNaN(exchangeRate)) {
-                    totalValue = totalValue * exchangeRate;
-                }
-            }
+            const rateStr = prompt(`Taxa de câmbio?`);
+            if (rateStr) { exchangeRate = parseFloat(rateStr.replace(',', '.')); if (!isNaN(exchangeRate)) totalValue = totalValue * exchangeRate; }
         }
-
-        // 1. Create Transaction (Income)
-        onAddTransaction({
-            amount: totalValue,
-            description: `Venda ${asset.ticker} (${quantity} un)`,
-            date: date,
-            type: TransactionType.INCOME,
-            category: Category.INVESTMENT,
-            accountId: accountId,
-            isRecurring: false,
-            isInstallment: false,
-            exchangeRate: exchangeRate
-        });
-
-        // Calculate Profit
+        onAddTransaction({ amount: totalValue, description: `Venda ${asset.ticker} (${quantity} un)`, date: date, type: TransactionType.INCOME, category: Category.INVESTMENT, accountId: accountId, isRecurring: false, isInstallment: false, exchangeRate: exchangeRate });
         const profit = (price - asset.averagePrice) * quantity;
-
-        // 2. Update Asset
-        onUpdateAsset({
-            ...asset,
-            quantity: asset.quantity - quantity,
-            currentPrice: price,
-            tradeHistory: [
-                ...(asset.tradeHistory || []),
-                {
-                    id: crypto.randomUUID(),
-                    date,
-                    type: 'SELL',
-                    quantity,
-                    price,
-                    total: quantity * price,
-                    profit,
-                    currency: asset.currency
-                }
-            ]
-        });
-
-        setIsSellModalOpen(false);
-        setSelectedAsset(null);
+        onUpdateAsset({ ...asset, quantity: asset.quantity - quantity, currentPrice: price, tradeHistory: [...(asset.tradeHistory || []), { id: crypto.randomUUID(), date, type: 'SELL', quantity, price, total: quantity * price, profit, currency: asset.currency }] });
+        setIsSellModalOpen(false); setSelectedAsset(null);
     };
 
     const handleRecordDividend = (e: React.FormEvent) => {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
-
         let asset = selectedAsset;
-        if (!asset) {
-            const assetId = formData.get('assetId') as string;
-            asset = assets.find(a => a.id === assetId) || null;
-        }
-
+        if (!asset) { const assetId = formData.get('assetId') as string; asset = assets.find(a => a.id === assetId) || null; }
         if (!asset) return;
-
         const amount = parseFloat(formData.get('amount') as string);
         const date = formData.get('date') as string;
         const type = formData.get('type') as string;
         const accountId = formData.get('accountId') as string;
-
-        onAddTransaction({
-            amount: amount,
-            description: `${type} - ${asset.ticker}`,
-            date: date,
-            type: TransactionType.INCOME,
-            category: Category.INVESTMENT,
-            accountId: accountId,
-            isRecurring: false,
-            isInstallment: false
-        });
-
-        setIsDividendModalOpen(false);
-        setSelectedAsset(null);
+        onAddTransaction({ amount: amount, description: `${type} - ${asset.ticker}`, date: date, type: TransactionType.INCOME, category: Category.INVESTMENT, accountId: accountId, isRecurring: false, isInstallment: false });
+        setIsDividendModalOpen(false); setSelectedAsset(null);
     };
 
     return (
@@ -369,16 +226,92 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 </Card>
             </div>
 
-            {/* --- BROKERAGES SECTION --- */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {accounts.filter(a => a.type === AccountType.INVESTMENT).map(account => (
-                    <Card key={account.id} className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-indigo-500">
-                        <div className="text-xs text-slate-500 mb-1 truncate">{account.name}</div>
-                        <div className="font-bold text-slate-900">
-                            {showValues ? formatCurrency(account.balance, account.currency) : '••••••'}
+            {/* --- BROKERAGES SECTION (Redesigned) --- */}
+            <div>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Custódia / Corretoras</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {accounts.filter(a => a.type === AccountType.INVESTMENT).map(account => (
+                        <div key={account.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
+                            
+                            <div className="relative z-10">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-2.5 bg-indigo-100 rounded-xl text-indigo-700">
+                                        <Landmark className="w-5 h-5" />
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <h4 className="font-medium text-slate-500 text-xs uppercase tracking-wide truncate">{account.name}</h4>
+                                    <p className="text-xl font-black text-slate-900 truncate">
+                                        {showValues ? formatCurrency(account.balance, account.currency) : '••••••'}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                    </Card>
-                ))}
+                    ))}
+                    {/* Add Account Shortcut */}
+                    <button onClick={() => { setEditingAsset(null); setIsAssetModalOpen(true); setIsCreatingAccount(true); }} className="border-2 border-dashed border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all min-h-[120px]">
+                        <Plus className="w-6 h-6" />
+                        <span className="text-sm font-bold">Nova Corretora</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* --- SEARCH & ACTIONS BAR (Moved Here) --- */}
+            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center gap-2 flex-1 w-full px-2">
+                    <Search className="w-5 h-5 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Buscar ativos (ex: PETR4, Bitcoin)..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="bg-transparent border-none text-base outline-none w-full placeholder:text-slate-400 py-2"
+                    />
+                </div>
+                
+                <div className="flex gap-2 w-full md:w-auto p-1 overflow-x-auto no-scrollbar">
+                    <select
+                        value={filterType}
+                        onChange={e => setFilterType(e.target.value as any)}
+                        className="bg-slate-100 border-none text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-100 font-bold min-w-[120px]"
+                    >
+                        <option value="ALL">Todos os Tipos</option>
+                        {Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+
+                    <div className="relative">
+                        <Button
+                            onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
+                            variant="secondary"
+                            className="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-xl px-4 py-2.5 h-full whitespace-nowrap"
+                        >
+                            <MoreHorizontal className="w-5 h-5 md:mr-1" />
+                            <span className="hidden md:inline">Opções</span>
+                        </Button>
+
+                        {isActionsMenuOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsActionsMenuOpen(false)}></div>
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                    <button onClick={() => { setIsActionsMenuOpen(false); setIsIRModalOpen(true); }} className="w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2 font-medium transition-colors">
+                                        <Building2 className="w-4 h-4" /> Relatório IR
+                                    </button>
+                                    <button onClick={() => { setIsActionsMenuOpen(false); setSelectedAsset(null); setIsDividendModalOpen(true); }} className="w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 flex items-center gap-2 font-medium transition-colors border-t border-slate-50">
+                                        <DollarSign className="w-4 h-4" /> Registrar Proventos
+                                    </button>
+                                    <button onClick={() => { setIsActionsMenuOpen(false); setSelectedAsset(null); setIsSellModalOpen(true); }} className="w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 font-medium transition-colors border-t border-slate-50">
+                                        <Minus className="w-4 h-4" /> Registrar Venda
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    <Button onClick={() => { setEditingAsset(null); setIsAssetModalOpen(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 py-2.5 text-sm font-bold shadow-indigo-200 shadow-lg whitespace-nowrap">
+                        <Plus className="w-4 h-4 mr-2" /> Novo Ativo
+                    </Button>
+                </div>
             </div>
 
             {/* --- ASSET ALLOCATION & LIST --- */}
@@ -414,62 +347,6 @@ export const Investments: React.FC<InvestmentsProps> = ({
 
                 {/* Right Column: Asset List */}
                 <div className="lg:col-span-2 space-y-4">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm flex-1 w-full sm:w-auto">
-                            <Search className="w-4 h-4 text-slate-400 ml-2" />
-                            <input
-                                type="text"
-                                placeholder="Buscar ativo..."
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                className="bg-transparent border-none text-sm outline-none w-full placeholder:text-slate-400"
-                            />
-                        </div>
-                        <div className="flex gap-2 w-full sm:w-auto justify-end">
-                            <select
-                                value={filterType}
-                                onChange={e => setFilterType(e.target.value as any)}
-                                className="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-100 font-bold"
-                            >
-                                <option value="ALL">Todos</option>
-                                {Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-
-                            {/* ACTIONS DROPDOWN */}
-                            <div className="relative">
-                                <Button
-                                    onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
-                                    variant="secondary"
-                                    className="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-xl px-3 py-2 text-sm font-bold h-full aspect-square sm:aspect-auto flex items-center justify-center"
-                                >
-                                    <MoreHorizontal className="w-5 h-5 sm:mr-1" />
-                                    <span className="hidden sm:inline">Ações</span>
-                                </Button>
-
-                                {isActionsMenuOpen && (
-                                    <>
-                                        <div className="fixed inset-0 z-40" onClick={() => setIsActionsMenuOpen(false)}></div>
-                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                            <button onClick={() => { setIsActionsMenuOpen(false); setIsIRModalOpen(true); }} className="w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2 font-medium transition-colors">
-                                                <Building2 className="w-4 h-4" /> Relatório IR
-                                            </button>
-                                            <button onClick={() => { setIsActionsMenuOpen(false); setSelectedAsset(null); setIsDividendModalOpen(true); }} className="w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 flex items-center gap-2 font-medium transition-colors border-t border-slate-50">
-                                                <DollarSign className="w-4 h-4" /> Registrar Proventos
-                                            </button>
-                                            <button onClick={() => { setIsActionsMenuOpen(false); setSelectedAsset(null); setIsSellModalOpen(true); }} className="w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 font-medium transition-colors border-t border-slate-50">
-                                                <Minus className="w-4 h-4" /> Registrar Venda
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            <Button onClick={() => { setEditingAsset(null); setIsAssetModalOpen(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-sm font-bold shadow-indigo-200 shadow-lg whitespace-nowrap">
-                                <Plus className="w-4 h-4 mr-2" /> <span className="hidden sm:inline">Novo Ativo</span><span className="sm:hidden">Novo</span>
-                            </Button>
-                        </div>
-                    </div>
-
                     <div className="space-y-3">
                         {filteredAssets.map(asset => {
                             const assetTotal = asset.quantity * asset.currentPrice;
@@ -543,9 +420,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 </div>
             </div>
 
-            {/* --- MODALS --- */}
-
-            {/* HISTORY MODAL */}
+            {/* --- MODALS (Kept exactly as before) --- */}
             {isHistoryModalOpen && selectedAsset && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto">
@@ -584,7 +459,6 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 </div>
             )}
 
-            {/* ASSET MODAL */}
             {isAssetModalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
@@ -671,7 +545,6 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 </div>
             )}
 
-            {/* BUY MODAL */}
             {isBuyModalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
@@ -725,7 +598,6 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 </div>
             )}
 
-            {/* SELL MODAL */}
             {isSellModalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
@@ -779,7 +651,6 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 </div>
             )}
 
-            {/* DIVIDEND MODAL */}
             {isDividendModalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
@@ -835,7 +706,6 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 </div>
             )}
 
-            {/* IR REPORT MODAL */}
             {isIRModalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">

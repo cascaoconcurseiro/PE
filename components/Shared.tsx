@@ -202,31 +202,32 @@ export const Shared: React.FC<SharedProps> = ({
         setSettleModal({ isOpen: false, memberId: null, type: 'PAY', items: [], total: 0 });
     };
 
-    // Global Totals for Summary Cards
-    const globalTotals = useMemo(() => {
+    // Calculate pending status for current view
+    const hasPendingInCurrentView = useMemo(() => {
+        return displayMembers.some(member => {
+            const items = getFilteredInvoice(member.id);
+            const { net } = getTotals(items);
+            return Math.abs(net) > 0.01;
+        });
+    }, [displayMembers, activeTab, invoices, currentDate]);
+
+    // Global Totals for Summary Cards (Filtered by View Logic)
+    const viewTotals = useMemo(() => {
         let totalReceivable = 0;
         let totalPayable = 0;
         
-        const allItems = Object.values(invoices).flat() as InvoiceItem[];
-        
-        allItems.forEach(item => {
-            // Filter by active tab logic implicitly via filtering before summing? 
-            // No, summary usually shows EVERYTHING pending.
-            // But if we are in Regular view, we might not want to see Travel debts in the summary cards?
-            // Let's keep it global for now, or filter if needed. 
-            // Given the requirement "follow the top calendar", we should probably filter "Regular" items by date if they are paid?
-            // Pending items are always relevant regardless of date.
-            
-            if (!item.isPaid) {
-                if (item.type === 'CREDIT') totalReceivable += item.amount;
-                else totalPayable += item.amount;
-            }
+        displayMembers.forEach(member => {
+            const items = getFilteredInvoice(member.id);
+            items.forEach(item => {
+                if (!item.isPaid) {
+                    if (item.type === 'CREDIT') totalReceivable += item.amount;
+                    else totalPayable += item.amount;
+                }
+            });
         });
         
         return { totalReceivable, totalPayable, net: totalReceivable - totalPayable };
-    }, [invoices]);
-
-    const hasPendingItems = globalTotals.totalReceivable > 0 || globalTotals.totalPayable > 0;
+    }, [displayMembers, activeTab, invoices, currentDate]);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
@@ -237,9 +238,9 @@ export const Shared: React.FC<SharedProps> = ({
                         <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm"><Users className="w-5 h-5" /></div>
                         <span className="text-indigo-100 text-xs font-bold uppercase tracking-wider">Balanço Geral</span>
                     </div>
-                    <div className="text-3xl font-black tracking-tight">{formatCurrency(globalTotals.net)}</div>
+                    <div className="text-3xl font-black tracking-tight">{formatCurrency(viewTotals.net)}</div>
                     <p className="text-indigo-200 text-xs mt-1">
-                        {globalTotals.net > 0 ? 'A receber de amigos' : globalTotals.net < 0 ? 'A pagar para amigos' : 'Tudo quitado'}
+                        {viewTotals.net > 0 ? 'A receber de amigos' : viewTotals.net < 0 ? 'A pagar para amigos' : 'Tudo quitado'}
                     </p>
                 </Card>
                 <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
@@ -247,14 +248,14 @@ export const Shared: React.FC<SharedProps> = ({
                         <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg"><ArrowRight className="w-5 h-5" /></div>
                         <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Total a Receber</span>
                     </div>
-                    <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(globalTotals.totalReceivable)}</div>
+                    <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(viewTotals.totalReceivable)}</div>
                 </Card>
                 <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg"><ArrowRight className="w-5 h-5 transform rotate-180" /></div>
                         <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Total a Pagar</span>
                     </div>
-                    <div className="text-2xl font-bold text-red-700 dark:text-red-400">{formatCurrency(globalTotals.totalPayable)}</div>
+                    <div className="text-2xl font-bold text-red-700 dark:text-red-400">{formatCurrency(viewTotals.totalPayable)}</div>
                 </Card>
             </div>
 
@@ -278,14 +279,16 @@ export const Shared: React.FC<SharedProps> = ({
 
             {/* Members Invoices List */}
             <div className="space-y-6">
-                {!hasPendingItems && activeTab === 'REGULAR' ? (
+                {!hasPendingInCurrentView ? (
                     <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
                         <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Sparkles className="w-8 h-8 text-emerald-500" />
                         </div>
                         <h3 className="text-lg font-bold text-slate-800 dark:text-white">Tudo certo por aqui!</h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                            Você não tem pendências financeiras com ninguém neste mês.
+                            {activeTab === 'REGULAR' 
+                                ? 'Você não tem pendências financeiras mensais com ninguém.' 
+                                : 'Nenhuma dívida de viagem pendente no momento.'}
                         </p>
                     </div>
                 ) : (
