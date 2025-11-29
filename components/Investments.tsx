@@ -12,6 +12,7 @@ import { SellAssetModal } from './investments/modals/SellAssetModal';
 import { DividendModal } from './investments/modals/DividendModal';
 import { HistoryModal } from './investments/modals/HistoryModal';
 import { IRReportModal } from './investments/modals/IRReportModal';
+import { CorporateActionModal } from './investments/modals/CorporateActionModal';
 import { prepareAssetsForExport } from '../services/exportUtils';
 import { exportToCSV } from '../services/exportUtils';
 import { printAssetsReport } from '../services/printUtils';
@@ -47,6 +48,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
     const [isDividendModalOpen, setIsDividendModalOpen] = useState(false);
     const [isIRModalOpen, setIsIRModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
     // Data States
     const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
@@ -327,6 +329,59 @@ export const Investments: React.FC<InvestmentsProps> = ({
         setIsDividendModalOpen(false); setSelectedAsset(null);
     };
 
+    // 4. EVENTOS CORPORATIVOS
+    const handleCorporateAction = (type: 'SPLIT' | 'INPLIT' | 'BONUS', factor: number, cost: number = 0) => {
+        if (!selectedAsset) return;
+
+        let newQty = selectedAsset.quantity;
+        let newAvgPrice = selectedAsset.averagePrice;
+        const oldTotal = selectedAsset.quantity * selectedAsset.averagePrice;
+
+        if (type === 'SPLIT') {
+            // Split: Qty * Factor, Price / Factor
+            newQty = selectedAsset.quantity * factor;
+            newAvgPrice = selectedAsset.averagePrice / factor;
+        } else if (type === 'INPLIT') {
+            // Inplit: Qty / Factor, Price * Factor
+            newQty = selectedAsset.quantity / factor;
+            newAvgPrice = selectedAsset.averagePrice * factor;
+        } else if (type === 'BONUS') {
+            // Bonus: Add Qty (Factor is %), Adjust Price
+            // Factor is usually percentage e.g. 10% -> 0.1
+            // Or user enters raw quantity? Modal says "Ex: 10 (para 10%)"
+            // Let's assume user enters percentage like 10.
+            const bonusQty = selectedAsset.quantity * (factor / 100);
+            newQty = selectedAsset.quantity + bonusQty;
+
+            // New Avg Price = (Old Total + Cost) / New Qty
+            newAvgPrice = (oldTotal + cost) / newQty;
+        }
+
+        onUpdateAsset({
+            ...selectedAsset,
+            quantity: newQty,
+            averagePrice: newAvgPrice,
+            lastUpdate: new Date().toISOString(),
+            tradeHistory: [
+                ...(selectedAsset.tradeHistory || []),
+                {
+                    id: crypto.randomUUID(),
+                    date: new Date().toISOString().split('T')[0],
+                    type: 'BUY', // Recorded as BUY for history, but effectively an adjustment
+                    quantity: newQty - selectedAsset.quantity, // Delta
+                    price: 0, // Cost is usually 0 or low
+                    total: cost,
+                    currency: selectedAsset.currency,
+                    // Note: Ideally we'd have a specific type for EVENT
+                }
+            ]
+        });
+
+        addToast(`Evento ${type} registrado com sucesso!`, 'success');
+        setIsActionModalOpen(false);
+        setSelectedAsset(null);
+    };
+
     return (
         <div className="space-y-8 pb-24">
             <InvestmentSummaryCards
@@ -371,7 +426,8 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 onHistory={(asset) => { setSelectedAsset(asset); setIsHistoryModalOpen(true); }}
                 onDelete={onDeleteAsset}
                 onSell={(asset) => { setSelectedAsset(asset); setIsSellModalOpen(true); }}
-                onBuy={(asset) => { setEditingAsset(null); setSelectedAsset(asset); setIsAssetModalOpen(true); }} // Pre-fill logic could be added
+                onBuy={(asset) => { setEditingAsset(null); setSelectedAsset(asset); setIsAssetModalOpen(true); }}
+                onAction={(asset) => { setSelectedAsset(asset); setIsActionModalOpen(true); }}
                 showValues={showValues}
             />
 
@@ -410,6 +466,13 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 isOpen={isIRModalOpen}
                 onClose={() => setIsIRModalOpen(false)}
                 assets={assets}
+            />
+
+            <CorporateActionModal
+                isOpen={isActionModalOpen}
+                onClose={() => setIsActionModalOpen(false)}
+                onSave={handleCorporateAction}
+                asset={selectedAsset}
             />
 
             <ConfirmModal

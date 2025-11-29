@@ -4,6 +4,7 @@ import { convertToBRL } from '../services/currencyService';
 import { processRecurringTransactions } from '../services/recurrenceEngine';
 import { checkDataConsistency } from '../services/financialLogic';
 import { parseDate } from '../utils';
+import { autoBackupToLocalStorage } from '../services/backupService';
 import { Account, Transaction, Asset, AccountType, TransactionType, Frequency, SyncStatus } from '../types';
 
 interface UseAppLogicProps {
@@ -23,13 +24,13 @@ export const useAppLogic = ({ accounts, transactions, assets, isMigrating }: Use
         if (isMigrating || !accounts || !transactions || hasCheckedConsistency.current) return;
 
         const issues = checkDataConsistency(accounts, transactions);
-        
+
         if (issues.length > 0) {
             console.warn("Inconsistências encontradas nos dados:", issues);
             // In a real app, we might want to auto-fix or alert user. 
             // For now, logging allows developers to debug.
         }
-        
+
         hasCheckedConsistency.current = true;
     }, [isMigrating, accounts, transactions]);
 
@@ -80,7 +81,10 @@ export const useAppLogic = ({ accounts, transactions, assets, isMigrating }: Use
             }
         };
 
-        createSnapshot();
+        createSnapshot().then(() => {
+            // Auto-backup after daily snapshot
+            autoBackupToLocalStorage().catch(err => console.error('Auto-backup failed:', err));
+        });
     }, [accounts, assets, transactions]);
 
     // --- RECURRING TRANSACTION GENERATOR ---

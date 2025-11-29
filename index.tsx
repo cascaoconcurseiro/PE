@@ -14,6 +14,7 @@ import { Shared } from './components/Shared';
 import { Family } from './components/Family';
 import { Settings } from './components/Settings';
 import { Investments } from './components/Investments';
+import { Reports } from './components/Reports';
 import { View, SyncStatus } from './types';
 import { calculateBalances } from './services/balanceEngine';
 import { ThemeProvider } from './components/ui/ThemeContext';
@@ -162,7 +163,7 @@ const App = () => {
             case View.DASHBOARD:
                 return <Dashboard accounts={calculatedAccounts} transactions={transactions} currentDate={currentDate} showValues={showValues} onEditRequest={handleRequestEdit} />;
             case View.ACCOUNTS:
-                return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipateInstallments={(tx) => handlers.handleAnticipateInstallments([tx.id], currentDate.toISOString())} />;
+                return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} />;
             case View.TRANSACTIONS:
                 return <Transactions transactions={transactions} accounts={calculatedAccounts} trips={trips} familyMembers={familyMembers} customCategories={customCategories} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAnticipate={handlers.handleAnticipateInstallments} currentDate={currentDate} showValues={showValues} initialEditId={editTxId} onClearEditId={() => setEditTxId(null)} onNavigateToAccounts={() => setActiveView(View.ACCOUNTS)} onNavigateToTrips={() => setActiveView(View.TRIPS)} onNavigateToFamily={() => setActiveView(View.FAMILY)} />;
             case View.BUDGETS:
@@ -177,6 +178,8 @@ const App = () => {
                 return <Family members={familyMembers} onAddMember={handlers.handleAddMember} onDeleteMember={handlers.handleDeleteMember} />;
             case View.INVESTMENTS:
                 return <Investments accounts={calculatedAccounts} transactions={transactions} assets={assets} onAddAsset={handlers.handleAddAsset} onUpdateAsset={handlers.handleUpdateAsset} onDeleteAsset={handlers.handleDeleteAsset} onAddTransaction={handlers.handleAddTransaction} onAddAccount={handlers.handleAddAccount} currentDate={currentDate} showValues={showValues} />;
+            case View.REPORTS:
+                return <Reports accounts={calculatedAccounts} transactions={transactions} showValues={showValues} />;
             case View.SETTINGS:
                 return <Settings onImport={handlers.handleImportData} customCategories={customCategories} onAddCategory={handlers.handleAddCategory} onDeleteCategory={handlers.handleDeleteCategory} accounts={accounts} transactions={transactions} trips={trips} budgets={budgets} goals={goals} familyMembers={familyMembers} assets={assets} snapshots={snapshots} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} />;
             default:

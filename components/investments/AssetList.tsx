@@ -10,6 +10,7 @@ interface AssetListProps {
     onDelete: (id: string) => void;
     onSell: (asset: Asset) => void;
     onBuy: (asset: Asset) => void;
+    onAction: (asset: Asset) => void;
     showValues: boolean;
 }
 
@@ -20,6 +21,7 @@ export const AssetList: React.FC<AssetListProps> = ({
     onDelete,
     onSell,
     onBuy,
+    onAction,
     showValues
 }) => {
     const getAssetIcon = (type: AssetType) => {
@@ -101,6 +103,7 @@ export const AssetList: React.FC<AssetListProps> = ({
                                         <span className="opacity-75 ml-1">({assetProfitPercent.toFixed(2)}%)</span>
                                     </div>
                                     <div className="flex gap-2">
+                                        <button onClick={() => onAction(asset)} className="px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">Evento</button>
                                         <button onClick={() => onSell(asset)} className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">Vender</button>
                                         <button onClick={() => onBuy(asset)} className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">Comprar</button>
                                     </div>

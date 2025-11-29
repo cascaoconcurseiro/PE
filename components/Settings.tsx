@@ -6,6 +6,7 @@ import { Account, Budget, CustomCategory, FamilyMember, Transaction, Trip, Asset
 import { useToast } from './ui/Toast';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { Modal } from './ui/Modal';
+import { downloadBackup, importBackup, autoBackupToLocalStorage, getAutoBackupInfo } from '../services/backupService';
 interface SettingsProps {
     onImport: (data: any) => void;
     customCategories: CustomCategory[];

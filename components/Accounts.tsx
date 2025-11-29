@@ -13,6 +13,9 @@ import { AccountForm } from './accounts/AccountForm';
 import { ActionModal, ActionType } from './accounts/ActionModal';
 import { CreditCardDetail } from './accounts/CreditCardDetail';
 import { BankingDetail } from './accounts/BankingDetail';
+import { parseOFX, OFXTransaction } from '../services/ofxParser';
+import { ImportModal } from './accounts/ImportModal';
+import { InstallmentAnticipationModal } from './transactions/InstallmentAnticipationModal';
 
 interface AccountsProps {
     accounts: Account[];
@@ -23,7 +26,7 @@ interface AccountsProps {
     onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
     showValues: boolean;
     currentDate?: Date;
-    onAnticipateInstallments: (tx: Transaction) => void; // Propagating anticipation handler
+    onAnticipate: (ids: string[], date: string, accountId: string) => void; // Updated signature
 }
 
 const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
@@ -31,7 +34,7 @@ const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, sho
     return <span className="blur-sm select-none opacity-60">••••</span>;
 };
 
-export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, showValues, currentDate = new Date(), onAnticipateInstallments }) => {
+export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, showValues, currentDate = new Date(), onAnticipate }) => {
     const [viewState, setViewState] = useState<'LIST' | 'DETAIL'>('LIST');
     const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS'>('BANKING');
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -55,6 +58,12 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
 
     // Payment/Action Modal State
     const [actionModal, setActionModal] = useState<{ isOpen: boolean, type: ActionType, amount?: string }>({ isOpen: false, type: 'PAY_INVOICE' });
+
+    // Import Modal State
+    const [importModal, setImportModal] = useState<{ isOpen: boolean, transactions: OFXTransaction[] }>({ isOpen: false, transactions: [] });
+
+    // Anticipate Modal State
+    const [anticipateModal, setAnticipateModal] = useState<{ isOpen: boolean, transaction: Transaction | null }>({ isOpen: false, transaction: null });
 
     const handleAccountClick = (account: Account) => {
         setSelectedAccount(account);
@@ -178,9 +187,67 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
         setActionModal({ ...actionModal, isOpen: false });
     };
 
-    const handleOFXUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // Placeholder for future OFX implementation
-        alert("Upload de OFX será implementado em breve.");
+    const handleOFXUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const transactions = await parseOFX(file);
+            setImportModal({ isOpen: true, transactions });
+        } catch (error) {
+            addToast("Erro ao ler arquivo OFX.", 'error');
+            console.error(error);
+        }
+        // Reset input
+        if (ofxInputRef.current) ofxInputRef.current.value = '';
+    };
+
+    const handleImportConfirm = (importedTxs: OFXTransaction[]) => {
+        if (!selectedAccount) return;
+
+        let count = 0;
+        importedTxs.forEach(tx => {
+            // Check for duplicates (Simple check by date & amount & description)
+            // Ideally we would use the FITID but our internal DB doesn't store it yet.
+            const isDuplicate = transactions.some(t =>
+                t.accountId === selectedAccount.id &&
+                t.amount === tx.amount &&
+                t.date === tx.date &&
+                t.type === tx.type
+            );
+
+            if (!isDuplicate) {
+                onAddTransaction({
+                    amount: tx.amount,
+                    description: tx.description,
+                    date: tx.date,
+                    type: tx.type,
+                    category: Category.OTHER, // Default category
+                    accountId: selectedAccount.id,
+                    isRecurring: false
+                });
+                count++;
+            }
+        });
+
+        if (count > 0) {
+            addToast(`${count} transações importadas com sucesso!`, 'success');
+        } else {
+            addToast("Nenhuma nova transação importada (duplicatas ignoradas).", 'info');
+        }
+        setImportModal({ isOpen: false, transactions: [] });
+    };
+
+    // --- ANTICIPATION LOGIC ---
+    const handleAnticipateRequest = (tx: Transaction) => {
+        setAnticipateModal({ isOpen: true, transaction: tx });
+    };
+
+    const handleConfirmAnticipation = (ids: string[], date: string, accountId: string) => {
+        if (onAnticipate) {
+            onAnticipate(ids, date, accountId);
+        }
+        setAnticipateModal({ isOpen: false, transaction: null });
     };
 
     const totalBalance = useMemo(() => accounts.filter(a => a.type !== AccountType.CREDIT_CARD).reduce((acc, curr) => acc + curr.balance, 0), [accounts]);
@@ -266,7 +333,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                         showValues={showValues}
                         onInvoiceDateChange={setInvoiceDate}
                         onAction={(type, amount) => setActionModal({ isOpen: true, type, amount })}
-                        onAnticipateInstallments={onAnticipateInstallments} // Pass the handler
+                        onAnticipateInstallments={handleAnticipateRequest} // Pass the handler
                     />
                 ) : (
                     <BankingDetail
@@ -287,6 +354,25 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     onClose={() => setActionModal({ ...actionModal, isOpen: false })}
                     onConfirm={handleActionSubmit}
                 />
+
+                <ImportModal
+                    isOpen={importModal.isOpen}
+                    onClose={() => setImportModal({ ...importModal, isOpen: false })}
+                    onImport={handleImportConfirm}
+                    importedTransactions={importModal.transactions}
+                />
+
+                {/* Anticipate Modal */}
+                {anticipateModal.isOpen && anticipateModal.transaction && (
+                    <InstallmentAnticipationModal
+                        isOpen={anticipateModal.isOpen}
+                        onClose={() => setAnticipateModal({ isOpen: false, transaction: null })}
+                        transaction={anticipateModal.transaction}
+                        allInstallments={transactions}
+                        accounts={accounts}
+                        onConfirm={handleConfirmAnticipation}
+                    />
+                )}
             </div>
         );
     }

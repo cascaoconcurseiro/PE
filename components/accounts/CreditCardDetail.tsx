@@ -22,7 +22,7 @@ interface CreditCardDetailProps {
     onAnticipateInstallments: (tx: Transaction) => void; // New prop for anticipation
 }
 
-export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({ 
+export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     account, transactions, currentDate, showValues, onInvoiceDateChange, onAction, onAnticipateInstallments
 }) => {
     const { invoiceTotal, transactions: invoiceTxs, status, daysToClose, closingDate, dueDate } = getInvoiceData(account, transactions, currentDate);
@@ -50,20 +50,37 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                             <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-2 ${status === 'CLOSED' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'}`}>
                                 {status === 'CLOSED' ? 'Fatura Fechada' : 'Fatura Aberta'}
                             </div>
-                            <div className="flex items-center gap-2 mt-1">
-                                <Button variant="ghost" size="sm" onClick={() => changeMonth('prev')} className="h-8 w-8 p-0 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 no-print">
+                            <div className="flex items-center gap-2 mt-1 bg-slate-100 dark:bg-slate-700 rounded-full p-1">
+                                <Button variant="ghost" size="sm" onClick={() => changeMonth('prev')} className="h-8 w-8 p-0 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300">
                                     <ArrowLeft className="w-4 h-4" />
                                 </Button>
-                                <span className="text-sm font-bold text-slate-800 dark:text-white capitalize min-w-[120px] text-center">
-                                    {closingDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
-                                </span>
-                                <Button variant="ghost" size="sm" onClick={() => changeMonth('next')} className="h-8 w-8 p-0 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 no-print">
+
+                                <select
+                                    className="bg-transparent text-sm font-bold text-slate-800 dark:text-white capitalize text-center outline-none appearance-none cursor-pointer min-w-[140px]"
+                                    value={currentDate.toISOString().slice(0, 7)}
+                                    onChange={(e) => {
+                                        const [y, m] = e.target.value.split('-').map(Number);
+                                        const newDate = new Date(y, m - 1, 15);
+                                        onInvoiceDateChange(newDate);
+                                    }}
+                                >
+                                    {Array.from({ length: 15 }).map((_, i) => {
+                                        const d = new Date();
+                                        d.setDate(15);
+                                        d.setMonth(d.getMonth() - 11 + i); // Last 11 months + current + next 3
+                                        const val = d.toISOString().slice(0, 7);
+                                        const label = d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                                        return <option key={val} value={val} className="text-slate-900">{label}</option>;
+                                    })}
+                                </select>
+
+                                <Button variant="ghost" size="sm" onClick={() => changeMonth('next')} className="h-8 w-8 p-0 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300">
                                     <ArrowRight className="w-4 h-4" />
                                 </Button>
                             </div>
                             <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-2">
-                                {status === 'OPEN' 
-                                    ? `Fecha em ${daysToClose} dias (Dia ${account.closingDay})` 
+                                {status === 'OPEN'
+                                    ? `Fecha em ${daysToClose} dias (Dia ${account.closingDay})`
                                     : `Fechada em ${closingDate.toLocaleDateString('pt-BR')}`
                                 }
                             </p>
@@ -97,7 +114,7 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                 <div>
                     <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3 px-2">Lançamentos na Fatura</h3>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">
-                        {invoiceTxs.length === 0 ? <div className="p-8 text-center text-slate-500 dark:text-slate-400"><ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-50" /><p className="text-sm">Nenhuma compra nesta fatura.</p></div> : 
+                        {invoiceTxs.length === 0 ? <div className="p-8 text-center text-slate-500 dark:text-slate-400"><ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-50" /><p className="text-sm">Nenhuma compra nesta fatura.</p></div> :
                             invoiceTxs.map(t => {
                                 const CatIcon = getCategoryIcon(t.category);
                                 const isInstallment = !!t.isInstallment && !!t.totalInstallments && t.totalInstallments > 1;
@@ -122,10 +139,10 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                                                 {t.isRefund ? '-' : ''}{formatCurrency(t.amount, account.currency)}
                                             </span>
                                             {isInstallment && !isSettled && (
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="ghost" 
-                                                    onClick={() => onAnticipateInstallments(t)} 
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => onAnticipateInstallments(t)}
                                                     className="text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-xs h-7 px-2"
                                                 >
                                                     <Clock className="w-3 h-3 mr-1" /> Antecipar

@@ -6,7 +6,7 @@ import { TransactionList } from './transactions/TransactionList';
 import { TransactionSummary } from './transactions/TransactionSummary';
 import { TransactionForm } from './transactions/TransactionForm';
 import { ConfirmModal } from './ui/ConfirmModal';
-import { AnticipateInstallmentsModal } from './transactions/AnticipateInstallmentsModal'; // Import the new modal
+import { InstallmentAnticipationModal } from './transactions/InstallmentAnticipationModal';
 import { Button } from './ui/Button'; // Assuming Button is already imported
 
 // Export PrivacyBlur for reuse if needed, though mostly handled internally now
@@ -63,7 +63,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const [formMode, setFormMode] = useState<TransactionType | null>(modalMode ? TransactionType.EXPENSE : null);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     // Delete State
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id: string | null }>({ isOpen: false, id: null });
 
@@ -204,9 +204,9 @@ export const Transactions: React.FC<TransactionsProps> = ({
             {/* SEARCH BAR */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-2 flex items-center gap-2">
                 <Search className="w-5 h-5 text-slate-400 ml-2" />
-                <input 
-                    type="text" 
-                    placeholder="Buscar transações..." 
+                <input
+                    type="text"
+                    placeholder="Buscar transações..."
                     className="flex-1 outline-none text-sm font-medium text-slate-700 dark:text-white placeholder:text-slate-400 h-10 bg-transparent"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -217,17 +217,17 @@ export const Transactions: React.FC<TransactionsProps> = ({
             <TransactionSummary income={income} expense={expense} balance={balance} showValues={showValues} />
 
             {/* TRANSACTION LIST */}
-            <TransactionList 
-                groupedTxs={groupedTxs} 
-                accounts={accounts} 
+            <TransactionList
+                groupedTxs={groupedTxs}
+                accounts={accounts}
                 familyMembers={familyMembers}
-                showValues={showValues} 
-                onEdit={handleEditRequest} 
+                showValues={showValues}
+                onEdit={handleEditRequest}
                 onDelete={handleDeleteRequest}
                 onAddClick={() => setFormMode(TransactionType.EXPENSE)}
             />
 
-            <ConfirmModal 
+            <ConfirmModal
                 isOpen={deleteModal.isOpen}
                 title="Excluir Transação"
                 message="Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita."
@@ -237,13 +237,13 @@ export const Transactions: React.FC<TransactionsProps> = ({
             />
 
             {anticipateModal.isOpen && anticipateModal.transaction && (
-                <AnticipateInstallmentsModal
+                <InstallmentAnticipationModal
                     isOpen={anticipateModal.isOpen}
                     onClose={() => setAnticipateModal({ isOpen: false, transaction: null })}
-                    transactions={transactions}
-                    initialTransaction={anticipateModal.transaction}
+                    transaction={anticipateModal.transaction}
+                    allInstallments={transactions}
                     accounts={accounts}
-                    onConfirmAnticipation={handleConfirmAnticipation}
+                    onConfirm={handleConfirmAnticipation}
                 />
             )}
         </div>

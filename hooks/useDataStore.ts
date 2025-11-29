@@ -51,11 +51,11 @@ export const useDataStore = () => {
         const now = new Date().toISOString();
 
         const totalInstallments = Number(newTx.totalInstallments);
-        
+
         if (newTx.isInstallment && totalInstallments > 1) {
-            const baseDate = parseDate(newTx.date); 
+            const baseDate = parseDate(newTx.date);
             const seriesId = crypto.randomUUID();
-            const amountPerInstallment = newTx.amount / totalInstallments; 
+            const amountPerInstallment = newTx.amount / totalInstallments;
 
             const sharedWithPerInstallment = newTx.sharedWith?.map(s => ({
                 ...s,
@@ -63,13 +63,20 @@ export const useDataStore = () => {
             }));
 
             for (let i = 0; i < totalInstallments; i++) {
-                const nextDate = new Date(baseDate);
-                nextDate.setMonth(baseDate.getMonth() + i);
+                // FIX: Prevent month skipping for dates like Jan 31
+                // Step 1: Create date at day 1 of base month
+                const nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
 
-                if (baseDate.getDate() > 28) {
-                    const daysInTargetMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
-                    nextDate.setDate(Math.min(baseDate.getDate(), daysInTargetMonth));
-                }
+                // Step 2: Add months safely
+                nextDate.setMonth(nextDate.getMonth() + i);
+
+                // Step 3: Set the day, capping at month's max days
+                const targetDay = baseDate.getDate();
+                const daysInTargetMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+                nextDate.setDate(Math.min(targetDay, daysInTargetMonth));
+
+                // Preserve time from baseDate
+                nextDate.setHours(baseDate.getHours(), baseDate.getMinutes(), baseDate.getSeconds(), baseDate.getMilliseconds());
 
                 newTransactionsList.push({
                     ...newTx,
@@ -107,7 +114,7 @@ export const useDataStore = () => {
 
     const handleUpdateTransaction = async (updatedTx: Transaction) => {
         const oldTx = await db.transactions.get(updatedTx.id);
-        
+
         await db.transaction('rw', [db.transactions, db.auditLogs], async () => {
             await db.transactions.put({
                 ...updatedTx,
@@ -152,7 +159,7 @@ export const useDataStore = () => {
         }
     };
 
-    const handleAnticipateInstallments = async (idsToAnticipate: string[], targetDate: string) => {
+    const handleAnticipateInstallments = async (idsToAnticipate: string[], targetDate: string, targetAccountId?: string) => {
         await db.transaction('rw', [db.transactions, db.auditLogs], async () => {
             const txs = await db.transactions.bulkGet(idsToAnticipate);
             const updates = txs
@@ -160,14 +167,15 @@ export const useDataStore = () => {
                 .map(t => ({
                     ...t,
                     date: targetDate, // Move to target date (usually today)
+                    accountId: targetAccountId || t.accountId, // Update account if provided
                     description: t.description.includes('(Antecipado)') ? t.description : `${t.description} (Antecipado)`,
                     updatedAt: new Date().toISOString(),
                     syncStatus: SyncStatus.PENDING
                 }));
-            
+
             if (updates.length > 0) {
                 await db.transactions.bulkPut(updates);
-                await logAudit('TRANSACTION', 'BATCH', 'UPDATE', { action: 'ANTICIPATE', count: updates.length, targetDate });
+                await logAudit('TRANSACTION', 'BATCH', 'UPDATE', { action: 'ANTICIPATE', count: updates.length, targetDate, targetAccountId });
             }
         });
     };
@@ -430,10 +438,10 @@ export const useDataStore = () => {
             if (validData.assets) await db.assets.bulkPut(validData.assets as unknown as Asset[]);
             if (validData.snapshots) await db.snapshots.bulkPut(validData.snapshots as unknown as Snapshot[]);
             if (validData.customCategories) await db.customCategories.bulkPut(validData.customCategories as unknown as CustomCategory[]);
-            
+
             await logAudit('ACCOUNT', 'SYSTEM', 'UPDATE', { action: 'IMPORT_DATA', timestamp: new Date().toISOString() });
         });
-        
+
         alert('Dados restaurados com sucesso!');
     };
 

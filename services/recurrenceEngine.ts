@@ -30,6 +30,8 @@ export const processRecurringTransactions = (
                     newDate.setDate(newDate.getDate() + 7);
                     break;
                 case Frequency.MONTHLY:
+                    // FIX: Set to day 1 first to prevent month skipping
+                    newDate.setDate(1);
                     newDate.setMonth(newDate.getMonth() + 1);
                     const desiredDay = t.recurrenceDay!;
                     const daysInNextMonth = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0).getDate();

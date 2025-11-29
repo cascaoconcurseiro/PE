@@ -3,7 +3,7 @@ import { Transaction, Trip, FamilyMember, TransactionType, Account, SyncStatus, 
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Users, Home, Plane, ArrowRight, AlertCircle, Calendar, Wallet, CheckCircle2, Sparkles, ChevronDown } from 'lucide-react';
-import { formatCurrency } from '../utils';
+import { formatCurrency, parseDate, isSameMonth } from '../utils';
 
 interface SharedProps {
     transactions: Transaction[];
@@ -30,15 +30,15 @@ interface InvoiceItem {
     memberId: string; // The specific member this relates to
 }
 
-export const Shared: React.FC<SharedProps> = ({ 
-    transactions, 
-    trips, 
-    members, 
-    accounts, 
+export const Shared: React.FC<SharedProps> = ({
+    transactions,
+    trips,
+    members,
+    accounts,
     currentDate,
-    onAddTransaction, 
-    onUpdateTransaction, 
-    onNavigateToTrips 
+    onAddTransaction,
+    onUpdateTransaction,
+    onNavigateToTrips
 }) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
     const [settleModal, setSettleModal] = useState<{ isOpen: boolean, memberId: string | null, type: 'PAY' | 'RECEIVE' | 'OFFSET', items: InvoiceItem[], total: number }>({
@@ -49,21 +49,21 @@ export const Shared: React.FC<SharedProps> = ({
     // --- ENGINE: GENERATE INVOICES ---
     const invoices = useMemo(() => {
         const invoiceMap: Record<string, InvoiceItem[]> = {};
-        
+
         // Initialize for all known members to ensure empty state exists
         members.forEach(m => invoiceMap[m.id] = []);
 
         transactions.forEach(t => {
             // Check if it's an expense AND (marked shared OR has splits OR paid by other)
             const isSharedExpense = t.type === TransactionType.EXPENSE && (t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me'));
-            
+
             if (!isSharedExpense) return;
 
             // 1. CREDIT LOGIC: User Paid (payerId undefined or 'me'), Others Owe User
             if (!t.payerId || t.payerId === 'me') {
                 t.sharedWith?.forEach(split => {
                     const memberId = split.memberId;
-                    
+
                     if (!invoiceMap[memberId]) invoiceMap[memberId] = [];
 
                     invoiceMap[memberId].push({
@@ -79,11 +79,11 @@ export const Shared: React.FC<SharedProps> = ({
                         memberId: memberId
                     });
                 });
-            } 
+            }
             // 2. DEBIT LOGIC: Member Paid (payerId exists), User Owes Member
             else {
                 const payerId = t.payerId;
-                
+
                 if (!invoiceMap[payerId]) invoiceMap[payerId] = [];
 
                 // Calculate My Share
@@ -122,31 +122,28 @@ export const Shared: React.FC<SharedProps> = ({
     // --- FILTERING ---
     const getFilteredInvoice = (memberId: string) => {
         const allItems = invoices[memberId] || [];
-        
+
         if (activeTab === 'TRAVEL') {
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else {
-            // REGULAR TAB LOGIC
-            const selectedMonthStr = currentDate.toISOString().slice(0, 7); // YYYY-MM
-            
-            // Calculate end of selected month as YYYY-MM-DD string to avoid timezone issues
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            const lastDay = new Date(year, month + 1, 0).getDate();
-            const endOfMonthStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${lastDay}`;
+            // REGULAR TAB LOGIC - Using Credit Card Logic (Strict Month Filtering)
+            const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const currentMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
 
             return allItems.filter(i => {
                 if (i.tripId) return false; // Filter out trip items from Regular tab
 
-                // 1. If Paid: Only show if it belongs strictly to this month (History for this month)
+                const itemDate = parseDate(i.date);
+
+                // 1. If Paid: Only show if it belongs strictly to this month
                 if (i.isPaid) {
-                    return i.date.startsWith(selectedMonthStr);
+                    return isSameMonth(itemDate, currentDate);
                 }
-                
+
                 // 2. If Unpaid (Pending):
-                // Show if it belongs to this month OR if it is Overdue (Past)
-                // HIDE if it is in the future (Next month's installment)
-                return i.date <= endOfMonthStr;
+                // Show ONLY if it belongs to this month OR if it is Overdue (Past)
+                // STRICTLY exclude future installments
+                return itemDate <= currentMonthEnd;
 
             }).sort((a, b) => b.date.localeCompare(a.date));
         }
@@ -163,7 +160,7 @@ export const Shared: React.FC<SharedProps> = ({
     const handleOpenSettleModal = (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET') => {
         const items = getFilteredInvoice(memberId).filter(i => !i.isPaid);
         const totals = getTotals(items);
-        
+
         setSettleModal({
             isOpen: true,
             memberId,
@@ -175,20 +172,20 @@ export const Shared: React.FC<SharedProps> = ({
 
     const handleConfirmSettlement = () => {
         if (!settleModal.memberId || !selectedAccountId) return;
-        
+
         const now = new Date().toISOString();
 
         // 1. Create Individual Transactions for EACH Item
         settleModal.items.forEach(item => {
             const isReceiving = item.type === 'CREDIT';
             const descriptionPrefix = isReceiving ? 'Reembolso Recebido' : 'Pagamento de Dívida';
-            
+
             onAddTransaction({
                 amount: item.amount,
                 description: `${descriptionPrefix}: ${item.description}`,
                 date: now.split('T')[0],
                 type: isReceiving ? TransactionType.INCOME : TransactionType.EXPENSE,
-                category: isReceiving ? Category.INCOME : Category.TRANSFER, 
+                category: isReceiving ? Category.INCOME : Category.TRANSFER,
                 accountId: selectedAccountId,
                 isShared: false,
                 relatedMemberId: settleModal.memberId!,
@@ -233,7 +230,7 @@ export const Shared: React.FC<SharedProps> = ({
     const viewTotals = useMemo(() => {
         let totalReceivable = 0;
         let totalPayable = 0;
-        
+
         displayMembers.forEach(member => {
             const items = getFilteredInvoice(member.id);
             items.forEach(item => {
@@ -243,7 +240,7 @@ export const Shared: React.FC<SharedProps> = ({
                 }
             });
         });
-        
+
         return { totalReceivable, totalPayable, net: totalReceivable - totalPayable };
     }, [displayMembers, activeTab, invoices, currentDate]);
 
@@ -304,8 +301,8 @@ export const Shared: React.FC<SharedProps> = ({
                         </div>
                         <h3 className="text-lg font-bold text-slate-800 dark:text-white">Tudo certo por aqui!</h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                            {activeTab === 'REGULAR' 
-                                ? `Nenhuma pendência financeira para ${currentDate.toLocaleDateString('pt-BR', { month: 'long' })}.` 
+                            {activeTab === 'REGULAR'
+                                ? `Nenhuma pendência financeira para ${currentDate.toLocaleDateString('pt-BR', { month: 'long' })}.`
                                 : 'Nenhuma dívida de viagem pendente no momento.'}
                         </p>
                     </div>
@@ -412,7 +409,7 @@ export const Shared: React.FC<SharedProps> = ({
                                 {settleModal.items.length} itens selecionados
                             </p>
                         </div>
-                        
+
                         <div className="p-6 space-y-6">
                             <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
                                 <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase">Valor Total</span>

@@ -24,15 +24,19 @@ export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalPr
 }) => {
     const [selectedInstallments, setSelectedInstallments] = useState<string[]>([]);
     const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
-    const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || '');
+    const [selectedAccountId, setSelectedAccountId] = useState(() => {
+        const currentAcc = accounts.find(a => a.id === initialTransaction.accountId);
+        if (currentAcc?.type === AccountType.CREDIT_CARD) return currentAcc.id;
+        return accounts.find(a => a.type !== AccountType.CREDIT_CARD)?.id || '';
+    });
 
     // Filter future installments from the same series
     const futureInstallments = useMemo(() => {
         if (!initialTransaction.seriesId) return [];
         return transactions
-            .filter(tx => 
-                tx.seriesId === initialTransaction.seriesId && 
-                tx.id !== initialTransaction.id && 
+            .filter(tx =>
+                tx.seriesId === initialTransaction.seriesId &&
+                tx.id !== initialTransaction.id &&
                 new Date(tx.date) > new Date(initialTransaction.date) &&
                 !tx.isSettled // Only show unsettled installments
             )
@@ -40,7 +44,7 @@ export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalPr
     }, [transactions, initialTransaction]);
 
     const toggleInstallment = (id: string) => {
-        setSelectedInstallments(prev => 
+        setSelectedInstallments(prev =>
             prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
         );
     };
@@ -81,12 +85,12 @@ export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalPr
 
                 <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-purple-50 dark:bg-purple-900/20">
                     <label className="text-xs font-bold text-purple-800 dark:text-purple-400 uppercase mb-1 block">Data do Pagamento</label>
-                    <input 
-                        type="date" 
-                        value={paymentDate} 
+                    <input
+                        type="date"
+                        value={paymentDate}
                         onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
-                        onChange={e => setPaymentDate(e.target.value)} 
-                        className="w-full bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-700 rounded-xl p-3 font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500" 
+                        onChange={e => setPaymentDate(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-700 rounded-xl p-3 font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"
                     />
                 </div>
 
@@ -100,9 +104,9 @@ export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalPr
                         futureInstallments.map(tx => {
                             const isSelected = selectedInstallments.includes(tx.id);
                             return (
-                                <div 
-                                    key={tx.id} 
-                                    onClick={() => toggleInstallment(tx.id)} 
+                                <div
+                                    key={tx.id}
+                                    onClick={() => toggleInstallment(tx.id)}
                                     className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${isSelected ? 'bg-purple-600 text-white border-purple-600 shadow-md' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                                 >
                                     <div>
@@ -132,27 +136,35 @@ export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalPr
                             {formatCurrency(totalAnticipatedAmount, accounts.find(a => a.id === initialTransaction.accountId)?.currency || 'BRL')}
                         </span>
                     </div>
-                    
+
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Pagar com a conta:</label>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Destino da Antecipação:</label>
                         <div className="relative">
                             <Wallet className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                            <select 
-                                value={selectedAccountId} 
-                                onChange={e => setSelectedAccountId(e.target.value)} 
+                            <select
+                                value={selectedAccountId}
+                                onChange={e => setSelectedAccountId(e.target.value)}
                                 className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 dark:text-white font-medium appearance-none"
                             >
-                                <option value="" disabled>Selecione uma conta...</option>
-                                {accounts.filter(a => a.type !== AccountType.CREDIT_CARD).map(acc => (
-                                    <option key={acc.id} value={acc.id}>{acc.name} ({formatCurrency(acc.balance, acc.currency)})</option>
-                                ))}
+                                <option value="" disabled>Selecione...</option>
+                                {/* Option for Current Invoice (Same Credit Card) */}
+                                {accounts.find(a => a.id === initialTransaction.accountId)?.type === AccountType.CREDIT_CARD && (
+                                    <option value={initialTransaction.accountId} className="font-bold text-purple-600">
+                                        Fatura Atual ({accounts.find(a => a.id === initialTransaction.accountId)?.name})
+                                    </option>
+                                )}
+                                <optgroup label="Pagar com Saldo (Quitar Agora)">
+                                    {accounts.filter(a => a.type !== AccountType.CREDIT_CARD).map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name} ({formatCurrency(acc.balance, acc.currency)})</option>
+                                    ))}
+                                </optgroup>
                             </select>
                             <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
                         </div>
                     </div>
 
-                    <Button 
-                        onClick={handleConfirm} 
+                    <Button
+                        onClick={handleConfirm}
                         className="w-full h-12 text-lg bg-purple-600 hover:bg-purple-700 text-white shadow-purple-200 shadow-lg rounded-xl mt-4"
                         disabled={selectedInstallments.length === 0 || !selectedAccountId}
                     >
