@@ -21,10 +21,9 @@ import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useDataStore } from './hooks/useDataStore';
 import { useAppLogic } from './hooks/useAppLogic';
 import { MainLayout } from './components/MainLayout';
-import './index.css'; // Importando estilos globais
+import './index.css';
 
 const App = () => {
-    // --- MIGRATION & INIT ---
     const [isMigrating, setIsMigrating] = useState(true);
 
     useEffect(() => {
@@ -35,14 +34,12 @@ const App = () => {
         init();
     }, []);
 
-    // --- CUSTOM HOOKS ---
     const {
         user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, handlers
     } = useDataStore();
 
     useAppLogic({ accounts, transactions, assets, isMigrating });
 
-    // --- APP STATE ---
     const [activeView, setActiveView] = useState<View>(View.DASHBOARD);
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [editTxId, setEditTxId] = useState<string | null>(null);
@@ -53,7 +50,6 @@ const App = () => {
 
     useEffect(() => { localStorage.setItem('pdm_privacy', JSON.stringify(showValues)); }, [showValues]);
 
-    // --- CALCULATED VALUES ---
     const calculatedAccounts = useMemo(() => {
         if (!accounts || !transactions) return [];
         const cutOffDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -66,7 +62,6 @@ const App = () => {
         return transactions.filter(t => t.enableNotification && t.notificationDate && t.notificationDate <= today);
     }, [transactions]);
 
-    // --- HANDLERS ---
     const handleRequestEdit = (id: string) => {
         setIsTxModalOpen(true);
         setEditTxId(id);
@@ -93,15 +88,13 @@ const App = () => {
         }
     };
 
-    // --- RENDER ---
-
     if (isMigrating) {
         return (
             <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
                 <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center animate-bounce mb-4">
                     <PiggyBank className="w-10 h-10" />
                 </div>
-                <p className="text-slate-600 font-medium animate-pulse">Atualizando banco de dados...</p>
+                <p className="text-slate-600 font-medium animate-pulse">Carregando...</p>
             </div>
         );
     }
@@ -113,12 +106,6 @@ const App = () => {
     if (!accounts || !transactions) {
         return (
             <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
-                <aside className="hidden md:flex flex-col w-72 h-full border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm z-20 shrink-0 p-6 space-y-6">
-                    <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
-                    <div className="space-y-4">
-                        {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />)}
-                    </div>
-                </aside>
                 <div className="flex-1 p-8">
                     <DashboardSkeleton />
                 </div>
@@ -141,7 +128,7 @@ const App = () => {
             case View.TRIPS:
                 return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} />;
             case View.SHARED:
-                return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} onAddTransaction={handlers.handleAddTransaction} onNavigateToTrips={() => setActiveView(View.TRIPS)} />;
+                return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onNavigateToTrips={() => setActiveView(View.TRIPS)} />;
             case View.FAMILY:
                 return <Family members={familyMembers} onAddMember={handlers.handleAddMember} onDeleteMember={handlers.handleDeleteMember} />;
             case View.INVESTMENTS:

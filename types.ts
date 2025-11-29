@@ -68,10 +68,10 @@ export interface UserProfile extends BaseEntity {
 
 export interface Budget extends BaseEntity {
   id: string;
-  categoryId: Category | string; // Can be a standard Category enum or custom category ID
+  categoryId: Category | string;
   amount: number;
   period: 'MONTHLY' | 'YEARLY';
-  alertThreshold: number; // Percentage (e.g., 80 for 80%)
+  alertThreshold: number;
   rollover?: boolean;
 }
 
@@ -109,6 +109,8 @@ export interface TransactionSplit {
   percentage: number;
   assignedAmount: number;
   relatedMemberId?: string;
+  isSettled?: boolean;
+  settledAt?: string;
 }
 
 export interface Transaction extends BaseEntity {
@@ -132,26 +134,27 @@ export interface Transaction extends BaseEntity {
   totalInstallments?: number;
   observation?: string;
 
-  // Installment/Recurring Logic
-  seriesId?: string; // Links installments of the same purchase
+  seriesId?: string;
 
   enableNotification?: boolean;
   notificationDate?: string;
 
   isShared?: boolean;
   sharedWith?: TransactionSplit[];
-  payerId?: string; // ID of the family member who paid (undefined means the user)
+  payerId?: string;
   relatedMemberId?: string;
 
   isRefund?: boolean;
 
-  // Multi-currency Support
-  destinationAmount?: number; // For transfers with currency conversion
+  isSettled?: boolean;
+  settledAt?: string;
+  settledByTxId?: string;
+
+  destinationAmount?: number;
   exchangeRate?: number;
 
-  // OFX Reconciliation
   reconciled?: boolean;
-  reconciledWith?: string; // FITID from OFX
+  reconciledWith?: string;
 }
 
 export enum View {
@@ -233,14 +236,14 @@ export enum AssetType {
 
 export interface Asset extends BaseEntity {
   id: string;
-  ticker: string; // e.g., PETR4, BTC, HGLG11
+  ticker: string;
   name: string;
   type: AssetType;
   quantity: number;
-  averagePrice: number; // Preço Médio
-  currentPrice: number; // Cotação Atual
+  averagePrice: number;
+  currentPrice: number;
   currency: string;
-  accountId: string; // Which account holds this asset (e.g., Binance, XP)
+  accountId: string;
   lastUpdate?: string;
   tradeHistory?: TradeHistory[];
 }
@@ -252,7 +255,7 @@ export interface TradeHistory {
   quantity: number;
   price: number;
   total: number;
-  profit?: number; // Only for SELL
+  profit?: number;
   currency: string;
 }
 
