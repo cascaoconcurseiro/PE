@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Download, Upload, Trash2, ShieldCheck, Database, AlertTriangle, Tag, Plus, X } from 'lucide-react';
+import { Download, Upload, Trash2, ShieldCheck, Database, AlertTriangle, Tag, Plus, X, Key, Sparkles } from 'lucide-react';
 import { Account, Budget, CustomCategory, FamilyMember, Transaction, Trip, Asset, Goal, Snapshot } from '../types';
 
 interface SettingsProps {
@@ -44,7 +44,18 @@ export const Settings: React.FC<SettingsProps> = ({
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [newCategoryName, setNewCategoryName] = useState('');
-    const [globalCurrency, setGlobalCurrency] = useState('BRL'); // Mock global currency state
+    const [globalCurrency, setGlobalCurrency] = useState('BRL');
+    const [apiKey, setApiKey] = useState('');
+
+    useEffect(() => {
+        const key = localStorage.getItem('gemini_api_key');
+        if (key) setApiKey(key);
+    }, []);
+
+    const handleSaveApiKey = () => {
+        localStorage.setItem('gemini_api_key', apiKey);
+        alert('Chave de API salva com sucesso!');
+    };
 
     const handleExport = () => {
         const data = {
@@ -100,16 +111,9 @@ export const Settings: React.FC<SettingsProps> = ({
                 localStorage.clear();
 
                 // Clear IndexedDB
-                // We need to dynamically import db to avoid circular dependency issues if any, 
-                // or just assume it's available globally or passed down. 
-                // Since we can't easily import 'db' here without changing imports, 
-                // let's assume the user will reload and the migration might run again if we don't be careful.
-                // But wait, if we delete the DB, the migration logic in index.tsx will see empty DB and try to migrate from localStorage.
-                // But we just cleared localStorage. So it will be a fresh start.
-
                 const { db } = await import('../services/db');
                 await db.delete();
-                await db.open(); // Re-open to recreate schema if needed, or just reload page
+                await db.open();
 
                 window.location.reload();
             } catch (e) {
@@ -159,6 +163,40 @@ export const Settings: React.FC<SettingsProps> = ({
                             <option value="USD">Dólar Americano (USD)</option>
                             <option value="EUR">Euro (EUR)</option>
                         </select>
+                    </div>
+                </div>
+            </Card>
+
+            {/* AI Integration Section */}
+            <Card className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-violet-100 text-violet-600 rounded-xl">
+                        <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg text-slate-800">Integração com IA</h3>
+                        <p className="text-sm text-slate-500">Configure sua chave de API para recursos inteligentes.</p>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Gemini API Key</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="password"
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                                placeholder="Cole sua chave aqui..."
+                                className="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            />
+                            <Button onClick={handleSaveApiKey} className="bg-violet-600 hover:bg-violet-700 text-white">
+                                Salvar
+                            </Button>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">
+                            Sua chave é armazenada apenas no seu navegador (LocalStorage) e nunca é enviada para nossos servidores.
+                        </p>
                     </div>
                 </div>
             </Card>
