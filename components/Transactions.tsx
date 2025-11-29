@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, TransactionSplit, Frequency, CustomCategory, AccountType } from '../types';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
-import { Check, Plane, Users, Trash2, ChevronDown, Calendar, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCcw, Bell, BellRing, Repeat, Undo2, Download, CreditCard, Layers, AlertCircle, X, Percent, DollarSign, Loader2, ScanLine, Pencil, ArrowRight, TrendingUp, Banknote, PiggyBank, Landmark, AlertTriangle, Clock, User } from 'lucide-react';
+import { Check, Plane, Users, Trash2, ChevronDown, Calendar, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCcw, Bell, BellRing, Repeat, Undo2, Download, CreditCard, Layers, AlertCircle, X, Percent, DollarSign, Loader2, ScanLine, Pencil, ArrowRight, TrendingUp, Banknote, PiggyBank, Landmark, AlertTriangle, Clock, User, Filter, Search, Plus } from 'lucide-react';
 import { formatCurrency, getCategoryIcon, isSameMonth, parseDate } from '../utils';
 import { useToast } from './ui/Toast';
 import { ConfirmModal } from './ui/ConfirmModal';
@@ -91,6 +91,9 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
     const topRef = useRef<HTMLDivElement>(null);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+    // Filter State for List View
+    const [searchTerm, setSearchTerm] = useState('');
 
     const activeAmount = parseFloat(amountStr.replace(',', '.')) || 0;
     const selectedAccountObj = accounts.find(a => a.id === accountId);
@@ -189,7 +192,9 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
     const handleCancelEdit = () => {
         setEditingId(null);
+        if (!modalMode) setFormMode(null);
         resetForm();
+        if (onCancel) onCancel();
     };
 
     const resetForm = () => {
@@ -340,7 +345,42 @@ export const Transactions: React.FC<TransactionsProps> = ({
         }
 
         handleCancelEdit();
-        if (onCancel) onCancel();
+    };
+
+    // --- LIST VIEW LOGIC ---
+    const filteredTxs = useMemo(() => {
+        return transactions
+            .filter(t => {
+                const matchesDate = isSameMonth(t.date, currentDate);
+                const matchesSearch = searchTerm ? t.description.toLowerCase().includes(searchTerm.toLowerCase()) : true;
+                return matchesDate && matchesSearch;
+            })
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [transactions, currentDate, searchTerm]);
+
+    const { income, expense, balance } = useMemo(() => {
+        let inc = 0;
+        let exp = 0;
+        filteredTxs.forEach(t => {
+            if (t.type === TransactionType.INCOME) inc += t.isRefund ? -t.amount : t.amount;
+            else if (t.type === TransactionType.EXPENSE) exp += t.isRefund ? -t.amount : t.amount;
+        });
+        return { income: inc, expense: exp, balance: inc - exp };
+    }, [filteredTxs]);
+
+    const groupedTxs = useMemo(() => {
+        const groups: Record<string, Transaction[]> = {};
+        filteredTxs.forEach(t => {
+            const dateStr = t.date;
+            if (!groups[dateStr]) groups[dateStr] = [];
+            groups[dateStr].push(t);
+        });
+        return groups;
+    }, [filteredTxs]);
+
+    const PrivacyBlur = ({ children }: { children: React.ReactNode }) => {
+        if (showValues) return <>{children}</>;
+        return <span className="blur-sm select-none opacity-60">R$ ••••</span>;
     };
 
     if (formMode) {
@@ -357,11 +397,11 @@ export const Transactions: React.FC<TransactionsProps> = ({
                         <button onClick={() => setFormMode(TransactionType.INCOME)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isIncome ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600'}`}><ArrowUpRight className="w-3.5 h-3.5" /> Receita</button>
                         <button onClick={() => setFormMode(TransactionType.TRANSFER)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isTransfer ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}><RefreshCcw className="w-3.5 h-3.5" /> Transf.</button>
                     </div>
-                    {editingId && (
-                        <div className="shrink-0">
-                            <button onClick={handleCancelEdit} className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="Cancelar Edição"><X className="w-5 h-5" /></button>
-                        </div>
-                    )}
+                    {/* Only show Cancel button if this is NOT a modal or if we are editing */}
+                    {/* In Modal mode, the modal container handles closing, but we might want an explicit cancel button inside too */}
+                    <div className="shrink-0">
+                        <button onClick={handleCancelEdit} className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="Cancelar"><X className="w-5 h-5" /></button>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar pb-32">
@@ -659,5 +699,103 @@ export const Transactions: React.FC<TransactionsProps> = ({
         );
     }
 
-    return null;
+    // --- LIST VIEW ---
+    return (
+        <div className="space-y-6 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* SEARCH BAR */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 flex items-center gap-2">
+                <Search className="w-5 h-5 text-slate-400 ml-2" />
+                <input 
+                    type="text" 
+                    placeholder="Buscar transações..." 
+                    className="flex-1 outline-none text-sm font-medium text-slate-700 placeholder-slate-400 h-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+
+            {/* MONTHLY SUMMARY */}
+            <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Entradas</span>
+                    <span className="text-sm font-black text-emerald-600"><PrivacyBlur>{formatCurrency(income)}</PrivacyBlur></span>
+                </div>
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Saídas</span>
+                    <span className="text-sm font-black text-red-600"><PrivacyBlur>{formatCurrency(expense)}</PrivacyBlur></span>
+                </div>
+                <div className="bg-slate-900 rounded-2xl p-4 shadow-lg flex flex-col items-center justify-center text-white">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Saldo</span>
+                    <span className={`text-sm font-black ${balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}><PrivacyBlur>{formatCurrency(balance)}</PrivacyBlur></span>
+                </div>
+            </div>
+
+            {/* EMPTY STATE */}
+            {filteredTxs.length === 0 && (
+                <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200">
+                    <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                        <ScanLine className="w-10 h-10" />
+                    </div>
+                    <h3 className="font-bold text-slate-800 text-lg">Sem movimento</h3>
+                    <p className="text-slate-500 text-sm max-w-xs mx-auto mt-1 mb-6">Nenhuma transação encontrada neste período.</p>
+                    <Button onClick={() => setFormMode(TransactionType.EXPENSE)} className="bg-slate-900 text-white shadow-xl shadow-slate-200">
+                        <Plus className="w-4 h-4 mr-2" /> Adicionar Agora
+                    </Button>
+                </div>
+            )}
+
+            {/* TRANSACTION LIST */}
+            <div className="space-y-6">
+                {Object.entries(groupedTxs).sort((a, b) => b[0].localeCompare(a[0])).map(([dateStr, dayTxs]) => (
+                    <div key={dateStr}>
+                        <div className="flex items-center gap-3 mb-3 px-2">
+                            <div className="bg-slate-200 text-slate-600 text-[10px] font-black uppercase px-2 py-1 rounded-md tracking-wider">
+                                {new Date(dateStr).getDate()}
+                            </div>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                {new Date(dateStr).toLocaleDateString('pt-BR', { weekday: 'long', month: 'long' })}
+                            </span>
+                        </div>
+                        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+                            {dayTxs.map(t => {
+                                const CatIcon = getCategoryIcon(t.category);
+                                const isPositive = (t.type === TransactionType.INCOME && !t.isRefund) || (t.type === TransactionType.EXPENSE && t.isRefund);
+                                const accountName = accounts.find(a => a.id === t.accountId)?.name || 'Conta';
+                                
+                                return (
+                                    <div 
+                                        key={t.id} 
+                                        onClick={() => handleEditClick(t)} 
+                                        className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors cursor-pointer active:bg-slate-100 group"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${isPositive ? 'bg-emerald-100 text-emerald-600' : 'bg-red-50 text-red-600'} group-hover:scale-110 duration-200`}>
+                                                {t.type === TransactionType.TRANSFER ? <RefreshCcw className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
+                                            </div>
+                                            <div className="overflow-hidden">
+                                                <p className="text-sm font-bold text-slate-900 truncate">{t.description}</p>
+                                                <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500 mt-0.5">
+                                                    <span className="truncate max-w-[100px]">{t.category}</span>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                    <span className="truncate max-w-[100px] text-slate-400">{accountName}</span>
+                                                    {t.currentInstallment && <span className="bg-purple-100 text-purple-700 px-1.5 rounded text-[9px] font-bold">{t.currentInstallment}/{t.totalInstallments}</span>}
+                                                    {t.isRecurring && <span className="bg-blue-100 text-blue-700 px-1.5 rounded text-[9px] font-bold">Recorrente</span>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className={`block font-bold text-sm ${isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
+                                                {isPositive ? '+' : ''} <PrivacyBlur>{formatCurrency(t.amount)}</PrivacyBlur>
+                                            </span>
+                                            {t.isSettled && <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Pago</span>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 };
