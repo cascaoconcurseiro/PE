@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, Trip, FamilyMember, TransactionType, Account, SyncStatus } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Users, Home, Plane, ArrowRight, Check, AlertCircle, Calendar, Wallet, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, Home, Plane, ArrowRight, AlertCircle, Calendar, Wallet, CheckCircle2, Sparkles, ChevronDown } from 'lucide-react';
 import { formatCurrency, isSameMonth } from '../utils';
 
 interface SharedProps {
@@ -10,6 +10,7 @@ interface SharedProps {
     trips: Trip[];
     members: FamilyMember[];
     accounts: Account[];
+    currentDate: Date; // Added global date prop
     onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
     onUpdateTransaction: (t: Transaction) => void;
     onNavigateToTrips: () => void;
@@ -34,13 +35,12 @@ export const Shared: React.FC<SharedProps> = ({
     trips, 
     members, 
     accounts, 
+    currentDate,
     onAddTransaction, 
     onUpdateTransaction, 
     onNavigateToTrips 
 }) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
-    const [selectedMonth, setSelectedMonth] = useState(new Date());
-    const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
     const [settleModal, setSettleModal] = useState<{ isOpen: boolean, memberId: string | null, type: 'PAY' | 'RECEIVE' | 'OFFSET', items: InvoiceItem[], total: number }>({
         isOpen: false, memberId: null, type: 'PAY', items: [], total: 0
     });
@@ -129,7 +129,7 @@ export const Shared: React.FC<SharedProps> = ({
             // Regular: No trip ID. Show pending always, paid only for selected month
             return allItems.filter(i => 
                 !i.tripId && 
-                (!i.isPaid || isSameMonth(i.date, selectedMonth))
+                (!i.isPaid || isSameMonth(i.date, currentDate)) // Use global currentDate
             ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         }
     };
@@ -210,6 +210,13 @@ export const Shared: React.FC<SharedProps> = ({
         const allItems = Object.values(invoices).flat() as InvoiceItem[];
         
         allItems.forEach(item => {
+            // Filter by active tab logic implicitly via filtering before summing? 
+            // No, summary usually shows EVERYTHING pending.
+            // But if we are in Regular view, we might not want to see Travel debts in the summary cards?
+            // Let's keep it global for now, or filter if needed. 
+            // Given the requirement "follow the top calendar", we should probably filter "Regular" items by date if they are paid?
+            // Pending items are always relevant regardless of date.
+            
             if (!item.isPaid) {
                 if (item.type === 'CREDIT') totalReceivable += item.amount;
                 else totalPayable += item.amount;
@@ -218,6 +225,8 @@ export const Shared: React.FC<SharedProps> = ({
         
         return { totalReceivable, totalPayable, net: totalReceivable - totalPayable };
     }, [invoices]);
+
+    const hasPendingItems = globalTotals.totalReceivable > 0 || globalTotals.totalPayable > 0;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
@@ -249,112 +258,79 @@ export const Shared: React.FC<SharedProps> = ({
                 </Card>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-800 p-2 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 sticky top-0 z-20">
-                <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-full sm:w-auto">
+            {/* Navigation Tabs (Simplified) */}
+            <div className="flex justify-center">
+                <div className="bg-slate-100 dark:bg-slate-900 p-1 rounded-xl inline-flex shadow-inner">
                     <button
                         onClick={() => setActiveTab('REGULAR')}
-                        className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'REGULAR' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                        className={`px-6 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'REGULAR' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                     >
                         <Home className="w-4 h-4" /> Regular
                     </button>
                     <button
                         onClick={() => setActiveTab('TRAVEL')}
-                        className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'TRAVEL' ? 'bg-white dark:bg-slate-800 text-violet-700 dark:text-violet-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                        className={`px-6 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'TRAVEL' ? 'bg-white dark:bg-slate-800 text-violet-700 dark:text-violet-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                     >
                         <Plane className="w-4 h-4" /> Viagens
                     </button>
                 </div>
-
-                {activeTab === 'REGULAR' && (
-                    <div className="flex items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1">
-                        <input
-                            type="month"
-                            className="bg-transparent border-none text-sm font-bold text-slate-700 dark:text-slate-300 outline-none"
-                            value={selectedMonth.toISOString().slice(0, 7)}
-                            onChange={(e) => setSelectedMonth(new Date(e.target.value + '-01'))}
-                        />
-                    </div>
-                )}
             </div>
 
             {/* Members Invoices List */}
             <div className="space-y-6">
-                {displayMembers.length === 0 && (
-                    <div className="text-center py-12 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
-                        <Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                        <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum membro ou despesa encontrada.</p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500">Verifique se você criou despesas compartilhadas na tela de Extrato.</p>
+                {!hasPendingItems && activeTab === 'REGULAR' ? (
+                    <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Sparkles className="w-8 h-8 text-emerald-500" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-white">Tudo certo por aqui!</h3>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                            Você não tem pendências financeiras com ninguém neste mês.
+                        </p>
                     </div>
-                )}
+                ) : (
+                    displayMembers.map(member => {
+                        const items = getFilteredInvoice(member.id);
+                        const { credits, debits, net } = getTotals(items);
+                        const isSettled = Math.abs(net) < 0.01;
 
-                {displayMembers.map(member => {
-                    const items = getFilteredInvoice(member.id);
-                    const { credits, debits, net } = getTotals(items);
-                    const isSettled = Math.abs(net) < 0.01;
-                    const isExpanded = expandedMemberId === member.id;
+                        if (items.length === 0) return null;
 
-                    if (items.length === 0) return null;
-
-                    return (
-                        <div key={member.id} className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-all hover:shadow-md">
-                            {/* Invoice Header */}
-                            <div className="p-6 cursor-pointer" onClick={() => setExpandedMemberId(isExpanded ? null : member.id)}>
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xl border-4 border-white dark:border-slate-600 shadow-sm">
-                                            {member.name ? member.name[0] : '?'}
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
-                                                {member.name}
-                                                {activeTab === 'TRAVEL' && items.some(i => i.tripId) && <Plane className="w-4 h-4 text-violet-500" />}
-                                            </h3>
-                                            <div className="flex items-center gap-3 mt-1 text-xs font-medium">
-                                                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><ArrowRight className="w-3 h-3" /> Receber: {formatCurrency(credits)}</span>
-                                                <span className="text-slate-300 dark:text-slate-600">|</span>
-                                                <span className="text-red-600 dark:text-red-400 flex items-center gap-1"><ArrowRight className="w-3 h-3 transform rotate-180" /> Pagar: {formatCurrency(debits)}</span>
+                        return (
+                            <div key={member.id} className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-all hover:shadow-md">
+                                {/* Invoice Header */}
+                                <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xl border-4 border-white dark:border-slate-600 shadow-sm">
+                                                {member.name ? member.name[0] : '?'}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                                                    {member.name}
+                                                    {activeTab === 'TRAVEL' && items.some(i => i.tripId) && <Plane className="w-4 h-4 text-violet-500" />}
+                                                </h3>
+                                                <div className="flex items-center gap-3 mt-1 text-xs font-medium">
+                                                    <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><ArrowRight className="w-3 h-3" /> Receber: {formatCurrency(credits)}</span>
+                                                    <span className="text-slate-300 dark:text-slate-600">|</span>
+                                                    <span className="text-red-600 dark:text-red-400 flex items-center gap-1"><ArrowRight className="w-3 h-3 transform rotate-180" /> Pagar: {formatCurrency(debits)}</span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-1">Valor Líquido</p>
-                                        <p className={`text-2xl font-black ${net > 0 ? 'text-emerald-600 dark:text-emerald-400' : net < 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                                            {formatCurrency(Math.abs(net))}
-                                        </p>
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                                            {net > 0 ? 'A Receber' : net < 0 ? 'A Pagar' : 'Quitado'}
-                                        </p>
+                                        <div className="text-right">
+                                            <p className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-1">Valor Líquido</p>
+                                            <p className={`text-2xl font-black ${net > 0 ? 'text-emerald-600 dark:text-emerald-400' : net < 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                {formatCurrency(Math.abs(net))}
+                                            </p>
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                                {net > 0 ? 'A Receber' : net < 0 ? 'A Pagar' : 'Quitado'}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Actions Bar */}
-                            {!isSettled && (
-                                <div className="px-6 pb-6 flex gap-3">
-                                    {net > 0 ? (
-                                        <Button onClick={() => handleOpenSettleModal(member.id, 'RECEIVE')} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200 dark:shadow-none">
-                                            Receber Fatura ({formatCurrency(net)})
-                                        </Button>
-                                    ) : net < 0 ? (
-                                        <Button onClick={() => handleOpenSettleModal(member.id, 'PAY')} className="flex-1 bg-red-600 hover:bg-red-700 text-white shadow-red-200 dark:shadow-none">
-                                            Pagar Fatura ({formatCurrency(Math.abs(net))})
-                                        </Button>
-                                    ) : (
-                                        <Button onClick={() => handleOpenSettleModal(member.id, 'OFFSET')} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white shadow-slate-200 dark:shadow-none">
-                                            Compensar Itens (R$ 0,00)
-                                        </Button>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Collapsible Items List */}
-                            {isExpanded && (
-                                <div className="bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
-                                    <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex justify-between">
-                                        <span>Detalhamento da Fatura</span>
-                                        <span>{items.length} itens</span>
-                                    </div>
+                                {/* Items List (Always Expanded) */}
+                                <div className="bg-slate-50/50 dark:bg-slate-900/30 divide-y divide-slate-100 dark:divide-slate-700">
                                     {items.map(item => (
                                         <div key={item.id} className={`px-6 py-4 flex justify-between items-center ${item.isPaid ? 'opacity-50 grayscale' : ''}`}>
                                             <div className="flex items-center gap-3">
@@ -377,21 +353,29 @@ export const Shared: React.FC<SharedProps> = ({
                                         </div>
                                     ))}
                                 </div>
-                            )}
-                            
-                            {!isExpanded && items.length > 0 && (
-                                <div onClick={() => setExpandedMemberId(member.id)} className="bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 py-2 flex justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                                </div>
-                            )}
-                            {isExpanded && (
-                                <div onClick={() => setExpandedMemberId(null)} className="bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 py-2 flex justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                    <ChevronUp className="w-4 h-4 text-slate-400" />
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
+
+                                {/* Actions Bar */}
+                                {!isSettled && (
+                                    <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700">
+                                        {net > 0 ? (
+                                            <Button onClick={() => handleOpenSettleModal(member.id, 'RECEIVE')} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200 dark:shadow-none h-12 text-base">
+                                                Receber Fatura ({formatCurrency(net)})
+                                            </Button>
+                                        ) : net < 0 ? (
+                                            <Button onClick={() => handleOpenSettleModal(member.id, 'PAY')} className="w-full bg-red-600 hover:bg-red-700 text-white shadow-red-200 dark:shadow-none h-12 text-base">
+                                                Pagar Fatura ({formatCurrency(Math.abs(net))})
+                                            </Button>
+                                        ) : (
+                                            <Button onClick={() => handleOpenSettleModal(member.id, 'OFFSET')} className="w-full bg-slate-800 hover:bg-slate-900 text-white shadow-slate-200 dark:shadow-none h-12 text-base">
+                                                Compensar Itens (R$ 0,00)
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })
+                )}
             </div>
 
             {/* SETTLEMENT CONFIRMATION MODAL */}
