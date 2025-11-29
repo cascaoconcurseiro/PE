@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import { PiggyBank } from 'lucide-react';
+import { PiggyBank, Loader2 } from 'lucide-react';
 import { db, migrateFromLocalStorage } from './services/db';
+import { supabase } from './integrations/supabase/client';
 import { Dashboard } from './components/Dashboard';
 import { Accounts } from './components/Accounts';
 import { Auth } from './components/Auth';
@@ -13,7 +14,7 @@ import { Shared } from './components/Shared';
 import { Family } from './components/Family';
 import { Settings } from './components/Settings';
 import { Investments } from './components/Investments';
-import { View } from './types';
+import { View, SyncStatus } from './types';
 import { calculateBalances } from './services/balanceEngine';
 import { ThemeProvider } from './components/ui/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
@@ -24,21 +25,61 @@ import { MainLayout } from './components/MainLayout';
 import './index.css';
 
 const App = () => {
-    const [isMigrating, setIsMigrating] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const [sessionUser, setSessionUser] = useState<any>(null);
 
+    // Initial Setup & Session Check
     useEffect(() => {
         const init = async () => {
             await migrateFromLocalStorage();
-            setIsMigrating(false);
+            
+            // Check active session
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setSessionUser({
+                    id: session.user.id,
+                    name: session.user.user_metadata.name || session.user.email?.split('@')[0],
+                    email: session.user.email
+                });
+            }
+            setIsLoading(false);
         };
         init();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session) {
+                setSessionUser({
+                    id: session.user.id,
+                    name: session.user.user_metadata.name || session.user.email?.split('@')[0],
+                    email: session.user.email
+                });
+            } else {
+                setSessionUser(null);
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     const {
-        user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, handlers
+        user: storedUser, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, handlers
     } = useDataStore();
 
-    useAppLogic({ accounts, transactions, assets, isMigrating });
+    // Sync Auth State with Local DB
+    useEffect(() => {
+        if (sessionUser && !storedUser) {
+            handlers.handleLogin({
+                id: sessionUser.id,
+                name: sessionUser.name,
+                email: sessionUser.email,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                syncStatus: SyncStatus.PENDING
+            });
+        }
+    }, [sessionUser, storedUser]);
+
+    useAppLogic({ accounts, transactions, assets, isMigrating: isLoading });
 
     const [activeView, setActiveView] = useState<View>(View.DASHBOARD);
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -73,6 +114,11 @@ const App = () => {
         if (tx) handlers.handleUpdateTransaction({ ...tx, enableNotification: false });
     };
 
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        await handlers.handleLogout();
+    };
+
     const togglePrivacy = () => setShowValues(!showValues);
 
     const changeMonth = (direction: 'prev' | 'next') => {
@@ -88,19 +134,17 @@ const App = () => {
         }
     };
 
-    if (isMigrating) {
+    if (isLoading) {
         return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
-                <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center animate-bounce mb-4">
-                    <PiggyBank className="w-10 h-10" />
-                </div>
-                <p className="text-slate-600 font-medium animate-pulse">Carregando...</p>
+            <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center">
+                <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
+                <p className="text-slate-400 font-medium">Iniciando sistema seguro...</p>
             </div>
         );
     }
 
-    if (!user) {
-        return <Auth onLogin={handlers.handleLogin} />;
+    if (!sessionUser) {
+        return <Auth onLogin={() => {}} />;
     }
 
     if (!accounts || !transactions) {
@@ -144,8 +188,8 @@ const App = () => {
         <MainLayout
             activeView={activeView}
             setActiveView={setActiveView}
-            user={user}
-            onLogout={handlers.handleLogout}
+            user={storedUser || { id: 'loading', name: 'Carregando...', email: '' }}
+            onLogout={handleLogout}
             showValues={showValues}
             togglePrivacy={togglePrivacy}
             currentDate={currentDate}

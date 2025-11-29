@@ -8,13 +8,9 @@ import {
     Trip,
     FamilyMember,
     UserProfile,
-    Category,
-    TransactionType,
-    AccountType,
-    AssetType,
     Snapshot
 } from '../types';
-import { seedDatabase } from './seeder';
+// Remove import { seedDatabase } from './seeder';
 
 export class PeDeMeiaDB extends Dexie {
     accounts!: Table<Account, string>;
@@ -67,60 +63,14 @@ export const db = new PeDeMeiaDB();
 
 export const initDatabase = async () => {
     try {
-        const count = await db.transactions.count();
+        // We verify if data exists, but we DO NOT seed anymore.
+        // Real systems start empty.
+        const count = await db.userProfile.count();
         if (count > 0) {
-            console.log('Database already populated.');
+            console.log('Database initialized.');
             return;
         }
-
-        console.log('Checking for localStorage data...');
-        const keys = {
-            accounts: 'pdm_accounts',
-            transactions: 'pdm_transactions',
-            assets: 'pdm_assets',
-            budgets: 'pdm_budgets',
-            goals: 'pdm_goals',
-            trips: 'pdm_trips',
-            familyMembers: 'pdm_family',
-            userProfile: 'pdm_user'
-        };
-
-        const load = <T>(key: string): T[] => {
-            const item = localStorage.getItem(key);
-            return item ? JSON.parse(item) : [];
-        };
-
-        const accounts = load<Account>(keys.accounts);
-
-        if (accounts.length > 0) {
-            console.log('Migrating from localStorage...');
-            const transactions = load<Transaction>(keys.transactions);
-            const assets = load<Asset>(keys.assets);
-            const budgets = load<Budget>(keys.budgets);
-            const goals = load<Goal>(keys.goals);
-            const trips = load<Trip>(keys.trips);
-            const familyMembers = load<FamilyMember>(keys.familyMembers);
-
-            // User profile might be a single object, not array
-            const userProfileStr = localStorage.getItem(keys.userProfile);
-            const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
-
-            await db.transaction('rw', [db.accounts, db.transactions, db.assets, db.budgets, db.goals, db.trips, db.familyMembers, db.userProfile], async () => {
-                if (accounts.length) await db.accounts.bulkAdd(accounts);
-                if (transactions.length) await db.transactions.bulkAdd(transactions);
-                if (assets.length) await db.assets.bulkAdd(assets);
-                if (budgets.length) await db.budgets.bulkAdd(budgets);
-                if (goals.length) await db.goals.bulkAdd(goals);
-                if (trips.length) await db.trips.bulkAdd(trips);
-                if (familyMembers.length) await db.familyMembers.bulkAdd(familyMembers);
-                if (userProfile) await db.userProfile.put(userProfile);
-            });
-            console.log('Migration completed successfully.');
-        } else {
-            // If no localStorage data, seed with demo data
-            await seedDatabase();
-        }
-
+        console.log('Database created (Empty). Waiting for user input.');
     } catch (error) {
         console.error('Database initialization failed:', error);
     }
