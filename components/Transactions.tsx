@@ -107,6 +107,13 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const isTransfer = formMode === TransactionType.TRANSFER;
     const CategoryIcon = getCategoryIcon(category);
 
+    // Ensure accountId is valid when accounts change or on init
+    useEffect(() => {
+        if (accounts.length > 0 && !accountId) {
+            setAccountId(accounts[0].id);
+        }
+    }, [accounts, accountId]);
+
     useEffect(() => {
         if (modalMode && !editingId) {
             setFormMode(TransactionType.EXPENSE);
@@ -384,6 +391,36 @@ export const Transactions: React.FC<TransactionsProps> = ({
     };
 
     if (formMode) {
+        // --- 1. VERIFICAÇÃO DE DEPENDÊNCIA (CONTA OBRIGATÓRIA) ---
+        if (accounts.length === 0) {
+            return (
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in zoom-in-95">
+                    <div className="bg-slate-100 p-6 rounded-full mb-6">
+                        <Wallet className="w-12 h-12 text-slate-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">Nenhuma conta encontrada</h2>
+                    <p className="text-slate-500 mb-8 max-w-xs">
+                        Para criar uma transação, você precisa ter pelo menos uma conta ou cartão cadastrado.
+                    </p>
+                    <div className="flex flex-col gap-3 w-full max-w-xs">
+                        <Button 
+                            onClick={propOnNavigateToAccounts} 
+                            className="bg-slate-900 text-white shadow-xl h-12 w-full"
+                        >
+                            Cadastrar Conta
+                        </Button>
+                        <Button 
+                            variant="secondary" 
+                            onClick={handleCancelEdit} 
+                            className="w-full h-12"
+                        >
+                            Cancelar
+                        </Button>
+                    </div>
+                </div>
+            );
+        }
+
         const mainColor = isRefund ? 'text-amber-800' : isExpense ? 'text-red-700' : isIncome ? 'text-emerald-700' : 'text-blue-700';
         const mainBg = isRefund ? 'bg-amber-600' : isExpense ? 'bg-red-600' : isIncome ? 'bg-emerald-600' : 'bg-blue-600';
         const secondaryBg = isRefund ? 'bg-amber-50' : isExpense ? 'bg-red-50' : isIncome ? 'bg-emerald-50' : 'bg-blue-50';
@@ -397,8 +434,6 @@ export const Transactions: React.FC<TransactionsProps> = ({
                         <button onClick={() => setFormMode(TransactionType.INCOME)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isIncome ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600'}`}><ArrowUpRight className="w-3.5 h-3.5" /> Receita</button>
                         <button onClick={() => setFormMode(TransactionType.TRANSFER)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isTransfer ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}><RefreshCcw className="w-3.5 h-3.5" /> Transf.</button>
                     </div>
-                    {/* Only show Cancel button if this is NOT a modal or if we are editing */}
-                    {/* In Modal mode, the modal container handles closing, but we might want an explicit cancel button inside too */}
                     <div className="shrink-0">
                         <button onClick={handleCancelEdit} className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="Cancelar"><X className="w-5 h-5" /></button>
                     </div>
@@ -437,7 +472,14 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                     <label className="text-xs font-bold text-slate-500 mb-1 block">Data</label>
                                     <div className="bg-slate-50 rounded-xl h-12 flex items-center px-3 border border-slate-200 relative group cursor-pointer focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
                                         <Calendar className="w-4 h-4 text-slate-400 mr-2" />
-                                        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-transparent font-bold text-slate-700 text-sm outline-none w-full" />
+                                        {/* 2. CALENDÁRIO NATIVO ON CLICK */}
+                                        <input 
+                                            type="date" 
+                                            value={date} 
+                                            onClick={(e) => e.currentTarget.showPicker()}
+                                            onChange={e => setDate(e.target.value)} 
+                                            className="bg-transparent font-bold text-slate-700 text-sm outline-none w-full h-full cursor-pointer" 
+                                        />
                                     </div>
                                 </div>
 
@@ -499,7 +541,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                             )}
                         </div>
 
-                        {isExpense && trips.length > 0 && (
+                        {isExpense && (
                             <div className="relative z-20">
                                 <div 
                                     onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)}
@@ -539,6 +581,15 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                                     <span className="text-slate-800 font-bold text-sm">{t.name}</span>
                                                 </div>
                                             ))}
+                                            {/* 3. ATALHO PARA CRIAR VIAGEM */}
+                                            {propOnNavigateToTrips && (
+                                                <div 
+                                                    onClick={propOnNavigateToTrips}
+                                                    className="p-3 hover:bg-violet-100 cursor-pointer flex items-center gap-2 text-violet-700 font-bold text-sm border-t border-slate-100 bg-violet-50"
+                                                >
+                                                    <Plus className="w-4 h-4" /> Criar Nova Viagem
+                                                </div>
+                                            )}
                                         </div>
                                     </>
                                 )}
@@ -578,7 +629,13 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                     </select>
                                     {reminderOption === 'custom' && (
                                         <div className="bg-white border border-amber-200 rounded-xl p-2">
-                                            <input type="date" value={notificationDate} onChange={e => setNotificationDate(e.target.value)} className="w-full p-2 text-sm font-bold text-slate-700 outline-none" />
+                                            <input 
+                                                type="date" 
+                                                value={notificationDate} 
+                                                onClick={(e) => e.currentTarget.showPicker()}
+                                                onChange={e => setNotificationDate(e.target.value)} 
+                                                className="w-full p-2 text-sm font-bold text-slate-700 outline-none" 
+                                            />
                                         </div>
                                     )}
                                     {reminderOption !== 'custom' && (
@@ -653,16 +710,30 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
                                     {payerId !== 'me' && (
                                         <div className="relative animate-in fade-in slide-in-from-top-1">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <User className="h-5 w-5 text-indigo-500" />
-                                            </div>
-                                            <select 
-                                                value={payerId} onChange={e => setPayerId(e.target.value)} 
-                                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-900 font-bold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
-                                            >
-                                                {familyMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                            </select>
-                                            <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-indigo-400 pointer-events-none" />
+                                            {/* 4. ATALHO PARA CRIAR FAMÍLIA SE VAZIO */}
+                                            {familyMembers.length === 0 ? (
+                                                <div className="text-center p-4 bg-amber-50 rounded-xl border border-amber-100">
+                                                    <p className="text-sm text-amber-800 mb-2">Nenhum membro cadastrado.</p>
+                                                    {propOnNavigateToFamily && (
+                                                        <Button size="sm" onClick={propOnNavigateToFamily} className="w-full">
+                                                            Cadastrar Família
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                        <User className="h-5 w-5 text-indigo-500" />
+                                                    </div>
+                                                    <select 
+                                                        value={payerId} onChange={e => setPayerId(e.target.value)} 
+                                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-900 font-bold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+                                                    >
+                                                        {familyMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                                    </select>
+                                                    <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-indigo-400 pointer-events-none" />
+                                                </>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -670,20 +741,32 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                 {/* 2. QUEM DIVIDE? */}
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Dividir com quem?</label>
-                                    <div className="space-y-3">
-                                        {familyMembers.map(member => {
-                                            const split = splits.find(s => s.memberId === member.id);
-                                            const isSelected = !!split;
-                                            return (
-                                                <div key={member.id} className={`rounded-2xl border transition-all overflow-hidden ${isSelected ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-white border-slate-200'}`}>
-                                                    <div onClick={() => toggleSplitMember(member.id)} className="p-4 flex items-center justify-between cursor-pointer active:bg-indigo-50">
-                                                        <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{member.name[0]}</div><span className={`font-bold ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>{member.name}</span></div>
-                                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'}`}>{isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}</div>
+                                    {familyMembers.length === 0 ? (
+                                        <div className="text-center p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                            <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                            <p className="text-sm text-slate-500 mb-3">Adicione pessoas para dividir despesas.</p>
+                                            {propOnNavigateToFamily && (
+                                                <Button size="sm" variant="secondary" onClick={propOnNavigateToFamily}>
+                                                    Ir para Família
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {familyMembers.map(member => {
+                                                const split = splits.find(s => s.memberId === member.id);
+                                                const isSelected = !!split;
+                                                return (
+                                                    <div key={member.id} className={`rounded-2xl border transition-all overflow-hidden ${isSelected ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-white border-slate-200'}`}>
+                                                        <div onClick={() => toggleSplitMember(member.id)} className="p-4 flex items-center justify-between cursor-pointer active:bg-indigo-50">
+                                                            <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{member.name[0]}</div><span className={`font-bold ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>{member.name}</span></div>
+                                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'}`}>{isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}</div>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="p-4 bg-blue-50 rounded-xl text-xs text-blue-800 leading-relaxed border border-blue-100">

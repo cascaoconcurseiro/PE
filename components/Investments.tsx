@@ -87,7 +87,6 @@ export const Investments: React.FC<InvestmentsProps> = ({
     };
 
     // --- HANDLERS (Omitted details for brevity, keeping logic same) ---
-    // ... (Handlers kept exactly as they were, just re-rendering component structure)
     const handleSaveAsset = async (e: React.FormEvent) => {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
@@ -582,15 +581,21 @@ export const Investments: React.FC<InvestmentsProps> = ({
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Data</label>
-                                <input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900" />
+                                <input name="date" type="date" onClick={(e) => e.currentTarget.showPicker()} required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Conta de Origem (Pagamento)</label>
-                                <select name="accountId" required className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900">
-                                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
-                                </select>
+                                {accounts.length > 0 ? (
+                                    <select name="accountId" required className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900">
+                                        {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
+                                    </select>
+                                ) : (
+                                    <div className="p-3 bg-red-50 rounded-xl text-red-700 text-sm border border-red-100">
+                                        Você precisa de uma conta cadastrada para realizar compras.
+                                    </div>
+                                )}
                             </div>
-                            <Button type="submit" className="w-full h-12 text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 shadow-lg">
+                            <Button type="submit" className="w-full h-12 text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 shadow-lg" disabled={accounts.length === 0}>
                                 <Plus className="w-5 h-5 mr-2" /> Confirmar Compra
                             </Button>
                         </form>
@@ -635,15 +640,21 @@ export const Investments: React.FC<InvestmentsProps> = ({
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Data</label>
-                                <input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900" />
+                                <input name="date" type="date" onClick={(e) => e.currentTarget.showPicker()} required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Conta de Destino (Recebimento)</label>
-                                <select name="accountId" required className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900">
-                                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
-                                </select>
+                                {accounts.length > 0 ? (
+                                    <select name="accountId" required className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900">
+                                        {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
+                                    </select>
+                                ) : (
+                                    <div className="p-3 bg-red-50 rounded-xl text-red-700 text-sm border border-red-100">
+                                        Você precisa de uma conta cadastrada para realizar vendas.
+                                    </div>
+                                )}
                             </div>
-                            <Button type="submit" className="w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white shadow-red-200 shadow-lg">
+                            <Button type="submit" className="w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white shadow-red-200 shadow-lg" disabled={accounts.length === 0}>
                                 <Minus className="w-5 h-5 mr-2" /> Confirmar Venda
                             </Button>
                         </form>
@@ -690,15 +701,21 @@ export const Investments: React.FC<InvestmentsProps> = ({
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Data de Recebimento</label>
-                                <input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900" />
+                                <input name="date" type="date" onClick={(e) => e.currentTarget.showPicker()} required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Conta de Destino</label>
-                                <select name="accountId" required className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900">
-                                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                </select>
+                                {accounts.length > 0 ? (
+                                    <select name="accountId" required className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900">
+                                        {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                    </select>
+                                ) : (
+                                    <div className="p-3 bg-red-50 rounded-xl text-red-700 text-sm border border-red-100">
+                                        Você precisa de uma conta cadastrada para receber proventos.
+                                    </div>
+                                )}
                             </div>
-                            <Button type="submit" className="w-full h-12 text-base bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200 shadow-lg">
+                            <Button type="submit" className="w-full h-12 text-base bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200 shadow-lg" disabled={accounts.length === 0}>
                                 <DollarSign className="w-5 h-5 mr-2" /> Confirmar Recebimento
                             </Button>
                         </form>

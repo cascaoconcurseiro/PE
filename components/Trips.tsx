@@ -421,6 +421,7 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                         type="date"
                                         className="w-full h-full pt-6 px-3 text-center font-bold text-slate-900 bg-transparent border-none outline-none cursor-pointer"
                                         value={newStartDate}
+                                        onClick={(e) => e.currentTarget.showPicker()}
                                         onChange={e => setNewStartDate(e.target.value)}
                                         required
                                     />
@@ -438,6 +439,7 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                         type="date"
                                         className="w-full h-full pt-6 px-3 text-center font-bold text-slate-900 bg-transparent border-none outline-none cursor-pointer"
                                         value={newEndDate}
+                                        onClick={(e) => e.currentTarget.showPicker()}
                                         onChange={e => setNewEndDate(e.target.value)}
                                         min={newStartDate}
                                         required
@@ -817,6 +819,7 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                                     type="date"
                                                     className="w-full h-full pl-8 pr-2 bg-transparent text-sm font-bold text-slate-900 border-none outline-none cursor-pointer"
                                                     value={itiDate}
+                                                    onClick={(e) => e.currentTarget.showPicker()}
                                                     onChange={e => setItiDate(e.target.value)}
                                                 />
                                             </div>
@@ -1099,7 +1102,13 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                             <div className="flex flex-col gap-3 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                                 <h4 className="font-bold text-sm text-slate-700">{editingExchangeId ? "Editar Entrada" : "Nova Compra de Moeda"}</h4>
                                 <div className="flex gap-2">
-                                    <input type="date" className="w-32 p-2 border rounded-lg text-sm" value={exchangeDate} onChange={e => setExchangeDate(e.target.value)} />
+                                    <input 
+                                        type="date" 
+                                        className="w-32 p-2 border rounded-lg text-sm" 
+                                        value={exchangeDate} 
+                                        onClick={(e) => e.currentTarget.showPicker()}
+                                        onChange={e => setExchangeDate(e.target.value)} 
+                                    />
                                     <input type="number" className="flex-1 p-2 border rounded-lg text-sm" placeholder="Valor em R$ (BRL)" value={exchangeBRL} onChange={e => setExchangeBRL(e.target.value)} />
                                     <input type="number" className="flex-1 p-2 border rounded-lg text-sm" placeholder={`Valor em ${selectedTrip.currency}`} value={exchangeForeign} onChange={e => setExchangeForeign(e.target.value)} />
                                 </div>
