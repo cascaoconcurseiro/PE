@@ -344,7 +344,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
                             setSelectedTripId(trip.id);
                         }}
                     >
-                        <div className="h-40 bg-slate-200 relative overflow-hidden">
+                        <div className="h-40 bg-slate-200 relative overflow-hidden pointer-events-none">
                             <img
                                 src={trip.imageUrl || `https://picsum.photos/seed/${trip.id}/500/300`}
                                 alt={trip.name}
@@ -362,7 +362,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
                                 </p>
                             </div>
                         </div>
-                        <div className="p-5">
+                        <div className="p-5 pointer-events-none">
                             <div className="flex items-center justify-between">
                                 <div className="flex -space-x-2 pl-1">
                                     {trip.participants.slice(0, 4).map(p => (
