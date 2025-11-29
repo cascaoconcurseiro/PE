@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { 
     Check, Plane, Users, ChevronDown, Calendar, Wallet, ArrowUpRight, ArrowDownLeft, 
     RefreshCcw, Bell, BellRing, Repeat, Undo2, DollarSign, CreditCard, X, 
-    Pencil, User, Plus, Globe, Clock 
+    Pencil, User, Plus, Globe, Clock, Landmark 
 } from 'lucide-react';
 import { getCategoryIcon, parseDate, formatCurrency } from '../../utils';
 import { AVAILABLE_CURRENCIES } from '../../services/currencyService';
@@ -79,6 +79,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     const tripCurrency = selectedTrip?.currency || 'BRL';
     const showTripCurrencyInput = tripId && selectedTrip && (tripCurrency !== activeCurrency || payerId !== 'me');
     
+    // Account Type Check
+    const isCreditCard = selectedAccountObj?.type === AccountType.CREDIT_CARD;
+    
     const isExpense = formMode === TransactionType.EXPENSE;
     const isIncome = formMode === TransactionType.INCOME;
     const isTransfer = formMode === TransactionType.TRANSFER;
@@ -121,7 +124,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             setIsRecurring(!!t.isRecurring);
             setFrequency(t.frequency || Frequency.MONTHLY);
             setRecurrenceDay(t.recurrenceDay || new Date(t.date).getDate());
-            setIsInstallment(!!t.isInstallment);
+            
+            // Only allow loading installment data if it's actually a credit card (data integrity)
+            // or if we are editing an existing one that might have been migrated.
+            const isAccCC = accounts.find(a => a.id === t.accountId)?.type === AccountType.CREDIT_CARD;
+            setIsInstallment(!!t.isInstallment && (isAccCC || !!t.isInstallment)); 
+            
             setCurrentInstallment(t.currentInstallment || 1);
             setTotalInstallments(t.totalInstallments || 2);
             setIsRefund(!!t.isRefund);
@@ -132,6 +140,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             if (accounts.length > 0 && !accountId) setAccountId(accounts[0].id);
         }
     }, [initialData, accounts]);
+
+    // Force disable installments if switching to non-credit card
+    useEffect(() => {
+        if (!isCreditCard && isInstallment) {
+            setIsInstallment(false);
+        }
+    }, [isCreditCard]);
 
     // Helper: Sync reminder date
     useEffect(() => {
@@ -179,7 +194,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         // Logic for Exchange Rate / Foreign Currency
         let exchangeRate = 1;
         
-        // Use trip currency input if provided
         if (showTripCurrencyInput && tripAmountStr) {
             const tripAmount = parseFloat(tripAmountStr.replace(',', '.'));
             if (tripAmount > 0 && activeAmount > 0) {
@@ -231,7 +245,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             recurrenceDay: isRecurring ? recurrenceDay : undefined,
             lastGenerated: isRecurring ? date : undefined,
             frequency: isRecurring ? frequency : Frequency.ONE_TIME,
-            isInstallment,
+            isInstallment: isCreditCard ? isInstallment : false, // Safety check
             currentInstallment: isInstallment ? currentInstallment : undefined,
             totalInstallments: isInstallment ? totalInstallments : undefined,
             enableNotification,
@@ -241,6 +255,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         };
 
         onSave(data, !!initialData, updateFuture);
+    };
+
+    const getAccountIcon = (type?: AccountType) => {
+        switch(type) {
+            case AccountType.CREDIT_CARD: return <CreditCard className="w-5 h-5" />;
+            case AccountType.INVESTMENT: return <Landmark className="w-5 h-5" />;
+            default: return <Wallet className="w-5 h-5" />;
+        }
     };
 
     if (accounts.length === 0) {
@@ -350,9 +372,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         {payerId === 'me' ? (
                             <div>
                                 <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">{isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}</label>
-                                <div className={`relative rounded-xl p-3 flex items-center gap-3 shadow-md transition-all active:scale-[0.99] cursor-pointer overflow-hidden group ${!selectedAccountObj ? 'bg-white border border-slate-200' : selectedAccountObj.type === AccountType.CREDIT_CARD ? 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white' : 'bg-gradient-to-br from-slate-800 to-slate-900 text-white'}`}>
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${selectedAccountObj ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}><Wallet className="w-5 h-5" /></div>
-                                    <div className="flex-1 overflow-hidden z-10"><span className={`block text-sm font-medium truncate mb-0.5 ${selectedAccountObj ? 'text-white' : 'text-slate-900'}`}>{selectedAccountObj?.name || 'Selecione uma conta'}</span></div>
+                                <div className={`relative rounded-xl p-3 flex items-center gap-3 shadow-md transition-all active:scale-[0.99] cursor-pointer overflow-hidden group ${!selectedAccountObj ? 'bg-white border border-slate-200' : isCreditCard ? 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white' : 'bg-gradient-to-br from-slate-800 to-slate-900 text-white'}`}>
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${selectedAccountObj ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}>
+                                        {getAccountIcon(selectedAccountObj?.type)}
+                                    </div>
+                                    <div className="flex-1 overflow-hidden z-10">
+                                        <span className={`block text-sm font-medium truncate mb-0.5 ${selectedAccountObj ? 'text-white' : 'text-slate-900'}`}>{selectedAccountObj?.name || 'Selecione uma conta'}</span>
+                                        {selectedAccountObj && <span className="text-[10px] opacity-80 block">{selectedAccountObj.type}</span>}
+                                    </div>
                                     <ChevronDown className={`w-5 h-5 shrink-0 z-10 ${selectedAccountObj ? 'text-white/70' : 'text-slate-400'}`} />
                                     <select value={accountId} onChange={e => setAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">{accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
                                 </div>
@@ -377,7 +404,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                             <div>
                                 <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">Vai para (Destino)</label>
                                 <div className={`relative rounded-xl p-3 flex items-center gap-3 shadow-md transition-all active:scale-[0.99] cursor-pointer overflow-hidden group ${!destAccountObj ? 'bg-white border border-slate-200' : 'bg-gradient-to-br from-slate-800 to-slate-900 text-white'}`}>
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${destAccountObj ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}><Wallet className="w-5 h-5" /></div>
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${destAccountObj ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}>
+                                        {getAccountIcon(destAccountObj?.type)}
+                                    </div>
                                     <div className="flex-1 overflow-hidden z-10"><span className={`block text-sm font-medium truncate mb-0.5 ${destAccountObj ? 'text-white' : 'text-slate-900'}`}>{destAccountObj?.name || 'Selecione o destino'}</span></div>
                                     <ChevronDown className={`w-5 h-5 shrink-0 z-10 ${destAccountObj ? 'text-white/70' : 'text-slate-400'}`} />
                                     <select value={destinationAccountId} onChange={e => setDestinationAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">{accounts.filter(a => a.id !== accountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
@@ -469,7 +498,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">Opções Adicionais</label>
                         <div className="grid grid-cols-4 gap-2">
                             <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isRecurring ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}><Repeat className="w-5 h-5" /><span className="text-[10px] font-bold">Repetir</span></button>
-                            {isExpense && <button type="button" onClick={() => setIsInstallment(!isInstallment)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isInstallment ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}><CreditCard className="w-5 h-5" /><span className="text-[10px] font-bold">Parcelar</span></button>}
+                            {isExpense && isCreditCard && (
+                                <button type="button" onClick={() => setIsInstallment(!isInstallment)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isInstallment ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}><CreditCard className="w-5 h-5" /><span className="text-[10px] font-bold">Parcelar</span></button>
+                            )}
                             <button type="button" onClick={() => setEnableNotification(!enableNotification)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${enableNotification ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}><Bell className="w-5 h-5" /><span className="text-[10px] font-bold">Lembrar</span></button>
                             {isExpense && <button type="button" onClick={() => setIsSplitModalOpen(true)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${splits.length > 0 || payerId !== 'me' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}><Users className="w-5 h-5" /><span className="text-[10px] font-bold">Dividir</span></button>}
                         </div>
@@ -532,7 +563,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         </div>
                     )}
 
-                    {isInstallment && (
+                    {isInstallment && isCreditCard && (
                         <div className="bg-purple-50 rounded-2xl p-5 border border-purple-100 animate-in slide-in-from-top-2 space-y-5">
                             <div className="grid grid-cols-4 gap-3">
                                 {[2, 3, 4, 5, 6, 10, 12].map(num => (<button key={num} type="button" onClick={() => setTotalInstallments(num)} className={`py-4 rounded-xl text-base font-bold border ${totalInstallments === num ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-purple-700 border-purple-200 hover:bg-purple-50'}`}>{num}x</button>))}
