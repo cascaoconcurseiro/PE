@@ -38,9 +38,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     password,
                 });
                 if (error) throw error;
-                
-                // O onAuthStateChange no index.tsx vai capturar o login automaticamente
-                // Mas podemos forçar o callback aqui se necessário
+                // Login bem sucedido será capturado pelo onAuthStateChange no index.tsx
             }
         } catch (err: any) {
             setError(err.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : err.message);

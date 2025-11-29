@@ -11,6 +11,9 @@
   }
 }
 
+/* Força o funcionamento da variante dark: baseada na classe .dark no HTML */
+@variant dark (&:where(.dark, .dark *));
+
 @layer base {
   body {
     font-family: 'Inter', sans-serif;
