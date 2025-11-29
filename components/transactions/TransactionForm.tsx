@@ -297,20 +297,20 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
         return (
             <>
-                <option value="" disabled>Selecione...</option>
+                <option value="" disabled className="text-slate-900">Selecione...</option>
                 {banking.length > 0 && (
-                    <optgroup label="Contas e Carteira">
-                        {banking.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                    <optgroup label="Contas e Carteira" className="text-slate-900">
+                        {banking.map(acc => <option key={acc.id} value={acc.id} className="text-slate-900">{acc.name}</option>)}
                     </optgroup>
                 )}
                 {credit.length > 0 && (
-                    <optgroup label="Cartões de Crédito">
-                        {credit.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                    <optgroup label="Cartões de Crédito" className="text-slate-900">
+                        {credit.map(acc => <option key={acc.id} value={acc.id} className="text-slate-900">{acc.name}</option>)}
                     </optgroup>
                 )}
                 {others.length > 0 && (
-                    <optgroup label="Investimentos e Outros">
-                        {others.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                    <optgroup label="Investimentos e Outros" className="text-slate-900">
+                        {others.map(acc => <option key={acc.id} value={acc.id} className="text-slate-900">{acc.name}</option>)}
                     </optgroup>
                 )}
             </>
@@ -407,8 +407,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                 {!isTransfer ? (
                                     <div className="bg-slate-50 rounded-xl h-12 flex items-center px-3 border border-slate-200 relative group cursor-pointer focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
                                         <CategoryIcon className="w-4 h-4 text-slate-400 mr-2" />
-                                        <select value={category} onChange={e => setCategory(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
-                                            {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
+                                        <select value={category} onChange={e => setCategory(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900">
+                                            {Object.values(Category).map(c => <option key={c} value={c} className="text-slate-900">{c}</option>)}
                                         </select>
                                         <span className="pointer-events-none truncate text-sm font-medium text-slate-700 flex-1">{category}</span>
                                     </div>
@@ -433,7 +433,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                         {selectedAccountObj && <span className="text-[10px] opacity-80 block">{selectedAccountObj.type}</span>}
                                     </div>
                                     <ChevronDown className={`w-5 h-5 shrink-0 z-10 ${selectedAccountObj ? 'text-white/70' : 'text-slate-400'}`} />
-                                    <select value={accountId} onChange={e => setAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
+                                    <select value={accountId} onChange={e => setAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900">
                                         {renderAccountOptions()}
                                     </select>
                                 </div>
@@ -463,7 +463,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                     </div>
                                     <div className="flex-1 overflow-hidden z-10"><span className={`block text-sm font-medium truncate mb-0.5 ${destAccountObj ? 'text-white' : 'text-slate-900'}`}>{destAccountObj?.name || 'Selecione o destino'}</span></div>
                                     <ChevronDown className={`w-5 h-5 shrink-0 z-10 ${destAccountObj ? 'text-white/70' : 'text-slate-400'}`} />
-                                    <select value={destinationAccountId} onChange={e => setDestinationAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">{accounts.filter(a => a.id !== accountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
+                                    <select value={destinationAccountId} onChange={e => setDestinationAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900">{accounts.filter(a => a.id !== accountId).map(acc => <option key={acc.id} value={acc.id} className="text-slate-900">{acc.name}</option>)}</select>
                                 </div>
                             </div>
                         )}
