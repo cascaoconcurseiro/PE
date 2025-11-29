@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, Trip, FamilyMember, TransactionType, Account, Category, SyncStatus } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Users, Home, Plane, Receipt, ChevronRight, Check, AlertCircle, Calendar, ArrowRight, Wallet, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, Home, Plane, Receipt, ChevronRight, Check, AlertCircle, Calendar, ArrowRight, Wallet, History, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { formatCurrency, isSameMonth } from '../utils';
 
 interface SharedProps {
@@ -47,21 +47,25 @@ export const Shared: React.FC<SharedProps> = ({
     const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || '');
 
     // --- ENGINE: GENERATE INVOICES ---
-    const invoices = useMemo<Record<string, InvoiceItem[]>>(() => {
+    const invoices = useMemo(() => {
         const invoiceMap: Record<string, InvoiceItem[]> = {};
         
-        // Initialize for all known members
+        // Initialize for all known members to ensure empty state exists
         members.forEach(m => invoiceMap[m.id] = []);
 
         transactions.forEach(t => {
-            // Only care about shared expenses
-            if (!t.isShared || t.type !== TransactionType.EXPENSE) return;
+            // Check if it's an expense AND (marked shared OR has splits)
+            // This OR logic makes it robust against inconsistent data
+            const isSharedExpense = t.type === TransactionType.EXPENSE && (t.isShared || (t.sharedWith && t.sharedWith.length > 0));
+            
+            if (!isSharedExpense) return;
 
             // 1. CREDIT LOGIC: User Paid (payerId undefined), Others Owe User
             if (!t.payerId) {
                 t.sharedWith?.forEach(split => {
                     const memberId = split.memberId;
-                    // FIX: Initialize if not exists (handling deleted/loading members)
+                    
+                    // Dynamic Initialization (Safety check)
                     if (!invoiceMap[memberId]) invoiceMap[memberId] = [];
 
                     invoiceMap[memberId].push({
@@ -81,7 +85,8 @@ export const Shared: React.FC<SharedProps> = ({
             // 2. DEBIT LOGIC: Member Paid (payerId exists), User Owes Member
             else {
                 const payerId = t.payerId;
-                // FIX: Initialize if not exists
+                
+                // Dynamic Initialization (Safety check)
                 if (!invoiceMap[payerId]) invoiceMap[payerId] = [];
 
                 // Calculate My Share
@@ -108,15 +113,12 @@ export const Shared: React.FC<SharedProps> = ({
         return invoiceMap;
     }, [transactions, members]);
 
-    // Build a comprehensive list of members to display
+    // Build a comprehensive list of members to display (Props + Any found in transactions)
     const displayMembers = useMemo(() => {
-        // Collect all IDs found in invoices map (which now includes everyone from transactions)
         const uniqueIds = new Set([...members.map(m => m.id), ...Object.keys(invoices)]);
-        
         return Array.from(uniqueIds).map(id => {
             const knownMember = members.find(m => m.id === id);
-            // If member info is missing (deleted or loading), create a placeholder
-            return knownMember || { id, name: 'Membro (Excluído ou Carregando)', role: 'Unknown' } as FamilyMember;
+            return knownMember || { id, name: 'Membro Desconhecido', role: 'Unknown' } as FamilyMember;
         });
     }, [members, invoices]);
 
@@ -127,7 +129,9 @@ export const Shared: React.FC<SharedProps> = ({
         if (activeTab === 'TRAVEL') {
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else {
-            // Regular: Show ALL pending items OR settled items in selected month
+            // Regular: No trip ID.
+            // Show ALL pending items regardless of date (Debts don't expire visually until paid)
+            // Show PAID items only if they belong to the selected month (History)
             return allItems.filter(i => 
                 !i.tripId && 
                 (!i.isPaid || isSameMonth(i.date, selectedMonth))
@@ -210,8 +214,8 @@ export const Shared: React.FC<SharedProps> = ({
         let totalReceivable = 0;
         let totalPayable = 0;
         
-        // Explicit typing to avoid TS errors
-        const allItems = (Object.values(invoices).flat() as InvoiceItem[]);
+        // EXPLICIT CAST to fix TS errors
+        const allItems = Object.values(invoices).flat() as InvoiceItem[];
         
         allItems.forEach(item => {
             if (!item.isPaid) {
@@ -298,10 +302,18 @@ export const Shared: React.FC<SharedProps> = ({
                     const isSettled = Math.abs(net) < 0.01;
                     const isExpanded = expandedMemberId === member.id;
 
-                    // Skip empty invoices ONLY if they are truly empty (no history, no current debt)
-                    // If we are filtering by month, items might be empty, but we might want to show "Nothing this month"
-                    // Current logic: If items is empty, don't render. 
-                    if (items.length === 0) return null;
+                    // SHOW ITEM IF IT HAS ITEMS OR IF THERE ARE ACTIVE DEBTS (Even if filter hides them, show the member card with 0 items but with totals? No, filteredItems are what we see)
+                    // If items.length is 0, it means for THIS tab and THIS month (if regular paid), there is nothing.
+                    // But we might want to show "No pending items".
+                    if (items.length === 0) {
+                        // Only hide if we are truly empty (no member interaction ever). 
+                        // But invoices[member.id] might have items from other tabs/months.
+                        // Let's assume if items is empty, we don't show the card to reduce clutter.
+                        // UNLESS it's the only member? No.
+                        return (
+                            <div key={member.id} className="hidden"></div>
+                        );
+                    }
 
                     return (
                         <div key={member.id} className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden transition-all hover:shadow-md">
@@ -399,6 +411,20 @@ export const Shared: React.FC<SharedProps> = ({
                         </div>
                     );
                 })}
+
+                {/* Empty State Fallback if all cards are hidden */}
+                {displayMembers.length > 0 && displayMembers.every(m => getFilteredInvoice(m.id).length === 0) && (
+                    <div className="text-center py-12 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                        <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500">
+                            <Check className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800">Sem pendências</h3>
+                        <p className="text-slate-500 text-sm mt-1">Não há faturas {activeTab === 'REGULAR' ? 'regulares' : 'de viagem'} pendentes para exibir.</p>
+                        {activeTab === 'REGULAR' && (
+                            <p className="text-xs text-slate-400 mt-2">Dica: Itens pagos aparecem apenas no mês em que foram liquidados.</p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* SETTLEMENT CONFIRMATION MODAL */}
