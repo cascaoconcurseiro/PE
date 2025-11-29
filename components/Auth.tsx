@@ -25,6 +25,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         setError(null);
 
         try {
+            // Note: Supabase client defaults to LocalStorage persistence ("Remember Me" behavior).
+            
             if (isSignUp) {
                 const { data, error } = await supabase.auth.signUp({
                     email,
@@ -38,7 +40,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     password,
                 });
                 if (error) throw error;
-                // Login bem sucedido será capturado pelo onAuthStateChange no index.tsx
+                // O sistema reagirá automaticamente à mudança de estado da sessão
             }
         } catch (err: any) {
             setError(err.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : err.message);
