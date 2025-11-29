@@ -58,17 +58,7 @@ export const useDataStore = () => {
             // Installment Logic: Create N transactions for future dates
             const baseDate = parseDate(newTx.date); // Use helper to handle timezones
             const seriesId = crypto.randomUUID();
-            const installmentAmount = newTx.amount / newTx.totalInstallments; // Split value if needed, but usually user enters installment value? 
-            // NOTE: In TransactionForm, activeAmount is usually the TOTAL purchase price in Brazil, but sometimes user enters monthly.
-            // Let's assume user enters the TOTAL amount for the purchase, and we divide it.
-            // Wait, standard UI behavior: User enters TOTAL amount.
-            // But if user enters 1000 and selects 10x, is it 10x 100? Yes.
-            // Let's ensure amount is divided.
-            // Actually, in TransactionForm we send the full amount. We should divide here.
-            
-            // Correction: If it is an installment, 'amount' passed from form is the TOTAL.
-            // We need to divide it by totalInstallments for each record.
-            const amountPerInstallment = newTx.amount / newTx.totalInstallments;
+            const installmentAmount = newTx.amount / newTx.totalInstallments; 
 
             for (let i = 0; i < newTx.totalInstallments; i++) {
                 const nextDate = new Date(baseDate);
@@ -83,7 +73,7 @@ export const useDataStore = () => {
                 newTransactionsList.push({
                     ...newTx,
                     id: crypto.randomUUID(),
-                    amount: amountPerInstallment, // Use divided amount
+                    amount: installmentAmount, // Use divided amount
                     seriesId: seriesId,
                     date: nextDate.toISOString().split('T')[0],
                     currentInstallment: i + 1,
@@ -129,14 +119,48 @@ export const useDataStore = () => {
     const handleDeleteTransaction = async (id: string) => {
         const tx = await db.transactions.get(id);
         if (tx) {
+            // Check if it's part of a series (Installment or Recurring)
+            let deleteAll = false;
+            if (tx.seriesId || tx.isRecurring) {
+                // Since this is called from a UI that usually has confirmation, 
+                // we can't pop another native confirm here easily without breaking async flow if not handled.
+                // However, the rule was "ask". 
+                // Since the modal is in the UI layer (Transactions.tsx), we assume the UI handles the "Delete All" choice.
+                // BUT, the current Delete implementation in Transactions.tsx only passes ID.
+                // To fix the "orphan installment" issue, we will default to deleting the series if it's an installment series.
+                
+                // For this specific fix requested: "Apaguei uma transação... ficou valor cheio".
+                // We should check if seriesId exists and delete all with same seriesId
+                
+                // NOTE: A better UX would be to pass a flag 'deleteSeries' to this function. 
+                // For now, we will perform a smart delete: If it has seriesId, delete all future ones? 
+                // Or just delete all? Usually if I delete "Compra (1/10)", I want to delete the whole purchase.
+                
+                if (tx.seriesId && confirm("Esta transação faz parte de um parcelamento. Deseja excluir todas as parcelas?")) {
+                    deleteAll = true;
+                }
+            }
+
             await db.transaction('rw', [db.transactions, db.auditLogs], async () => {
-                await db.transactions.put({
-                    ...tx,
-                    deleted: true,
-                    updatedAt: new Date().toISOString(),
-                    syncStatus: SyncStatus.PENDING
-                });
-                await logAudit('TRANSACTION', id, 'DELETE', tx);
+                if (deleteAll && tx.seriesId) {
+                    const related = await db.transactions.where('seriesId').equals(tx.seriesId).toArray();
+                    const updates = related.map(t => ({
+                        ...t,
+                        deleted: true,
+                        updatedAt: new Date().toISOString(),
+                        syncStatus: SyncStatus.PENDING
+                    }));
+                    await db.transactions.bulkPut(updates as Transaction[]);
+                    await logAudit('TRANSACTION', tx.seriesId, 'DELETE', { count: updates.length, type: 'SERIES' });
+                } else {
+                    await db.transactions.put({
+                        ...tx,
+                        deleted: true,
+                        updatedAt: new Date().toISOString(),
+                        syncStatus: SyncStatus.PENDING
+                    });
+                    await logAudit('TRANSACTION', id, 'DELETE', tx);
+                }
             });
         }
     };

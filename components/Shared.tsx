@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Transaction, Trip, FamilyMember, TransactionType, Account, SyncStatus } from '../types';
+import { Transaction, Trip, FamilyMember, TransactionType, Account, SyncStatus, Category } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Users, Home, Plane, ArrowRight, AlertCircle, Calendar, Wallet, CheckCircle2, Sparkles, ChevronDown } from 'lucide-react';
@@ -54,13 +54,13 @@ export const Shared: React.FC<SharedProps> = ({
         members.forEach(m => invoiceMap[m.id] = []);
 
         transactions.forEach(t => {
-            // Check if it's an expense AND (marked shared OR has splits)
-            const isSharedExpense = t.type === TransactionType.EXPENSE && (t.isShared || (t.sharedWith && t.sharedWith.length > 0));
+            // Check if it's an expense AND (marked shared OR has splits OR paid by other)
+            const isSharedExpense = t.type === TransactionType.EXPENSE && (t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me'));
             
             if (!isSharedExpense) return;
 
-            // 1. CREDIT LOGIC: User Paid (payerId undefined), Others Owe User
-            if (!t.payerId) {
+            // 1. CREDIT LOGIC: User Paid (payerId undefined or 'me'), Others Owe User
+            if (!t.payerId || t.payerId === 'me') {
                 t.sharedWith?.forEach(split => {
                     const memberId = split.memberId;
                     
@@ -161,20 +161,41 @@ export const Shared: React.FC<SharedProps> = ({
         const now = new Date().toISOString();
 
         // 1. Create Individual Transactions for EACH Item
+        // IMPORTANT: RECEIVE = INCOME (Enters my account). PAY = EXPENSE (Leaves my account).
+        
         settleModal.items.forEach(item => {
+            // Se estou Recebendo (type CREDIT), entra dinheiro -> INCOME
+            // Se estou Pagando (type DEBIT), sai dinheiro -> EXPENSE
+            
+            // NOTE: settleModal.type overrides individual item types in a bulk settlement usually,
+            // but here we are settling the NET.
+            // If I am doing a "RECEIVE" action, it means I am receiving the NET amount.
+            // But technically we should settle item by item for clarity.
+            
+            // Let's create ONE transaction for the Total Net if possible, or individual ones?
+            // Individual is better for traceability.
+            
+            // Logic Check:
+            // If item.type is CREDIT (They owe me) -> I am RECEIVING -> TransactionType.INCOME
+            // If item.type is DEBIT (I owe them) -> I am PAYING -> TransactionType.EXPENSE
+            
+            // However, settleModal.type dictates the flow of the *Net* amount.
+            // If settleModal.type is RECEIVE, we assume we are clearing mostly credits.
+            
+            // For simplicity and correctness in Cash Flow:
             const isReceiving = item.type === 'CREDIT';
-            const descriptionPrefix = isReceiving ? 'Recebimento' : 'Pagamento';
+            const descriptionPrefix = isReceiving ? 'Reembolso Recebido' : 'Pagamento de Dívida';
             
             onAddTransaction({
                 amount: item.amount,
                 description: `${descriptionPrefix}: ${item.description}`,
                 date: now.split('T')[0],
                 type: isReceiving ? TransactionType.INCOME : TransactionType.EXPENSE,
-                category: item.category, 
+                category: isReceiving ? Category.INCOME : Category.TRANSFER, 
                 accountId: selectedAccountId,
                 isShared: false,
                 relatedMemberId: settleModal.memberId!,
-                payerId: undefined,
+                payerId: undefined, // I am paying/receiving in my account now
                 createdAt: now,
                 updatedAt: now,
                 syncStatus: SyncStatus.PENDING
@@ -388,7 +409,7 @@ export const Shared: React.FC<SharedProps> = ({
                     <div className="bg-white dark:bg-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 animate-in slide-in-from-bottom-full duration-300">
                         <div className="p-6 border-b border-slate-100 dark:border-slate-700">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                                {settleModal.type === 'RECEIVE' ? 'Receber Fatura' : settleModal.type === 'PAY' ? 'Pagar Fatura' : 'Compensar Valores'}
+                                {settleModal.type === 'RECEIVE' ? 'Receber Pagamento' : settleModal.type === 'PAY' ? 'Pagar Dívida' : 'Compensar Valores'}
                             </h3>
                             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                                 {settleModal.items.length} itens selecionados
@@ -405,7 +426,9 @@ export const Shared: React.FC<SharedProps> = ({
 
                             {settleModal.type !== 'OFFSET' && (
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Conta para movimentação</label>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                                        {settleModal.type === 'RECEIVE' ? 'Receber na conta' : 'Pagar usando conta'}
+                                    </label>
                                     <div className="relative">
                                         <Wallet className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
                                         <select
@@ -425,7 +448,7 @@ export const Shared: React.FC<SharedProps> = ({
                             <div className="text-xs text-slate-500 dark:text-slate-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30 flex gap-2">
                                 <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                                 <span>
-                                    Esta ação criará <strong>{settleModal.items.length} transações</strong> individuais no seu extrato e marcará os itens originais como quitados.
+                                    Isso criará transações de <strong>{settleModal.type === 'RECEIVE' ? 'RECEITA' : 'DESPESA'}</strong> para registrar o fluxo de caixa real.
                                 </span>
                             </div>
 
