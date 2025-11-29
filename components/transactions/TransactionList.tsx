@@ -1,7 +1,7 @@
 import React from 'react';
 import { Transaction, TransactionType, Account } from '../../types';
 import { formatCurrency, getCategoryIcon } from '../../utils';
-import { RefreshCcw, ScanLine, Plus } from 'lucide-react';
+import { RefreshCcw, ScanLine, Plus, Plane, Users, Trash2, ArrowRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface TransactionListProps {
@@ -9,6 +9,7 @@ interface TransactionListProps {
     accounts: Account[];
     showValues: boolean;
     onEdit: (t: Transaction) => void;
+    onDelete: (id: string) => void;
     onAddClick: () => void;
     emptyMessage?: string;
 }
@@ -23,6 +24,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     accounts, 
     showValues, 
     onEdit, 
+    onDelete,
     onAddClick,
     emptyMessage 
 }) => {
@@ -61,18 +63,53 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             const isPositive = (t.type === TransactionType.INCOME && !t.isRefund) || (t.type === TransactionType.EXPENSE && t.isRefund);
                             const accountName = accounts.find(a => a.id === t.accountId)?.name || 'Conta';
                             
+                            // Logic for Shared/Trip Display
+                            const isShared = t.isShared || (t.sharedWith && t.sharedWith.length > 0);
+                            const isTrip = !!t.tripId;
+                            
+                            // Amount Calculation Logic (User Request: Show My Share)
+                            let displayAmount = t.amount;
+                            let subText = '';
+                            let amountLabel = '';
+
+                            if (t.type === TransactionType.EXPENSE && isShared) {
+                                const splitsTotal = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
+                                
+                                if (!t.payerId || t.payerId === 'me') {
+                                    // I paid full amount
+                                    displayAmount = t.amount - splitsTotal;
+                                    if (splitsTotal > 0) {
+                                        subText = `Pago: ${formatCurrency(t.amount)}`;
+                                        amountLabel = ' (Minha Parte)';
+                                    }
+                                } else {
+                                    // Someone else paid
+                                    // Assuming my share is the remainder (Total - Splits to others)
+                                    // If I was explicitly split, logic might vary, but simplified here:
+                                    displayAmount = t.amount - splitsTotal;
+                                    subText = 'Pago por outro';
+                                    amountLabel = ' (Dívida)';
+                                }
+                            }
+
                             return (
                                 <div 
                                     key={t.id} 
-                                    onClick={() => onEdit(t)} 
-                                    className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors cursor-pointer active:bg-slate-100 group"
+                                    className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors group relative"
                                 >
-                                    <div className="flex items-center gap-4">
+                                    {/* Clickable Area for Edit */}
+                                    <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => onEdit(t)}>
                                         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${isPositive ? 'bg-emerald-100 text-emerald-600' : 'bg-red-50 text-red-600'} group-hover:scale-110 duration-200`}>
                                             {t.type === TransactionType.TRANSFER ? <RefreshCcw className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
                                         </div>
-                                        <div className="overflow-hidden">
-                                            <p className="text-sm font-bold text-slate-900 truncate">{t.description}</p>
+                                        <div className="overflow-hidden pr-2">
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-bold text-slate-900 truncate">{t.description}</p>
+                                                {/* Icons */}
+                                                {isTrip && <Plane className="w-3 h-3 text-violet-500 fill-violet-100" />}
+                                                {isShared && <Users className="w-3 h-3 text-indigo-500 fill-indigo-100" />}
+                                            </div>
+                                            
                                             <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500 mt-0.5">
                                                 <span className="truncate max-w-[100px]">{t.category}</span>
                                                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
@@ -82,11 +119,30 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <span className={`block font-bold text-sm ${isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
-                                            {isPositive ? '+' : ''} <BlurValue value={formatCurrency(t.amount)} show={showValues} />
-                                        </span>
-                                        {t.isSettled && <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Pago</span>}
+
+                                    {/* Right Side: Amount & Actions */}
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-right cursor-pointer" onClick={() => onEdit(t)}>
+                                            <span className={`block font-bold text-sm ${isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
+                                                {isPositive ? '+' : ''} <BlurValue value={formatCurrency(displayAmount)} show={showValues} />
+                                            </span>
+                                            {subText ? (
+                                                <div className="text-[9px] font-medium text-slate-400">
+                                                    {subText}
+                                                    {t.isSettled && <span className="ml-1 text-emerald-600 uppercase font-bold">Pago</span>}
+                                                </div>
+                                            ) : (
+                                                t.isSettled && <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Pago</span>
+                                            )}
+                                        </div>
+
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); if(confirm('Tem certeza que deseja excluir esta transação?')) onDelete(t.id); }}
+                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                            title="Excluir"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </div>
                             );

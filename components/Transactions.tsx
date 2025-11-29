@@ -190,6 +190,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 accounts={accounts} 
                 showValues={showValues} 
                 onEdit={handleEditRequest} 
+                onDelete={onDeleteTransaction}
                 onAddClick={() => setFormMode(TransactionType.EXPENSE)}
             />
         </div>
