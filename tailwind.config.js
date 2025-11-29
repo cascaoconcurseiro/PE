@@ -1,11 +1,14 @@
+import tailwindAnimate from 'tailwindcss-animate';
+
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
     content: [
         "./index.html",
         "./components/**/*.{js,ts,jsx,tsx}",
+        "./src/**/*.{js,ts,jsx,tsx}",
         "./*.{js,ts,jsx,tsx}",
     ],
-    darkMode: 'class', // Enable dark mode via class
+    darkMode: 'class', // Isso é essencial para o botão de alternar tema funcionar
     theme: {
         extend: {
             fontFamily: {
@@ -14,6 +17,6 @@ module.exports = {
         },
     },
     plugins: [
-        require("tailwindcss-animate"),
+        tailwindAnimate,
     ],
 }

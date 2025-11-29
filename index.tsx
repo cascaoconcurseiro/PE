@@ -21,6 +21,7 @@ import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useDataStore } from './hooks/useDataStore';
 import { useAppLogic } from './hooks/useAppLogic';
 import { MainLayout } from './components/MainLayout';
+import './index.css'; // Importando estilos globais
 
 const App = () => {
     // --- MIGRATION & INIT ---
