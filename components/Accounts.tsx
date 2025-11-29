@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Account, AccountType, Transaction, TransactionType, Category } from '../types';
 import { Button } from './ui/Button';
-import { Wallet, CreditCard, Plus, ArrowLeft, Search, Download, Printer, FileUp, MoreHorizontal, Landmark, Banknote } from 'lucide-react';
+import { Wallet, CreditCard, Plus, ArrowLeft, Search, Download, Printer, FileUp, MoreHorizontal, Landmark, Banknote, Edit2, Trash2 } from 'lucide-react';
 import { formatCurrency } from '../utils';
 import { useToast } from './ui/Toast';
 import { exportToCSV, prepareTransactionsForExport, printComponent } from '../services/exportUtils';
@@ -34,6 +34,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
     const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS'>('BANKING');
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const { addToast } = useToast();
 
@@ -56,12 +57,33 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
     const handleAccountClick = (account: Account) => {
         setSelectedAccount(account);
         setViewState('DETAIL');
+        setIsEditing(false);
     };
 
     const handleBack = () => {
         setViewState('LIST');
         setSelectedAccount(null);
+        setIsEditing(false);
         setActionModal({ isOpen: false, type: 'PAY_INVOICE' });
+    };
+
+    const handleDelete = () => {
+        if (selectedAccount) {
+            if (confirm('Tem certeza que deseja excluir esta conta?')) {
+                onDeleteAccount(selectedAccount.id);
+                handleBack();
+            }
+        }
+    };
+
+    const handleUpdate = (updatedData: Partial<Account>) => {
+        if (selectedAccount) {
+            const updatedAccount = { ...selectedAccount, ...updatedData };
+            onUpdateAccount(updatedAccount);
+            setSelectedAccount(updatedAccount);
+            setIsEditing(false);
+            addToast('Conta atualizada com sucesso!', 'success');
+        }
     };
 
     const handleExport = (format: 'CSV' | 'PDF') => {
@@ -176,6 +198,25 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
 
     // --- RENDER DETAIL VIEW ---
     if (viewState === 'DETAIL' && selectedAccount) {
+        if (isEditing) {
+            return (
+                <div className="pb-24 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="mb-4 flex items-center gap-2">
+                         <Button variant="ghost" onClick={() => setIsEditing(false)} className="p-0 hover:bg-transparent">
+                            <ArrowLeft className="w-6 h-6 text-slate-600" />
+                        </Button>
+                        <h2 className="text-xl font-bold text-slate-800">Editar Conta</h2>
+                    </div>
+                    <AccountForm 
+                        type={selectedAccount.type === AccountType.CREDIT_CARD ? 'CARDS' : 'BANKING'}
+                        initialData={selectedAccount}
+                        onSave={handleUpdate}
+                        onCancel={() => setIsEditing(false)}
+                    />
+                </div>
+            );
+        }
+
         return (
             <div className="space-y-6 animate-in slide-in-from-right duration-300 pb-24">
                 {/* Detail Header */}
@@ -189,11 +230,20 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     </div>
                     
                     <div className="flex gap-2">
+                        <Button onClick={() => setIsEditing(true)} variant="secondary" size="sm" className="text-slate-500 hover:text-indigo-600">
+                             <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button onClick={handleDelete} variant="secondary" size="sm" className="text-slate-500 hover:text-red-600">
+                             <Trash2 className="w-4 h-4" />
+                        </Button>
+
+                        <div className="w-px h-8 bg-slate-200 mx-1 hidden sm:block"></div>
+
                         <Button onClick={() => handleExport('CSV')} variant="secondary" size="sm" className="gap-2 hidden sm:flex">
-                            <Download className="w-4 h-4" /> Excel
+                            <Download className="w-4 h-4" /> CSV
                         </Button>
                         <Button onClick={() => handleExport('PDF')} variant="secondary" size="sm" className="gap-2 hidden sm:flex">
-                            <Printer className="w-4 h-4" /> Imprimir
+                            <Printer className="w-4 h-4" />
                         </Button>
                         
                         <div className="relative">
