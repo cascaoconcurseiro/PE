@@ -90,8 +90,8 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
         <div className="space-y-4 pb-24 animate-in fade-in duration-500">
             <div className="flex justify-between items-center px-1">
                 <div>
-                    <h2 className="text-xl font-bold text-slate-800">Metas</h2>
-                    <p className="text-slate-500 text-xs">Foco no objetivo.</p>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">Metas</h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs">Foco no objetivo.</p>
                 </div>
                 <Button onClick={() => setIsFormOpen(true)} size="sm" className="shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white h-9 text-xs">
                     <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova Meta
@@ -101,7 +101,7 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
             {/* Transaction Modal Overlay */}
             {transactingGoal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
                         <div className={`p-4 text-white flex justify-between items-center ${transactionType === 'DEPOSIT' ? 'bg-emerald-600' : 'bg-red-500'}`}>
                             <h3 className="font-bold text-sm flex items-center gap-2">
                                 {transactionType === 'DEPOSIT' ? <Plus className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
@@ -112,7 +112,7 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
                             </button>
                         </div>
                         <form onSubmit={submitTransaction} className="p-5">
-                            <p className="text-xs text-slate-500 mb-4 font-medium text-center">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 font-medium text-center">
                                 {transactionType === 'DEPOSIT' ? 'Quanto você guardou hoje?' : 'Quanto precisa retirar?'}
                             </p>
 
@@ -124,20 +124,20 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
                                     autoFocus
                                     value={transactionAmount}
                                     onChange={e => setTransactionAmount(e.target.value)}
-                                    className={`w-full pl-10 pr-4 py-3 text-2xl font-bold text-center border-2 rounded-xl outline-none transition-colors ${transactionType === 'DEPOSIT' ? 'border-emerald-100 focus:border-emerald-500 text-emerald-700' : 'border-red-100 focus:border-red-500 text-red-700'}`}
+                                    className={`w-full pl-10 pr-4 py-3 text-2xl font-bold text-center border-2 rounded-xl outline-none transition-colors bg-white dark:bg-slate-900 ${transactionType === 'DEPOSIT' ? 'border-emerald-100 dark:border-emerald-900 focus:border-emerald-500 text-emerald-700 dark:text-emerald-400' : 'border-red-100 dark:border-red-900 focus:border-red-500 text-red-700 dark:text-red-400'}`}
                                     placeholder="0,00"
                                     required
                                 />
                             </div>
 
                             <div className="mb-6">
-                                <label className="block text-xs font-bold text-slate-700 mb-1.5 pl-1">
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 pl-1">
                                     {transactionType === 'DEPOSIT' ? 'Saindo da conta:' : 'Depositando na conta:'}
                                 </label>
                                 <div className="relative">
                                     <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <select
-                                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 appearance-none"
+                                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 appearance-none"
                                         value={selectedAccountId}
                                         onChange={e => setSelectedAccountId(e.target.value)}
                                         required
@@ -159,12 +159,12 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
             )}
 
             {isFormOpen && (
-                <Card className="bg-white border-slate-200 shadow-sm" title={editingGoal ? "Editar Meta" : "Nova Meta"}>
+                <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm" title={editingGoal ? "Editar Meta" : "Nova Meta"}>
                     <form onSubmit={handleSave} className="space-y-3">
                         <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">Nome</label>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nome</label>
                             <input
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 text-sm"
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white text-sm"
                                 value={newGoal.name || ''}
                                 onChange={e => setNewGoal({ ...newGoal, name: e.target.value })}
                                 placeholder="Ex: Viagem, Carro"
@@ -173,11 +173,11 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1">Alvo (R$)</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Alvo (R$)</label>
                                 <input
                                     type="number"
                                     step="0.01"
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 text-sm"
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white text-sm"
                                     value={newGoal.targetAmount || ''}
                                     onChange={e => setNewGoal({ ...newGoal, targetAmount: Number(e.target.value) })}
                                     placeholder="0,00"
@@ -185,11 +185,11 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1">Atual (R$)</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Atual (R$)</label>
                                 <input
                                     type="number"
                                     step="0.01"
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 text-sm"
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white text-sm"
                                     value={newGoal.currentAmount || ''}
                                     onChange={e => setNewGoal({ ...newGoal, currentAmount: Number(e.target.value) })}
                                     placeholder="0,00"
@@ -197,11 +197,11 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">Prazo</label>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Prazo</label>
                             <input
                                 type="date"
                                 onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 text-sm"
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white text-sm"
                                 value={newGoal.deadline || ''}
                                 onChange={e => setNewGoal({ ...newGoal, deadline: e.target.value })}
                             />
@@ -220,7 +220,7 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
                     const isCompleted = percentage >= 100;
 
                     return (
-                        <div key={goal.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative overflow-hidden group hover:border-emerald-300 transition-all flex flex-col justify-between h-full">
+                        <div key={goal.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm relative overflow-hidden group hover:border-emerald-300 dark:hover:border-emerald-700 transition-all flex flex-col justify-between h-full">
                             <div>
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex items-center gap-2.5">
@@ -228,7 +228,7 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
                                             {isCompleted ? <Trophy className="w-4 h-4" /> : <Target className="w-4 h-4" />}
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-slate-800 text-sm leading-tight">{goal.name}</h3>
+                                            <h3 className="font-bold text-slate-800 dark:text-white text-sm leading-tight">{goal.name}</h3>
                                             {goal.deadline && (
                                                 <p className="text-[10px] text-slate-400 mt-0.5">
                                                     {new Date(goal.deadline).toLocaleDateString()}
@@ -244,7 +244,7 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
 
                                 <div className="mb-2">
                                     <div className="flex justify-between items-end mb-1">
-                                        <span className="text-xl font-bold text-slate-900 tracking-tight">{formatCurrency(goal.currentAmount)}</span>
+                                        <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{formatCurrency(goal.currentAmount)}</span>
                                         <span className="text-[10px] font-semibold text-slate-400 mb-1">de {formatCurrency(goal.targetAmount)}</span>
                                     </div>
 
@@ -279,11 +279,11 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
                 })}
 
                 {goals.length === 0 && !isFormOpen && (
-                    <div className="col-span-full text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                        <div className="bg-white p-3 rounded-full inline-flex mb-3 shadow-sm">
+                    <div className="col-span-full text-center py-10 bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+                        <div className="bg-white dark:bg-slate-800 p-3 rounded-full inline-flex mb-3 shadow-sm">
                             <TrendingUp className="w-6 h-6 text-slate-400" />
                         </div>
-                        <p className="text-slate-600 font-medium text-sm">Nenhuma meta definida.</p>
+                        <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">Nenhuma meta definida.</p>
                         <Button onClick={() => setIsFormOpen(true)} variant="ghost" size="sm" className="mt-3 text-emerald-600 hover:bg-emerald-50 text-xs">
                             Criar Primeira Meta
                         </Button>
