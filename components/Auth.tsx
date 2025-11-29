@@ -66,17 +66,32 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                             localization={{
                                 variables: {
                                     sign_in: {
-                                        email_label: 'Endereço de E-mail',
-                                        password_label: 'Sua Senha',
+                                        email_label: 'E-mail',
+                                        password_label: 'Senha',
+                                        email_input_placeholder: 'Seu endereço de e-mail',
+                                        password_input_placeholder: 'Sua senha',
                                         button_label: 'Entrar',
                                         loading_button_label: 'Entrando...',
+                                        link_text: 'Já tem uma conta? Entre',
                                     },
                                     sign_up: {
-                                        email_label: 'Endereço de E-mail',
+                                        email_label: 'E-mail',
                                         password_label: 'Crie uma Senha',
+                                        email_input_placeholder: 'Seu endereço de e-mail',
+                                        password_input_placeholder: 'Sua senha forte',
                                         button_label: 'Criar Conta',
                                         loading_button_label: 'Criando...',
-                                    }
+                                        link_text: 'Não tem uma conta? Cadastre-se',
+                                    },
+                                    forgotten_password: {
+                                        link_text: 'Esqueceu sua senha?',
+                                        email_label: 'E-mail',
+                                        password_label: 'Senha',
+                                        email_input_placeholder: 'Seu endereço de e-mail',
+                                        button_label: 'Enviar instruções',
+                                        loading_button_label: 'Enviando...',
+                                        confirmation_text: 'Verifique seu e-mail para o link de recuperação',
+                                    },
                                 }
                             }}
                             theme="light"
