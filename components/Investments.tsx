@@ -4,8 +4,8 @@ import { formatCurrency } from '../utils';
 import { convertToBRL, AVAILABLE_CURRENCIES } from '../services/currencyService';
 import {
     TrendingUp, Wallet, PieChart as PieChartIcon, DollarSign, ArrowUpRight, ArrowDownRight,
-    Plus, Bitcoin, Building2, Landmark,
-    Activity, Search, Trash2, Edit2, X, Download, Printer, Minus, Save, AlertCircle, ArrowRightLeft, Filter
+    Plus, MoreHorizontal, Bitcoin, Building2, Landmark,
+    Activity, Search, Trash2, Edit2, X, Download, Printer, Minus, Save, AlertCircle, ArrowRightLeft, Filter, History
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -40,8 +40,12 @@ export const Investments: React.FC<InvestmentsProps> = ({
 }) => {
     // Modal States
     const [isAssetModalOpen, setIsAssetModalOpen] = useState(false); // Used for "Novo Aporte" (Buy/Add)
+    const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
     const [isSellModalOpen, setIsSellModalOpen] = useState(false);
     const [isDividendModalOpen, setIsDividendModalOpen] = useState(false);
+    const [isIRModalOpen, setIsIRModalOpen] = useState(false);
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
     const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
     // Data States
@@ -91,6 +95,16 @@ export const Investments: React.FC<InvestmentsProps> = ({
 
     // --- HANDLERS ---
 
+    // Export Functions
+    const handleExport = () => {
+        const data = prepareAssetsForExport(filteredAssets);
+        exportToCSV(data, ['Ticker', 'Nome', 'Tipo', 'Qtd', 'Preço Médio', 'Preço Atual', 'Total Atual'], 'Carteira_Investimentos');
+    };
+
+    const handlePrint = () => {
+        printAssetsReport(filteredAssets);
+    };
+
     // 1. COMPRA / NOVO APORTE (BUY)
     const handleSaveAsset = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -98,10 +112,10 @@ export const Investments: React.FC<InvestmentsProps> = ({
         const formData = new FormData(form);
         
         // Handle New Brokerage Creation
-        let brokerageId = formData.get('brokerageId') as string;
+        let brokerageId = formData.get('accountId') as string;
         if (isCreatingAccount) {
-            if (!newAccountName.trim()) { alert('Informe o nome da nova corretora.'); return; }
-            const newAccount = { name: newAccountName, type: AccountType.INVESTMENT, balance: 0, initialBalance: 0, currency: 'BRL' };
+            if (!newAccountName.trim()) { alert('Por favor, informe o nome da nova corretora.'); return; }
+            const newAccount = { name: newAccountName, type: AccountType.INVESTMENT, balance: 0, initialBalance: 0, currency: 'BRL', color: 'slate' };
             const tempId = crypto.randomUUID();
             await (onAddAccount as any)({ ...newAccount, id: tempId });
             brokerageId = tempId;
@@ -110,99 +124,135 @@ export const Investments: React.FC<InvestmentsProps> = ({
         // Data extraction
         const ticker = (formData.get('ticker') as string).trim().toUpperCase();
         const inputQuantity = parseFloat(formData.get('quantity') as string);
-        const inputPrice = parseFloat(formData.get('price') as string); // Price paid
+        const inputPrice = parseFloat(formData.get('averagePrice') as string); // In "Add New", Avg Price field acts as Purchase Price
+        const currentPrice = parseFloat(formData.get('currentPrice') as string);
         const currency = formData.get('currency') as string;
         const type = formData.get('type') as AssetType;
         const name = formData.get('name') as string;
-        const date = formData.get('date') as string;
+        const date = new Date().toISOString();
         const sourceAccountId = formData.get('sourceAccountId') as string; // Money source
         
         // Validation
-        if (!sourceAccountId) { alert("Selecione a conta de origem do dinheiro."); return; }
+        if (!sourceAccountId && !editingAsset) { alert("Selecione a conta de origem do dinheiro."); return; }
 
         const totalValue = inputQuantity * inputPrice;
 
-        // Check for Existing Asset (Merge)
+        // Check for Existing Asset (Merge Logic)
         const existingAsset = assets.find(a => a.ticker === ticker && a.accountId === brokerageId);
 
-        // Exchange Rate Logic (if paying with different currency)
-        const sourceAccount = accounts.find(a => a.id === sourceAccountId);
-        let exchangeRate = 1;
-        if (sourceAccount && sourceAccount.currency !== currency) {
-            const rateStr = prompt(`A conta de origem é ${sourceAccount.currency} e o ativo é ${currency}.\nQual a taxa de câmbio? (1 ${currency} = X ${sourceAccount.currency})`);
-            if (rateStr) exchangeRate = parseFloat(rateStr.replace(',', '.')) || 1;
-        }
-
-        // 1. Register Transaction (Expense)
-        onAddTransaction({
-            amount: totalValue * exchangeRate, // Convert to source currency for transaction
-            description: `Compra ${ticker} (${inputQuantity} un)`,
-            date: date,
-            type: TransactionType.EXPENSE,
-            category: Category.INVESTMENT,
-            accountId: sourceAccountId, // Money comes from here
-            isRecurring: false,
-            exchangeRate: exchangeRate !== 1 ? exchangeRate : undefined
-        });
-
-        // 2. Update/Create Asset
         if (existingAsset && !editingAsset) {
-            // Merge logic
+            // === MERGE SCENARIO (Buy more of existing) ===
+            const confirmMerge = window.confirm(`Você já possui ${existingAsset.ticker} nesta corretora.\n\nDeseja adicionar essa quantidade à sua posição atual e recalcular o preço médio?`);
+            
+            if (!confirmMerge) return;
+
+            // Exchange Rate Logic
+            const sourceAccount = accounts.find(a => a.id === sourceAccountId);
+            let exchangeRate = 1;
+            if (sourceAccount && sourceAccount.currency !== currency) {
+                const rateStr = prompt(`A conta de origem é ${sourceAccount.currency} e o ativo é ${currency}.\nQual a taxa de câmbio? (1 ${currency} = X ${sourceAccount.currency})`);
+                if (rateStr) exchangeRate = parseFloat(rateStr.replace(',', '.')) || 1;
+            }
+
+            // Calculate Weighted Average Price
             const oldTotalVal = existingAsset.quantity * existingAsset.averagePrice;
             const newPurchaseVal = totalValue;
             const newQuantity = existingAsset.quantity + inputQuantity;
             const newAveragePrice = (oldTotalVal + newPurchaseVal) / newQuantity;
 
+            // Update Asset
             onUpdateAsset({
                 ...existingAsset,
                 quantity: newQuantity,
                 averagePrice: newAveragePrice,
-                currentPrice: inputPrice, // Update to latest paid price
-                lastUpdate: new Date().toISOString(),
+                currentPrice: currentPrice, // Update current market price
+                lastUpdate: date,
                 tradeHistory: [
                     ...(existingAsset.tradeHistory || []),
                     {
                         id: crypto.randomUUID(),
-                        date: date,
+                        date: date.split('T')[0],
                         type: 'BUY',
                         quantity: inputQuantity,
                         price: inputPrice,
-                        total: totalValue,
+                        total: newPurchaseVal,
                         currency: currency
                     }
                 ]
             });
-        } else if (editingAsset) {
-            // Editing existing asset properties (not a trade)
-            const updatedAsset = {
-                ...editingAsset,
-                ticker, name, type, currency, accountId: brokerageId,
-                quantity: inputQuantity,
-                averagePrice: inputPrice,
-                currentPrice: parseFloat(formData.get('currentPrice') as string || inputPrice.toString())
-            };
-            onUpdateAsset(updatedAsset);
+
+            // Create Expense Transaction
+            onAddTransaction({
+                amount: totalValue * exchangeRate,
+                description: `Compra ${ticker} (${inputQuantity} un) - Via Aporte`,
+                date: date.split('T')[0],
+                type: TransactionType.EXPENSE,
+                category: Category.INVESTMENT,
+                accountId: sourceAccountId,
+                isRecurring: false,
+                exchangeRate: exchangeRate !== 1 ? exchangeRate : undefined
+            });
+
+            alert(`${ticker} atualizado! Novo Preço Médio: ${formatCurrency(newAveragePrice, currency)}`);
         } else {
-            // New Asset
-            onAddAsset({
-                ticker, name, type, currency, accountId: brokerageId,
+            // === NEW ASSET or EDIT SCENARIO ===
+            const assetData = {
+                ticker,
+                name,
+                type,
                 quantity: inputQuantity,
                 averagePrice: inputPrice,
-                currentPrice: inputPrice,
-                lastUpdate: new Date().toISOString(),
-                tradeHistory: [{
+                currentPrice: currentPrice,
+                currency,
+                accountId: brokerageId,
+                lastUpdate: date
+            };
+
+            if (editingAsset) {
+                onUpdateAsset({ ...assetData, id: editingAsset.id, tradeHistory: editingAsset.tradeHistory } as Asset);
+            } else {
+                // Exchange Rate Logic for New Asset
+                const sourceAccount = accounts.find(a => a.id === sourceAccountId);
+                let exchangeRate = 1;
+                if (sourceAccount && sourceAccount.currency !== currency) {
+                    const rateStr = prompt(`A conta de origem é ${sourceAccount.currency} e o ativo é ${currency}.\nQual a taxa de câmbio? (1 ${currency} = X ${sourceAccount.currency})`);
+                    if (rateStr) exchangeRate = parseFloat(rateStr.replace(',', '.')) || 1;
+                }
+
+                // New Asset - Initial Purchase Record
+                const initialTrade = {
                     id: crypto.randomUUID(),
-                    date: date,
-                    type: 'BUY',
+                    date: date.split('T')[0],
+                    type: 'BUY' as const,
                     quantity: inputQuantity,
                     price: inputPrice,
-                    total: totalValue,
+                    total: inputQuantity * inputPrice,
                     currency: currency
-                }]
-            });
+                };
+                
+                onAddAsset({
+                    ...assetData,
+                    tradeHistory: [initialTrade]
+                });
+
+                // Create Expense Transaction for initial purchase
+                onAddTransaction({
+                    amount: (inputQuantity * inputPrice) * exchangeRate,
+                    description: `Compra Inicial ${ticker} (${inputQuantity} un)`,
+                    date: date.split('T')[0],
+                    type: TransactionType.EXPENSE,
+                    category: Category.INVESTMENT,
+                    accountId: sourceAccountId,
+                    isRecurring: false,
+                    exchangeRate: exchangeRate !== 1 ? exchangeRate : undefined
+                });
+            }
         }
 
-        setIsAssetModalOpen(false); setEditingAsset(null); setIsCreatingAccount(false); setNewAccountName('');
+        setIsAssetModalOpen(false); 
+        setEditingAsset(null); 
+        setIsCreatingAccount(false); 
+        setNewAccountName('');
     };
 
     // 2. VENDA (SELL)
@@ -424,7 +474,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
                     <Button onClick={handleExport} variant="secondary" className="h-12 px-4 border-slate-200 text-slate-600 hover:bg-slate-100" title="Baixar CSV">
                         <Download className="w-5 h-5" />
                     </Button>
-                    <Button onClick={printAssetsReport.bind(null, filteredAssets)} variant="secondary" className="h-12 px-4 border-slate-200 text-slate-600 hover:bg-slate-100" title="Imprimir Relatório">
+                    <Button onClick={handlePrint} variant="secondary" className="h-12 px-4 border-slate-200 text-slate-600 hover:bg-slate-100" title="Imprimir Relatório">
                         <Printer className="w-5 h-5" />
                     </Button>
                     <Button onClick={() => setIsIRModalOpen(true)} variant="secondary" className="h-12 px-4 border-slate-200 text-slate-600 hover:bg-slate-100 whitespace-nowrap font-bold">
@@ -456,7 +506,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
                                 const assetProfitPercent = (assetProfit / (asset.quantity * asset.averagePrice)) * 100;
                                 
                                 return (
-                                    <div key={asset.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg hover:border-indigo-300 transition-all group relative overflow-hidden">
+                                    <div key={asset.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all group relative overflow-hidden">
                                         <div className="flex justify-between items-start mb-6">
                                             <div className="flex items-center gap-4">
                                                 <div className="p-3 bg-slate-50 rounded-2xl shrink-0 shadow-sm border border-slate-100">
@@ -503,6 +553,10 @@ export const Investments: React.FC<InvestmentsProps> = ({
                                                 <span>{showValues ? formatCurrency(assetProfit, asset.currency) : '•••'}</span>
                                                 <span className="opacity-75 ml-1">({assetProfitPercent.toFixed(2)}%)</span>
                                              </div>
+                                             <div className="flex gap-2">
+                                                 <button onClick={() => { setSelectedAsset(asset); setIsSellModalOpen(true); }} className="px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors">Vender</button>
+                                                 <button onClick={() => { setSelectedAsset(asset); setIsBuyModalOpen(true); }} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors">Comprar</button>
+                                             </div>
                                         </div>
                                     </div>
                                 ); 
@@ -512,7 +566,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 </div>
 
                 {/* ALLOCATION CHART */}
-                <div className="lg:col-span-1 space-y-6">
+                <div className="xl:col-span-1 space-y-6">
                     <Card className="border border-slate-200 bg-white shadow-sm overflow-hidden">
                         <div className="p-4 border-b border-slate-100 bg-slate-50/50">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
@@ -524,27 +578,24 @@ export const Investments: React.FC<InvestmentsProps> = ({
                             <div className="h-64 w-full relative">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
-                                        <Pie data={allocationData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                                        <Pie data={allocationData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
                                             {allocationData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                                         </Pie>
                                         <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
                                     </PieChart>
                                 </ResponsiveContainer>
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none flex-col">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase">Total</span>
-                                    <span className="text-sm font-black text-slate-900">{showValues ? formatCurrency(currentTotal) : '••••'}</span>
-                                </div>
                             </div>
-                            <div className="mt-4 space-y-3">
-                                {allocationData.sort((a,b) => b.value - a.value).map((item, idx) => (
-                                    <div key={item.name} className="flex justify-between text-xs items-center">
-                                        <span className="flex items-center gap-2">
-                                            <span className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
-                                            <span className="text-slate-600 font-bold">{item.name}</span>
-                                        </span>
-                                        <span className="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{((item.value / currentTotal) * 100).toFixed(1)}%</span>
-                                    </div>
-                                ))}
+                            <div className="mt-4 space-y-2">
+                                 {allocationData.sort((a,b) => b.value - a.value).map((item, idx) => (
+                                     <div key={item.name} className="flex justify-between text-xs border-b border-slate-50 pb-1 last:border-0">
+                                         <span className="flex items-center gap-2">
+                                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                                             <span className="text-slate-600 font-medium">{item.name}</span>
+                                         </span>
+                                         <span className="font-bold text-slate-900">{((item.value / currentTotal) * 100).toFixed(1)}%</span>
+                                     </div>
+                                 ))}
                             </div>
                         </div>
                     </Card>
@@ -636,7 +687,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
                     <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                             <h3 className="text-xl font-bold text-slate-800">Registrar Venda</h3>
-                            <button onClick={() => setIsSellModalOpen(false)} className="p-2 hover:bg-white rounded-full transition-colors text-slate-500"><X className="w-5 h-5" /></button>
+                            <button onClick={() => setIsSellModalOpen(false)} className="p-2 hover:bg-white rounded-full transition-colors text-slate-500"><X className="w-5 h-5 text-slate-500" /></button>
                         </div>
                         <form onSubmit={handleSellAsset} className="p-6 space-y-5">
                             <div>
@@ -680,7 +731,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
                     <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                             <h3 className="text-xl font-bold text-slate-800">Registrar Proventos</h3>
-                            <button onClick={() => setIsDividendModalOpen(false)} className="p-2 hover:bg-white rounded-full transition-colors text-slate-500"><X className="w-5 h-5" /></button>
+                            <button onClick={() => setIsDividendModalOpen(false)} className="p-2 hover:bg-white rounded-full transition-colors text-slate-500"><X className="w-5 h-5 text-slate-500" /></button>
                         </div>
                         <form onSubmit={handleRecordDividend} className="p-6 space-y-5">
                             <div>
@@ -724,8 +775,10 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 </div>
             )}
             
-            {/* HISTORY & IR MODALS remain the same ... */}
+            {/* HISTORY MODAL */}
              {isHistoryModalOpen && selectedAsset && (<div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto"><div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-slate-800">Histórico de Negociações - {selectedAsset.ticker}</h3><button onClick={() => setIsHistoryModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5 text-slate-500" /></button></div><div className="space-y-4">{!selectedAsset.tradeHistory || selectedAsset.tradeHistory.length === 0 ? (<p className="text-center text-slate-500 py-8">Nenhuma negociação registrada.</p>) : (selectedAsset.tradeHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(trade => (<div key={trade.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100"><div><div className={`text-xs font-bold uppercase ${trade.type === 'BUY' ? 'text-indigo-600' : 'text-red-600'}`}>{trade.type === 'BUY' ? 'Compra' : 'Venda'}</div><div className="text-sm text-slate-600">{new Date(trade.date).toLocaleDateString('pt-BR')}</div></div><div className="text-right"><div className="font-bold text-slate-900">{trade.quantity} un. x {formatCurrency(trade.price, trade.currency)}</div><div className="text-xs text-slate-500">Total: {formatCurrency(trade.total, trade.currency)}</div>{trade.profit && (<div className={`text-xs font-bold ${trade.profit > 0 ? 'text-emerald-600' : 'text-red-600'}`}>Lucro: {formatCurrency(trade.profit, trade.currency)}</div>)}</div></div>)))}</div></div></div>)}
+
+            {/* IR REPORT MODAL */}
             {isIRModalOpen && (<div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"><div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-slate-800">Relatório para Imposto de Renda</h3><button onClick={() => setIsIRModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5 text-slate-500" /></button></div><div className="space-y-4"><div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl text-sm border border-yellow-100"><strong>Atenção:</strong> Este relatório é apenas informativo. Confira sempre os informes oficiais das corretoras e escrituradores.</div><div className="space-y-6">{Object.values(AssetType).map(type => { const typeAssets = assets.filter(a => a.type === type); if (typeAssets.length === 0) return null; return (<div key={type}><h4 className="font-bold text-slate-700 mb-2 border-b border-slate-100 pb-1">{type}</h4><div className="space-y-2">{typeAssets.map(asset => (<div key={asset.id} className="flex justify-between text-sm p-2 hover:bg-slate-50 rounded-lg"><div><div className="font-bold">{asset.ticker} - {asset.name}</div><div className="text-slate-500 text-xs">CNPJ: (Verificar Informe)</div></div><div className="text-right"><div className="font-mono">{asset.quantity} un. a {formatCurrency(asset.averagePrice, asset.currency)}</div><div className="font-bold text-slate-900">Total: {formatCurrency(asset.quantity * asset.averagePrice, asset.currency)}</div></div></div>))}</div></div>); })}</div></div><div className="mt-6 pt-4 border-t border-slate-100 flex justify-end"><Button onClick={() => window.print()} variant="secondary">Imprimir / Salvar PDF</Button></div></div></div>)}
         </div>
     );
