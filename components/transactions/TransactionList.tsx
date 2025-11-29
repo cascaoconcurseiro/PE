@@ -1,12 +1,13 @@
 import React from 'react';
-import { Transaction, TransactionType, Account } from '../../types';
+import { Transaction, TransactionType, Account, FamilyMember, AccountType } from '../../types';
 import { formatCurrency, getCategoryIcon } from '../../utils';
-import { RefreshCcw, ScanLine, Plus, Plane, Users, Trash2, ArrowRight } from 'lucide-react';
+import { RefreshCcw, ScanLine, Plus, Plane, Users, Trash2, ArrowRight, User, CreditCard, Wallet, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface TransactionListProps {
     groupedTxs: Record<string, Transaction[]>;
     accounts: Account[];
+    familyMembers: FamilyMember[];
     showValues: boolean;
     onEdit: (t: Transaction) => void;
     onDelete: (id: string) => void;
@@ -22,6 +23,7 @@ const BlurValue = ({ value, show }: { value: string, show: boolean }) => {
 export const TransactionList: React.FC<TransactionListProps> = ({ 
     groupedTxs, 
     accounts, 
+    familyMembers,
     showValues, 
     onEdit, 
     onDelete,
@@ -61,34 +63,43 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         {groupedTxs[dateStr].map(t => {
                             const CatIcon = getCategoryIcon(t.category);
                             const isPositive = (t.type === TransactionType.INCOME && !t.isRefund) || (t.type === TransactionType.EXPENSE && t.isRefund);
-                            const accountName = accounts.find(a => a.id === t.accountId)?.name || 'Conta';
+                            const account = accounts.find(a => a.id === t.accountId);
+                            const accountName = account?.name || 'Conta';
+                            const isCreditCard = account?.type === AccountType.CREDIT_CARD;
                             
                             // Logic for Shared/Trip Display
                             const isShared = t.isShared || (t.sharedWith && t.sharedWith.length > 0);
                             const isTrip = !!t.tripId;
                             
-                            // Amount Calculation Logic (User Request: Show My Share)
+                            // Amount Calculation Logic & Payer Info
                             let displayAmount = t.amount;
                             let subText = '';
                             let amountLabel = '';
+                            let payerName = 'Você';
+                            
+                            // Determine Payer Name
+                            if (t.payerId && t.payerId !== 'me') {
+                                payerName = familyMembers.find(m => m.id === t.payerId)?.name || 'Outro';
+                            }
 
                             if (t.type === TransactionType.EXPENSE && isShared) {
                                 const splitsTotal = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
                                 
-                                if (!t.payerId || t.payerId === 'me') {
+                                if (payerName === 'Você') {
                                     // I paid full amount
-                                    displayAmount = t.amount - splitsTotal;
+                                    displayAmount = t.amount - splitsTotal; // Show net cost (my share)
                                     if (splitsTotal > 0) {
-                                        subText = `Pago: ${formatCurrency(t.amount)}`;
-                                        amountLabel = ' (Minha Parte)';
+                                        subText = `Você pagou o total (${formatCurrency(t.amount)})`;
+                                        amountLabel = ' (Sua Parte)';
                                     }
                                 } else {
                                     // Someone else paid
                                     // Assuming my share is the remainder (Total - Splits to others)
-                                    // If I was explicitly split, logic might vary, but simplified here:
+                                    // Simplified logic: If I created the tx representing a shared expense paid by other, 
+                                    // usually the amount stored is the TOTAL, and my share is calculated.
                                     displayAmount = t.amount - splitsTotal;
-                                    subText = 'Pago por outro';
-                                    amountLabel = ' (Dívida)';
+                                    subText = `Pago por ${payerName}`;
+                                    amountLabel = ' (Você deve)';
                                 }
                             }
 
@@ -105,17 +116,19 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                         <div className="overflow-hidden pr-2">
                                             <div className="flex items-center gap-2">
                                                 <p className="text-sm font-bold text-slate-900 truncate">{t.description}</p>
-                                                {/* Icons */}
-                                                {isTrip && <Plane className="w-3 h-3 text-violet-500 fill-violet-100" />}
-                                                {isShared && <Users className="w-3 h-3 text-indigo-500 fill-indigo-100" />}
+                                                {/* Icons Badges */}
+                                                {isTrip && <span className="bg-violet-100 text-violet-700 p-0.5 rounded"><Plane className="w-3 h-3" /></span>}
+                                                {isShared && <span className="bg-indigo-100 text-indigo-700 p-0.5 rounded"><Users className="w-3 h-3" /></span>}
                                             </div>
                                             
-                                            <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500 mt-0.5">
+                                            <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500 mt-0.5">
                                                 <span className="truncate max-w-[100px]">{t.category}</span>
                                                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                <span className="truncate max-w-[100px] text-slate-400">{accountName}</span>
+                                                <span className="flex items-center gap-1 truncate max-w-[120px] text-slate-400">
+                                                    {isCreditCard ? <CreditCard className="w-3 h-3" /> : <Wallet className="w-3 h-3" />}
+                                                    {accountName}
+                                                </span>
                                                 {t.currentInstallment && <span className="bg-purple-100 text-purple-700 px-1.5 rounded text-[9px] font-bold">{t.currentInstallment}/{t.totalInstallments}</span>}
-                                                {t.isRecurring && <span className="bg-blue-100 text-blue-700 px-1.5 rounded text-[9px] font-bold">Recorrente</span>}
                                             </div>
                                         </div>
                                     </div>
@@ -126,13 +139,24 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                             <span className={`block font-bold text-sm ${isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
                                                 {isPositive ? '+' : ''} <BlurValue value={formatCurrency(displayAmount)} show={showValues} />
                                             </span>
+                                            
+                                            {/* Subtext Logic */}
                                             {subText ? (
-                                                <div className="text-[9px] font-medium text-slate-400">
-                                                    {subText}
-                                                    {t.isSettled && <span className="ml-1 text-emerald-600 uppercase font-bold">Pago</span>}
+                                                <div className="flex items-center justify-end gap-1 text-[9px] font-medium text-slate-400 mt-0.5">
+                                                    {payerName !== 'Você' ? (
+                                                        <>
+                                                            <ArrowDownLeft className="w-3 h-3 text-red-400" />
+                                                            <span>{subText}</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <ArrowUpRight className="w-3 h-3 text-emerald-400" />
+                                                            <span>Receber diferença</span>
+                                                        </>
+                                                    )}
                                                 </div>
                                             ) : (
-                                                t.isSettled && <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Pago</span>
+                                                t.isSettled && <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">Pago</span>
                                             )}
                                         </div>
 

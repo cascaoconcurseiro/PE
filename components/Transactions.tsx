@@ -188,6 +188,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             <TransactionList 
                 groupedTxs={groupedTxs} 
                 accounts={accounts} 
+                familyMembers={familyMembers}
                 showValues={showValues} 
                 onEdit={handleEditRequest} 
                 onDelete={onDeleteTransaction}
