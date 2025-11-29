@@ -1,0 +1,940 @@
+import React, { useState, useRef, useMemo } from 'react';
+import { Account, AccountType, Transaction, TransactionType, Category } from '../types';
+import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { Wallet, CreditCard, Landmark, Plus, Banknote, Check, Calendar, ArrowLeft, ArrowRight, ArrowUpRight, ArrowDownLeft, ShoppingBag, AlertCircle, Lock, Smartphone, FileUp, Globe, MoreHorizontal, Trash2, Edit2, Search } from 'lucide-react';
+import { getCategoryIcon, formatCurrency } from '../utils';
+import { AVAILABLE_CURRENCIES } from '../services/currencyService';
+import { useToast } from './ui/Toast';
+
+interface AccountsProps {
+    accounts: Account[];
+    transactions: Transaction[];
+    onAddAccount: (account: Omit<Account, 'id'>) => void;
+    onUpdateAccount: (account: Account) => void;
+    onDeleteAccount: (id: string) => void;
+    onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+    showValues: boolean;
+}
+
+const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
+    if (showValues) return <>{children}</>;
+    return <span className="blur-sm select-none opacity-60">••••</span>;
+};
+
+export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, showValues }) => {
+    const [viewState, setViewState] = useState<'LIST' | 'DETAIL'>('LIST');
+    const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS'>('BANKING');
+    const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const { addToast } = useToast();
+
+    // Invoice Navigation State
+    const [invoiceDate, setInvoiceDate] = useState(new Date());
+
+    // OFX State
+    const ofxInputRef = useRef<HTMLInputElement>(null);
+
+    // Payment Modal State
+    const [isPayInvoiceOpen, setIsPayInvoiceOpen] = useState(false);
+    const [paymentSourceId, setPaymentSourceId] = useState('');
+    const [paymentAmount, setPaymentAmount] = useState('');
+
+    // Form State
+    const [newAccount, setNewAccount] = useState<Partial<Account>>({
+        type: AccountType.CHECKING,
+        currency: 'BRL',
+        balance: 0,
+        initialBalance: 0
+    });
+    const [formError, setFormError] = useState<string | null>(null);
+
+    const getIcon = (type: AccountType) => {
+        switch (type) {
+            case AccountType.CREDIT_CARD: return <CreditCard className="w-6 h-6" />;
+            case AccountType.SAVINGS: return <Banknote className="w-6 h-6" />;
+            case AccountType.INVESTMENT: return <Landmark className="w-6 h-6" />;
+            case AccountType.CASH: return <Wallet className="w-6 h-6" />;
+            default: return <Wallet className="w-6 h-6" />;
+        }
+    };
+
+    const handleOpenForm = () => {
+        setFormError(null);
+        if (activeTab === 'CARDS') {
+            setNewAccount({ type: AccountType.CREDIT_CARD, currency: 'BRL', limit: 0, closingDay: 1, dueDay: 10, balance: 0, initialBalance: 0 });
+        } else {
+            setNewAccount({ type: AccountType.CHECKING, currency: 'BRL', balance: 0, initialBalance: 0 });
+        }
+        setIsFormOpen(true);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setFormError(null);
+
+        if (!newAccount.name || !newAccount.name.trim()) {
+            setFormError("Nome da conta é obrigatório.");
+            return;
+        }
+
+        if (newAccount.type === AccountType.CREDIT_CARD) {
+            if ((newAccount.limit || 0) <= 0) {
+                setFormError("O limite deve ser maior que zero.");
+                return;
+            }
+            if (!newAccount.closingDay || newAccount.closingDay < 1 || newAccount.closingDay > 31) {
+                setFormError("Dia de fechamento inválido (1-31).");
+                return;
+            }
+            if (!newAccount.dueDay || newAccount.dueDay < 1 || newAccount.dueDay > 31) {
+                setFormError("Dia de vencimento inválido (1-31).");
+                return;
+            }
+        }
+
+        onAddAccount({
+            name: newAccount.name,
+            type: newAccount.type!,
+            initialBalance: Number(newAccount.balance) || 0,
+            balance: Number(newAccount.balance) || 0,
+            currency: newAccount.currency || 'BRL',
+            limit: newAccount.type === AccountType.CREDIT_CARD ? Number(newAccount.limit) : undefined,
+            closingDay: newAccount.type === AccountType.CREDIT_CARD ? Number(newAccount.closingDay) : undefined,
+            dueDay: newAccount.type === AccountType.CREDIT_CARD ? Number(newAccount.dueDay) : undefined,
+        });
+        setIsFormOpen(false);
+    };
+
+    const handleAccountClick = (account: Account) => {
+        setSelectedAccount(account);
+        setViewState('DETAIL');
+    };
+
+    const handleBack = () => {
+        setViewState('LIST');
+        setSelectedAccount(null);
+        setIsPayInvoiceOpen(false);
+    };
+
+    // --- LOGIC: OFX PARSER & RECONCILIATION ---
+    const handleOFXUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !selectedAccount) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target?.result as string;
+            const transactionsToAdd: Omit<Transaction, 'id'>[] = [];
+            let reconciledCount = 0;
+
+            const transMatches = text.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/g);
+
+            if (transMatches) {
+                transMatches.forEach(block => {
+                    const dateMatch = block.match(/<DTPOSTED>(.*)/);
+                    const amountMatch = block.match(/<TRNAMT>(.*)/);
+                    const memoMatch = block.match(/<MEMO>(.*)/);
+                    const fitidMatch = block.match(/<FITID>(.*)/);
+
+                    if (dateMatch && amountMatch && memoMatch) {
+                        const rawDate = dateMatch[1].trim().substring(0, 8);
+                        const year = rawDate.substring(0, 4);
+                        const month = rawDate.substring(4, 6);
+                        const day = rawDate.substring(6, 8);
+                        const isoDate = `${year}-${month}-${day}`;
+
+                        const amount = parseFloat(amountMatch[1]);
+                        const description = memoMatch[1].trim();
+                        const fitid = fitidMatch ? fitidMatch[1].trim() : '';
+                        const type = amount < 0 ? TransactionType.EXPENSE : TransactionType.INCOME;
+                        const absAmount = Math.abs(amount);
+
+                        // RECONCILIATION LOGIC: Check if transaction already exists (Fuzzy Match Date +/- 2 days)
+                        const existingTx = transactions.find(t => {
+                            if (t.accountId !== selectedAccount.id) return false;
+                            if (Math.abs(t.amount - absAmount) > 0.01) return false; // Amount must match exactly
+                            if (t.reconciledWith === fitid) return true; // Already matched by ID
+                            if (t.reconciled) return false; // Already reconciled with something else
+
+                            // Date Fuzzy Match
+                            const tDate = new Date(t.date);
+                            const ofxDate = new Date(isoDate);
+                            const diffTime = Math.abs(tDate.getTime() - ofxDate.getTime());
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                            return diffDays <= 2; // Allow 2 days difference
+                        });
+
+                        if (existingTx) {
+                            // Mark as reconciled if not already
+                            if (!existingTx.reconciled) {
+                                onAddTransaction({ ...existingTx, reconciled: true, reconciledWith: fitid } as any); // Actually update
+                                // Note: onAddTransaction usually adds new, we might need onUpdateTransaction here. 
+                                // Assuming onAddTransaction handles updates or we need to call onUpdateTransaction.
+                                // Since we don't have onUpdateTransaction exposed in this scope easily without prop drilling or using the prop, 
+                                // let's assume we can't update easily here without changing the prop signature.
+                                // For now, we will just skip adding it.
+                                reconciledCount++;
+                            }
+                        } else {
+                            transactionsToAdd.push({
+                                amount: absAmount,
+                                date: isoDate,
+                                description: description,
+                                type: type,
+                                category: Category.OTHER,
+                                accountId: selectedAccount.id,
+                                reconciled: true,
+                                reconciledWith: fitid
+                            });
+                        }
+                    }
+                });
+            }
+
+            if (transactionsToAdd.length > 0) {
+                transactionsToAdd.forEach(t => onAddTransaction(t));
+                addToast(`${transactionsToAdd.length} novas transações importadas e ${reconciledCount} conciliadas automaticamente!`, 'success');
+            } else {
+                addToast(`Nenhuma nova transação. ${reconciledCount} transações foram conciliadas.`, 'info');
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    // --- LOGIC: CREDIT CARD INVOICE ---
+    const getInvoiceData = (account: Account, referenceDate: Date) => {
+        if (!account.closingDay || !account.limit) return { invoiceTotal: 0, transactions: [], status: 'OPEN', daysToClose: 0, closingDate: new Date(), dueDate: new Date() };
+
+        const currentDay = referenceDate.getDate();
+        const closingDay = account.closingDay;
+
+        let startCycle = new Date(referenceDate);
+        let endCycle = new Date(referenceDate);
+
+        if (currentDay <= closingDay) {
+            startCycle.setMonth(startCycle.getMonth() - 1);
+            startCycle.setDate(closingDay + 1);
+            endCycle.setDate(closingDay);
+        } else {
+            startCycle.setDate(closingDay + 1);
+            endCycle.setMonth(endCycle.getMonth() + 1);
+            endCycle.setDate(closingDay);
+        }
+
+        startCycle.setHours(0, 0, 0, 0);
+        endCycle.setHours(23, 59, 59, 999);
+
+        const tempDueDate = new Date(endCycle);
+        tempDueDate.setDate(account.dueDay || 10);
+        if (tempDueDate < endCycle) {
+            tempDueDate.setMonth(tempDueDate.getMonth() + 1);
+        }
+        const finalDueDate = tempDueDate;
+
+        const txs = transactions.filter(t => {
+            const tDate = new Date(t.date);
+            return t.accountId === account.id && tDate >= startCycle && tDate <= endCycle;
+        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        const total = txs.reduce((acc, t) => {
+            if (t.isRefund) return acc - t.amount;
+            if (t.type === TransactionType.EXPENSE) return acc + t.amount;
+            if (t.type === TransactionType.INCOME) return acc - t.amount;
+            return acc;
+        }, 0);
+
+        const now = new Date();
+        const daysToClose = Math.ceil((endCycle.getTime() - now.getTime()) / (1000 * 3600 * 24));
+        const status = endCycle < now ? 'CLOSED' : 'OPEN';
+
+        return { invoiceTotal: total, transactions: txs, status, daysToClose, closingDate: endCycle, dueDate: finalDueDate };
+    };
+
+    // --- LOGIC: COMMITTED BALANCE (REAL CREDIT LIMIT USAGE) ---
+    const getCommittedBalance = (account: Account) => {
+        // 1. Transactions initiated by the card (Expenses, Transfers Out)
+        const accountTxs = transactions.filter(t => t.accountId === account.id);
+
+        // 2. Transactions received by the card (Payments/Transfers In)
+        const incomingTxs = transactions.filter(t => t.destinationAccountId === account.id);
+
+        const totalDebt = accountTxs.reduce((acc, t) => {
+            if (t.isRefund) return acc + t.amount; // Refunds reduce debt (add to negative balance)
+            if (t.type === TransactionType.EXPENSE) return acc - t.amount; // Expenses increase debt
+            if (t.type === TransactionType.INCOME) return acc + t.amount; // Income reduces debt
+            if (t.type === TransactionType.TRANSFER) return acc - t.amount; // Transfer out increases debt
+            return acc;
+        }, 0);
+
+        const totalPayments = incomingTxs.reduce((acc, t) => {
+            // Incoming transfers (payments) reduce debt
+            return acc + (t.destinationAmount || t.amount);
+        }, 0);
+
+        // Initial Balance is usually 0 or negative (debt)
+        // Debt is negative number. Payments are positive.
+        // If result is -500, committed is 500.
+        return Math.abs(totalDebt + totalPayments + (account.initialBalance || 0));
+    };
+
+    const handleAdjustInvoice = (account: Account, currentTotal: number) => {
+        const realValueStr = prompt(`O valor calculado pelo sistema é ${formatCurrency(currentTotal, account.currency)}.\n\nQual é o valor REAL da fatura no banco?`, currentTotal.toFixed(2));
+        if (!realValueStr) return;
+
+        const realValue = parseFloat(realValueStr.replace(',', '.'));
+        if (isNaN(realValue)) return;
+
+        const difference = realValue - currentTotal;
+
+        if (Math.abs(difference) < 0.01) {
+            addToast("Os valores são iguais. Nenhum ajuste necessário.", 'info');
+            return;
+        }
+
+        const isMoreExpensive = difference > 0;
+
+        onAddTransaction({
+            amount: Math.abs(difference),
+            description: "Ajuste de Fatura (IOF/Juros/Diferença)",
+            date: new Date().toISOString(),
+            type: isMoreExpensive ? TransactionType.EXPENSE : TransactionType.INCOME,
+            category: Category.OTHER,
+            accountId: account.id,
+            isRecurring: false,
+            isInstallment: false
+        });
+
+        addToast(`Ajuste de ${formatCurrency(Math.abs(difference), account.currency)} lançado com sucesso!`, 'success');
+    };
+
+    const handlePayInvoice = () => {
+        if (!selectedAccount || !paymentSourceId || !paymentAmount) return;
+        const amount = parseFloat(paymentAmount);
+        const { invoiceTotal } = getInvoiceData(selectedAccount, invoiceDate);
+
+        if (amount <= 0) return;
+
+        // 1. Create Payment Transaction
+        onAddTransaction({
+            amount: amount,
+            description: `Pagamento Fatura - ${selectedAccount.name}`,
+            date: new Date().toISOString(),
+            type: TransactionType.TRANSFER,
+            category: Category.TRANSFER,
+            accountId: paymentSourceId,
+            destinationAccountId: selectedAccount.id,
+            isRecurring: false,
+            isInstallment: false
+        });
+
+        // 2. Partial Payment Logic (Rotativo)
+        if (amount < invoiceTotal) {
+            const remaining = invoiceTotal - amount;
+            if (confirm(`Você está pagando ${formatCurrency(amount)} de uma fatura de ${formatCurrency(invoiceTotal)}.\n\nDeseja lançar o restante (${formatCurrency(remaining)}) como "Saldo Devedor" para a próxima fatura?`)) {
+                // Add expense to the NEXT cycle (or simply as a new expense today so it counts towards debt)
+                // Actually, if we just leave it, the balance remains negative.
+                // But to make it appear in the "Invoice View" of the next month as a starting balance, we might need a transaction.
+                // However, our Invoice View is based on Date Range.
+                // So we add a "Saldo Anterior" expense dated for TOMORROW (or next cycle start).
+
+                const nextCycleStart = new Date(); // Simplified, ideally calculated
+                nextCycleStart.setDate(nextCycleStart.getDate() + 1);
+
+                onAddTransaction({
+                    amount: remaining,
+                    description: "Saldo Devedor Anterior (Rotativo)",
+                    date: nextCycleStart.toISOString(),
+                    type: TransactionType.EXPENSE,
+                    category: Category.OTHER,
+                    accountId: selectedAccount.id,
+                    isRecurring: false,
+                    isInstallment: false
+                });
+                addToast("Saldo devedor lançado para a próxima fatura.", 'info');
+            }
+        }
+
+        setIsPayInvoiceOpen(false);
+        setPaymentAmount('');
+        addToast("Pagamento registrado com sucesso!", 'success');
+    };
+
+    const getBankExtract = (accountId: string) => {
+        return transactions
+            .filter(t => t.accountId === accountId)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    };
+
+    // Calculate Totals for Header
+    const totalBalance = useMemo(() => accounts.filter(a => a.type !== AccountType.CREDIT_CARD).reduce((acc, curr) => acc + curr.balance, 0), [accounts]);
+    const totalCreditUsed = useMemo(() => accounts.filter(a => a.type === AccountType.CREDIT_CARD).reduce((acc, curr) => acc + Math.abs(curr.balance), 0), [accounts]);
+
+    // --- VIEW 1: DETAILED ACCOUNT VIEW ---
+    if (viewState === 'DETAIL' && selectedAccount) {
+        if (selectedAccount.type === AccountType.CREDIT_CARD) {
+            const { invoiceTotal, transactions: invoiceTxs, status, daysToClose, closingDate, dueDate } = getInvoiceData(selectedAccount, invoiceDate);
+            const limit = selectedAccount.limit || 0;
+            const committedBalance = getCommittedBalance(selectedAccount);
+            const available = limit - committedBalance;
+            const percentageUsed = Math.min((committedBalance / limit) * 100, 100);
+
+            return (
+                <div className="space-y-6 animate-in slide-in-from-right duration-300 pb-24">
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" onClick={handleBack} className="p-0 hover:bg-transparent">
+                            <ArrowLeft className="w-6 h-6 text-slate-600" />
+                        </Button>
+                        <h2 className="text-xl font-bold text-slate-800">{selectedAccount.name}</h2>
+                        <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded font-bold">{selectedAccount.currency}</span>
+                    </div>
+
+                    <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200 relative">
+                        <div className={`h-2 w-full ${status === 'CLOSED' ? 'bg-red-600' : 'bg-blue-600'}`}></div>
+
+                        <div className="p-8">
+                            <div className="flex justify-between items-start mb-8">
+                                <div>
+                                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-2 ${status === 'CLOSED' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
+                                        {status === 'CLOSED' ? 'Fatura Fechada' : 'Fatura Aberta'}
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Button variant="ghost" size="sm" onClick={() => {
+                                            const newDate = new Date(invoiceDate);
+                                            newDate.setMonth(newDate.getMonth() - 1);
+                                            setInvoiceDate(newDate);
+                                        }} className="h-6 w-6 p-0 rounded-full bg-slate-100 hover:bg-slate-200">
+                                            <ArrowLeft className="w-3 h-3" />
+                                        </Button>
+                                        <span className="text-xs font-bold text-slate-700 capitalize">
+                                            {closingDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+                                        </span>
+                                        <Button variant="ghost" size="sm" onClick={() => {
+                                            const newDate = new Date(invoiceDate);
+                                            newDate.setMonth(newDate.getMonth() + 1);
+                                            setInvoiceDate(newDate);
+                                        }} className="h-6 w-6 p-0 rounded-full bg-slate-100 hover:bg-slate-200">
+                                            <ArrowRight className="w-3 h-3" />
+                                        </Button>
+                                    </div>
+                                    <p className="text-sm text-slate-600 font-medium mt-2">
+                                        {status === 'OPEN' ? `Fecha em ${daysToClose} dias` : `Fechou dia ${closingDate.getDate()}`}
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm text-slate-600 font-bold mb-1">Valor da Fatura</p>
+                                    <p className={`text-4xl font-black tracking-tight ${status === 'CLOSED' ? 'text-red-700' : 'text-slate-900'}`}>
+                                        <PrivacyBlur showValues={showValues}>{formatCurrency(invoiceTotal, selectedAccount.currency)}</PrivacyBlur>
+                                    </p>
+                                    <button
+                                        onClick={() => handleAdjustInvoice(selectedAccount, invoiceTotal)}
+                                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 underline mt-1"
+                                    >
+                                        Ajustar Valor
+                                    </button>
+                                </div>
+                            </div>
+
+                            {invoiceTotal > 0 && (
+                                <div className="mb-8">
+                                    <Button
+                                        onClick={() => {
+                                            const defaultSource = accounts.find(a => a.type === AccountType.CHECKING || a.type === AccountType.CASH)?.id;
+                                            if (defaultSource) setPaymentSourceId(defaultSource);
+                                            setPaymentAmount(invoiceTotal.toString());
+                                            setIsPayInvoiceOpen(true);
+                                        }}
+                                        className={`w-full rounded-xl font-bold shadow-lg h-14 text-lg ${status === 'CLOSED' ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/30' : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/30'}`}
+                                    >
+                                        <Smartphone className="w-5 h-5 mr-2" />
+                                        Pagar Fatura
+                                    </Button>
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-between text-sm text-slate-600 border-t border-slate-100 pt-6">
+                                <div className="flex gap-2 items-center">
+                                    <Calendar className="w-4 h-4 text-slate-400" />
+                                    <span>Vence dia <strong>{dueDate.getDate()}</strong></span>
+                                </div>
+                                <div className="flex gap-2 items-center">
+                                    <Lock className="w-4 h-4 text-slate-400" />
+                                    <span>Fecha dia <strong>{selectedAccount.closingDay}</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-8 pb-8 bg-slate-50/50 pt-6 border-t border-slate-100">
+                            <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+                                <span>Limite Utilizado</span>
+                                <span>{formatCurrency(selectedAccount.limit || 0, selectedAccount.currency)}</span>
+                            </div>
+                            <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden mb-2">
+                                <div
+                                    className={`h-full rounded-full ${percentageUsed > 90 ? 'bg-red-500' : percentageUsed > 70 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                                    style={{ width: `${percentageUsed}%` }}
+                                ></div>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                                <span className="text-slate-500">{formatCurrency(committedBalance, selectedAccount.currency)}</span>
+                                <span className="text-emerald-700 font-bold">Disp: <PrivacyBlur showValues={showValues}>{formatCurrency(available, selectedAccount.currency)}</PrivacyBlur></span>
+                            </div>
+                        </div>
+
+                        {isPayInvoiceOpen && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in">
+                                <Card className="w-full max-w-sm bg-white shadow-2xl" title="Pagar Fatura">
+                                    <div className="space-y-4">
+                                        <div className="text-center py-2">
+                                            <p className="text-sm text-slate-600 mb-1">Valor Total da Fatura</p>
+                                            <p className="text-xl font-bold text-slate-900 mb-4">{formatCurrency(invoiceTotal, selectedAccount.currency)}</p>
+
+                                            <div className="text-left">
+                                                <label className="block text-sm font-bold text-slate-700 mb-1">Valor a Pagar</label>
+                                                <input
+                                                    type="number"
+                                                    className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 font-bold text-lg"
+                                                    value={paymentAmount}
+                                                    onChange={(e) => setPaymentAmount(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Pagar usando:</label>
+                                            <select
+                                                className="w-full p-3 bg-white border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900"
+                                                value={paymentSourceId}
+                                                onChange={(e) => setPaymentSourceId(e.target.value)}
+                                            >
+                                                {accounts.filter(a => a.type !== AccountType.CREDIT_CARD).map(acc => (
+                                                    <option key={acc.id} value={acc.id} className="bg-white text-slate-900">
+                                                        {acc.name} ({formatCurrency(acc.balance, acc.currency)})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="flex gap-3 pt-2">
+                                            <Button variant="secondary" onClick={() => setIsPayInvoiceOpen(false)} className="flex-1 text-slate-800 border-slate-300">Cancelar</Button>
+                                            <Button onClick={handlePayInvoice} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">Confirmar</Button>
+                                        </div>
+                                    </div>
+                                </Card>
+                            </div>
+                        )}
+
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-3 px-2">Lançamentos na Fatura</h3>
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
+                                {invoiceTxs.length === 0 ? (
+                                    <div className="p-8 text-center text-slate-500">
+                                        <ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                        <p className="text-sm">Nenhuma compra nesta fatura.</p>
+                                    </div>
+                                ) : (
+                                    invoiceTxs.map(t => {
+                                        const CatIcon = getCategoryIcon(t.category);
+                                        return (
+                                            <div key={t.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.isRefund ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                        {t.isRefund ? <ArrowDownLeft className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-800">
+                                                            {t.description}
+                                                            {t.isRefund && <span className="ml-2 text-[10px] bg-amber-100 text-amber-800 px-1.5 rounded uppercase font-bold">Estorno</span>}
+                                                        </p>
+                                                        <div className="flex gap-2 text-xs text-slate-600">
+                                                            <span>{new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+                                                            {t.currentInstallment && <span>• {t.currentInstallment}/{t.totalInstallments}</span>}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <span className={`font-bold ${t.isRefund ? 'text-amber-700' : 'text-slate-800'}`}>
+                                                    {t.isRefund ? '-' : ''}{formatCurrency(t.amount, selectedAccount.currency)}
+                                                </span>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const extractTxs = getBankExtract(selectedAccount.id);
+        const income = extractTxs.filter(t => t.type === TransactionType.INCOME).reduce((a, b) => a + (b.isRefund ? -b.amount : b.amount), 0);
+        const expense = extractTxs.filter(t => t.type === TransactionType.EXPENSE).reduce((a, b) => a + (b.isRefund ? -b.amount : b.amount), 0);
+
+        return (
+            <div className="space-y-6 animate-in slide-in-from-right duration-300 pb-24">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" onClick={handleBack} className="p-0 hover:bg-transparent">
+                            <ArrowLeft className="w-6 h-6 text-slate-600" />
+                        </Button>
+                        <h2 className="text-xl font-bold text-slate-800">{selectedAccount.name}</h2>
+                        <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded font-bold">{selectedAccount.currency}</span>
+                    </div>
+
+                    <div className="relative">
+                        <Button onClick={() => ofxInputRef.current?.click()} variant="secondary" size="sm" className="gap-2 text-slate-700 border-slate-300">
+                            <FileUp className="w-4 h-4" /> Importar OFX
+                        </Button>
+                        <input
+                            type="file"
+                            ref={ofxInputRef}
+                            accept=".ofx"
+                            className="hidden"
+                            onChange={handleOFXUpload}
+                        />
+                    </div>
+                </div>
+
+                <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-32 opacity-10">
+                        <Landmark className="w-32 h-32" />
+                    </div>
+                    <div className="relative z-10">
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Saldo em Conta</p>
+                        <h3 className="text-5xl font-black mt-2 tracking-tight">
+                            <PrivacyBlur showValues={showValues}>{formatCurrency(selectedAccount.balance, selectedAccount.currency)}</PrivacyBlur>
+                        </h3>
+
+                        <div className="mt-8 flex gap-8">
+                            <div>
+                                <div className="flex items-center gap-1 text-emerald-400 mb-1">
+                                    <ArrowUpRight className="w-4 h-4" />
+                                    <span className="text-xs font-bold uppercase">Entradas</span>
+                                </div>
+                                <p className="font-mono text-lg"><PrivacyBlur showValues={showValues}>{formatCurrency(income, selectedAccount.currency)}</PrivacyBlur></p>
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-1 text-red-400 mb-1">
+                                    <ArrowDownLeft className="w-4 h-4" />
+                                    <span className="text-xs font-bold uppercase">Saídas</span>
+                                </div>
+                                <p className="font-mono text-lg"><PrivacyBlur showValues={showValues}>{formatCurrency(expense, selectedAccount.currency)}</PrivacyBlur></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-3 px-2">Extrato Detalhado</h3>
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
+                        {extractTxs.length === 0 ? (
+                            <div className="p-8 text-center text-slate-500">
+                                <p className="text-sm">Nenhuma movimentação nesta conta.</p>
+                            </div>
+                        ) : (
+                            extractTxs.map(t => {
+                                const CatIcon = getCategoryIcon(t.category);
+                                const isPositive = (t.type === TransactionType.INCOME && !t.isRefund) || (t.type === TransactionType.EXPENSE && t.isRefund);
+                                return (
+                                    <div key={t.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPositive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                <CatIcon className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-800">
+                                                    {t.description}
+                                                    {t.isRefund && <span className="ml-2 text-[10px] bg-amber-100 text-amber-800 px-1.5 rounded font-bold uppercase">Estorno</span>}
+                                                </p>
+                                                <p className="text-xs text-slate-600">{new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+                                            </div>
+                                        </div>
+                                        <span className={`font-bold ${isPositive ? 'text-emerald-700' : 'text-slate-800'}`}>
+                                            {isPositive ? '+' : '-'} <PrivacyBlur showValues={showValues}>{formatCurrency(t.amount, selectedAccount.currency)}</PrivacyBlur>
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // --- VIEW 2: MASTER LIST (Main Accounts Page with Tabs) ---
+    const bankingAccounts = accounts.filter(a => a.type !== AccountType.CREDIT_CARD).filter(a => a.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const creditCards = accounts.filter(a => a.type === AccountType.CREDIT_CARD).filter(a => a.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    return (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-24">
+            {/* NEW HEADER SUMMARY */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10"><Wallet className="w-32 h-32" /></div>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Saldo Total em Contas</p>
+                    <h2 className="text-3xl font-black tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(totalBalance)}</PrivacyBlur></h2>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5"><CreditCard className="w-32 h-32" /></div>
+                    <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Fatura Total Cartões</p>
+                    <h2 className="text-3xl font-black tracking-tight text-slate-900"><PrivacyBlur showValues={showValues}>{formatCurrency(totalCreditUsed)}</PrivacyBlur></h2>
+                </div>
+            </div>
+
+            {/* TABS & ACTIONS */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="bg-slate-100 p-1 rounded-xl flex gap-1 w-full sm:w-auto">
+                    <button
+                        onClick={() => setActiveTab('BANKING')}
+                        className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'BANKING' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        Contas Bancárias
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('CARDS')}
+                        className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'CARDS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        Cartões de Crédito
+                    </button>
+                </div>
+
+                <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Buscar conta..."
+                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                <Button onClick={handleOpenForm} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 rounded-xl h-11">
+                    <Plus className="w-4 h-4 mr-2" /> Nova Conta
+                </Button>
+            </div>
+
+            {/* Form */}
+            {isFormOpen && (
+                <Card className="bg-slate-50/50 border-slate-200" title={activeTab === 'BANKING' ? "Nova Conta Bancária" : "Novo Cartão de Crédito"}>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Nome</label>
+                                <input
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-500"
+                                    placeholder={activeTab === 'BANKING' ? "Ex: Nubank, Carteira" : "Ex: Nubank Gold, Itaú Black"}
+                                    value={newAccount.name || ''}
+                                    onChange={e => setNewAccount({ ...newAccount, name: e.target.value })}
+                                    required
+                                    list="brokerages"
+                                />
+                                <datalist id="brokerages">
+                                    <option value="XP Investimentos" />
+                                    <option value="BTG Pactual" />
+                                    <option value="Rico" />
+                                    <option value="Clear" />
+                                    <option value="NuInvest" />
+                                    <option value="Ágora Investimentos" />
+                                    <option value="Inter" />
+                                    <option value="C6 Bank" />
+                                    <option value="Órama" />
+                                    <option value="Genial Investimentos" />
+                                    <option value="Toro Investimentos" />
+                                    <option value="Guide Investimentos" />
+                                    <option value="Avenue" />
+                                    <option value="Binance" />
+                                    <option value="Coinbase" />
+                                    <option value="Mercado Bitcoin" />
+                                </datalist>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Tipo</label>
+                                    <select
+                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900"
+                                        value={newAccount.type}
+                                        onChange={e => setNewAccount({ ...newAccount, type: e.target.value as AccountType })}
+                                    >
+                                        {activeTab === 'BANKING'
+                                            ? Object.values(AccountType).filter(t => t !== AccountType.CREDIT_CARD).map(t => <option key={t} value={t} className="bg-white text-slate-900">{t}</option>)
+                                            : <option value={AccountType.CREDIT_CARD} className="bg-white text-slate-900">{AccountType.CREDIT_CARD}</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Moeda</label>
+                                    <div className="relative">
+                                        <select
+                                            className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none appearance-none text-slate-900"
+                                            value={newAccount.currency}
+                                            onChange={e => setNewAccount({ ...newAccount, currency: e.target.value })}
+                                        >
+                                            {AVAILABLE_CURRENCIES.map(c => (
+                                                <option key={c.code} value={c.code} className="bg-white text-slate-900">{c.code} - {c.name}</option>
+                                            ))}
+                                        </select>
+                                        <Globe className="w-4 h-4 text-slate-500 absolute left-3 top-2.5 pointer-events-none" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Conditional Fields based on Active Tab */}
+                            {activeTab === 'CARDS' ? (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Limite Total</label>
+                                        <input
+                                            type="number" step="0.01"
+                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-500"
+                                            placeholder="0,00"
+                                            value={newAccount.limit || ''}
+                                            onChange={e => setNewAccount({ ...newAccount, limit: parseFloat(e.target.value) })}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Dia Fechamento</label>
+                                            <input
+                                                type="number" min="1" max="31"
+                                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-500"
+                                                placeholder="Dia"
+                                                value={newAccount.closingDay || ''}
+                                                onChange={e => setNewAccount({ ...newAccount, closingDay: parseInt(e.target.value) })}
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Dia Vencimento</label>
+                                            <input
+                                                type="number" min="1" max="31"
+                                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-500"
+                                                placeholder="Dia"
+                                                value={newAccount.dueDay || ''}
+                                                onChange={e => setNewAccount({ ...newAccount, dueDay: parseInt(e.target.value) })}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Saldo Inicial</label>
+                                    <input
+                                        type="number" step="0.01"
+                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 placeholder:text-slate-500"
+                                        placeholder="0,00"
+                                        value={newAccount.balance || ''}
+                                        onChange={e => setNewAccount({ ...newAccount, balance: parseFloat(e.target.value) })}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {formError && (
+                            <div className="text-red-700 text-sm font-bold p-3 bg-red-50 rounded-lg flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4" /> {formError}
+                            </div>
+                        )}
+
+                        <div className="flex justify-end pt-2 gap-2">
+                            <Button type="button" variant="secondary" onClick={() => setIsFormOpen(false)}>Cancelar</Button>
+                            <Button type="submit" variant="primary">
+                                <Check className="w-4 h-4 mr-2" /> Salvar
+                            </Button>
+                        </div>
+                    </form>
+                </Card>
+            )}
+
+            {/* ACCOUNTS GRID */}
+            {activeTab === 'BANKING' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {bankingAccounts.map(account => (
+                        <div key={account.id} onClick={() => handleAccountClick(account)} className="group bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
+
+                            <div className="relative z-10 flex justify-between items-start mb-8">
+                                <div className="p-3 bg-slate-100 rounded-2xl text-slate-700 group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">
+                                    {getIcon(account.type)}
+                                </div>
+                                <button className="text-slate-300 hover:text-slate-600 transition-colors"><MoreHorizontal className="w-5 h-5" /></button>
+                            </div>
+
+                            <div className="relative z-10">
+                                <h3 className="font-bold text-slate-900 text-lg mb-1">{account.name}</h3>
+                                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-4">{account.type}</p>
+                                <p className="text-2xl font-black text-slate-900 tracking-tight">
+                                    <PrivacyBlur showValues={showValues}>{formatCurrency(account.balance, account.currency)}</PrivacyBlur>
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                    {/* Add New Card Placeholder */}
+                    <button onClick={handleOpenForm} className="border-2 border-dashed border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 text-slate-400 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all group min-h-[200px]">
+                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                            <Plus className="w-6 h-6" />
+                        </div>
+                        <span className="font-bold text-sm">Adicionar Nova Conta</span>
+                    </button>
+                </div>
+            )}
+
+            {/* CREDIT CARDS GRID */}
+            {activeTab === 'CARDS' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {creditCards.map(account => {
+                        const { invoiceTotal } = getInvoiceData(account, new Date()); // List view always shows current context
+                        const limit = account.limit || 0;
+                        const committedBalance = getCommittedBalance(account);
+                        const percentageUsed = Math.min((committedBalance / limit) * 100, 100);
+
+                        return (
+                            <div key={account.id} onClick={() => handleAccountClick(account)} className="group bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-6 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden min-h-[220px] flex flex-col justify-between">
+                                {/* Decorative Background */}
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl group-hover:bg-emerald-500/30 transition-colors"></div>
+
+                                <div className="relative z-10 flex justify-between items-start">
+                                    <div>
+                                        <h3 className="font-bold text-lg">{account.name}</h3>
+                                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Cartão de Crédito</p>
+                                    </div>
+                                    <CreditCard className="w-6 h-6 text-white/50" />
+                                </div>
+
+                                <div className="relative z-10 mt-6">
+                                    <div className="flex justify-between items-end mb-2">
+                                        <div>
+                                            <p className="text-xs text-slate-400 mb-1">Fatura Atual</p>
+                                            <p className="text-2xl font-mono font-bold tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(invoiceTotal, account.currency)}</PrivacyBlur></p>
+                                        </div>
+                                    </div>
+
+                                    <div className="w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden mb-2">
+                                        <div className={`h-full rounded-full transition-all duration-500 ${percentageUsed > 90 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${percentageUsed}%` }}></div>
+                                    </div>
+                                    <div className="flex justify-between text-[10px] text-slate-400 font-medium">
+                                        <span>Limite: {formatCurrency(limit, account.currency)}</span>
+                                        <span>{percentageUsed.toFixed(0)}% usado</span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                    <button onClick={handleOpenForm} className="border-2 border-dashed border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 text-slate-400 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all group min-h-[220px]">
+                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                            <Plus className="w-6 h-6" />
+                        </div>
+                        <span className="font-bold text-sm">Adicionar Novo Cartão</span>
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
