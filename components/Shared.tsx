@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Transaction, Trip, FamilyMember, TransactionType, Account } from '../types';
+import React, { useState, useMemo } from 'react';
+import { Transaction, Trip, FamilyMember, TransactionType, Account, SyncStatus } from '../types';
 import { Card } from './ui/Card';
-import { Users, Home, Plane, Receipt, ChevronRight, MapPin } from 'lucide-react';
-import { formatCurrency } from '../utils';
+import { Button } from './ui/Button';
+import { Users, Home, Plane, ArrowRight, Check, AlertCircle, Calendar, Wallet, ChevronDown, ChevronUp } from 'lucide-react';
+import { formatCurrency, isSameMonth } from '../utils';
 
 interface SharedProps {
     transactions: Transaction[];
@@ -10,437 +11,442 @@ interface SharedProps {
     members: FamilyMember[];
     accounts: Account[];
     onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
+    onUpdateTransaction: (t: Transaction) => void;
     onNavigateToTrips: () => void;
 }
 
-export const Shared: React.FC<SharedProps> = ({ transactions, trips, members, accounts, onAddTransaction, onNavigateToTrips }) => {
+// Helper Type for Invoice Items
+interface InvoiceItem {
+    id: string; // Unique composition (txId + type)
+    originalTxId: string;
+    description: string;
+    date: string;
+    category: string;
+    amount: number;
+    type: 'CREDIT' | 'DEBIT'; // CREDIT = They owe Me, DEBIT = I owe Them
+    isPaid: boolean;
+    tripId?: string;
+    memberId: string; // The specific member this relates to
+}
+
+export const Shared: React.FC<SharedProps> = ({ 
+    transactions, 
+    trips, 
+    members, 
+    accounts, 
+    onAddTransaction, 
+    onUpdateTransaction, 
+    onNavigateToTrips 
+}) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
+    const [selectedMonth, setSelectedMonth] = useState(new Date());
+    const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
+    const [settleModal, setSettleModal] = useState<{ isOpen: boolean, memberId: string | null, type: 'PAY' | 'RECEIVE' | 'OFFSET', items: InvoiceItem[], total: number }>({
+        isOpen: false, memberId: null, type: 'PAY', items: [], total: 0
+    });
+    const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || '');
 
-    // Settlement State
-    const [settleModalOpen, setSettleModalOpen] = useState(false);
-    const [settleMemberId, setSettleMemberId] = useState<string | null>(null);
-    const [settleAmount, setSettleAmount] = useState('');
-    const [settleAccountId, setSettleAccountId] = useState('');
-
-    // 1. Calculate Comprehensive Debt (Net Balance: Positive = They owe Me, Negative = I owe Them)
-    const calculateDebts = () => {
-        const debts: Record<string, { total: number, regular: number, travel: number }> = {};
-
-        // Initialize for all members
-        members.forEach(m => {
-            debts[m.id] = { total: 0, regular: 0, travel: 0 };
-        });
+    // --- ENGINE: GENERATE INVOICES ---
+    const invoices = useMemo(() => {
+        const invoiceMap: Record<string, InvoiceItem[]> = {};
+        
+        // Initialize for all known members to ensure empty state exists
+        members.forEach(m => invoiceMap[m.id] = []);
 
         transactions.forEach(t => {
-            // A. SHARED EXPENSES LOGIC (Acumula Dívida)
-            if (t.isShared && t.type === TransactionType.EXPENSE) {
-                const payerId = t.payerId; // undefined means User paid
-                const splits = t.sharedWith || [];
+            // Check if it's an expense AND (marked shared OR has splits)
+            const isSharedExpense = t.type === TransactionType.EXPENSE && (t.isShared || (t.sharedWith && t.sharedWith.length > 0));
+            
+            if (!isSharedExpense) return;
 
-                if (!payerId) {
-                    // CASE 1: User Paid. Others owe User.
-                    splits.forEach(split => {
-                        const memberId = split.memberId;
-                        if (debts[memberId]) {
-                            debts[memberId].total += split.assignedAmount;
-                            if (t.tripId) {
-                                debts[memberId].travel += split.assignedAmount;
-                            } else {
-                                debts[memberId].regular += split.assignedAmount;
-                            }
-                        }
+            // 1. CREDIT LOGIC: User Paid (payerId undefined), Others Owe User
+            if (!t.payerId) {
+                t.sharedWith?.forEach(split => {
+                    const memberId = split.memberId;
+                    
+                    if (!invoiceMap[memberId]) invoiceMap[memberId] = [];
+
+                    invoiceMap[memberId].push({
+                        id: `${t.id}-credit-${memberId}`,
+                        originalTxId: t.id,
+                        description: t.description,
+                        date: t.date,
+                        category: t.category as string,
+                        amount: split.assignedAmount,
+                        type: 'CREDIT', // They owe me
+                        isPaid: !!split.isSettled,
+                        tripId: t.tripId,
+                        memberId: memberId
                     });
-                } else {
-                    // CASE 2: Member Paid. User might owe Member (if User consumes remainder).
-                    const totalSplits = splits.reduce((sum, s) => sum + s.assignedAmount, 0);
-                    const userShare = t.amount - totalSplits;
+                });
+            } 
+            // 2. DEBIT LOGIC: Member Paid (payerId exists), User Owes Member
+            else {
+                const payerId = t.payerId;
+                
+                if (!invoiceMap[payerId]) invoiceMap[payerId] = [];
 
-                    if (userShare > 0.01 && debts[payerId]) {
-                        // User owes Payer
-                        debts[payerId].total -= userShare;
-                        if (t.tripId) {
-                            debts[payerId].travel -= userShare;
-                        } else {
-                            debts[payerId].regular -= userShare;
-                        }
-                    }
-                }
-            }
+                // Calculate My Share
+                const totalSplits = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
+                const myShare = t.amount - totalSplits;
 
-            // B. SETTLEMENT LOGIC (Abate Dívida) - NEW
-            // Checks for transactions marked as 'Reembolso' linked to a specific member
-            if (t.category === 'Reembolso' && t.relatedMemberId && debts[t.relatedMemberId]) {
-                if (t.type === TransactionType.INCOME) {
-                    // I received money from Member -> They owe me less (Subtract from Positive Balance)
-                    debts[t.relatedMemberId].total -= t.amount;
-                    // We simply reduce from regular for display simplicity, or generic total
-                    debts[t.relatedMemberId].regular -= t.amount; 
-                } else if (t.type === TransactionType.EXPENSE) {
-                    // I paid money to Member -> I owe them less (Add to Negative Balance towards Zero)
-                    debts[t.relatedMemberId].total += t.amount;
-                    debts[t.relatedMemberId].regular += t.amount;
+                if (myShare > 0.01) {
+                    invoiceMap[payerId].push({
+                        id: `${t.id}-debit-${payerId}`,
+                        originalTxId: t.id,
+                        description: t.description,
+                        date: t.date,
+                        category: t.category as string,
+                        amount: myShare,
+                        type: 'DEBIT', // I owe them
+                        isPaid: !!t.isSettled, // Tracking settlement on the main tx record for my debt
+                        tripId: t.tripId,
+                        memberId: payerId
+                    });
                 }
             }
         });
-        return debts;
-    };
 
-    const debts = calculateDebts();
+        return invoiceMap;
+    }, [transactions, members]);
 
-    const handleSettleDebt = () => {
-        if (!settleMemberId || !settleAmount || !settleAccountId) return;
-        const amountToSettle = Math.abs(parseFloat(settleAmount)); // Always positive for transaction
-        if (amountToSettle <= 0) return;
+    // Build a comprehensive list of members to display
+    const displayMembers = useMemo(() => {
+        const uniqueIds = new Set([...members.map(m => m.id), ...Object.keys(invoices)]);
+        return Array.from(uniqueIds).map(id => {
+            const knownMember = members.find(m => m.id === id);
+            return knownMember || { id, name: 'Membro Desconhecido', role: 'Unknown' } as FamilyMember;
+        });
+    }, [members, invoices]);
 
-        const member = members.find(m => m.id === settleMemberId);
-        const account = accounts.find(a => a.id === settleAccountId);
-        const originalBalance = parseFloat(settleAmount);
+    // --- FILTERING ---
+    const getFilteredInvoice = (memberId: string) => {
+        const allItems = invoices[memberId] || [];
         
-        // Logic: 
-        // If originalBalance > 0 (They owe Me), I am Receiving (Income).
-        // If originalBalance < 0 (I owe Them), I am Paying (Expense).
-        const isReceiving = originalBalance > 0;
-
-        // Create Settlement Transaction
-        onAddTransaction({
-            amount: amountToSettle,
-            description: isReceiving ? `Recebimento de ${member?.name}` : `Pagamento para ${member?.name}`,
-            date: new Date().toISOString(),
-            type: isReceiving ? TransactionType.INCOME : TransactionType.EXPENSE,
-            category: 'Reembolso',
-            accountId: settleAccountId,
-            isShared: false,
-            relatedMemberId: settleMemberId // CRITICAL: Link this tx to the member to affect calculation
-        });
-
-        alert(`Acerto de ${formatCurrency(amountToSettle)} ${isReceiving ? 'recebido de' : 'pago a'} ${member?.name} registrado na conta ${account?.name}.`);
-        setSettleModalOpen(false);
-        setSettleMemberId(null);
-        setSettleAmount('');
-        setSettleAccountId('');
+        if (activeTab === 'TRAVEL') {
+            return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        } else {
+            // Regular: No trip ID. Show pending always, paid only for selected month
+            return allItems.filter(i => 
+                !i.tripId && 
+                (!i.isPaid || isSameMonth(i.date, selectedMonth))
+            ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        }
     };
 
-    // 2. Filter Transactions based on Tab
-    const sharedTransactions = transactions.filter(t => t.isShared && t.type === TransactionType.EXPENSE);
+    // --- CALCULATIONS ---
+    const getTotals = (items: InvoiceItem[]) => {
+        const credits = items.filter(i => i.type === 'CREDIT' && !i.isPaid).reduce((acc, i) => acc + i.amount, 0);
+        const debits = items.filter(i => i.type === 'DEBIT' && !i.isPaid).reduce((acc, i) => acc + i.amount, 0);
+        const net = credits - debits;
+        return { credits, debits, net };
+    };
 
-    // Grouping Logic for Travel Tab
-    const travelGroups = sharedTransactions
-        .filter(t => !!t.tripId)
-        .reduce((groups, t) => {
-            const tId = t.tripId!;
-            if (!groups[tId]) groups[tId] = [];
-            groups[tId].push(t);
-            return groups;
-        }, {} as Record<string, Transaction[]>);
+    const handleOpenSettleModal = (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET') => {
+        const items = getFilteredInvoice(memberId).filter(i => !i.isPaid);
+        const totals = getTotals(items);
+        
+        setSettleModal({
+            isOpen: true,
+            memberId,
+            type,
+            items,
+            total: type === 'OFFSET' ? 0 : Math.abs(totals.net)
+        });
+    };
 
-    const regularTransactions = sharedTransactions.filter(t => !t.tripId);
+    const handleConfirmSettlement = () => {
+        if (!settleModal.memberId || !selectedAccountId) return;
+        
+        const now = new Date().toISOString();
 
-    const renderTransactionItem = (t: Transaction, isTravelItem: boolean) => (
-        <div key={t.id} className="p-4 flex flex-col gap-2 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
-            <div className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${!isTravelItem ? 'bg-slate-100 text-slate-500' : 'bg-violet-100 text-violet-600'}`}>
-                        {!isTravelItem ? <Receipt className="w-5 h-5" /> : <Plane className="w-5 h-5" />}
-                    </div>
-                    <div>
-                        <p className="font-bold text-slate-800 text-sm">{t.description}</p>
-                        <p className="text-xs text-slate-600">
-                            {new Date(t.date).toLocaleDateString('pt-BR')} •
-                            <span className="font-semibold ml-1 text-slate-500">
-                                {t.payerId ? `Pago por ${members.find(m => m.id === t.payerId)?.name}` : 'Pago por Você'}
-                            </span>
-                        </p>
-                    </div>
-                </div>
-                <span className="font-bold text-slate-900">{formatCurrency(t.amount)}</span>
-            </div>
+        // 1. Create Individual Transactions for EACH Item
+        settleModal.items.forEach(item => {
+            const isReceiving = item.type === 'CREDIT';
+            const descriptionPrefix = isReceiving ? 'Recebimento' : 'Pagamento';
+            
+            onAddTransaction({
+                amount: item.amount,
+                description: `${descriptionPrefix}: ${item.description}`,
+                date: now.split('T')[0],
+                type: isReceiving ? TransactionType.INCOME : TransactionType.EXPENSE,
+                category: item.category, 
+                accountId: selectedAccountId,
+                isShared: false,
+                relatedMemberId: settleModal.memberId!,
+                payerId: undefined,
+                createdAt: now,
+                updatedAt: now,
+                syncStatus: SyncStatus.PENDING
+            });
 
-            {/* Splits Details */}
-            <div className="pl-[52px]">
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex flex-wrap gap-2">
-                    {t.sharedWith?.map(s => {
-                        const m = members.find(mem => mem.id === s.memberId);
-                        return (
-                            <span key={s.memberId} className={`text-[10px] px-2 py-1 rounded font-medium flex items-center gap-1 ${!isTravelItem ? 'bg-white text-slate-700 border border-slate-200' : 'bg-violet-50 text-violet-800 border border-violet-100'}`}>
-                                {m?.name}: <strong>{formatCurrency(s.assignedAmount)}</strong>
-                            </span>
-                        )
-                    })}
-                </div>
-            </div>
-        </div>
-    );
+            // 2. Update Original Transaction to mark as Settled
+            const originalTx = transactions.find(t => t.id === item.originalTxId);
+            if (originalTx) {
+                if (item.type === 'CREDIT') {
+                    // Update the specific split
+                    const updatedSplits = originalTx.sharedWith?.map(s => {
+                        if (s.memberId === item.memberId) {
+                            return { ...s, isSettled: true, settledAt: now };
+                        }
+                        return s;
+                    });
+                    onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
+                } else {
+                    // Update the main transaction (my debt)
+                    onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: now });
+                }
+            }
+        });
+
+        setSettleModal({ isOpen: false, memberId: null, type: 'PAY', items: [], total: 0 });
+    };
+
+    // Global Totals for Summary Cards
+    const globalTotals = useMemo(() => {
+        let totalReceivable = 0;
+        let totalPayable = 0;
+        
+        const allItems = Object.values(invoices).flat() as InvoiceItem[];
+        
+        allItems.forEach(item => {
+            if (!item.isPaid) {
+                if (item.type === 'CREDIT') totalReceivable += item.amount;
+                else totalPayable += item.amount;
+            }
+        });
+        
+        return { totalReceivable, totalPayable, net: totalReceivable - totalPayable };
+    }, [invoices]);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
-            <div className="flex flex-col space-y-2">
-                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <Users className="w-6 h-6 text-indigo-600" />
-                    Área Compartilhada
-                </h2>
-                <p className="text-slate-600 text-sm">Central de faturas e divisão de despesas.</p>
-            </div>
-
-            {/* INVOICE SECTION (FATURA) */}
-            <div>
-                <h3 className="font-bold text-slate-800 mb-3 ml-1 flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-slate-500" /> Resumo de Dívidas (Líquido)
-                </h3>
-
-                <div className="grid grid-cols-1 gap-4">
-                    {members.length === 0 && (
-                        <Card className="border-dashed border-2 border-slate-200 bg-slate-50 text-center py-6 text-slate-500 text-sm">
-                            Adicione membros na aba Família para dividir contas.
-                        </Card>
-                    )}
-
-                    {members.map(member => {
-                        const debt = debts[member.id] || { total: 0, regular: 0, travel: 0 };
-                        const isReceiving = debt.total > 0.01;
-                        const isPaying = debt.total < -0.01;
-                        const isSettled = !isReceiving && !isPaying;
-
-                        return (
-                            <div key={member.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative transition-all hover:shadow-md">
-                                {/* Side Indicator */}
-                                <div className={`absolute top-0 left-0 w-1.5 h-full ${isReceiving ? 'bg-indigo-600' : isPaying ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-
-                                <div className="p-5">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-lg border-2 border-white shadow-sm">
-                                                {member.name[0]}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-slate-900 text-lg">{member.name}</p>
-                                                <p className={`text-xs font-bold uppercase tracking-wide ${isReceiving ? 'text-indigo-600' : isPaying ? 'text-red-600' : 'text-emerald-600'}`}>
-                                                    {isReceiving ? 'A Receber' : isPaying ? 'A Pagar' : 'Tudo Pago'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className={`font-mono font-bold text-2xl ${isReceiving ? 'text-indigo-700' : isPaying ? 'text-red-600' : 'text-emerald-700'}`}>
-                                                {formatCurrency(Math.abs(debt.total))}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Breakdown (Regular vs Travel) */}
-                                    {!isSettled && (
-                                        <div className="bg-slate-50 rounded-xl p-3 flex gap-4 text-xs">
-                                            <div className="flex-1 flex items-center gap-2 border-r border-slate-200">
-                                                <div className="p-1.5 bg-white rounded-md text-slate-500 shadow-sm">
-                                                    <Home className="w-3 h-3" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-slate-500 font-medium">Casa/Regular</p>
-                                                    <p className={`font-bold ${debt.regular > 0 ? 'text-indigo-700' : debt.regular < 0 ? 'text-red-700' : 'text-slate-700'}`}>
-                                                        {formatCurrency(Math.abs(debt.regular))}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 flex items-center gap-2">
-                                                <div className="p-1.5 bg-white rounded-md text-violet-600 shadow-sm">
-                                                    <Plane className="w-3 h-3" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-slate-500 font-medium">Viagens</p>
-                                                    <p className={`font-bold ${debt.travel > 0 ? 'text-indigo-700' : debt.travel < 0 ? 'text-red-700' : 'text-slate-700'}`}>
-                                                        {formatCurrency(Math.abs(debt.travel))}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Actions Footer */}
-                                {!isSettled && (
-                                    <div className="bg-slate-50 border-t border-slate-100 p-3 flex justify-end gap-2">
-                                        <button className="text-xs font-bold text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-lg transition-colors">
-                                            Ver Detalhes
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setSettleMemberId(member.id);
-                                                setSettleAmount(debt.total.toString()); // Pass signed amount (+ or -)
-                                                // Default to first checking account
-                                                const defaultAcc = accounts.find(a => a.type === 'CONTA CORRENTE' || a.type === 'DINHEIRO');
-                                                if (defaultAcc) setSettleAccountId(defaultAcc.id);
-                                                setSettleModalOpen(true);
-                                            }}
-                                            className={`text-xs font-bold text-white px-4 py-2 rounded-lg shadow-sm active:scale-95 transition-transform ${isReceiving ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-red-600 hover:bg-red-700 shadow-red-200'}`}
-                                        >
-                                            {isReceiving ? 'Registrar Recebimento' : 'Registrar Pagamento'}
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Travel Management Shortcut */}
-            <div
-                onClick={onNavigateToTrips}
-                className="bg-gradient-to-r from-violet-700 to-indigo-700 rounded-2xl p-4 text-white shadow-lg shadow-indigo-200 cursor-pointer hover:scale-[1.02] transition-transform relative overflow-hidden flex items-center justify-between"
-            >
-                <div className="flex items-center gap-3 relative z-10">
-                    <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
-                        <Plane className="w-5 h-5 text-white" />
+            {/* Header Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-gradient-to-br from-indigo-600 to-violet-700 text-white border-none shadow-lg">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm"><Users className="w-5 h-5" /></div>
+                        <span className="text-indigo-100 text-xs font-bold uppercase tracking-wider">Balanço Geral</span>
                     </div>
-                    <div>
-                        <h3 className="font-bold text-sm">Acessar Painel de Viagens</h3>
-                        <p className="text-violet-100 text-xs">Roteiros e orçamentos detalhados</p>
+                    <div className="text-3xl font-black tracking-tight">{formatCurrency(globalTotals.net)}</div>
+                    <p className="text-indigo-200 text-xs mt-1">
+                        {globalTotals.net > 0 ? 'A receber de amigos' : globalTotals.net < 0 ? 'A pagar para amigos' : 'Tudo quitado'}
+                    </p>
+                </Card>
+                <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg"><ArrowRight className="w-5 h-5" /></div>
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Total a Receber</span>
                     </div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-white/80" />
+                    <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(globalTotals.totalReceivable)}</div>
+                </Card>
+                <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg"><ArrowRight className="w-5 h-5 transform rotate-180" /></div>
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Total a Pagar</span>
+                    </div>
+                    <div className="text-2xl font-bold text-red-700 dark:text-red-400">{formatCurrency(globalTotals.totalPayable)}</div>
+                </Card>
             </div>
 
-            {/* HISTORY SECTION WITH TABS */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[400px]">
-                {/* Tabs Header */}
-                <div className="flex border-b border-slate-100 sticky top-0 bg-white z-10">
+            {/* Navigation Tabs */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-800 p-2 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 sticky top-0 z-20">
+                <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-full sm:w-auto">
                     <button
                         onClick={() => setActiveTab('REGULAR')}
-                        className={`flex-1 py-4 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2 ${activeTab === 'REGULAR' ? 'border-indigo-600 text-indigo-700 bg-indigo-50/30' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'REGULAR' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                     >
-                        <Home className="w-4 h-4" /> Despesas Regulares
+                        <Home className="w-4 h-4" /> Regular
                     </button>
                     <button
                         onClick={() => setActiveTab('TRAVEL')}
-                        className={`flex-1 py-4 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2 ${activeTab === 'TRAVEL' ? 'border-violet-600 text-violet-700 bg-violet-50/30' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'TRAVEL' ? 'bg-white dark:bg-slate-800 text-violet-700 dark:text-violet-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                     >
-                        <Plane className="w-4 h-4" /> Despesas de Viagem
+                        <Plane className="w-4 h-4" /> Viagens
                     </button>
                 </div>
 
-                {/* CONTENT AREA */}
-                <div className="bg-slate-50/50 min-h-full">
-                    {/* TAB: REGULAR EXPENSES */}
-                    {activeTab === 'REGULAR' && (
-                        <div className="divide-y divide-slate-100 bg-white">
-                            {regularTransactions.length === 0 ? (
-                                <div className="p-12 text-center">
-                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300">
-                                        <Home className="w-8 h-8" />
-                                    </div>
-                                    <p className="text-slate-500 text-sm">Nenhuma despesa regular compartilhada.</p>
-                                </div>
-                            ) : (
-                                regularTransactions.map(t => renderTransactionItem(t, false))
-                            )}
-                        </div>
-                    )}
-
-                    {/* TAB: TRAVEL EXPENSES (GROUPED BY TRIP) */}
-                    {activeTab === 'TRAVEL' && (
-                        <div className="p-4 space-y-4">
-                            {Object.keys(travelGroups).length === 0 ? (
-                                <div className="p-12 text-center bg-white rounded-xl border border-dashed border-slate-200">
-                                    <div className="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-3 text-violet-300">
-                                        <Plane className="w-8 h-8" />
-                                    </div>
-                                    <p className="text-slate-500 text-sm">Nenhuma despesa de viagem compartilhada.</p>
-                                </div>
-                            ) : (
-                                Object.entries(travelGroups).map(([tripId, groupTransactions]) => {
-                                    const txs = groupTransactions as Transaction[];
-                                    const trip = trips.find(t => t.id === tripId);
-                                    const tripTotal = txs.reduce((acc, t) => acc + t.amount, 0);
-
-                                    return (
-                                        <div key={tripId} className="bg-white rounded-2xl border border-violet-100 shadow-sm overflow-hidden">
-                                            {/* Trip Header (Invoice Header) */}
-                                            <div className="bg-violet-50 p-4 border-b border-violet-100 flex justify-between items-center">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-white rounded-lg shadow-sm text-violet-600">
-                                                        <MapPin className="w-5 h-5" />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-bold text-violet-900 text-sm">{trip?.name || 'Viagem Desconhecida'}</h4>
-                                                        <p className="text-[10px] text-violet-700 font-medium uppercase tracking-wider">
-                                                            {txs.length} lançamentos
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-xs text-violet-600">Total Compartilhado</p>
-                                                    <p className="font-bold text-violet-800 text-lg">{formatCurrency(tripTotal)}</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Transactions List for this Trip */}
-                                            <div className="divide-y divide-slate-100">
-                                                {txs.map(t => renderTransactionItem(t, true))}
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-                    )}
-                </div>
+                {activeTab === 'REGULAR' && (
+                    <div className="flex items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1">
+                        <input
+                            type="month"
+                            className="bg-transparent border-none text-sm font-bold text-slate-700 dark:text-slate-300 outline-none"
+                            value={selectedMonth.toISOString().slice(0, 7)}
+                            onChange={(e) => setSelectedMonth(new Date(e.target.value + '-01'))}
+                        />
+                    </div>
+                )}
             </div>
 
-            {/* SETTLEMENT MODAL */}
-            {settleModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in">
-                    <Card className="w-full max-w-sm bg-white shadow-2xl" title="Registrar Acerto">
-                        <div className="space-y-4">
-                            <div className="text-center py-2">
-                                <p className="text-sm text-slate-600 mb-1">
-                                    {parseFloat(settleAmount) > 0 ? 'Receber de' : 'Pagar para'} {members.find(m => m.id === settleMemberId)?.name}
-                                </p>
-                                <div className="text-left">
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Valor do Acerto</label>
-                                    <input
-                                        type="number"
-                                        className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 font-bold text-lg"
-                                        // Display positive value in input
-                                        value={settleAmount ? Math.abs(parseFloat(settleAmount)) : ''}
-                                        onChange={(e) => {
-                                            // Keep the sign of the original intention (Receiving/Paying) but update magnitude
-                                            const newVal = parseFloat(e.target.value);
-                                            const originalSign = parseFloat(settleAmount) >= 0 ? 1 : -1;
-                                            setSettleAmount((newVal * originalSign).toString());
-                                        }}
-                                        placeholder="0,00"
-                                    />
+            {/* Members Invoices List */}
+            <div className="space-y-6">
+                {displayMembers.length === 0 && (
+                    <div className="text-center py-12 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
+                        <Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum membro ou despesa encontrada.</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">Verifique se você criou despesas compartilhadas na tela de Extrato.</p>
+                    </div>
+                )}
+
+                {displayMembers.map(member => {
+                    const items = getFilteredInvoice(member.id);
+                    const { credits, debits, net } = getTotals(items);
+                    const isSettled = Math.abs(net) < 0.01;
+                    const isExpanded = expandedMemberId === member.id;
+
+                    if (items.length === 0) return null;
+
+                    return (
+                        <div key={member.id} className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-all hover:shadow-md">
+                            {/* Invoice Header */}
+                            <div className="p-6 cursor-pointer" onClick={() => setExpandedMemberId(isExpanded ? null : member.id)}>
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xl border-4 border-white dark:border-slate-600 shadow-sm">
+                                            {member.name ? member.name[0] : '?'}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                                                {member.name}
+                                                {activeTab === 'TRAVEL' && items.some(i => i.tripId) && <Plane className="w-4 h-4 text-violet-500" />}
+                                            </h3>
+                                            <div className="flex items-center gap-3 mt-1 text-xs font-medium">
+                                                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><ArrowRight className="w-3 h-3" /> Receber: {formatCurrency(credits)}</span>
+                                                <span className="text-slate-300 dark:text-slate-600">|</span>
+                                                <span className="text-red-600 dark:text-red-400 flex items-center gap-1"><ArrowRight className="w-3 h-3 transform rotate-180" /> Pagar: {formatCurrency(debits)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-1">Valor Líquido</p>
+                                        <p className={`text-2xl font-black ${net > 0 ? 'text-emerald-600 dark:text-emerald-400' : net < 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                                            {formatCurrency(Math.abs(net))}
+                                        </p>
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                            {net > 0 ? 'A Receber' : net < 0 ? 'A Pagar' : 'Quitado'}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">
-                                    {parseFloat(settleAmount) > 0 ? 'Receber na Conta:' : 'Pagar com a Conta:'}
-                                </label>
-                                <select
-                                    className="w-full p-3 bg-white border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900"
-                                    value={settleAccountId}
-                                    onChange={(e) => setSettleAccountId(e.target.value)}
-                                >
-                                    <option value="" disabled>Selecione uma conta...</option>
-                                    {accounts.map(acc => (
-                                        <option key={acc.id} value={acc.id} className="bg-white text-slate-900">
-                                            {acc.name} ({formatCurrency(acc.balance, acc.currency)})
-                                        </option>
+                            {/* Actions Bar */}
+                            {!isSettled && (
+                                <div className="px-6 pb-6 flex gap-3">
+                                    {net > 0 ? (
+                                        <Button onClick={() => handleOpenSettleModal(member.id, 'RECEIVE')} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200 dark:shadow-none">
+                                            Receber Fatura ({formatCurrency(net)})
+                                        </Button>
+                                    ) : net < 0 ? (
+                                        <Button onClick={() => handleOpenSettleModal(member.id, 'PAY')} className="flex-1 bg-red-600 hover:bg-red-700 text-white shadow-red-200 dark:shadow-none">
+                                            Pagar Fatura ({formatCurrency(Math.abs(net))})
+                                        </Button>
+                                    ) : (
+                                        <Button onClick={() => handleOpenSettleModal(member.id, 'OFFSET')} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white shadow-slate-200 dark:shadow-none">
+                                            Compensar Itens (R$ 0,00)
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Collapsible Items List */}
+                            {isExpanded && (
+                                <div className="bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
+                                    <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex justify-between">
+                                        <span>Detalhamento da Fatura</span>
+                                        <span>{items.length} itens</span>
+                                    </div>
+                                    {items.map(item => (
+                                        <div key={item.id} className={`px-6 py-4 flex justify-between items-center ${item.isPaid ? 'opacity-50 grayscale' : ''}`}>
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-lg ${item.type === 'CREDIT' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
+                                                    {item.type === 'CREDIT' ? <ArrowRight className="w-4 h-4" /> : <ArrowRight className="w-4 h-4 transform rotate-180" />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-800 dark:text-white">{item.description}</p>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" /> {new Date(item.date).toLocaleDateString('pt-BR')} • {item.category}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className={`font-bold text-sm ${item.type === 'CREDIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                                                    {item.type === 'CREDIT' ? '+' : '-'} {formatCurrency(item.amount)}
+                                                </p>
+                                                {item.isPaid && <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold uppercase">Pago</span>}
+                                            </div>
+                                        </div>
                                     ))}
-                                </select>
+                                </div>
+                            )}
+                            
+                            {!isExpanded && items.length > 0 && (
+                                <div onClick={() => setExpandedMemberId(member.id)} className="bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 py-2 flex justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                                </div>
+                            )}
+                            {isExpanded && (
+                                <div onClick={() => setExpandedMemberId(null)} className="bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 py-2 flex justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                    <ChevronUp className="w-4 h-4 text-slate-400" />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* SETTLEMENT CONFIRMATION MODAL */}
+            {settleModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setSettleModal(prev => ({ ...prev, isOpen: false }))} />
+                    <div className="bg-white dark:bg-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 animate-in slide-in-from-bottom-full duration-300">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                                {settleModal.type === 'RECEIVE' ? 'Receber Fatura' : settleModal.type === 'PAY' ? 'Pagar Fatura' : 'Compensar Valores'}
+                            </h3>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                                {settleModal.items.length} itens selecionados
+                            </p>
+                        </div>
+                        
+                        <div className="p-6 space-y-6">
+                            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
+                                <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase">Valor Total</span>
+                                <span className={`text-3xl font-black ${settleModal.type === 'RECEIVE' ? 'text-emerald-600 dark:text-emerald-400' : settleModal.type === 'PAY' ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-white'}`}>
+                                    {formatCurrency(settleModal.total)}
+                                </span>
                             </div>
 
-                            <div className="flex gap-3 pt-2">
-                                <button onClick={() => setSettleModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-slate-700 border border-slate-300 hover:bg-slate-50 transition-colors">Cancelar</button>
-                                <button
-                                    onClick={handleSettleDebt}
-                                    disabled={!settleAmount || !settleAccountId}
-                                    className="flex-1 py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Confirmar
-                                </button>
+                            {settleModal.type !== 'OFFSET' && (
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Conta para movimentação</label>
+                                    <div className="relative">
+                                        <Wallet className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                        <select
+                                            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white font-medium appearance-none"
+                                            value={selectedAccountId}
+                                            onChange={(e) => setSelectedAccountId(e.target.value)}
+                                        >
+                                            {accounts.map(acc => (
+                                                <option key={acc.id} value={acc.id}>{acc.name} ({formatCurrency(acc.balance, acc.currency)})</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="text-xs text-slate-500 dark:text-slate-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30 flex gap-2">
+                                <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                <span>
+                                    Esta ação criará <strong>{settleModal.items.length} transações</strong> individuais no seu extrato e marcará os itens originais como quitados.
+                                </span>
                             </div>
+
+                            <Button onClick={handleConfirmSettlement} className={`w-full h-14 text-lg shadow-lg ${settleModal.type === 'RECEIVE' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200 dark:shadow-none' : settleModal.type === 'PAY' ? 'bg-red-600 hover:bg-red-700 shadow-red-200 dark:shadow-none' : 'bg-slate-800 hover:bg-slate-900 shadow-slate-200 dark:shadow-none'}`}>
+                                Confirmar {settleModal.type === 'RECEIVE' ? 'Recebimento' : settleModal.type === 'PAY' ? 'Pagamento' : 'Compensação'}
+                            </Button>
                         </div>
-                    </Card>
+                    </div>
                 </div>
             )}
         </div>
