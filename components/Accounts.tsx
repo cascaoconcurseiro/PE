@@ -4,7 +4,8 @@ import { Button } from './ui/Button';
 import { Wallet, CreditCard, Plus, ArrowLeft, Search, Download, Printer, FileUp, MoreHorizontal, Landmark, Banknote, Edit2, Trash2 } from 'lucide-react';
 import { formatCurrency } from '../utils';
 import { useToast } from './ui/Toast';
-import { exportToCSV, prepareTransactionsForExport, printComponent } from '../services/exportUtils';
+import { exportToCSV, prepareTransactionsForExport } from '../services/exportUtils';
+import { printAccountStatement } from '../services/printUtils';
 import { getInvoiceData, getBankExtract } from '../services/accountUtils';
 
 // Sub-components
@@ -94,7 +95,8 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
             const data = prepareTransactionsForExport(txs, accounts);
             exportToCSV(data, ['Data', 'Descrição', 'Categoria', 'Tipo', 'Conta', 'Destino', 'Valor'], `Extrato_${selectedAccount.name}`);
         } else {
-            printComponent();
+            // Use new Print Service
+            printAccountStatement(selectedAccount, txs);
         }
     };
 
@@ -308,11 +310,18 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     <button onClick={() => setActiveTab('BANKING')} className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'BANKING' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Contas Bancárias</button>
                     <button onClick={() => setActiveTab('CARDS')} className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'CARDS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Cartões de Crédito</button>
                 </div>
-                <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="text" placeholder="Buscar conta..." className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 placeholder:text-slate-400" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                
+                {/* Improved Search Bar */}
+                <div className="relative w-full sm:flex-1 sm:max-w-md group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <input 
+                        type="text" 
+                        placeholder="Buscar conta ou cartão..." 
+                        className="w-full pl-12 pr-4 h-12 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm transition-all text-slate-700 placeholder:text-slate-400" 
+                        value={searchTerm} 
+                        onChange={e => setSearchTerm(e.target.value)} 
+                    />
                 </div>
-                <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 rounded-xl h-11"><Plus className="w-4 h-4 mr-2" /> Nova Conta</Button>
             </div>
 
             {isFormOpen && (
