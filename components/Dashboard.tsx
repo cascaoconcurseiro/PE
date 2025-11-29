@@ -16,7 +16,6 @@ interface DashboardProps {
 
 const PrivacyBlur = ({ children, showValues, darkBg = false }: { children?: React.ReactNode, showValues: boolean, darkBg?: boolean }) => {
     if (showValues) return <>{children}</>;
-    // Adjust opacity based on background for better visibility when blurred
     return <span className={`blur-sm select-none ${darkBg ? 'opacity-80' : 'opacity-60'}`}>R$ ••••</span>;
 };
 
@@ -136,18 +135,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
         pb-6 md:pb-0 
         snap-x snap-mandatory 
         -mx-4 px-4 md:mx-0 md:px-0 
-        scrollbar-hide
+        no-scrollbar
       ">
 
-                {/* TOTAL BALANCE CARD - IMPROVED CONTRAST */}
+                {/* TOTAL BALANCE CARD */}
                 <div className="snap-center shrink-0 w-[85vw] sm:w-[45vw] md:w-auto h-full">
-                    <Card className="bg-gradient-to-br from-emerald-600 to-teal-800 text-white border-none shadow-xl shadow-emerald-900/20 relative overflow-hidden h-full active:scale-[0.98] transition-transform duration-200">
+                    <Card className="bg-gradient-to-br from-slate-700 to-slate-900 text-white border-none shadow-xl shadow-slate-900/20 relative overflow-hidden h-full active:scale-[0.98] transition-transform duration-200">
                         <div className="absolute top-0 right-0 p-4 opacity-10">
                             <Wallet className="w-24 h-24 text-white" />
                         </div>
                         <div className="flex justify-between items-start relative z-10">
                             <div>
-                                <p className="text-emerald-100 font-bold text-xs uppercase tracking-wider mb-1 opacity-90">Patrimônio Líquido</p>
+                                <p className="text-slate-200 font-bold text-xs uppercase tracking-wider mb-1 opacity-90">Patrimônio Líquido</p>
                                 <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white drop-shadow-sm">
                                     <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(totalBalance)}</PrivacyBlur>
                                 </h3>
@@ -156,24 +155,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                                 <Wallet className="w-6 h-6 text-white" />
                             </div>
                         </div>
-                        <div className="mt-6 inline-flex items-center gap-1.5 text-[11px] text-emerald-50 bg-emerald-900/30 border border-emerald-500/30 px-3 py-1.5 rounded-lg font-bold shadow-sm backdrop-blur-sm">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 box-shadow-glow"></span> Total convertido (BRL)
+                        <div className="mt-6 inline-flex items-center gap-1.5 text-[11px] text-slate-200 bg-slate-800/50 border border-slate-600/30 px-3 py-1.5 rounded-lg font-bold shadow-sm backdrop-blur-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 box-shadow-glow"></span> Total consolidado
                         </div>
                     </Card>
                 </div>
 
                 {/* INCOME CARD */}
                 <div className="snap-center shrink-0 w-[85vw] sm:w-[45vw] md:w-auto h-full">
-                    <Card className="border border-slate-200 shadow-sm h-full flex flex-col justify-center active:scale-[0.98] transition-transform duration-200 bg-white">
-                        <div className="flex justify-between items-start">
+                    <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-none shadow-xl shadow-emerald-900/10 relative overflow-hidden h-full active:scale-[0.98] transition-transform duration-200">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <TrendingUp className="w-24 h-24 text-white" />
+                        </div>
+                        <div className="flex justify-between items-start relative z-10">
                             <div>
-                                <p className="text-slate-600 font-bold text-xs uppercase tracking-wider">Entradas <span className="text-slate-500 font-normal">({currentDate.toLocaleDateString('pt-BR', { month: 'short' })})</span></p>
-                                <h3 className="text-2xl font-black mt-1 text-emerald-700 truncate tracking-tight">
-                                    <PrivacyBlur showValues={showValues}>{formatCurrency(monthlyIncome)}</PrivacyBlur>
+                                <p className="text-emerald-100 font-bold text-xs uppercase tracking-wider mb-1 opacity-90">
+                                    Entradas ({currentDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')})
+                                </p>
+                                <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white drop-shadow-sm">
+                                    <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(monthlyIncome)}</PrivacyBlur>
                                 </h3>
                             </div>
-                            <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100">
-                                <TrendingUp className="w-6 h-6 text-emerald-600" />
+                            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-md border border-white/10">
+                                <TrendingUp className="w-6 h-6 text-white" />
                             </div>
                         </div>
                     </Card>
@@ -181,16 +185,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
 
                 {/* EXPENSE CARD */}
                 <div className="snap-center shrink-0 w-[85vw] sm:w-[45vw] md:w-auto h-full">
-                    <Card className="border border-slate-200 shadow-sm h-full flex flex-col justify-center active:scale-[0.98] transition-transform duration-200 bg-white">
-                        <div className="flex justify-between items-start">
+                    <Card className="bg-gradient-to-br from-red-500 to-rose-600 text-white border-none shadow-xl shadow-red-900/10 relative overflow-hidden h-full active:scale-[0.98] transition-transform duration-200">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <TrendingDown className="w-24 h-24 text-white" />
+                        </div>
+                        <div className="flex justify-between items-start relative z-10">
                             <div>
-                                <p className="text-slate-600 font-bold text-xs uppercase tracking-wider">Saídas <span className="text-slate-500 font-normal">({currentDate.toLocaleDateString('pt-BR', { month: 'short' })})</span></p>
-                                <h3 className="text-2xl font-black mt-1 text-red-700 truncate tracking-tight">
-                                    <PrivacyBlur showValues={showValues}>{formatCurrency(monthlyExpense)}</PrivacyBlur>
+                                <p className="text-red-100 font-bold text-xs uppercase tracking-wider mb-1 opacity-90">
+                                    Saídas ({currentDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')})
+                                </p>
+                                <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white drop-shadow-sm">
+                                    <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(monthlyExpense)}</PrivacyBlur>
                                 </h3>
                             </div>
-                            <div className="p-2.5 bg-red-50 rounded-xl border border-red-100">
-                                <TrendingDown className="w-6 h-6 text-red-600" />
+                            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-md border border-white/10">
+                                <TrendingDown className="w-6 h-6 text-white" />
                             </div>
                         </div>
                     </Card>
@@ -198,7 +207,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
             </div>
 
             {/* ANNUAL CASH FLOW CHART */}
-            <Card title={`Fluxo de Caixa - ${selectedYear}`} className="hidden md:block border-slate-200 bg-white">
+            <Card title={`Fluxo de Caixa - ${selectedYear}`} className="hidden md:block border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700">
                 <div className="h-72 w-full mt-2">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={cashFlowData} margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
@@ -229,10 +238,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
 
             {/* Upcoming Bills Section */}
             {upcomingBills.length > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm animate-in slide-in-from-top-4">
-                    <div className="flex items-center gap-2 mb-4 text-amber-900">
-                        <div className="p-1.5 bg-amber-100 rounded-lg border border-amber-200">
-                            <Bell className="w-4 h-4 text-amber-700" />
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-5 shadow-sm animate-in slide-in-from-top-4">
+                    <div className="flex items-center gap-2 mb-4 text-amber-900 dark:text-amber-400">
+                        <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 rounded-lg border border-amber-200 dark:border-amber-800">
+                            <Bell className="w-4 h-4 text-amber-700 dark:text-amber-400" />
                         </div>
                         <h3 className="font-bold text-sm uppercase tracking-wide">Próximos Vencimentos</h3>
                     </div>
@@ -252,15 +261,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                                 <div
                                     key={bill.id}
                                     onClick={() => onEditRequest && onEditRequest(bill.id)}
-                                    className="bg-white p-4 rounded-xl border border-amber-100 flex justify-between items-center shadow-sm active:scale-[0.99] transition-transform cursor-pointer hover:bg-amber-50/50"
+                                    className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30 flex justify-between items-center shadow-sm active:scale-[0.99] transition-transform cursor-pointer hover:bg-amber-50/50 dark:hover:bg-slate-700/50"
                                 >
                                     <div>
-                                        <p className="font-bold text-slate-900 text-sm">{bill.description}</p>
-                                        <p className="text-xs text-amber-700 font-bold flex items-center gap-1 mt-0.5">
+                                        <p className="font-bold text-slate-900 dark:text-white text-sm">{bill.description}</p>
+                                        <p className="text-xs text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1 mt-0.5">
                                             <Clock className="w-3 h-3" /> {statusText} ({billDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })})
                                         </p>
                                     </div>
-                                    <span className="font-bold text-slate-900 text-base">
+                                    <span className="font-bold text-slate-900 dark:text-white text-base">
                                         <PrivacyBlur showValues={showValues}>{formatCurrency(bill.amount, account?.currency)}</PrivacyBlur>
                                     </span>
                                 </div>
@@ -271,7 +280,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
             )}
 
             {/* Spending Chart (Mobile Optimized) */}
-            <Card title={`Gastos por Categoria`} className="min-h-[420px] md:min-h-[400px] border-slate-200 bg-white">
+            <Card title={`Gastos por Categoria`} className="min-h-[420px] md:min-h-[400px] border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700">
                 {categoryData.length > 0 ? (
                     <div className="h-full w-full mt-2 flex flex-col md:flex-row items-center">
                         <div className="h-64 w-full relative">
@@ -298,7 +307,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div className="text-center">
                                     <span className="text-[10px] text-slate-500 uppercase font-bold block">Total</span>
-                                    <span className="text-lg font-bold text-slate-900 block">
+                                    <span className="text-lg font-bold text-slate-900 dark:text-white block">
                                         <PrivacyBlur showValues={showValues}>{formatCurrency(monthlyExpense)}</PrivacyBlur>
                                     </span>
                                 </div>
@@ -308,11 +317,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                         {/* Legend Grid */}
                         <div className="w-full grid grid-cols-2 gap-3 pt-4 md:pl-8 md:pt-0">
                             {categoryData.map((entry, index) => (
-                                <div key={index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <div key={index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                                     <div className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                                     <div className="flex flex-col min-w-0">
-                                        <span className="font-bold text-slate-800 text-xs truncate">{entry.name}</span>
-                                        <span className="text-slate-600 text-xs font-medium">
+                                        <span className="font-bold text-slate-800 dark:text-white text-xs truncate">{entry.name}</span>
+                                        <span className="text-slate-600 dark:text-slate-400 text-xs font-medium">
                                             <PrivacyBlur showValues={showValues}>{formatCurrency(entry.value)}</PrivacyBlur>
                                         </span>
                                     </div>
@@ -321,7 +330,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                         </div>
                     </div>
                 ) : (
-                    <div className="h-64 flex flex-col items-center justify-center text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                    <div className="h-64 flex flex-col items-center justify-center text-slate-500 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
                         <p className="font-medium">Sem despesas neste mês</p>
                     </div>
                 )}

@@ -1,7 +1,3 @@
-
-// Mock Exchange Rates (In a real app, fetch from an API like OpenExchangeRates)
-// Base: BRL (1 BRL = X Currency) -> Reciprocal logic used below
-// We use: How much 1 Unit of Foreign Currency is worth in BRL
 export const EXCHANGE_RATES: Record<string, number> = {
     'BRL': 1,
     'USD': 5.05, // 1 USD = 5.05 BRL

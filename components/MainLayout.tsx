@@ -98,7 +98,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                     <SidebarItem view={View.BUDGETS} icon={Target} label="Orçamentos" activeBg="bg-amber-50 dark:bg-amber-900/20" activeText="text-amber-700 dark:text-amber-400" />
                     <SidebarItem view={View.GOALS} icon={Trophy} label="Metas" activeBg="bg-emerald-50 dark:bg-emerald-900/20" activeText="text-emerald-700 dark:text-emerald-400" />
                     <SidebarItem view={View.TRIPS} icon={Plane} label="Viagens" activeBg="bg-purple-50 dark:bg-purple-900/20" activeText="text-purple-700 dark:text-purple-400" />
-                    <SidebarItem view={View.SHARED} icon={Users} label="Divisão de Gastos" activeBg="bg-indigo-50 dark:bg-indigo-900/20" activeText="text-indigo-700 dark:text-indigo-400" />
+                    <SidebarItem view={View.SHARED} icon={Users} label="Compartilhado" activeBg="bg-indigo-50 dark:bg-indigo-900/20" activeText="text-indigo-700 dark:text-indigo-400" />
                     <SidebarItem view={View.FAMILY} icon={UserCircle} label="Família" activeBg="bg-pink-50 dark:bg-pink-900/20" activeText="text-pink-700 dark:text-pink-400" />
                 </div>
 

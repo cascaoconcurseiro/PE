@@ -1,33 +1,17 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: 'Inter', sans-serif;
-  
-  /* Configuração de Animações (Substituindo tailwindcss-animate se necessário) */
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
-
-  @keyframes accordion-down {
-    from { height: 0 }
-    to { height: var(--radix-accordion-content-height) }
-  }
-  @keyframes accordion-up {
-    from { height: var(--radix-accordion-content-height) }
-    to { height: 0 }
-  }
-}
-
-/* Utilitários de tema */
 @layer utilities {
   .dark {
     color-scheme: dark;
   }
 }
 
-body {
-    font-family: var(--font-sans);
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
     @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
     overscroll-behavior-y: none;
+  }
 }
 
 /* Custom Scrollbar */
