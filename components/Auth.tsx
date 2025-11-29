@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { PiggyBank, ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { PiggyBank, ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, HardDrive } from 'lucide-react';
 import { useToast } from './ui/Toast';
 
 interface AuthProps {
@@ -25,8 +25,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         setError(null);
 
         try {
-            // Note: Supabase client defaults to LocalStorage persistence ("Remember Me" behavior).
-            
             if (isSignUp) {
                 const { data, error } = await supabase.auth.signUp({
                     email,
@@ -40,7 +38,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     password,
                 });
                 if (error) throw error;
-                // O sistema reagirá automaticamente à mudança de estado da sessão
             }
         } catch (err: any) {
             setError(err.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : err.message);
@@ -171,12 +168,20 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                                 </button>
                             </p>
                         </div>
+                        
+                        {/* Security Disclaimer */}
+                        <div className="mt-6 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-lg flex items-start gap-2">
+                            <HardDrive className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+                            <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                                <strong>Nota de Privacidade:</strong> Seus dados financeiros são armazenados localmente neste dispositivo. Não utilize computadores públicos para acessar suas finanças.
+                            </p>
+                        </div>
                     </div>
                 </Card>
 
                 <div className="flex items-center justify-center gap-2 mt-8 text-slate-400 dark:text-slate-500 text-xs">
                     <ShieldCheck className="w-4 h-4" />
-                    <p>Ambiente Seguro • Dados Criptografados</p>
+                    <p>Ambiente Local Seguro</p>
                 </div>
             </div>
         </div>

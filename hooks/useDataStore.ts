@@ -58,14 +58,10 @@ export const useDataStore = () => {
         const totalInstallments = Number(newTx.totalInstallments);
         
         if (newTx.isInstallment && totalInstallments > 1) {
-            // Installment Logic: Create N transactions for future dates
-            const baseDate = parseDate(newTx.date); // Use helper to handle timezones
+            const baseDate = parseDate(newTx.date); 
             const seriesId = crypto.randomUUID();
-            
-            // CRITICAL: Divide the TOTAL amount by number of installments
             const amountPerInstallment = newTx.amount / totalInstallments; 
 
-            // FIX: Divide shared amounts as well
             const sharedWithPerInstallment = newTx.sharedWith?.map(s => ({
                 ...s,
                 assignedAmount: s.assignedAmount / totalInstallments
@@ -75,7 +71,6 @@ export const useDataStore = () => {
                 const nextDate = new Date(baseDate);
                 nextDate.setMonth(baseDate.getMonth() + i);
 
-                // Handle end of month edge cases (e.g. Jan 31 -> Feb 28)
                 if (baseDate.getDate() > 28) {
                     const daysInTargetMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
                     nextDate.setDate(Math.min(baseDate.getDate(), daysInTargetMonth));
@@ -84,9 +79,9 @@ export const useDataStore = () => {
                 newTransactionsList.push({
                     ...newTx,
                     id: crypto.randomUUID(),
-                    amount: amountPerInstallment, // Saved value is the MONTHLY payment
-                    originalAmount: newTx.amount, // Save original total for reference
-                    sharedWith: sharedWithPerInstallment, // Use divided splits
+                    amount: amountPerInstallment,
+                    originalAmount: newTx.amount,
+                    sharedWith: sharedWithPerInstallment,
                     seriesId: seriesId,
                     date: nextDate.toISOString().split('T')[0],
                     currentInstallment: i + 1,
@@ -98,7 +93,6 @@ export const useDataStore = () => {
                 });
             }
         } else {
-            // Regular Transaction (One Time)
             newTransactionsList.push({
                 ...newTx,
                 id: crypto.randomUUID(),
@@ -110,7 +104,6 @@ export const useDataStore = () => {
 
         await db.transaction('rw', [db.transactions, db.auditLogs], async () => {
             await db.transactions.bulkAdd(newTransactionsList);
-            // Log audit for primary transaction
             if (newTransactionsList.length > 0) {
                 await logAudit('TRANSACTION', newTransactionsList[0].id, 'CREATE', newTx);
             }
@@ -133,13 +126,8 @@ export const useDataStore = () => {
     const handleDeleteTransaction = async (id: string) => {
         const tx = await db.transactions.get(id);
         if (tx) {
-            // Check if it's part of a series (Installment or Recurring)
             let deleteAll = false;
             if (tx.seriesId || tx.isRecurring) {
-                // Confirm dialog happens in UI, but here we can force it for safety logic if desired.
-                // Assuming UI handled confirmation. 
-                // But for robust "Delete Series" logic without UI flags, we check if user intended to delete series.
-                // In a perfect world, we pass a flag. Here, we'll auto-detect seriesId and delete all.
                 if (tx.seriesId) {
                     deleteAll = true;
                 }
@@ -191,19 +179,17 @@ export const useDataStore = () => {
         const account: Account = {
             ...newAccount,
             id: accountId,
-            initialBalance: 0, // Force 0 to ensure double-entry via transaction
-            balance: 0,        // Force 0
+            initialBalance: 0,
+            balance: 0,
             createdAt: now,
             updatedAt: now,
             syncStatus: SyncStatus.PENDING
         };
 
         await db.transaction('rw', [db.accounts, db.transactions, db.auditLogs], async () => {
-            // 1. Create Account
             await db.accounts.put(account);
             await logAudit('ACCOUNT', accountId, 'CREATE', newAccount);
 
-            // 2. Create "Opening Balance" Transaction if needed (Double Entry Principle)
             if (Math.abs(initialBalance) > 0) {
                 const isPositive = initialBalance > 0;
                 await db.transactions.add({
@@ -242,7 +228,6 @@ export const useDataStore = () => {
             alert('Não é possível excluir esta conta pois existem transações associadas a ela. Exclua as transações primeiro.');
             return;
         }
-        // No confirmation alert needed here as UI should handle confirmation
         const acc = await db.accounts.get(id);
         if (acc) {
             await db.transaction('rw', [db.accounts, db.auditLogs], async () => {
