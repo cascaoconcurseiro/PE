@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { calculateTripDebts } from '../services/balanceEngine';
 import { MapPin, Users, Calendar, Plus, Calculator, Sparkles, ArrowLeft, Check, Plane, ListChecks, PieChart as PieIcon, Map, Hotel, Utensils, Flag, Trash2, X, Clock, Target, Pencil, Save, AlertCircle, ShoppingBag, Banknote, RefreshCw } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { formatCurrency, getCategoryIcon } from '../utils';
 
 interface TripsProps {
     trips: Trip[];
@@ -62,12 +63,8 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
     const [exchangeForeign, setExchangeForeign] = useState('');
 
     const selectedTrip = trips.find(t => t.id === selectedTripId);
-    const tripTransactions = transactions.filter(t => t.tripId === selectedTripId);
+    const tripTransactions = transactions.filter(t => t.tripId === selectedTripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const totalSpent = tripTransactions.reduce((acc, t) => acc + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0);
-
-    const formatCurrency = (value: number, currencyCode: string = 'BRL') => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: currencyCode }).format(value);
-    };
 
     const calculateDuration = () => {
         if (!newStartDate || !newEndDate) return 0;
@@ -167,7 +164,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
         const settlementLines = calculateTripDebts(tripTransactions, selectedTrip.participants);
 
         const report = `
-# Resumo do Acerto de Contas (Cálculo Exato)
+# Resumo do Acerto de Contas
 
 ${settlementLines.map(l => `- ${l}`).join('\n')}
 
@@ -677,21 +674,35 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                 <h3 className="font-bold text-slate-700">Histórico de Gastos</h3>
                             </div>
                             <div className="divide-y divide-slate-100">
-                                {tripTransactions.length === 0 ? <p className="text-slate-500 text-sm italic py-8 text-center">Nenhuma despesa registrada ainda.</p> : null}
-                                {tripTransactions.map(t => (
-                                    <div key={t.id} className="flex justify-between items-center p-4 hover:bg-slate-50 transition-colors">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full bg-violet-50 flex items-center justify-center text-violet-700 font-bold border border-violet-100 text-sm">
-                                                {t.description[0].toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-slate-900">{t.description}</p>
-                                                <p className="text-xs text-slate-600">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
-                                            </div>
-                                        </div>
-                                        <span className="font-bold text-slate-800">{formatCurrency(t.amount, selectedTrip.currency)}</span>
+                                {tripTransactions.length === 0 ? (
+                                    <div className="p-8 text-center text-slate-500">
+                                        <Sparkles className="w-8 h-8 text-violet-300 mx-auto mb-2" />
+                                        <p className="text-sm font-medium">Nenhuma despesa registrada ainda.</p>
+                                        <p className="text-xs text-slate-400">Comece a aproveitar sua viagem!</p>
                                     </div>
-                                ))}
+                                ) : (
+                                    tripTransactions.map(t => {
+                                        const CatIcon = getCategoryIcon(t.category);
+                                        return (
+                                            <div key={t.id} className="flex justify-between items-center p-4 hover:bg-slate-50 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-full bg-violet-50 flex items-center justify-center text-violet-700 font-bold border border-violet-100">
+                                                        <CatIcon className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-900">{t.description}</p>
+                                                        <div className="flex gap-2 text-xs text-slate-500">
+                                                            <span>{new Date(t.date).toLocaleDateString('pt-BR')}</span>
+                                                            <span>•</span>
+                                                            <span>{t.category}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <span className="font-bold text-slate-800">{formatCurrency(t.amount, selectedTrip.currency)}</span>
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
                         </div>
 
@@ -786,7 +797,13 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
 
                         <div className="relative border-l-2 border-violet-100 ml-4 space-y-6">
                             {(!selectedTrip.itinerary || selectedTrip.itinerary.length === 0) && (
-                                <div className="pl-6 text-slate-500 text-sm italic">Nenhum item no roteiro.</div>
+                                <div className="pl-6 py-4">
+                                    <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 text-center">
+                                        <Map className="w-8 h-8 text-violet-300 mx-auto mb-2" />
+                                        <p className="text-sm font-bold text-violet-900">Roteiro Vazio</p>
+                                        <p className="text-xs text-violet-600">Adicione voos, hotéis e passeios.</p>
+                                    </div>
+                                </div>
                             )}
 
                             {selectedTrip.itinerary?.sort((a, b) => (a.date + (a.time || '')) > (b.date + (b.time || '')) ? 1 : -1).map(item => (
@@ -833,7 +850,10 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
 
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
                             {(!selectedTrip.checklist || selectedTrip.checklist.length === 0) && (
-                                <div className="p-8 text-center text-slate-500 text-sm">Lista vazia.</div>
+                                <div className="p-8 text-center text-slate-500">
+                                    <ListChecks className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                    <p className="text-sm">Sua lista está vazia.</p>
+                                </div>
                             )}
                             {selectedTrip.checklist?.map(item => (
                                 <div key={item.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
@@ -933,7 +953,10 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
 
                             <div className="space-y-2">
                                 {(!selectedTrip.shoppingList || selectedTrip.shoppingList.length === 0) && (
-                                    <p className="text-center text-slate-500 text-sm py-4">Nenhum item na lista.</p>
+                                    <div className="p-8 text-center text-slate-500">
+                                        <ShoppingBag className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                        <p className="text-sm">Lista vazia.</p>
+                                    </div>
                                 )}
                                 {selectedTrip.shoppingList?.map(item => (
                                     <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200">
