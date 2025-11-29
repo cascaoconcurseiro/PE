@@ -47,13 +47,11 @@ export const Shared: React.FC<SharedProps> = ({
     const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || '');
 
     // --- ENGINE: GENERATE INVOICES ---
-    const invoices = useMemo(() => {
+    const invoices = useMemo<Record<string, InvoiceItem[]>>(() => {
         const invoiceMap: Record<string, InvoiceItem[]> = {};
         
-        // Initialize for known members to ensure empty state exists
-        members.forEach(m => {
-            if (!invoiceMap[m.id]) invoiceMap[m.id] = [];
-        });
+        // Initialize for all known members
+        members.forEach(m => invoiceMap[m.id] = []);
 
         transactions.forEach(t => {
             // Only care about shared expenses
@@ -63,8 +61,7 @@ export const Shared: React.FC<SharedProps> = ({
             if (!t.payerId) {
                 t.sharedWith?.forEach(split => {
                     const memberId = split.memberId;
-                    
-                    // Dynamic Initialization (Safety check)
+                    // FIX: Initialize if not exists (handling deleted/loading members)
                     if (!invoiceMap[memberId]) invoiceMap[memberId] = [];
 
                     invoiceMap[memberId].push({
@@ -84,8 +81,7 @@ export const Shared: React.FC<SharedProps> = ({
             // 2. DEBIT LOGIC: Member Paid (payerId exists), User Owes Member
             else {
                 const payerId = t.payerId;
-                
-                // Dynamic Initialization (Safety check)
+                // FIX: Initialize if not exists
                 if (!invoiceMap[payerId]) invoiceMap[payerId] = [];
 
                 // Calculate My Share
@@ -112,12 +108,15 @@ export const Shared: React.FC<SharedProps> = ({
         return invoiceMap;
     }, [transactions, members]);
 
-    // Build a comprehensive list of members to display (Props + Any found in transactions)
+    // Build a comprehensive list of members to display
     const displayMembers = useMemo(() => {
+        // Collect all IDs found in invoices map (which now includes everyone from transactions)
         const uniqueIds = new Set([...members.map(m => m.id), ...Object.keys(invoices)]);
+        
         return Array.from(uniqueIds).map(id => {
             const knownMember = members.find(m => m.id === id);
-            return knownMember || { id, name: 'Membro Desconhecido', role: 'Unknown' } as FamilyMember;
+            // If member info is missing (deleted or loading), create a placeholder
+            return knownMember || { id, name: 'Membro (Excluído ou Carregando)', role: 'Unknown' } as FamilyMember;
         });
     }, [members, invoices]);
 
@@ -128,9 +127,7 @@ export const Shared: React.FC<SharedProps> = ({
         if (activeTab === 'TRAVEL') {
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else {
-            // Regular: No trip ID.
-            // Show ALL pending items regardless of date (Debts don't expire visually until paid)
-            // Show PAID items only if they belong to the selected month (History)
+            // Regular: Show ALL pending items OR settled items in selected month
             return allItems.filter(i => 
                 !i.tripId && 
                 (!i.isPaid || isSameMonth(i.date, selectedMonth))
@@ -213,8 +210,8 @@ export const Shared: React.FC<SharedProps> = ({
         let totalReceivable = 0;
         let totalPayable = 0;
         
-        // EXPLICIT CAST to fix TS errors
-        const allItems = Object.values(invoices).flat() as InvoiceItem[];
+        // Explicit typing to avoid TS errors
+        const allItems = (Object.values(invoices).flat() as InvoiceItem[]);
         
         allItems.forEach(item => {
             if (!item.isPaid) {
@@ -291,6 +288,7 @@ export const Shared: React.FC<SharedProps> = ({
                     <div className="text-center py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-300">
                         <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                         <p className="text-slate-500 font-medium">Nenhum membro ou despesa encontrada.</p>
+                        <p className="text-xs text-slate-400">Verifique se você criou despesas compartilhadas na tela de Extrato.</p>
                     </div>
                 )}
 
@@ -300,7 +298,9 @@ export const Shared: React.FC<SharedProps> = ({
                     const isSettled = Math.abs(net) < 0.01;
                     const isExpanded = expandedMemberId === member.id;
 
-                    // Skip empty invoices if everything is paid and no history in view
+                    // Skip empty invoices ONLY if they are truly empty (no history, no current debt)
+                    // If we are filtering by month, items might be empty, but we might want to show "Nothing this month"
+                    // Current logic: If items is empty, don't render. 
                     if (items.length === 0) return null;
 
                     return (
