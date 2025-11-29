@@ -8,9 +8,9 @@ import {
     Trip,
     FamilyMember,
     UserProfile,
-    Snapshot
+    Snapshot,
+    AuditLog
 } from '../types';
-// Remove import { seedDatabase } from './seeder';
 
 export class PeDeMeiaDB extends Dexie {
     accounts!: Table<Account, string>;
@@ -22,6 +22,7 @@ export class PeDeMeiaDB extends Dexie {
     familyMembers!: Table<FamilyMember, string>;
     userProfile!: Table<UserProfile, string>;
     snapshots!: Table<Snapshot, string>;
+    auditLogs!: Table<AuditLog, string>;
 
     constructor() {
         super('PeDeMeiaDB');
@@ -54,17 +55,18 @@ export class PeDeMeiaDB extends Dexie {
         this.version(3).stores({
             snapshots: 'id, date'
         });
+
+        // Version 4: Add Audit Logs (Princípio 8 - Auditabilidade)
+        this.version(4).stores({
+            auditLogs: 'id, entity, entityId, action, createdAt'
+        });
     }
 }
 
 export const db = new PeDeMeiaDB();
 
-// --- MIGRATION & INIT UTILS ---
-
 export const initDatabase = async () => {
     try {
-        // We verify if data exists, but we DO NOT seed anymore.
-        // Real systems start empty.
         const count = await db.userProfile.count();
         if (count > 0) {
             console.log('Database initialized.');
@@ -76,5 +78,4 @@ export const initDatabase = async () => {
     }
 };
 
-// Keep for backward compatibility if needed, but alias to initDatabase
 export const migrateFromLocalStorage = initDatabase;

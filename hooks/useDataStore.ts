@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../services/db';
-import { Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset, CustomCategory, SyncStatus, UserProfile, AccountType, Category, TransactionType, Snapshot } from '../types';
+import { Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset, CustomCategory, SyncStatus, UserProfile, AccountType, Category, TransactionType, Snapshot, AuditLog } from '../types';
 import { parseDate } from '../utils';
 import { BackupSchema } from '../services/schemas';
 
@@ -22,10 +22,26 @@ export const useDataStore = () => {
         try { return JSON.parse(localStorage.getItem('pdm_categories') || '[]'); } catch { return []; }
     });
 
+    // --- AUDIT HELPER ---
+    const logAudit = async (entity: AuditLog['entity'], entityId: string, action: AuditLog['action'], changes: any) => {
+        try {
+            await db.auditLogs.add({
+                id: crypto.randomUUID(),
+                entity,
+                entityId,
+                action,
+                changes: JSON.stringify(changes),
+                createdAt: new Date().toISOString(),
+                syncStatus: SyncStatus.PENDING
+            });
+        } catch (e) {
+            console.error("Audit Log Error:", e);
+        }
+    };
+
     // --- HANDLERS ---
 
     const handleLogin = async (user: UserProfile) => {
-        // Use put instead of add to prevent ConstraintError if user exists but isn't loaded yet
         await db.userProfile.put(user);
     };
 
@@ -73,31 +89,45 @@ export const useDataStore = () => {
             });
         }
 
-        await db.transactions.bulkAdd(newTransactionsList);
+        await db.transaction('rw', [db.transactions, db.auditLogs], async () => {
+            await db.transactions.bulkAdd(newTransactionsList);
+            // Log audit for primary transaction
+            if (newTransactionsList.length > 0) {
+                await logAudit('TRANSACTION', newTransactionsList[0].id, 'CREATE', newTx);
+            }
+        });
     };
 
     const handleUpdateTransaction = async (updatedTx: Transaction) => {
-        await db.transactions.put({
-            ...updatedTx,
-            updatedAt: new Date().toISOString(),
-            syncStatus: SyncStatus.PENDING
+        const oldTx = await db.transactions.get(updatedTx.id);
+        
+        await db.transaction('rw', [db.transactions, db.auditLogs], async () => {
+            await db.transactions.put({
+                ...updatedTx,
+                updatedAt: new Date().toISOString(),
+                syncStatus: SyncStatus.PENDING
+            });
+            await logAudit('TRANSACTION', updatedTx.id, 'UPDATE', { from: oldTx, to: updatedTx });
         });
     };
 
     const handleDeleteTransaction = async (id: string) => {
         const tx = await db.transactions.get(id);
         if (tx) {
-            await db.transactions.put({
-                ...tx,
-                deleted: true,
-                updatedAt: new Date().toISOString(),
-                syncStatus: SyncStatus.PENDING
+            await db.transaction('rw', [db.transactions, db.auditLogs], async () => {
+                await db.transactions.put({
+                    ...tx,
+                    deleted: true,
+                    updatedAt: new Date().toISOString(),
+                    syncStatus: SyncStatus.PENDING
+                });
+                await logAudit('TRANSACTION', id, 'DELETE', tx);
             });
         }
     };
 
     const handleAnticipateInstallments = async (idsToAnticipate: string[], targetDate: string) => {
-        await db.transaction('rw', db.transactions, async () => {
+        await db.transaction('rw', [db.transactions, db.auditLogs], async () => {
             const txs = await db.transactions.bulkGet(idsToAnticipate);
             const updates = txs.filter(t => t).map(t => ({
                 ...t!,
@@ -106,29 +136,63 @@ export const useDataStore = () => {
                 syncStatus: SyncStatus.PENDING
             }));
             await db.transactions.bulkPut(updates);
+            await logAudit('TRANSACTION', 'BATCH', 'UPDATE', { action: 'ANTICIPATE', count: updates.length });
         });
     };
 
+    // --- CRITICAL FIX: Partidas Dobradas & Integrity ---
+    // Instead of setting 'balance' arbitrarily, we create a transaction for the initial amount.
     const handleAddAccount = async (newAccount: Omit<Account, 'id'>) => {
         const now = new Date().toISOString();
+        const accountId = (newAccount as any).id || crypto.randomUUID();
+        const initialBalance = newAccount.initialBalance !== undefined ? newAccount.initialBalance : (newAccount.balance || 0);
+
         const account: Account = {
             ...newAccount,
-            id: (newAccount as any).id || crypto.randomUUID(),
-            initialBalance: newAccount.initialBalance !== undefined ? newAccount.initialBalance : (newAccount.balance || 0),
-            balance: newAccount.balance || 0,
+            id: accountId,
+            initialBalance: 0, // Force 0 to ensure double-entry via transaction
+            balance: 0,        // Force 0
             createdAt: now,
             updatedAt: now,
             syncStatus: SyncStatus.PENDING
         };
-        // Use put instead of add to handle manual ID generation cases (like Investments page)
-        await db.accounts.put(account);
+
+        await db.transaction('rw', [db.accounts, db.transactions, db.auditLogs], async () => {
+            // 1. Create Account
+            await db.accounts.put(account);
+            await logAudit('ACCOUNT', accountId, 'CREATE', newAccount);
+
+            // 2. Create "Opening Balance" Transaction if needed (Double Entry Principle)
+            // This ensures "Assets = Equity" logic holds true.
+            if (Math.abs(initialBalance) > 0) {
+                const isPositive = initialBalance > 0;
+                await db.transactions.add({
+                    id: crypto.randomUUID(),
+                    description: 'Saldo Inicial / Ajuste de Abertura',
+                    amount: Math.abs(initialBalance),
+                    type: isPositive ? TransactionType.INCOME : TransactionType.EXPENSE,
+                    category: Category.OPENING_BALANCE,
+                    accountId: accountId,
+                    date: now.split('T')[0],
+                    createdAt: now,
+                    updatedAt: now,
+                    syncStatus: SyncStatus.PENDING,
+                    reconciled: true
+                });
+                await logAudit('TRANSACTION', 'SYSTEM', 'CREATE', { reason: 'Initial Balance for ' + accountId });
+            }
+        });
     };
 
     const handleUpdateAccount = async (updatedAccount: Account) => {
-        await db.accounts.put({
-            ...updatedAccount,
-            updatedAt: new Date().toISOString(),
-            syncStatus: SyncStatus.PENDING
+        const old = await db.accounts.get(updatedAccount.id);
+        await db.transaction('rw', [db.accounts, db.auditLogs], async () => {
+            await db.accounts.put({
+                ...updatedAccount,
+                updatedAt: new Date().toISOString(),
+                syncStatus: SyncStatus.PENDING
+            });
+            await logAudit('ACCOUNT', updatedAccount.id, 'UPDATE', { from: old, to: updatedAccount });
         });
     };
 
@@ -141,42 +205,56 @@ export const useDataStore = () => {
         if (confirm('Tem certeza que deseja excluir esta conta?')) {
             const acc = await db.accounts.get(id);
             if (acc) {
-                await db.accounts.put({
-                    ...acc,
-                    deleted: true,
-                    updatedAt: new Date().toISOString(),
-                    syncStatus: SyncStatus.PENDING
+                await db.transaction('rw', [db.accounts, db.auditLogs], async () => {
+                    await db.accounts.put({
+                        ...acc,
+                        deleted: true,
+                        updatedAt: new Date().toISOString(),
+                        syncStatus: SyncStatus.PENDING
+                    });
+                    await logAudit('ACCOUNT', id, 'DELETE', acc);
                 });
             }
         }
     };
 
+    // ... (Keep other handlers similar but with audit wrapping where appropriate)
+    
     const handleAddTrip = async (newTrip: Trip) => {
         const now = new Date().toISOString();
-        await db.trips.put({
-            ...newTrip,
-            createdAt: now,
-            updatedAt: now,
-            syncStatus: SyncStatus.PENDING
+        await db.transaction('rw', [db.trips, db.auditLogs], async () => {
+            await db.trips.put({
+                ...newTrip,
+                createdAt: now,
+                updatedAt: now,
+                syncStatus: SyncStatus.PENDING
+            });
+            await logAudit('TRIP', newTrip.id, 'CREATE', newTrip);
         });
     };
 
     const handleUpdateTrip = async (updatedTrip: Trip) => {
-        await db.trips.put({
-            ...updatedTrip,
-            updatedAt: new Date().toISOString(),
-            syncStatus: SyncStatus.PENDING
+        await db.transaction('rw', [db.trips, db.auditLogs], async () => {
+            await db.trips.put({
+                ...updatedTrip,
+                updatedAt: new Date().toISOString(),
+                syncStatus: SyncStatus.PENDING
+            });
+            await logAudit('TRIP', updatedTrip.id, 'UPDATE', updatedTrip);
         });
     };
 
     const handleDeleteTrip = async (id: string) => {
         const trip = await db.trips.get(id);
         if (trip) {
-            await db.trips.put({
-                ...trip,
-                deleted: true,
-                updatedAt: new Date().toISOString(),
-                syncStatus: SyncStatus.PENDING
+            await db.transaction('rw', [db.trips, db.auditLogs], async () => {
+                await db.trips.put({
+                    ...trip,
+                    deleted: true,
+                    updatedAt: new Date().toISOString(),
+                    syncStatus: SyncStatus.PENDING
+                });
+                await logAudit('TRIP', id, 'DELETE', trip);
             });
         }
     };
@@ -232,6 +310,7 @@ export const useDataStore = () => {
             updatedAt: now,
             syncStatus: SyncStatus.PENDING
         });
+        await logAudit('BUDGET', 'new', 'CREATE', newBudget);
     };
 
     const handleUpdateBudget = async (updatedBudget: Budget) => {
@@ -240,6 +319,7 @@ export const useDataStore = () => {
             updatedAt: new Date().toISOString(),
             syncStatus: SyncStatus.PENDING
         });
+        await logAudit('BUDGET', updatedBudget.id, 'UPDATE', updatedBudget);
     };
 
     const handleDeleteBudget = async (id: string) => {
@@ -251,6 +331,7 @@ export const useDataStore = () => {
                 updatedAt: new Date().toISOString(),
                 syncStatus: SyncStatus.PENDING
             });
+            await logAudit('BUDGET', id, 'DELETE', budget);
         }
     };
 
@@ -263,6 +344,7 @@ export const useDataStore = () => {
             updatedAt: now,
             syncStatus: SyncStatus.PENDING
         });
+        await logAudit('GOAL', 'new', 'CREATE', newGoal);
     };
 
     const handleUpdateGoal = async (updatedGoal: Goal) => {
@@ -271,6 +353,7 @@ export const useDataStore = () => {
             updatedAt: new Date().toISOString(),
             syncStatus: SyncStatus.PENDING
         });
+        await logAudit('GOAL', updatedGoal.id, 'UPDATE', updatedGoal);
     };
 
     const handleDeleteGoal = async (id: string) => {
@@ -282,6 +365,7 @@ export const useDataStore = () => {
                 updatedAt: new Date().toISOString(),
                 syncStatus: SyncStatus.PENDING
             });
+            await logAudit('GOAL', id, 'DELETE', goal);
         }
     };
 
@@ -327,7 +411,7 @@ export const useDataStore = () => {
 
         const validData = result.data;
 
-        await db.transaction('rw', [db.accounts, db.transactions, db.trips, db.budgets, db.goals, db.familyMembers, db.assets, db.snapshots], async () => {
+        await db.transaction('rw', [db.accounts, db.transactions, db.trips, db.budgets, db.goals, db.familyMembers, db.assets, db.snapshots, db.auditLogs], async () => {
             if (validData.accounts) await db.accounts.bulkPut(validData.accounts as Account[]);
             if (validData.transactions) await db.transactions.bulkPut(validData.transactions as Transaction[]);
             if (validData.trips) await db.trips.bulkPut(validData.trips as unknown as Trip[]);
@@ -336,6 +420,7 @@ export const useDataStore = () => {
             if (validData.familyMembers) await db.familyMembers.bulkPut(validData.familyMembers as unknown as FamilyMember[]);
             if (validData.assets) await db.assets.bulkPut(validData.assets as unknown as Asset[]);
             if (validData.snapshots) await db.snapshots.bulkPut(validData.snapshots as unknown as Snapshot[]);
+            await logAudit('ACCOUNT', 'SYSTEM', 'UPDATE', { action: 'IMPORT_DATA', timestamp: new Date().toISOString() });
         });
         if (validData.customCategories) {
             setCustomCategories(validData.customCategories as unknown as CustomCategory[]);

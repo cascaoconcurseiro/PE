@@ -43,7 +43,8 @@ export enum Category {
   TAXES = 'Impostos e Taxas',
   INCOME = 'Salário/Renda',
   OTHER = 'Outros',
-  TRANSFER = 'Transferência'
+  TRANSFER = 'Transferência',
+  OPENING_BALANCE = 'Saldo Inicial / Ajuste'
 }
 
 export interface CustomCategory extends BaseEntity {
@@ -89,7 +90,7 @@ export interface Account extends BaseEntity {
   id: string;
   name: string;
   type: AccountType;
-  initialBalance: number;
+  initialBalance: number; // Deprecated in favor of transactions, kept for migration
   balance: number;
   currency: string;
   limit?: number;
@@ -155,6 +156,15 @@ export interface Transaction extends BaseEntity {
 
   reconciled?: boolean;
   reconciledWith?: string;
+}
+
+export interface AuditLog extends BaseEntity {
+  id: string;
+  entity: 'TRANSACTION' | 'ACCOUNT' | 'GOAL' | 'BUDGET' | 'TRIP';
+  entityId: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  changes: string; // JSON string of changes
+  userId?: string;
 }
 
 export enum View {
