@@ -16,6 +16,7 @@ interface AccountsProps {
     onDeleteAccount: (id: string) => void;
     onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
     showValues: boolean;
+    currentDate?: Date; // Added prop
 }
 
 const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
@@ -23,7 +24,7 @@ const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, sho
     return <span className="blur-sm select-none opacity-60">••••</span>;
 };
 
-export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, showValues }) => {
+export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, showValues, currentDate = new Date() }) => {
     const [viewState, setViewState] = useState<'LIST' | 'DETAIL'>('LIST');
     const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS'>('BANKING');
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -32,7 +33,14 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
     const { addToast } = useToast();
 
     // Invoice Navigation State
-    const [invoiceDate, setInvoiceDate] = useState(new Date());
+    const [invoiceDate, setInvoiceDate] = useState(currentDate);
+
+    // Sync local invoice date when global date changes
+    React.useEffect(() => {
+        if (!selectedAccount) {
+            setInvoiceDate(currentDate);
+        }
+    }, [currentDate, selectedAccount]);
 
     // OFX State
     const ofxInputRef = useRef<HTMLInputElement>(null);
@@ -601,7 +609,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
             {activeTab === 'CARDS' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {creditCards.map(account => {
-                        const { invoiceTotal } = getInvoiceData(account, new Date());
+                        const { invoiceTotal } = getInvoiceData(account, currentDate);
                         const limit = account.limit || 0;
                         const committedBalance = getCommittedBalance(account);
                         const percentageUsed = Math.min((committedBalance / limit) * 100, 100);
@@ -609,7 +617,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                             <div key={account.id} onClick={() => handleAccountClick(account)} className="group bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-6 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden min-h-[220px] flex flex-col justify-between">
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div><div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl group-hover:bg-emerald-500/30 transition-colors"></div>
                                 <div className="relative z-10 flex justify-between items-start"><div><h3 className="font-bold text-lg">{account.name}</h3><p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Cartão de Crédito</p></div><CreditCard className="w-6 h-6 text-white/50" /></div>
-                                <div className="relative z-10 mt-6"><div className="flex justify-between items-end mb-2"><div><p className="text-xs text-slate-400 mb-1">Fatura Atual</p><p className="text-2xl font-mono font-bold tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(invoiceTotal, account.currency)}</PrivacyBlur></p></div></div><div className="w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden mb-2"><div className={`h-full rounded-full transition-all duration-500 ${percentageUsed > 90 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${percentageUsed}%` }}></div></div><div className="flex justify-between text-[10px] text-slate-400 font-medium"><span>Limite: {formatCurrency(limit, account.currency)}</span><span>{percentageUsed.toFixed(0)}% usado</span></div></div>
+                                <div className="relative z-10 mt-6"><div className="flex justify-between items-end mb-2"><div><p className="text-xs text-slate-400 mb-1">Fatura Atual ({currentDate.toLocaleDateString('pt-BR', { month: 'short' })})</p><p className="text-2xl font-mono font-bold tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(invoiceTotal, account.currency)}</PrivacyBlur></p></div></div><div className="w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden mb-2"><div className={`h-full rounded-full transition-all duration-500 ${percentageUsed > 90 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${percentageUsed}%` }}></div></div><div className="flex justify-between text-[10px] text-slate-400 font-medium"><span>Limite: {formatCurrency(limit, account.currency)}</span><span>{percentageUsed.toFixed(0)}% usado</span></div></div>
                             </div>
                         );
                     })}

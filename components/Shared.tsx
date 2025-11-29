@@ -126,11 +126,26 @@ export const Shared: React.FC<SharedProps> = ({
         if (activeTab === 'TRAVEL') {
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else {
-            // Regular: No trip ID. Show pending always, paid only for selected month
-            return allItems.filter(i => 
-                !i.tripId && 
-                (!i.isPaid || isSameMonth(i.date, currentDate)) // Use global currentDate
-            ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            // REGULAR TAB LOGIC
+            const endOfSelectedMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            endOfSelectedMonth.setHours(23, 59, 59, 999);
+
+            return allItems.filter(i => {
+                if (i.tripId) return false; // Filter out trip items from Regular tab
+
+                const itemDate = new Date(i.date + 'T12:00:00'); // Safe parsing
+                
+                // 1. If Paid: Only show if it belongs strictly to this month (History for this month)
+                if (i.isPaid) {
+                    return isSameMonth(i.date, currentDate);
+                }
+                
+                // 2. If Unpaid (Pending):
+                // Show if it belongs to this month OR if it is Overdue (Past)
+                // HIDE if it is in the future (Next month's installment)
+                return itemDate <= endOfSelectedMonth;
+
+            }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         }
     };
 
@@ -161,28 +176,7 @@ export const Shared: React.FC<SharedProps> = ({
         const now = new Date().toISOString();
 
         // 1. Create Individual Transactions for EACH Item
-        // IMPORTANT: RECEIVE = INCOME (Enters my account). PAY = EXPENSE (Leaves my account).
-        
         settleModal.items.forEach(item => {
-            // Se estou Recebendo (type CREDIT), entra dinheiro -> INCOME
-            // Se estou Pagando (type DEBIT), sai dinheiro -> EXPENSE
-            
-            // NOTE: settleModal.type overrides individual item types in a bulk settlement usually,
-            // but here we are settling the NET.
-            // If I am doing a "RECEIVE" action, it means I am receiving the NET amount.
-            // But technically we should settle item by item for clarity.
-            
-            // Let's create ONE transaction for the Total Net if possible, or individual ones?
-            // Individual is better for traceability.
-            
-            // Logic Check:
-            // If item.type is CREDIT (They owe me) -> I am RECEIVING -> TransactionType.INCOME
-            // If item.type is DEBIT (I owe them) -> I am PAYING -> TransactionType.EXPENSE
-            
-            // However, settleModal.type dictates the flow of the *Net* amount.
-            // If settleModal.type is RECEIVE, we assume we are clearing mostly credits.
-            
-            // For simplicity and correctness in Cash Flow:
             const isReceiving = item.type === 'CREDIT';
             const descriptionPrefix = isReceiving ? 'Reembolso Recebido' : 'Pagamento de Dívida';
             
@@ -257,7 +251,7 @@ export const Shared: React.FC<SharedProps> = ({
                 <Card className="bg-gradient-to-br from-indigo-600 to-violet-700 text-white border-none shadow-lg">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm"><Users className="w-5 h-5" /></div>
-                        <span className="text-indigo-100 text-xs font-bold uppercase tracking-wider">Balanço Geral</span>
+                        <span className="text-indigo-100 text-xs font-bold uppercase tracking-wider">Balanço Geral ({currentDate.toLocaleDateString('pt-BR', { month: 'short' })})</span>
                     </div>
                     <div className="text-3xl font-black tracking-tight">{formatCurrency(viewTotals.net)}</div>
                     <p className="text-indigo-200 text-xs mt-1">
@@ -287,7 +281,7 @@ export const Shared: React.FC<SharedProps> = ({
                         onClick={() => setActiveTab('REGULAR')}
                         className={`px-6 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'REGULAR' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                     >
-                        <Home className="w-4 h-4" /> Regular
+                        <Home className="w-4 h-4" /> Mensal
                     </button>
                     <button
                         onClick={() => setActiveTab('TRAVEL')}
@@ -308,7 +302,7 @@ export const Shared: React.FC<SharedProps> = ({
                         <h3 className="text-lg font-bold text-slate-800 dark:text-white">Tudo certo por aqui!</h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                             {activeTab === 'REGULAR' 
-                                ? 'Você não tem pendências financeiras mensais com ninguém.' 
+                                ? `Nenhuma pendência financeira para ${currentDate.toLocaleDateString('pt-BR', { month: 'long' })}.` 
                                 : 'Nenhuma dívida de viagem pendente no momento.'}
                         </p>
                     </div>
