@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Transaction, TransactionType, Account, Trip, FamilyMember, CustomCategory } from '../types';
-import { Search } from 'lucide-react';
+import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, CustomCategory } from '../types';
+import { Search, Clock } from 'lucide-react';
 import { isSameMonth } from '../utils';
 import { TransactionList } from './transactions/TransactionList';
 import { TransactionSummary } from './transactions/TransactionSummary';
 import { TransactionForm } from './transactions/TransactionForm';
 import { ConfirmModal } from './ui/ConfirmModal';
+import { AnticipateInstallmentsModal } from './transactions/AnticipateInstallmentsModal'; // Import the new modal
+import { Button } from './ui/Button'; // Assuming Button is already imported
 
 // Export PrivacyBlur for reuse if needed, though mostly handled internally now
 export const PrivacyBlur = ({ children, showValues }: { children: React.ReactNode, showValues: boolean }) => {
@@ -22,7 +24,7 @@ interface TransactionsProps {
     onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
     onUpdateTransaction: (t: Transaction) => void;
     onDeleteTransaction: (id: string) => void;
-    onAnticipate?: (ids: string[], date: string) => void;
+    onAnticipate?: (ids: string[], date: string, accountId: string) => void; // Updated signature
     initialEditId?: string | null;
     onCancel?: () => void;
     modalMode?: boolean;
@@ -64,6 +66,9 @@ export const Transactions: React.FC<TransactionsProps> = ({
     
     // Delete State
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id: string | null }>({ isOpen: false, id: null });
+
+    // Anticipate Installments State
+    const [anticipateModal, setAnticipateModal] = useState<{ isOpen: boolean, transaction: Transaction | null }>({ isOpen: false, transaction: null });
 
     useEffect(() => {
         if (modalMode && !editingTransaction) {
@@ -131,6 +136,17 @@ export const Transactions: React.FC<TransactionsProps> = ({
         }
     };
 
+    const handleAnticipateRequest = (tx: Transaction) => {
+        setAnticipateModal({ isOpen: true, transaction: tx });
+    };
+
+    const handleConfirmAnticipation = (ids: string[], date: string, accountId: string) => {
+        if (onAnticipate) {
+            onAnticipate(ids, date, accountId);
+        }
+        setAnticipateModal({ isOpen: false, transaction: null });
+    };
+
     // Filter Logic
     const filteredTxs = useMemo(() => {
         return transactions
@@ -186,12 +202,12 @@ export const Transactions: React.FC<TransactionsProps> = ({
     return (
         <div className="space-y-6 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* SEARCH BAR */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-2 flex items-center gap-2">
                 <Search className="w-5 h-5 text-slate-400 ml-2" />
                 <input 
                     type="text" 
                     placeholder="Buscar transações..." 
-                    className="flex-1 outline-none text-sm font-medium text-slate-700 placeholder-slate-400 h-10"
+                    className="flex-1 outline-none text-sm font-medium text-slate-700 dark:text-white placeholder:text-slate-400 h-10 bg-transparent"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -219,6 +235,17 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 onCancel={() => setDeleteModal({ isOpen: false, id: null })}
                 isDanger
             />
+
+            {anticipateModal.isOpen && anticipateModal.transaction && (
+                <AnticipateInstallmentsModal
+                    isOpen={anticipateModal.isOpen}
+                    onClose={() => setAnticipateModal({ isOpen: false, transaction: null })}
+                    transactions={transactions}
+                    initialTransaction={anticipateModal.transaction}
+                    accounts={accounts}
+                    onConfirmAnticipation={handleConfirmAnticipation}
+                />
+            )}
         </div>
     );
 };

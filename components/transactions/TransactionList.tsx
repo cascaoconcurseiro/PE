@@ -1,7 +1,7 @@
 import React from 'react';
 import { Transaction, TransactionType, Account, FamilyMember, AccountType } from '../../types';
 import { formatCurrency, getCategoryIcon } from '../../utils';
-import { RefreshCcw, ScanLine, Plus, Plane, Users, Trash2, ArrowRight, User, CreditCard, Wallet, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { RefreshCcw, ScanLine, Plus, Plane, Users, Trash2, ArrowRight, User, CreditCard, Wallet, ArrowDownLeft, ArrowUpRight, Clock } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface TransactionListProps {
@@ -13,6 +13,7 @@ interface TransactionListProps {
     onDelete: (id: string) => void;
     onAddClick: () => void;
     emptyMessage?: string;
+    onAnticipateInstallments?: (tx: Transaction) => void; // New prop for anticipation
 }
 
 const BlurValue = ({ value, show }: { value: string, show: boolean }) => {
@@ -28,19 +29,20 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     onEdit, 
     onDelete,
     onAddClick,
-    emptyMessage 
+    emptyMessage,
+    onAnticipateInstallments // Destructure new prop
 }) => {
     const dates = Object.keys(groupedTxs).sort((a, b) => b.localeCompare(a));
 
     if (dates.length === 0) {
         return (
-            <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200">
-                <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+            <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+                <div className="bg-slate-50 dark:bg-slate-700 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
                     <ScanLine className="w-10 h-10" />
                 </div>
-                <h3 className="font-bold text-slate-800 text-lg">Sem movimento</h3>
-                <p className="text-slate-500 text-sm max-w-xs mx-auto mt-1 mb-6">{emptyMessage || "Nenhuma transação encontrada neste período."}</p>
-                <Button onClick={onAddClick} className="bg-slate-900 text-white shadow-xl shadow-slate-200">
+                <h3 className="font-bold text-slate-800 dark:text-white text-lg">Sem movimento</h3>
+                <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-xs mx-auto mt-1">{emptyMessage || "Nenhuma transação encontrada neste período."}</p>
+                <Button onClick={onAddClick} className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xl shadow-slate-200">
                     <Plus className="w-4 h-4 mr-2" /> Adicionar Agora
                 </Button>
             </div>
@@ -52,14 +54,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             {dates.map((dateStr) => (
                 <div key={dateStr}>
                     <div className="flex items-center gap-3 mb-3 px-2">
-                        <div className="bg-slate-200 text-slate-600 text-[10px] font-black uppercase px-2 py-1 rounded-md tracking-wider">
+                        <div className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase px-2 py-1 rounded-md tracking-wider">
                             {new Date(dateStr).getDate()}
                         </div>
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex-1">
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex-1">
                             {new Date(dateStr).toLocaleDateString('pt-BR', { weekday: 'long', month: 'long' })}
                         </span>
                     </div>
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">
                         {groupedTxs[dateStr].map(t => {
                             const CatIcon = getCategoryIcon(t.category);
                             const isPositive = (t.type === TransactionType.INCOME && !t.isRefund) || (t.type === TransactionType.EXPENSE && t.isRefund);
@@ -71,7 +73,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             const isShared = t.isShared || (t.sharedWith && t.sharedWith.length > 0);
                             const isTrip = !!t.tripId;
                             const isInstallment = !!t.isInstallment && !!t.currentInstallment;
-                            
+                            const isSettled = t.isSettled || (t.sharedWith && t.sharedWith.every(s => s.isSettled)); // Check if all splits are settled
+
                             // Amount Calculation Logic & Payer Info
                             let displayAmount = t.amount;
                             let subText = '';
@@ -101,30 +104,30 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             return (
                                 <div 
                                     key={t.id} 
-                                    className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors group relative"
+                                    className={`p-4 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group relative ${isSettled ? 'opacity-60 grayscale' : ''}`}
                                 >
                                     {/* Clickable Area for Edit */}
                                     <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => onEdit(t)}>
-                                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${isPositive ? 'bg-emerald-100 text-emerald-600' : 'bg-red-50 text-red-600'} group-hover:scale-110 duration-200`}>
+                                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${isPositive ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'} group-hover:scale-110 duration-200`}>
                                             {t.type === TransactionType.TRANSFER ? <RefreshCcw className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
                                         </div>
                                         <div className="overflow-hidden pr-2">
                                             <div className="flex items-center gap-2">
-                                                <p className="text-sm font-bold text-slate-900 truncate">{t.description}</p>
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{t.description}</p>
                                                 {/* Icons Badges */}
-                                                {isTrip && <span className="bg-violet-100 text-violet-700 p-0.5 rounded"><Plane className="w-3 h-3" /></span>}
-                                                {isShared && <span className="bg-indigo-100 text-indigo-700 p-0.5 rounded"><Users className="w-3 h-3" /></span>}
+                                                {isTrip && <span className="bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 p-0.5 rounded"><Plane className="w-3 h-3" /></span>}
+                                                {isShared && <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 p-0.5 rounded"><Users className="w-3 h-3" /></span>}
                                             </div>
                                             
-                                            <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500 mt-0.5">
-                                                <span className="truncate max-w-[100px]">{t.category}</span>
-                                                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                            <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                                                <span className="truncate max-w-[100px] font-medium text-slate-700 dark:text-slate-300">{t.category}</span>
+                                                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
                                                 <span className="flex items-center gap-1 truncate max-w-[120px] text-slate-400">
                                                     {isCreditCard ? <CreditCard className="w-3 h-3" /> : <Wallet className="w-3 h-3" />}
                                                     {accountName}
                                                 </span>
                                                 {isInstallment && (
-                                                    <span className="bg-purple-100 text-purple-700 px-1.5 rounded text-[9px] font-bold">
+                                                    <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 px-1.5 rounded text-[9px] font-bold">
                                                         {t.currentInstallment}/{t.totalInstallments}
                                                     </span>
                                                 )}
@@ -135,7 +138,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                     {/* Right Side: Amount & Actions */}
                                     <div className="flex items-center gap-4">
                                         <div className="text-right cursor-pointer" onClick={() => onEdit(t)}>
-                                            <span className={`block font-bold text-sm ${isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
+                                            <span className={`block font-bold text-sm ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
                                                 {isPositive ? '+' : ''} <BlurValue value={formatCurrency(displayAmount)} show={showValues} />
                                             </span>
                                             
@@ -165,9 +168,20 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                             )}
                                         </div>
 
+                                        {isInstallment && !isSettled && onAnticipateInstallments && (
+                                            <Button 
+                                                size="sm" 
+                                                variant="ghost" 
+                                                onClick={(e) => { e.stopPropagation(); onAnticipateInstallments(t); }} 
+                                                className="text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-xs h-7 px-2"
+                                            >
+                                                <Clock className="w-3 h-3 mr-1" /> Antecipar
+                                            </Button>
+                                        )}
+
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); if(confirm('Tem certeza que deseja excluir esta transação?')) onDelete(t.id); }}
-                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                            className="p-2 text-slate-300 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
                                             title="Excluir"
                                         >
                                             <Trash2 className="w-4 h-4" />

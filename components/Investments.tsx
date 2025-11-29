@@ -4,7 +4,7 @@ import { formatCurrency } from '../utils';
 import { convertToBRL, AVAILABLE_CURRENCIES } from '../services/currencyService';
 import {
     TrendingUp, Wallet, PieChart as PieChartIcon, DollarSign, ArrowUpRight, ArrowDownRight,
-    Plus, MoreHorizontal, Bitcoin, Building2, Landmark,
+    Plus, Bitcoin, Building2, Landmark,
     Activity, Search, Trash2, Edit2, X, Download, Printer, Minus, Save, AlertCircle, ArrowRightLeft, Filter, History
 } from 'lucide-react';
 import { Card } from './ui/Card';
@@ -40,12 +40,10 @@ export const Investments: React.FC<InvestmentsProps> = ({
 }) => {
     // Modal States
     const [isAssetModalOpen, setIsAssetModalOpen] = useState(false); // Used for "Novo Aporte" (Buy/Add)
-    const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
     const [isSellModalOpen, setIsSellModalOpen] = useState(false);
     const [isDividendModalOpen, setIsDividendModalOpen] = useState(false);
     const [isIRModalOpen, setIsIRModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-    const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
     const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
     // Data States
@@ -124,7 +122,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
         // Data extraction
         const ticker = (formData.get('ticker') as string).trim().toUpperCase();
         const inputQuantity = parseFloat(formData.get('quantity') as string);
-        const inputPrice = parseFloat(formData.get('averagePrice') as string); // In "Add New", Avg Price field acts as Purchase Price
+        const inputPrice = parseFloat(formData.get('price') as string); // In "Add New", Avg Price field acts as Purchase Price
         const currentPrice = parseFloat(formData.get('currentPrice') as string);
         const currency = formData.get('currency') as string;
         const type = formData.get('type') as AssetType;
@@ -369,24 +367,24 @@ export const Investments: React.FC<InvestmentsProps> = ({
                     </div>
                 </Card>
                 
-                <Card className="bg-white border-slate-200 shadow-sm">
+                <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-indigo-50 rounded-lg"><TrendingUp className="w-5 h-5 text-indigo-600" /></div>
-                        <span className="text-slate-500 text-xs font-bold uppercase tracking-widest">Total Investido</span>
+                        <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg"><TrendingUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /></div>
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest">Total Investido</span>
                     </div>
-                    <div className="text-3xl font-black text-slate-900">{showValues ? formatCurrency(totalInvested) : 'R$ ••••••'}</div>
+                    <div className="text-3xl font-black text-slate-900 dark:text-white">{showValues ? formatCurrency(totalInvested) : 'R$ ••••••'}</div>
                 </Card>
 
-                <Card className="bg-white border-slate-200 shadow-sm">
+                <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className={`p-2 rounded-lg ${profit >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                            {profit >= 0 ? <ArrowUpRight className="w-5 h-5 text-emerald-600" /> : <ArrowDownRight className="w-5 h-5 text-red-600" />}
+                        <div className={`p-2 rounded-lg ${profit >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-red-50 dark:bg-red-900/30'}`}>
+                            {profit >= 0 ? <ArrowUpRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> : <ArrowDownRight className="w-5 h-5 text-red-600 dark:text-red-400" />}
                         </div>
-                        <span className="text-slate-500 text-xs font-bold uppercase tracking-widest">Rentabilidade</span>
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest">Rentabilidade</span>
                     </div>
-                    <div className={`text-3xl font-black tracking-tight ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <div className={`text-3xl font-black tracking-tight ${profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                         {showValues ? formatCurrency(profit) : '••••••'}
-                        <span className="text-sm font-bold ml-2 opacity-80 bg-slate-100 px-2 py-1 rounded-lg text-slate-600 inline-block align-middle">
+                        <span className="text-sm font-bold ml-2 opacity-80 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-lg text-slate-600 dark:text-slate-300 inline-block align-middle">
                             {profitPercentage.toFixed(2)}%
                         </span>
                     </div>
@@ -395,58 +393,62 @@ export const Investments: React.FC<InvestmentsProps> = ({
 
             {/* --- 2. OPERATIONS CENTER (THE "QUADRADO") --- */}
             <div>
-                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <ArrowRightLeft className="w-5 h-5 text-indigo-600" /> Central de Operações
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                    <ArrowRightLeft className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Central de Operações
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {/* New Asset / Buy */}
-                    <button 
+                    {/* Novo Aporte / Compra */}
+                    <Button 
                         onClick={() => { setEditingAsset(null); setIsAssetModalOpen(true); }}
-                        className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-500 hover:ring-1 hover:ring-indigo-500 hover:shadow-md transition-all flex flex-col items-center justify-center gap-3 group"
+                        variant="secondary"
+                        className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:ring-1 hover:ring-indigo-500 hover:shadow-md transition-all group"
                     >
-                        <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                            <Plus className="w-6 h-6" />
+                        <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <Plus className="w-4 h-4" />
                         </div>
-                        <span className="font-bold text-slate-700 group-hover:text-indigo-700">Novo Aporte</span>
-                    </button>
+                        <span className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-indigo-700 dark:group-hover:text-indigo-400 text-xs">Novo Aporte</span>
+                    </Button>
 
-                    {/* Sell */}
-                    <button 
+                    {/* Registrar Venda */}
+                    <Button 
                         onClick={() => { setSelectedAsset(null); setIsSellModalOpen(true); }}
-                        className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-red-500 hover:ring-1 hover:ring-red-500 hover:shadow-md transition-all flex flex-col items-center justify-center gap-3 group"
+                        variant="secondary"
+                        className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-700 hover:border-red-500 hover:ring-1 hover:ring-red-500 hover:shadow-md transition-all group"
                     >
-                        <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors">
-                            <Minus className="w-6 h-6" />
+                        <div className="w-8 h-8 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-600 dark:text-red-400 group-hover:bg-red-600 group-hover:text-white transition-colors">
+                            <Minus className="w-4 h-4" />
                         </div>
-                        <span className="font-bold text-slate-700 group-hover:text-red-700">Registrar Venda</span>
-                    </button>
+                        <span className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-red-700 dark:group-hover:text-red-400 text-xs">Registrar Venda</span>
+                    </Button>
 
-                    {/* Dividends */}
-                    <button 
+                    {/* Proventos */}
+                    <Button 
                         onClick={() => { setSelectedAsset(null); setIsDividendModalOpen(true); }}
-                        className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-emerald-500 hover:ring-1 hover:ring-emerald-500 hover:shadow-md transition-all flex flex-col items-center justify-center gap-3 group"
+                        variant="secondary"
+                        className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:ring-1 hover:ring-emerald-500 hover:shadow-md transition-all group"
                     >
-                        <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                            <DollarSign className="w-6 h-6" />
+                        <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                            <DollarSign className="w-4 h-4" />
                         </div>
-                        <span className="font-bold text-slate-700 group-hover:text-emerald-700">Proventos</span>
-                    </button>
+                        <span className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 text-xs">Proventos</span>
+                    </Button>
 
-                    {/* New Brokerage */}
-                    <button 
-                        onClick={() => { setEditingAsset(null); setIsAssetModalOpen(true); setIsCreatingAccount(true); }}
-                        className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-slate-400 hover:ring-1 hover:ring-slate-400 hover:shadow-md transition-all flex flex-col items-center justify-center gap-3 group"
+                    {/* Relatório IR */}
+                    <Button 
+                        onClick={() => setIsIRModalOpen(true)}
+                        variant="secondary"
+                        className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-700 hover:border-slate-400 hover:ring-1 hover:ring-slate-400 hover:shadow-md transition-all group"
                     >
-                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 group-hover:bg-slate-700 group-hover:text-white transition-colors">
-                            <Landmark className="w-6 h-6" />
+                        <div className="w-8 h-8 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-300 group-hover:bg-slate-700 group-hover:text-white transition-colors">
+                            <FileUp className="w-4 h-4" />
                         </div>
-                        <span className="font-bold text-slate-700 group-hover:text-slate-900">Nova Corretora</span>
-                    </button>
+                        <span className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white text-xs">Relatório IR</span>
+                    </Button>
                 </div>
             </div>
 
             {/* --- 3. SEARCH & FILTER BAR --- */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center sticky top-4 z-20">
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row gap-4 items-center sticky top-4 z-20">
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                     <input 
@@ -454,7 +456,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
                         placeholder="Buscar ativos (ex: PETR4, Bitcoin)..." 
                         value={searchTerm} 
                         onChange={e => setSearchTerm(e.target.value)} 
-                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-medium text-slate-700 placeholder:text-slate-400 transition-all" 
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-medium text-slate-700 dark:text-white placeholder:text-slate-400" 
                     />
                 </div>
                 
@@ -464,21 +466,18 @@ export const Investments: React.FC<InvestmentsProps> = ({
                         <select 
                             value={filterType} 
                             onChange={e => setFilterType(e.target.value as any)} 
-                            className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 appearance-none cursor-pointer"
+                            className="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 dark:text-white appearance-none cursor-pointer"
                         >
                             <option value="ALL">Todos os Tipos</option>
                             {Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
                     
-                    <Button onClick={handleExport} variant="secondary" className="h-12 px-4 border-slate-200 text-slate-600 hover:bg-slate-100" title="Baixar CSV">
+                    <Button onClick={handleExport} variant="secondary" className="h-12 px-4 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" title="Baixar CSV">
                         <Download className="w-5 h-5" />
                     </Button>
-                    <Button onClick={handlePrint} variant="secondary" className="h-12 px-4 border-slate-200 text-slate-600 hover:bg-slate-100" title="Imprimir Relatório">
+                    <Button onClick={handlePrint} variant="secondary" className="h-12 px-4 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" title="Imprimir Relatório">
                         <Printer className="w-5 h-5" />
-                    </Button>
-                    <Button onClick={() => setIsIRModalOpen(true)} variant="secondary" className="h-12 px-4 border-slate-200 text-slate-600 hover:bg-slate-100 whitespace-nowrap font-bold">
-                        Relatório IR
                     </Button>
                 </div>
             </div>
@@ -488,12 +487,12 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 
                 {/* ASSET LIST */}
                 <div className="lg:col-span-2 space-y-6">
-                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-slate-500" /> Meus Ativos
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-slate-500 dark:text-slate-400" /> Meus Ativos
                     </h3>
                     
                     {filteredAssets.length === 0 ? (
-                        <div className="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-slate-200 text-slate-400">
+                        <div className="bg-white dark:bg-slate-800 rounded-3xl p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400">
                             <Building2 className="w-12 h-12 mx-auto mb-3 opacity-20" />
                             <p className="font-medium">Nenhum ativo encontrado.</p>
                             <p className="text-sm mt-1">Use o botão "Novo Aporte" para começar.</p>
@@ -506,18 +505,18 @@ export const Investments: React.FC<InvestmentsProps> = ({
                                 const assetProfitPercent = (assetProfit / (asset.quantity * asset.averagePrice)) * 100;
                                 
                                 return (
-                                    <div key={asset.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all group relative overflow-hidden">
+                                    <div key={asset.id} className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all group relative overflow-hidden">
                                         <div className="flex justify-between items-start mb-6">
                                             <div className="flex items-center gap-4">
-                                                <div className="p-3 bg-slate-50 rounded-2xl shrink-0 shadow-sm border border-slate-100">
+                                                <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-2xl shrink-0 shadow-sm border border-slate-100 dark:border-slate-600">
                                                     {getAssetIcon(asset.type)}
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2">
-                                                        <h4 className="font-black text-slate-900 text-xl tracking-tight">{asset.ticker}</h4>
-                                                        <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full font-bold border border-slate-200 uppercase tracking-wider">{asset.type}</span>
+                                                        <h4 className="font-black text-slate-900 dark:text-white text-xl tracking-tight">{asset.ticker}</h4>
+                                                        <span className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full font-bold border border-slate-200 dark:border-slate-600 uppercase tracking-wider">{asset.type}</span>
                                                     </div>
-                                                    <div className="text-sm text-slate-500 font-medium truncate max-w-[200px]">{asset.name}</div>
+                                                    <div className="text-sm text-slate-500 dark:text-slate-400 font-medium truncate max-w-[200px]">{asset.name}</div>
                                                 </div>
                                             </div>
                                             
@@ -528,34 +527,34 @@ export const Investments: React.FC<InvestmentsProps> = ({
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 p-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl border border-slate-100 dark:border-slate-700">
                                             <div>
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Quantidade</p>
-                                                <p className="font-bold text-slate-700 text-lg">{asset.quantity}</p>
+                                                <p className="font-bold text-slate-700 dark:text-slate-200 text-lg">{asset.quantity}</p>
                                             </div>
                                             <div>
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Preço Médio</p>
-                                                <p className="font-medium text-slate-600">{showValues ? formatCurrency(asset.averagePrice, asset.currency) : '••••••'}</p>
+                                                <p className="font-medium text-slate-600 dark:text-slate-300">{showValues ? formatCurrency(asset.averagePrice, asset.currency) : '••••••'}</p>
                                             </div>
                                             <div>
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Preço Atual</p>
-                                                <p className="font-medium text-slate-600">{showValues ? formatCurrency(asset.currentPrice, asset.currency) : '••••••'}</p>
+                                                <p className="font-medium text-slate-600 dark:text-slate-300">{showValues ? formatCurrency(asset.currentPrice, asset.currency) : '••••••'}</p>
                                             </div>
                                             <div>
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Total</p>
-                                                <p className="font-black text-slate-900 text-lg">{showValues ? formatCurrency(assetTotal, asset.currency) : '••••••'}</p>
+                                                <p className="font-black text-slate-900 dark:text-white text-lg">{showValues ? formatCurrency(assetTotal, asset.currency) : '••••••'}</p>
                                             </div>
                                         </div>
 
                                         <div className="mt-4 flex justify-between items-center">
-                                             <div className={`text-sm font-bold ${assetProfit >= 0 ? 'text-emerald-600' : 'text-red-600'} flex items-center gap-1 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100`}>
+                                             <div className={`text-sm font-bold ${assetProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'} flex items-center gap-1 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full shadow-sm border border-slate-100 dark:border-slate-700`}>
                                                 {assetProfit >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                                                 <span>{showValues ? formatCurrency(assetProfit, asset.currency) : '•••'}</span>
                                                 <span className="opacity-75 ml-1">({assetProfitPercent.toFixed(2)}%)</span>
                                              </div>
                                              <div className="flex gap-2">
-                                                 <button onClick={() => { setSelectedAsset(asset); setIsSellModalOpen(true); }} className="px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors">Vender</button>
-                                                 <button onClick={() => { setSelectedAsset(asset); setIsBuyModalOpen(true); }} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors">Comprar</button>
+                                                 <button onClick={() => { setSelectedAsset(asset); setIsSellModalOpen(true); }} className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">Vender</button>
+                                                 <button onClick={() => { setSelectedAsset(asset); setIsBuyModalOpen(true); }} className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">Comprar</button>
                                              </div>
                                         </div>
                                     </div>
@@ -567,10 +566,10 @@ export const Investments: React.FC<InvestmentsProps> = ({
 
                 {/* ALLOCATION CHART */}
                 <div className="xl:col-span-1 space-y-6">
-                    <Card className="border border-slate-200 bg-white shadow-sm overflow-hidden">
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <PieChartIcon className="w-5 h-5 text-indigo-600" />
+                    <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
+                        <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30">
+                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <PieChartIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                                 Alocação da Carteira
                             </h3>
                         </div>
@@ -581,21 +580,25 @@ export const Investments: React.FC<InvestmentsProps> = ({
                                         <Pie data={allocationData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
                                             {allocationData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                                         </Pie>
-                                        <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                        <Tooltip formatter={(value: number) => showValues ? formatCurrency(value) : 'R$ ****'} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                                         <Legend verticalAlign="bottom" height={36} iconType="circle" />
                                     </PieChart>
                                 </ResponsiveContainer>
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none flex-col">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase">Total</span>
+                                    <span className="text-sm font-black text-slate-900 dark:text-white">{showValues ? formatCurrency(currentTotal) : '••••'}</span>
+                                </div>
                             </div>
-                            <div className="mt-4 space-y-2">
-                                 {allocationData.sort((a,b) => b.value - a.value).map((item, idx) => (
-                                     <div key={item.name} className="flex justify-between text-xs border-b border-slate-50 pb-1 last:border-0">
-                                         <span className="flex items-center gap-2">
-                                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
-                                             <span className="text-slate-600 font-medium">{item.name}</span>
-                                         </span>
-                                         <span className="font-bold text-slate-900">{((item.value / currentTotal) * 100).toFixed(1)}%</span>
-                                     </div>
-                                 ))}
+                            <div className="mt-4 space-y-3">
+                                {allocationData.sort((a,b) => b.value - a.value).map((item, idx) => (
+                                    <div key={item.name} className="flex justify-between text-xs items-center">
+                                        <span className="flex items-center gap-2">
+                                            <span className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                                            <span className="text-slate-600 dark:text-slate-300 font-bold">{item.name}</span>
+                                        </span>
+                                        <span className="font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">{((item.value / currentTotal) * 100).toFixed(1)}%</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </Card>
@@ -607,10 +610,10 @@ export const Investments: React.FC<InvestmentsProps> = ({
             {/* ASSET MODAL (Buy/Add/Edit) */}
             {isAssetModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                            <h3 className="text-xl font-bold text-slate-800">{editingAsset ? 'Editar Ativo' : 'Novo Aporte'}</h3>
-                            <button onClick={() => setIsAssetModalOpen(false)} className="p-2 hover:bg-white rounded-full transition-colors text-slate-500"><X className="w-5 h-5" /></button>
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/30">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">{editingAsset ? 'Editar Ativo' : 'Novo Aporte'}</h3>
+                            <button onClick={() => setIsAssetModalOpen(false)} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500"><X className="w-5 h-5" /></button>
                         </div>
                         
                         <div className="overflow-y-auto p-6 custom-scrollbar">
@@ -624,12 +627,12 @@ export const Investments: React.FC<InvestmentsProps> = ({
                             <form onSubmit={handleSaveAsset} className="space-y-5">
                                 {/* Account Selection */}
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Corretora (Onde o ativo ficará)</label>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Corretora (Onde o ativo ficará)</label>
                                     <select 
                                         name="accountId" 
                                         required 
                                         defaultValue={editingAsset?.accountId} 
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-bold text-slate-900 transition-all" 
+                                        className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-bold text-slate-900 dark:text-white transition-all" 
                                         onChange={(e) => setIsCreatingAccount(e.target.value === 'NEW')}
                                     >
                                         <option value="">Selecione a corretora...</option>
@@ -639,17 +642,17 @@ export const Investments: React.FC<InvestmentsProps> = ({
                                 </div>
 
                                 {isCreatingAccount && (
-                                    <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 animate-in fade-in slide-in-from-top-2">
-                                        <label className="block text-xs font-bold text-indigo-700 mb-1">Nome da Nova Corretora</label>
-                                        <input type="text" value={newAccountName} onChange={(e) => setNewAccountName(e.target.value)} placeholder="Ex: NuInvest, XP..." className="w-full px-4 py-3 rounded-xl bg-white border border-indigo-200 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900" />
+                                    <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30 animate-in fade-in slide-in-from-top-2">
+                                        <label className="block text-xs font-bold text-indigo-700 dark:text-indigo-400 mb-1">Nome da Nova Corretora</label>
+                                        <input type="text" value={newAccountName} onChange={(e) => setNewAccountName(e.target.value)} placeholder="Ex: NuInvest, XP..." className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-white" />
                                     </div>
                                 )}
 
                                 {/* Source Account (Where money comes from) */}
                                 {!editingAsset && (
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Origem do Dinheiro (Pagamento)</label>
-                                        <select name="sourceAccountId" required className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-bold text-slate-900 transition-all">
+                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Origem do Dinheiro (Pagamento)</label>
+                                        <select name="sourceAccountId" required className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-bold text-slate-900 dark:text-white transition-all">
                                             <option value="">Selecione a conta...</option>
                                             {bankingAccounts.map(a => <option key={a.id} value={a.id}>{a.name} ({formatCurrency(a.balance, a.currency)})</option>)}
                                         </select>
@@ -657,20 +660,20 @@ export const Investments: React.FC<InvestmentsProps> = ({
                                 )}
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Ticker</label><input name="ticker" required defaultValue={editingAsset?.ticker} placeholder="Ex: PETR4" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 uppercase" /></div>
-                                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Tipo</label><select name="type" required defaultValue={editingAsset?.type || AssetType.STOCK} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900">{Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Ticker</label><input name="ticker" required defaultValue={editingAsset?.ticker} placeholder="Ex: PETR4" className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 uppercase dark:text-white" /></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Tipo</label><select name="type" required defaultValue={editingAsset?.type || AssetType.STOCK} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white">{Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                                 </div>
-                                <div><label className="block text-xs font-bold text-slate-500 mb-1">Nome da Empresa/Fundo</label><input name="name" required defaultValue={editingAsset?.name} placeholder="Ex: Petróleo Brasileiro S.A." className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900" /></div>
+                                <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Nome da Empresa/Fundo</label><input name="name" required defaultValue={editingAsset?.name} placeholder="Ex: Petróleo Brasileiro S.A." className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white" /></div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Moeda do Ativo</label><select name="currency" required defaultValue={editingAsset?.currency || 'BRL'} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900">{AVAILABLE_CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}</select></div>
-                                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Quantidade</label><input name="quantity" type="number" step="0.000001" required defaultValue={editingAsset?.quantity} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900" /></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Moeda do Ativo</label><select name="currency" required defaultValue={editingAsset?.currency || 'BRL'} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white">{AVAILABLE_CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}</select></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Quantidade</label><input name="quantity" type="number" step="0.000001" required defaultValue={editingAsset?.quantity} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white" /></div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><label className="block text-xs font-bold text-slate-500 mb-1">{editingAsset ? 'Preço Médio' : 'Preço de Compra'}</label><input name="averagePrice" type="number" step="0.01" required defaultValue={editingAsset?.averagePrice} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900" /></div>
-                                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Preço Atual (Cotação)</label><input name="currentPrice" type="number" step="0.01" required defaultValue={editingAsset?.currentPrice} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900" /></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">{editingAsset ? 'Preço Médio' : 'Preço de Compra'}</label><input name="averagePrice" type="number" step="0.01" required defaultValue={editingAsset?.averagePrice} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white" /></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Preço Atual (Cotação)</label><input name="currentPrice" type="number" step="0.01" required defaultValue={editingAsset?.currentPrice} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white" /></div>
                                 </div>
                                 
-                                <div><label className="block text-xs font-bold text-slate-500 mb-1">Data da Operação</label><input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900" /></div>
+                                <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Data da Operação</label><input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white" /></div>
 
                                 <Button type="submit" className="w-full h-14 text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 shadow-lg rounded-xl mt-4">
                                     <Save className="w-5 h-5 mr-2" /> {editingAsset ? 'Salvar Alterações' : 'Confirmar Aporte'}
@@ -684,18 +687,18 @@ export const Investments: React.FC<InvestmentsProps> = ({
             {/* SELL MODAL */}
             {isSellModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                            <h3 className="text-xl font-bold text-slate-800">Registrar Venda</h3>
-                            <button onClick={() => setIsSellModalOpen(false)} className="p-2 hover:bg-white rounded-full transition-colors text-slate-500"><X className="w-5 h-5 text-slate-500" /></button>
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/30">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">Registrar Venda</h3>
+                            <button onClick={() => setIsSellModalOpen(false)} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500"><X className="w-5 h-5" /></button>
                         </div>
                         <form onSubmit={handleSellAsset} className="p-6 space-y-5">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Ativo</label>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Ativo</label>
                                 {selectedAsset ? (
-                                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 font-bold text-slate-900">{selectedAsset.ticker} - {selectedAsset.name}</div>
+                                    <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white">{selectedAsset.ticker} - {selectedAsset.name}</div>
                                 ) : (
-                                    <select name="assetId" required className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-900 transition-all">
+                                    <select name="assetId" required className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-900 dark:text-white transition-all">
                                         <option value="">Selecione o ativo...</option>
                                         {assets.map(a => <option key={a.id} value={a.id}>{a.ticker} - {a.name}</option>)}
                                     </select>
@@ -703,19 +706,19 @@ export const Investments: React.FC<InvestmentsProps> = ({
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div><label className="block text-xs font-bold text-slate-500 mb-1">Quantidade</label><input name="quantity" type="number" step="0.000001" required className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-900" /></div>
-                                <div><label className="block text-xs font-bold text-slate-500 mb-1">Preço Venda</label><input name="price" type="number" step="0.01" required className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-900" /></div>
+                                <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Quantidade</label><input name="quantity" type="number" step="0.000001" required className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-900 dark:text-white" /></div>
+                                <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Preço Venda</label><input name="price" type="number" step="0.01" required className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-900 dark:text-white" /></div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Destino do Dinheiro (Recebimento)</label>
-                                <select name="destAccountId" required className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-900 transition-all">
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Destino do Dinheiro (Recebimento)</label>
+                                <select name="destAccountId" required className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-900 dark:text-white transition-all">
                                     <option value="">Selecione a conta...</option>
                                     {bankingAccounts.map(a => <option key={a.id} value={a.id}>{a.name} ({formatCurrency(a.balance, a.currency)})</option>)}
                                 </select>
                             </div>
 
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">Data</label><input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-900" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Data</label><input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-900 dark:text-white" /></div>
 
                             <Button type="submit" className="w-full h-14 text-base bg-red-600 hover:bg-red-700 text-white shadow-red-200 shadow-lg rounded-xl mt-2">
                                 <Minus className="w-5 h-5 mr-2" /> Confirmar Venda
@@ -728,15 +731,15 @@ export const Investments: React.FC<InvestmentsProps> = ({
             {/* DIVIDEND MODAL */}
             {isDividendModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                            <h3 className="text-xl font-bold text-slate-800">Registrar Proventos</h3>
-                            <button onClick={() => setIsDividendModalOpen(false)} className="p-2 hover:bg-white rounded-full transition-colors text-slate-500"><X className="w-5 h-5 text-slate-500" /></button>
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/30">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">Registrar Proventos</h3>
+                            <button onClick={() => setIsDividendModalOpen(false)} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500"><X className="w-5 h-5" /></button>
                         </div>
                         <form onSubmit={handleRecordDividend} className="p-6 space-y-5">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Ativo</label>
-                                <select name="assetId" required className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900 transition-all">
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Ativo</label>
+                                <select name="assetId" required className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900 dark:text-white transition-all">
                                     <option value="">Selecione o ativo...</option>
                                     {assets.map(a => <option key={a.id} value={a.id}>{a.ticker} - {a.name}</option>)}
                                 </select>
@@ -744,28 +747,28 @@ export const Investments: React.FC<InvestmentsProps> = ({
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">Tipo</label>
-                                    <select name="type" required className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900">
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Tipo</label>
+                                    <select name="type" required className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900 dark:text-white">
                                         <option value="Dividendos">Dividendos</option>
                                         <option value="JCP">JCP</option>
                                         <option value="Rendimentos">Rendimentos</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">Valor Total</label>
-                                    <input name="amount" type="number" step="0.01" required className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900" />
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Valor Total</label>
+                                    <input name="amount" type="number" step="0.01" required className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900 dark:text-white" />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Receber em (Destino)</label>
-                                <select name="destAccountId" required className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900 transition-all">
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Receber em (Destino)</label>
+                                <select name="destAccountId" required className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900 dark:text-white transition-all">
                                     <option value="">Selecione a conta...</option>
                                     {bankingAccounts.map(a => <option key={a.id} value={a.id}>{a.name} ({formatCurrency(a.balance, a.currency)})</option>)}
                                 </select>
                             </div>
 
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">Data</label><input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Data</label><input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900 dark:text-white" /></div>
 
                             <Button type="submit" className="w-full h-14 text-base bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200 shadow-lg rounded-xl mt-2">
                                 <DollarSign className="w-5 h-5 mr-2" /> Confirmar Recebimento
@@ -776,10 +779,10 @@ export const Investments: React.FC<InvestmentsProps> = ({
             )}
             
             {/* HISTORY MODAL */}
-             {isHistoryModalOpen && selectedAsset && (<div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto"><div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-slate-800">Histórico de Negociações - {selectedAsset.ticker}</h3><button onClick={() => setIsHistoryModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5 text-slate-500" /></button></div><div className="space-y-4">{!selectedAsset.tradeHistory || selectedAsset.tradeHistory.length === 0 ? (<p className="text-center text-slate-500 py-8">Nenhuma negociação registrada.</p>) : (selectedAsset.tradeHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(trade => (<div key={trade.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100"><div><div className={`text-xs font-bold uppercase ${trade.type === 'BUY' ? 'text-indigo-600' : 'text-red-600'}`}>{trade.type === 'BUY' ? 'Compra' : 'Venda'}</div><div className="text-sm text-slate-600">{new Date(trade.date).toLocaleDateString('pt-BR')}</div></div><div className="text-right"><div className="font-bold text-slate-900">{trade.quantity} un. x {formatCurrency(trade.price, trade.currency)}</div><div className="text-xs text-slate-500">Total: {formatCurrency(trade.total, trade.currency)}</div>{trade.profit && (<div className={`text-xs font-bold ${trade.profit > 0 ? 'text-emerald-600' : 'text-red-600'}`}>Lucro: {formatCurrency(trade.profit, trade.currency)}</div>)}</div></div>)))}</div></div></div>)}
+             {isHistoryModalOpen && selectedAsset && (<div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto"><div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-slate-800 dark:text-white">Histórico de Negociações - {selectedAsset.ticker}</h3><button onClick={() => setIsHistoryModalOpen(false)} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500"><X className="w-5 h-5" /></button></div><div className="space-y-4">{!selectedAsset.tradeHistory || selectedAsset.tradeHistory.length === 0 ? (<p className="text-center text-slate-500 dark:text-slate-400 py-8">Nenhuma negociação registrada.</p>) : (selectedAsset.tradeHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(trade => (<div key={trade.id} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700"><div><div className={`text-xs font-bold uppercase ${trade.type === 'BUY' ? 'text-indigo-600 dark:text-indigo-400' : 'text-red-600 dark:text-red-400'}`}>{trade.type === 'BUY' ? 'Compra' : 'Venda'}</div><div className="text-sm text-slate-600 dark:text-slate-300">{new Date(trade.date).toLocaleDateString('pt-BR')}</div></div><div className="text-right"><div className="font-bold text-slate-900 dark:text-white">{trade.quantity} un. x {formatCurrency(trade.price, trade.currency)}</div><div className="text-xs text-slate-500 dark:text-slate-400">Total: {formatCurrency(trade.total, trade.currency)}</div>{trade.profit && (<div className={`text-xs font-bold ${trade.profit > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>Lucro: {formatCurrency(trade.profit, trade.currency)}</div>)}</div></div>)))}</div></div></div>)}
 
             {/* IR REPORT MODAL */}
-            {isIRModalOpen && (<div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"><div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-slate-800">Relatório para Imposto de Renda</h3><button onClick={() => setIsIRModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5 text-slate-500" /></button></div><div className="space-y-4"><div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl text-sm border border-yellow-100"><strong>Atenção:</strong> Este relatório é apenas informativo. Confira sempre os informes oficiais das corretoras e escrituradores.</div><div className="space-y-6">{Object.values(AssetType).map(type => { const typeAssets = assets.filter(a => a.type === type); if (typeAssets.length === 0) return null; return (<div key={type}><h4 className="font-bold text-slate-700 mb-2 border-b border-slate-100 pb-1">{type}</h4><div className="space-y-2">{typeAssets.map(asset => (<div key={asset.id} className="flex justify-between text-sm p-2 hover:bg-slate-50 rounded-lg"><div><div className="font-bold">{asset.ticker} - {asset.name}</div><div className="text-slate-500 text-xs">CNPJ: (Verificar Informe)</div></div><div className="text-right"><div className="font-mono">{asset.quantity} un. a {formatCurrency(asset.averagePrice, asset.currency)}</div><div className="font-bold text-slate-900">Total: {formatCurrency(asset.quantity * asset.averagePrice, asset.currency)}</div></div></div>))}</div></div>); })}</div></div><div className="mt-6 pt-4 border-t border-slate-100 flex justify-end"><Button onClick={() => window.print()} variant="secondary">Imprimir / Salvar PDF</Button></div></div></div>)}
+            {isIRModalOpen && (<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"><div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-slate-800 dark:text-white">Relatório para Imposto de Renda</h3><button onClick={() => setIsIRModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500"><X className="w-5 h-5" /></button></div><div className="space-y-4"><div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 rounded-xl text-sm border border-yellow-100 dark:border-yellow-900/30"><strong>Atenção:</strong> Este relatório é apenas informativo. Confira sempre os informes oficiais das corretoras e escrituradores.</div><div className="space-y-6">{Object.values(AssetType).map(type => { const typeAssets = assets.filter(a => a.type === type); if (typeAssets.length === 0) return null; return (<div key={type}><h4 className="font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1">{type}</h4><div className="space-y-2">{typeAssets.map(asset => (<div key={asset.id} className="flex justify-between text-sm p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg"><div><div className="font-bold text-slate-900 dark:text-white">{asset.ticker} - {asset.name}</div><div className="text-slate-500 dark:text-slate-400 text-xs">CNPJ: (Verificar Informe)</div></div><div className="text-right"><div className="font-mono text-slate-700 dark:text-slate-300">{asset.quantity} un. a {formatCurrency(asset.averagePrice, asset.currency)}</div><div className="font-bold text-slate-900 dark:text-white">Total: {formatCurrency(asset.quantity * asset.averagePrice, asset.currency)}</div></div></div>))}</div></div>); })}</div></div><div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-end"><Button onClick={() => window.print()} variant="secondary">Imprimir / Salvar PDF</Button></div></div></div>)}
         </div>
     );
 };

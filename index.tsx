@@ -162,7 +162,7 @@ const App = () => {
             case View.DASHBOARD:
                 return <Dashboard accounts={calculatedAccounts} transactions={transactions} currentDate={currentDate} showValues={showValues} onEditRequest={handleRequestEdit} />;
             case View.ACCOUNTS:
-                return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} />;
+                return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipateInstallments={handlers.handleAnticipateInstallments} />;
             case View.TRANSACTIONS:
                 return <Transactions transactions={transactions} accounts={calculatedAccounts} trips={trips} familyMembers={familyMembers} customCategories={customCategories} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAnticipate={handlers.handleAnticipateInstallments} currentDate={currentDate} showValues={showValues} initialEditId={editTxId} onClearEditId={() => setEditTxId(null)} onNavigateToAccounts={() => setActiveView(View.ACCOUNTS)} onNavigateToTrips={() => setActiveView(View.TRIPS)} onNavigateToFamily={() => setActiveView(View.FAMILY)} />;
             case View.BUDGETS:

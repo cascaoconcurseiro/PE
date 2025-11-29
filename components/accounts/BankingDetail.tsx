@@ -42,34 +42,34 @@ export const BankingDetail: React.FC<BankingDetailProps> = ({
 
             {/* --- QUICK ACTIONS --- */}
             <div className="grid grid-cols-3 gap-3 no-print">
-                <button onClick={() => onAction('DEPOSIT')} className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
-                    <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700"><ArrowUpRight className="w-5 h-5" /></div>
-                    <span className="text-xs font-bold text-slate-700">Depositar</span>
+                <button onClick={() => onAction('DEPOSIT')} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm">
+                    <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-700 dark:text-emerald-400"><ArrowUpRight className="w-5 h-5" /></div>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Depositar</span>
                 </button>
-                <button onClick={() => onAction('WITHDRAW')} className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
-                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-700"><ArrowDownLeft className="w-5 h-5" /></div>
-                    <span className="text-xs font-bold text-slate-700">Sacar</span>
+                <button onClick={() => onAction('WITHDRAW')} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm">
+                    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-700 dark:text-red-400"><ArrowDownLeft className="w-5 h-5" /></div>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Sacar</span>
                 </button>
-                <button onClick={() => onAction('TRANSFER')} className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700"><RefreshCcw className="w-5 h-5" /></div>
-                    <span className="text-xs font-bold text-slate-700">Transferir</span>
+                <button onClick={() => onAction('TRANSFER')} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm">
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-700 dark:text-blue-400"><RefreshCcw className="w-5 h-5" /></div>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Transferir</span>
                 </button>
             </div>
 
             <div>
-                <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-3 px-2">Extrato Detalhado</h3>
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
-                    {extractTxs.length === 0 ? <div className="p-8 text-center text-slate-500"><p className="text-sm">Nenhuma movimentação.</p></div> : 
+                <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3 px-2">Extrato Detalhado</h3>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">
+                    {extractTxs.length === 0 ? <div className="p-8 text-center text-slate-500 dark:text-slate-400"><p className="text-sm">Nenhuma movimentação.</p></div> : 
                         extractTxs.map(t => {
                             const CatIcon = getCategoryIcon(t.category);
                             const isPositive = (t.type === TransactionType.INCOME && !t.isRefund) || (t.type === TransactionType.EXPENSE && t.isRefund);
                             return (
-                                <div key={t.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                <div key={t.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPositive ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}><CatIcon className="w-5 h-5" /></div>
-                                        <div><p className="text-sm font-bold text-slate-800">{t.description}</p><p className="text-xs text-slate-600">{new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}</p></div>
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPositive ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}><CatIcon className="w-5 h-5" /></div>
+                                        <div><p className="text-sm font-bold text-slate-800 dark:text-white">{t.description}</p><p className="text-xs text-slate-600 dark:text-slate-400">{new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}</p></div>
                                     </div>
-                                    <span className={`font-bold ${isPositive ? 'text-emerald-700' : 'text-slate-800'}`}>{isPositive ? '+' : '-'}<PrivacyBlur showValues={showValues}>{formatCurrency(t.amount, account.currency)}</PrivacyBlur></span>
+                                    <span className={`font-bold ${isPositive ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-white'}`}>{isPositive ? '+' : '-'}<PrivacyBlur showValues={showValues}>{formatCurrency(t.amount, account.currency)}</PrivacyBlur></span>
                                 </div>
                             );
                         })
