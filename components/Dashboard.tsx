@@ -241,7 +241,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                         <BarChart3 className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-slate-800 dark:text-white text-lg">Balanço Anual: Entradas vs Saídas</h3>
+                        <h3 className="font-bold text-slate-800 dark:text-white text-lg">Fluxo de Caixa</h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400">Visão consolidada do ano de {selectedYear}</p>
                     </div>
                 </div>

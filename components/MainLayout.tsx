@@ -172,9 +172,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                             <div className="w-9 h-9 bg-gradient-to-tr from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center shadow-emerald-500/20 shadow-lg shrink-0">
                                 <PiggyBank className="w-5 h-5 text-white" />
                             </div>
-                            <div>
-                                <span className="font-bold text-slate-800 dark:text-white text-lg leading-tight block">Pé de Meia</span>
-                            </div>
                         </div>
 
                         <div className="hidden md:block">
