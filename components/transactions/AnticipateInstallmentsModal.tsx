@@ -84,7 +84,7 @@ export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalPr
                     <input 
                         type="date" 
                         value={paymentDate} 
-                        onClick={(e) => e.currentTarget.showPicker()}
+                        onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
                         onChange={e => setPaymentDate(e.target.value)} 
                         className="w-full bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-700 rounded-xl p-3 font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-purple-500" 
                     />

@@ -473,7 +473,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                     <input
                                         type="date"
                                         value={date}
-                                        onClick={(e) => e.currentTarget.showPicker()}
+                                        onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
                                         onChange={e => setDate(e.target.value)}
                                         className="bg-transparent font-medium text-slate-700 text-sm outline-none w-full h-full cursor-pointer"
                                     />
@@ -668,7 +668,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                         <input
                                             type="date"
                                             value={notificationDate}
-                                            onClick={(e) => e.currentTarget.showPicker()}
+                                            onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
                                             onChange={e => setNotificationDate(e.target.value)}
                                             className="w-full p-2 text-sm font-bold text-slate-700 outline-none"
                                         />

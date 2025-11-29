@@ -3,7 +3,9 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Download, Upload, Trash2, ShieldCheck, Database, AlertTriangle, Tag, Plus, X, Key, Eye, EyeOff } from 'lucide-react';
 import { Account, Budget, CustomCategory, FamilyMember, Transaction, Trip, Asset, Goal, Snapshot } from '../types';
-
+import { useToast } from './ui/Toast';
+import { ConfirmModal } from './ui/ConfirmModal';
+import { Modal } from './ui/Modal';
 interface SettingsProps {
     onImport: (data: any) => void;
     customCategories: CustomCategory[];
@@ -45,7 +47,16 @@ export const Settings: React.FC<SettingsProps> = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [globalCurrency, setGlobalCurrency] = useState('BRL');
-    
+    const { addToast } = useToast();
+
+    // Modal States
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void }>({
+        isOpen: false, title: '', message: '', onConfirm: () => { }
+    });
+    const [inputModal, setInputModal] = useState<{ isOpen: boolean; title: string; value: string; onConfirm: (val: string) => void }>({
+        isOpen: false, title: '', value: '', onConfirm: () => { }
+    });
+
     // API Key State
     const [apiKey, setApiKey] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
@@ -57,7 +68,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
     const handleSaveApiKey = () => {
         localStorage.setItem('pdm_api_key', apiKey);
-        alert('Chave API salva com segurança no navegador!');
+        addToast('Chave API salva com segurança no navegador!', 'success');
     };
 
     const handleExport = () => {
@@ -97,30 +108,40 @@ export const Settings: React.FC<SettingsProps> = ({
         reader.onload = (event) => {
             try {
                 const json = JSON.parse(event.target?.result as string);
-                if (window.confirm('Isso substituirá todos os seus dados atuais. Tem certeza que deseja restaurar o backup?')) {
-                    onImport(json);
-                }
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Restaurar Backup',
+                    message: 'Isso substituirá todos os seus dados atuais. Tem certeza que deseja restaurar o backup?',
+                    onConfirm: () => {
+                        onImport(json);
+                        addToast('Backup restaurado com sucesso!', 'success');
+                    }
+                });
             } catch (err) {
-                alert('Erro ao ler arquivo de backup. Certifique-se que é um JSON válido.');
+                addToast('Erro ao ler arquivo de backup. Certifique-se que é um JSON válido.', 'error');
             }
         };
         reader.readAsText(file);
     };
 
     const handleClearData = async () => {
-        if (window.confirm('ATENÇÃO: Isso apagará TODOS os seus dados deste dispositivo. Se você não fez backup, eles serão perdidos. Deseja continuar?')) {
-            try {
-                localStorage.clear();
-                // We assume db is available globally or reload handles it
-                const { db } = await import('../services/db');
-                await db.delete();
-                await db.open();
-                window.location.reload();
-            } catch (e) {
-                console.error("Error clearing data:", e);
-                alert("Erro ao limpar dados. Tente novamente.");
+        setConfirmModal({
+            isOpen: true,
+            title: 'Zona de Perigo',
+            message: 'ATENÇÃO: Isso apagará TODOS os seus dados deste dispositivo. Se você não fez backup, eles serão perdidos. Deseja continuar?',
+            onConfirm: async () => {
+                try {
+                    localStorage.clear();
+                    const { db } = await import('../services/db');
+                    await db.delete();
+                    await db.open();
+                    window.location.reload();
+                } catch (e) {
+                    console.error("Error clearing data:", e);
+                    addToast("Erro ao limpar dados. Tente novamente.", 'error');
+                }
             }
-        }
+        });
     };
 
     const handleAddCat = (e: React.FormEvent) => {
@@ -128,7 +149,7 @@ export const Settings: React.FC<SettingsProps> = ({
         const trimmed = newCategoryName.trim();
         if (trimmed) {
             if (customCategories.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
-                alert('Categoria já existe!');
+                addToast('Categoria já existe!', 'warning');
                 return;
             }
             onAddCategory(trimmed);
@@ -201,7 +222,7 @@ export const Settings: React.FC<SettingsProps> = ({
                             <Button onClick={handleSaveApiKey} className="bg-violet-600 hover:bg-violet-700 text-white">Salvar</Button>
                         </div>
                         <p className="text-xs text-slate-500 mt-2">
-                            Sua chave é armazenada apenas no armazenamento local do seu navegador. 
+                            Sua chave é armazenada apenas no armazenamento local do seu navegador.
                             Nunca compartilhe sua chave API.
                         </p>
                     </div>
@@ -230,11 +251,20 @@ export const Settings: React.FC<SettingsProps> = ({
                                     <span className="font-medium text-slate-800">{acc.name} ({acc.type})</span>
                                     <div className="flex gap-2">
                                         <button onClick={() => {
-                                            const newName = prompt("Novo nome:", acc.name);
-                                            if (newName) onUpdateAccount({ ...acc, name: newName });
+                                            setInputModal({
+                                                isOpen: true,
+                                                title: 'Renomear Conta',
+                                                value: acc.name,
+                                                onConfirm: (val) => onUpdateAccount({ ...acc, name: val })
+                                            });
                                         }} className="text-blue-600 text-xs font-bold hover:underline">Editar</button>
                                         <button onClick={() => {
-                                            if (confirm("Excluir esta conta?")) onDeleteAccount(acc.id);
+                                            setConfirmModal({
+                                                isOpen: true,
+                                                title: 'Excluir Conta',
+                                                message: `Deseja excluir a conta ${acc.name}?`,
+                                                onConfirm: () => onDeleteAccount(acc.id)
+                                            });
                                         }} className="text-red-600 text-xs font-bold hover:underline">Excluir</button>
                                     </div>
                                 </div>
@@ -251,11 +281,20 @@ export const Settings: React.FC<SettingsProps> = ({
                                     <span className="font-medium text-slate-800">{trip.name}</span>
                                     <div className="flex gap-2">
                                         <button onClick={() => {
-                                            const newName = prompt("Novo nome:", trip.name);
-                                            if (newName) onUpdateTrip({ ...trip, name: newName });
+                                            setInputModal({
+                                                isOpen: true,
+                                                title: 'Renomear Viagem',
+                                                value: trip.name,
+                                                onConfirm: (val) => onUpdateTrip({ ...trip, name: val })
+                                            });
                                         }} className="text-blue-600 text-xs font-bold hover:underline">Editar</button>
                                         <button onClick={() => {
-                                            if (confirm("Excluir esta viagem?")) onDeleteTrip(trip.id);
+                                            setConfirmModal({
+                                                isOpen: true,
+                                                title: 'Excluir Viagem',
+                                                message: `Deseja excluir a viagem ${trip.name}?`,
+                                                onConfirm: () => onDeleteTrip(trip.id)
+                                            });
                                         }} className="text-red-600 text-xs font-bold hover:underline">Excluir</button>
                                     </div>
                                 </div>
@@ -365,6 +404,40 @@ export const Settings: React.FC<SettingsProps> = ({
                 <p>Pé de Meia v3.1.0</p>
                 <p className="mt-1">Desenvolvido com IA</p>
             </div>
-        </div>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={() => {
+                    confirmModal.onConfirm();
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }}
+                title={confirmModal.title}
+                message={confirmModal.message}
+            />
+
+            <Modal
+                isOpen={inputModal.isOpen}
+                onClose={() => setInputModal(prev => ({ ...prev, isOpen: false }))}
+                title={inputModal.title}
+            >
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    inputModal.onConfirm(inputModal.value);
+                    setInputModal(prev => ({ ...prev, isOpen: false }));
+                }}>
+                    <input
+                        autoFocus
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 outline-none font-bold mb-4"
+                        value={inputModal.value}
+                        onChange={e => setInputModal(prev => ({ ...prev, value: e.target.value }))}
+                    />
+                    <div className="flex gap-2">
+                        <Button type="button" variant="secondary" onClick={() => setInputModal(prev => ({ ...prev, isOpen: false }))} className="flex-1">Cancelar</Button>
+                        <Button type="submit" className="flex-1">Salvar</Button>
+                    </div>
+                </form>
+            </Modal>
+        </div >
     );
 };

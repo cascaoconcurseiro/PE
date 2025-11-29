@@ -91,7 +91,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
     const handleExport = (format: 'CSV' | 'PDF') => {
         if (!selectedAccount) return;
         const txs = transactions.filter(t => t.accountId === selectedAccount.id);
-        
+
         if (format === 'CSV') {
             const data = prepareTransactionsForExport(txs, accounts);
             exportToCSV(data, ['Data', 'Descrição', 'Categoria', 'Tipo', 'Conta', 'Destino', 'Valor'], `Extrato_${selectedAccount.name}`);
@@ -119,7 +119,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                 });
                 addToast('Depósito realizado com sucesso!', 'success');
                 break;
-            
+
             case 'WITHDRAW':
                 if (sourceId) {
                     onAddTransaction({
@@ -205,12 +205,12 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
             return (
                 <div className="pb-24 animate-in fade-in slide-in-from-bottom-4">
                     <div className="mb-4 flex items-center gap-2">
-                         <Button variant="ghost" onClick={() => setIsEditing(false)} className="p-0 hover:bg-transparent">
+                        <Button variant="ghost" onClick={() => setIsEditing(false)} className="p-0 hover:bg-transparent">
                             <ArrowLeft className="w-6 h-6 text-slate-600 dark:text-slate-300" />
                         </Button>
                         <h2 className="text-xl font-bold text-slate-800 dark:text-white">Editar Conta</h2>
                     </div>
-                    <AccountForm 
+                    <AccountForm
                         type={selectedAccount.type === AccountType.CREDIT_CARD ? 'CARDS' : 'BANKING'}
                         initialData={selectedAccount}
                         onSave={handleUpdate}
@@ -231,13 +231,13 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                         <h2 className="text-xl font-bold text-slate-800 dark:text-white">{selectedAccount.name}</h2>
                         <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded font-bold">{selectedAccount.currency}</span>
                     </div>
-                    
+
                     <div className="flex gap-2">
                         <Button onClick={() => setIsEditing(true)} variant="secondary" size="sm" className="text-slate-500 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">
-                             <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-4 h-4" />
                         </Button>
                         <Button onClick={handleDelete} variant="secondary" size="sm" className="text-slate-500 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400">
-                             <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                         </Button>
 
                         <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
@@ -248,7 +248,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                         <Button onClick={() => handleExport('PDF')} variant="secondary" size="sm" className="gap-2 hidden sm:flex text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400">
                             <Printer className="w-4 h-4" />
                         </Button>
-                        
+
                         <div className="relative">
                             <Button onClick={() => ofxInputRef.current?.click()} variant="secondary" size="sm" className="gap-2 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700">
                                 <FileUp className="w-4 h-4" /> OFX
@@ -259,26 +259,26 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                 </div>
 
                 {selectedAccount.type === AccountType.CREDIT_CARD ? (
-                    <CreditCardDetail 
-                        account={selectedAccount} 
-                        transactions={transactions} 
-                        currentDate={invoiceDate} 
-                        showValues={showValues} 
+                    <CreditCardDetail
+                        account={selectedAccount}
+                        transactions={transactions}
+                        currentDate={invoiceDate}
+                        showValues={showValues}
                         onInvoiceDateChange={setInvoiceDate}
                         onAction={(type, amount) => setActionModal({ isOpen: true, type, amount })}
                         onAnticipateInstallments={onAnticipateInstallments} // Pass the handler
                     />
                 ) : (
-                    <BankingDetail 
-                        account={selectedAccount} 
-                        transactions={transactions} 
+                    <BankingDetail
+                        account={selectedAccount}
+                        transactions={transactions}
                         showValues={showValues}
                         onAction={(type) => setActionModal({ isOpen: true, type })}
                     />
                 )}
 
                 {/* Shared Action Modal */}
-                <ActionModal 
+                <ActionModal
                     isOpen={actionModal.isOpen}
                     type={actionModal.type}
                     account={selectedAccount}
@@ -312,25 +312,25 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     <button onClick={() => setActiveTab('BANKING')} className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'BANKING' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Contas Bancárias</button>
                     <button onClick={() => setActiveTab('CARDS')} className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'CARDS' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Cartões de Crédito</button>
                 </div>
-                
+
                 {/* Improved Search Bar */}
                 <div className="relative w-full sm:flex-1 sm:max-w-md group">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input 
-                        type="text" 
-                        placeholder="Buscar conta ou cartão..." 
-                        className="w-full pl-12 pr-4 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm transition-all text-slate-700 dark:text-white placeholder:text-slate-400" 
-                        value={searchTerm} 
-                        onChange={e => setSearchTerm(e.target.value)} 
+                    <input
+                        type="text"
+                        placeholder="Buscar conta ou cartão..."
+                        className="w-full pl-12 pr-4 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm transition-all text-slate-700 dark:text-white placeholder:text-slate-400"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
             </div>
 
             {isFormOpen && (
-                <AccountForm 
-                    type={activeTab} 
-                    onSave={(acc) => { onAddAccount(acc as any); setIsFormOpen(false); }} 
-                    onCancel={() => setIsFormOpen(false)} 
+                <AccountForm
+                    type={activeTab}
+                    onSave={(acc) => { onAddAccount(acc as any); setIsFormOpen(false); }}
+                    onCancel={() => setIsFormOpen(false)}
                 />
             )}
 
@@ -352,13 +352,61 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     {creditCards.map(account => {
                         const { invoiceTotal } = getInvoiceData(account, transactions, currentDate);
                         const limit = account.limit || 0;
-                        const committedBalance = Math.abs(account.balance); 
+                        const committedBalance = Math.abs(account.balance);
                         const percentageUsed = limit > 0 ? Math.min((committedBalance / limit) * 100, 100) : 0;
                         return (
-                            <div key={account.id} onClick={() => handleAccountClick(account)} className="group bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden min-h-[220px] flex flex-col justify-between">
-                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div><div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl group-hover:bg-emerald-500/30 transition-colors"></div>
-                                <div className="relative z-10 flex justify-between items-start"><div><h3 className="font-bold text-lg">{account.name}</h3><p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Cartão de Crédito</p></div><CreditCard className="w-6 h-6 text-white/50" /></div>
-                                <div className="relative z-10 mt-6"><div className="flex justify-between items-end mb-2"><div><p className="text-xs text-slate-400 mb-1">Fatura Atual ({currentDate.toLocaleDateString('pt-BR', { month: 'short' })})</p><p className="text-2xl font-mono font-bold tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(invoiceTotal, account.currency)}</PrivacyBlur></p></div></div><div className="w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden mb-2"><div className={`h-full rounded-full transition-all duration-500 ${percentageUsed > 90 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${percentageUsed}%` }}></div></div><div className="flex justify-between text-[10px] text-slate-400 font-medium"><span>Limite: {formatCurrency(limit, account.currency)}</span><span>{percentageUsed.toFixed(0)}% usado</span></div></div>
+                            <div key={account.id} onClick={() => handleAccountClick(account)} className="group relative w-full aspect-[1.586/1] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden text-white p-6 flex flex-col justify-between">
+                                {/* Background Effects */}
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                                <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
+
+                                {/* Header: Bank Name & Contactless Icon */}
+                                <div className="relative z-10 flex justify-between items-start">
+                                    <h3 className="font-bold text-lg tracking-wider uppercase opacity-90">{account.name}</h3>
+                                    <svg className="w-8 h-8 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M8.5 10a3.5 3.5 0 0 1 7 0" />
+                                        <path d="M12 10a3.5 3.5 0 0 1 0 7" />
+                                        <path d="M5 10a7 7 0 0 1 14 0" />
+                                    </svg>
+                                </div>
+
+                                {/* Chip & Number */}
+                                <div className="relative z-10 space-y-4">
+                                    <div className="w-12 h-9 bg-yellow-200/80 rounded-md border border-yellow-400/50 flex items-center justify-center overflow-hidden">
+                                        <div className="w-full h-[1px] bg-yellow-600/50 absolute top-1/3"></div>
+                                        <div className="w-full h-[1px] bg-yellow-600/50 absolute bottom-1/3"></div>
+                                        <div className="h-full w-[1px] bg-yellow-600/50 absolute left-1/3"></div>
+                                        <div className="h-full w-[1px] bg-yellow-600/50 absolute right-1/3"></div>
+                                    </div>
+                                    <div className="font-mono text-xl tracking-widest opacity-90 drop-shadow-md">
+                                        •••• •••• •••• <span className="text-sm align-middle">1234</span>
+                                    </div>
+                                </div>
+
+                                {/* Footer: Invoice Info & Logo */}
+                                <div className="relative z-10 flex justify-between items-end">
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Fatura Atual</p>
+                                        <p className="font-mono font-bold text-lg tracking-tight">
+                                            <PrivacyBlur showValues={showValues}>{formatCurrency(invoiceTotal, account.currency)}</PrivacyBlur>
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-end">
+                                        <div className="flex -space-x-3 opacity-80 mb-1">
+                                            <div className="w-8 h-8 rounded-full bg-red-500/80"></div>
+                                            <div className="w-8 h-8 rounded-full bg-yellow-500/80"></div>
+                                        </div>
+                                        <span className="text-[10px] font-bold opacity-60">{percentageUsed.toFixed(0)}% Limite</span>
+                                    </div>
+                                </div>
+
+                                {/* Progress Bar */}
+                                <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-700/50">
+                                    <div
+                                        className={`h-full transition-all duration-1000 ${percentageUsed > 90 ? 'bg-red-500' : 'bg-emerald-400'}`}
+                                        style={{ width: `${percentageUsed}%` }}
+                                    ></div>
+                                </div>
                             </div>
                         );
                     })}
