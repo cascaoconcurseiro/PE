@@ -162,11 +162,13 @@ const App = () => {
 
     // --- NOTIFICATIONS LOGIC ---
     const activeNotifications = useMemo(() => {
+        if (!transactions) return [];
         const today = new Date().toISOString().split('T')[0];
         return transactions.filter(t => t.enableNotification && t.notificationDate && t.notificationDate <= today);
     }, [transactions]);
 
     const handleDismissNotification = (id: string) => {
+        if (!transactions) return;
         const tx = transactions.find(t => t.id === id);
         if (tx) {
             db.transactions.put({ ...tx, enableNotification: false });
@@ -184,6 +186,7 @@ const App = () => {
 
     // --- CORE ENGINE: CALCULATED ACCOUNTS ---
     const calculatedAccounts = useMemo(() => {
+        if (!accounts || !transactions) return [];
         const cutOffDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
         return calculateBalances(accounts, transactions, cutOffDate);
     }, [accounts, transactions, currentDate]);
@@ -191,7 +194,7 @@ const App = () => {
     // --- RECURRING TRANSACTION ENGINE ---
     const hasCheckedRecurrence = useRef(false);
     useEffect(() => {
-        if (isMigrating || !transactions.length || hasCheckedRecurrence.current) return;
+        if (isMigrating || !transactions?.length || hasCheckedRecurrence.current) return;
 
         const runRecurringEngine = async () => {
             const now = new Date();
@@ -268,7 +271,7 @@ const App = () => {
 
         const timer = setTimeout(runRecurringEngine, 1000);
         return () => clearTimeout(timer);
-    }, [isMigrating, transactions.length]);
+    }, [isMigrating, transactions?.length]);
 
     // --- NOTIFICATION ENGINE ---
     const hasCheckedReminders = useRef(false);
@@ -279,7 +282,7 @@ const App = () => {
             Notification.requestPermission();
         }
 
-        if (isMigrating || !transactions.length || hasCheckedReminders.current) return;
+        if (isMigrating || !transactions?.length || hasCheckedReminders.current) return;
 
         const checkReminders = () => {
             const todayStr = new Date().toISOString().split('T')[0];
