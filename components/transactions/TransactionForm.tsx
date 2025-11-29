@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { 
     Check, Plane, Users, ChevronDown, Calendar, Wallet, ArrowUpRight, ArrowDownLeft, 
     RefreshCcw, Bell, BellRing, Repeat, Undo2, DollarSign, CreditCard, X, 
-    Pencil, User, Plus, Globe, Clock, Landmark 
+    Pencil, User, Plus, Globe, Clock, Landmark, Banknote 
 } from 'lucide-react';
 import { getCategoryIcon, parseDate, formatCurrency } from '../../utils';
 import { AVAILABLE_CURRENCIES } from '../../services/currencyService';
@@ -25,6 +25,124 @@ interface TransactionFormProps {
     onNavigateToFamily?: () => void;
 }
 
+const AccountSelector = ({ 
+    label, 
+    accounts, 
+    selectedId, 
+    onSelect, 
+    filterType,
+    disabled = false
+}: { 
+    label: string, 
+    accounts: Account[], 
+    selectedId: string, 
+    onSelect: (id: string) => void,
+    filterType?: 'NO_CREDIT' | 'ALL',
+    disabled?: boolean
+}) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const filteredAccounts = useMemo(() => {
+        if (filterType === 'NO_CREDIT') {
+            return accounts.filter(a => a.type !== AccountType.CREDIT_CARD);
+        }
+        return accounts;
+    }, [accounts, filterType]);
+
+    const selectedAccount = accounts.find(a => a.id === selectedId);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const getIcon = (type: AccountType) => {
+        switch(type) {
+            case AccountType.CREDIT_CARD: return <CreditCard className="w-5 h-5" />;
+            case AccountType.INVESTMENT: return <Landmark className="w-5 h-5" />;
+            case AccountType.SAVINGS: return <Banknote className="w-5 h-5" />;
+            default: return <Wallet className="w-5 h-5" />;
+        }
+    };
+
+    const getGradient = (type: AccountType) => {
+         switch(type) {
+            case AccountType.CREDIT_CARD: return 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white';
+            case AccountType.INVESTMENT: return 'bg-gradient-to-br from-slate-700 to-slate-900 text-white';
+            case AccountType.SAVINGS: return 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white';
+            case AccountType.CASH: return 'bg-gradient-to-br from-green-500 to-emerald-600 text-white';
+            default: return 'bg-gradient-to-br from-blue-600 to-cyan-600 text-white';
+        }
+    };
+
+    return (
+        <div className="relative" ref={containerRef}>
+            <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">{label}</label>
+            <div 
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                className={`
+                    relative rounded-xl p-3 flex items-center gap-3 shadow-md transition-all cursor-pointer overflow-hidden
+                    ${selectedAccount ? getGradient(selectedAccount.type) : 'bg-white border border-slate-200'}
+                    ${disabled ? 'opacity-60 cursor-not-allowed' : 'active:scale-[0.99]'}
+                `}
+            >
+                {selectedAccount && (
+                    <>
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 w-16 h-16 bg-black/10 rounded-full blur-xl -ml-8 -mb-8 pointer-events-none"></div>
+                    </>
+                )}
+
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${selectedAccount ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}>
+                    {getIcon(selectedAccount?.type || AccountType.CHECKING)}
+                </div>
+                
+                <div className="flex-1 overflow-hidden z-10">
+                    <span className={`block text-sm font-bold truncate mb-0.5 ${selectedAccount ? 'text-white' : 'text-slate-900'}`}>
+                        {selectedAccount?.name || 'Selecione uma conta'}
+                    </span>
+                    <span className={`text-[10px] font-medium truncate block uppercase tracking-wider ${selectedAccount ? 'text-white/80' : 'text-slate-500'}`}>
+                        {selectedAccount ? `${selectedAccount.type} • ${selectedAccount.currency}` : 'Toque para selecionar'}
+                    </span>
+                </div>
+                
+                <ChevronDown className={`w-5 h-5 shrink-0 z-10 transition-transform ${isOpen ? 'rotate-180' : ''} ${selectedAccount ? 'text-white/70' : 'text-slate-400'}`} />
+            </div>
+
+            {isOpen && (
+                <div className="absolute inset-x-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 z-50 max-h-64 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
+                    {filteredAccounts.length === 0 ? (
+                        <div className="p-4 text-center text-slate-500 text-sm">Nenhuma conta disponível.</div>
+                    ) : (
+                        filteredAccounts.map(acc => (
+                            <div 
+                                key={acc.id}
+                                onClick={() => { onSelect(acc.id); setIsOpen(false); }}
+                                className={`p-3 flex items-center gap-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0 ${acc.id === selectedId ? 'bg-slate-50' : ''}`}
+                            >
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${acc.type === AccountType.CREDIT_CARD ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                                    {getIcon(acc.type)}
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-800">{acc.name}</p>
+                                    <p className="text-xs text-slate-500">{acc.type} • {formatCurrency(acc.balance, acc.currency)}</p>
+                                </div>
+                                {acc.id === selectedId && <Check className="w-4 h-4 text-emerald-500 ml-auto" />}
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const TransactionForm: React.FC<TransactionFormProps> = ({
     initialData,
     formMode,
@@ -39,26 +157,17 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     onNavigateToTrips,
     onNavigateToFamily
 }) => {
-    // Sorted Accounts Logic: Checking/Cash First
-    const sortedAccounts = useMemo(() => {
-        return [...accounts].sort((a, b) => {
-            const score = (type: AccountType) => {
-                if (type === AccountType.CHECKING || type === AccountType.CASH) return 1;
-                if (type === AccountType.CREDIT_CARD) return 2;
-                return 3;
-            };
-            return score(a.type) - score(b.type);
-        });
-    }, [accounts]);
-
-    // Default Account Selection Logic
+    // Initial Logic: Only change default account if not editing
     const getDefaultAccount = () => {
-        if (formMode === TransactionType.INCOME) {
-            // For income, prefer Checking/Cash/Savings
-            const preferred = sortedAccounts.find(a => a.type !== AccountType.CREDIT_CARD);
-            return preferred ? preferred.id : sortedAccounts[0]?.id || '';
+        if (initialData) return initialData.accountId;
+        // For income/transfer source, prioritize non-credit cards
+        if (formMode === TransactionType.INCOME || formMode === TransactionType.TRANSFER) {
+            const liquid = accounts.find(a => a.type !== AccountType.CREDIT_CARD);
+            return liquid ? liquid.id : '';
         }
-        return sortedAccounts[0]?.id || '';
+        // For expense, anything goes, prefer credit card or checking
+        const prefer = accounts.find(a => a.type === AccountType.CREDIT_CARD || a.type === AccountType.CHECKING);
+        return prefer ? prefer.id : accounts[0]?.id || '';
     };
 
     // State initialization
@@ -66,7 +175,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     const [description, setDescription] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [category, setCategory] = useState<string>(Category.FOOD);
-    const [accountId, setAccountId] = useState(getDefaultAccount());
+    const [accountId, setAccountId] = useState(''); // Will set in useEffect
     const [destinationAccountId, setDestinationAccountId] = useState('');
     const [destinationAmountStr, setDestinationAmountStr] = useState('');
     const [tripId, setTripId] = useState('');
@@ -94,6 +203,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const topRef = useRef<HTMLDivElement>(null);
 
+    // Initialize Account ID correctly
+    useEffect(() => {
+        if (!accountId) {
+            setAccountId(getDefaultAccount());
+        }
+    }, [accounts, formMode, initialData]);
+
     // Derived values
     const activeAmount = parseFloat(amountStr.replace(',', '.')) || 0;
     const selectedAccountObj = accounts.find(a => a.id === accountId);
@@ -103,7 +219,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     const tripCurrency = selectedTrip?.currency || 'BRL';
     const showTripCurrencyInput = tripId && selectedTrip && (tripCurrency !== activeCurrency || payerId !== 'me');
     
-    // Account Type Check
     const isCreditCard = selectedAccountObj?.type === AccountType.CREDIT_CARD;
     
     const isExpense = formMode === TransactionType.EXPENSE;
@@ -149,8 +264,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             setFrequency(t.frequency || Frequency.MONTHLY);
             setRecurrenceDay(t.recurrenceDay || new Date(t.date).getDate());
             
-            // Only allow loading installment data if it's actually a credit card (data integrity)
-            // or if we are editing an existing one that might have been migrated.
             const isAccCC = accounts.find(a => a.id === t.accountId)?.type === AccountType.CREDIT_CARD;
             setIsInstallment(!!t.isInstallment && (isAccCC || !!t.isInstallment)); 
             
@@ -160,21 +273,21 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             
             topRef.current?.scrollIntoView({ behavior: 'smooth' });
         } else {
-            // Reset logic when switching modes (e.g. Expense -> Income) to ensure proper defaults
-            if (!accountId || (formMode === TransactionType.INCOME && isCreditCard)) {
-               setAccountId(getDefaultAccount());
+            // If switching modes, verify if account is valid for that mode
+            if (formMode === TransactionType.INCOME || formMode === TransactionType.TRANSFER) {
+                if (selectedAccountObj?.type === AccountType.CREDIT_CARD) {
+                    setAccountId(getDefaultAccount());
+                }
             }
         }
     }, [initialData, accounts, formMode]);
 
-    // Force disable installments if switching to non-credit card
     useEffect(() => {
         if (!isCreditCard && isInstallment) {
             setIsInstallment(false);
         }
     }, [isCreditCard]);
 
-    // Helper: Sync reminder date
     useEffect(() => {
         if (enableNotification && reminderOption !== 'custom' && date) {
             const txDate = new Date(date);
@@ -236,7 +349,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             }
         }
 
-        // Check for future updates
         let updateFuture = false;
         if (initialData && (initialData.seriesId || initialData.isRecurring)) {
             if (confirm(`Esta transação faz parte de uma série/recorrência.\n\nDeseja aplicar as alterações para TODAS as transações futuras desta série?`)) {
@@ -271,7 +383,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             recurrenceDay: isRecurring ? recurrenceDay : undefined,
             lastGenerated: isRecurring ? date : undefined,
             frequency: isRecurring ? frequency : Frequency.ONE_TIME,
-            isInstallment: isCreditCard ? isInstallment : false, // Safety check
+            isInstallment: isCreditCard ? isInstallment : false, 
             currentInstallment: isInstallment ? currentInstallment : undefined,
             totalInstallments: isInstallment ? totalInstallments : undefined,
             enableNotification,
@@ -281,42 +393,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         };
 
         onSave(data, !!initialData, updateFuture);
-    };
-
-    const getAccountIcon = (type?: AccountType) => {
-        switch(type) {
-            case AccountType.CREDIT_CARD: return <CreditCard className="w-5 h-5" />;
-            case AccountType.INVESTMENT: return <Landmark className="w-5 h-5" />;
-            default: return <Wallet className="w-5 h-5" />;
-        }
-    };
-
-    // Helper to group accounts for the dropdown
-    const renderAccountOptions = () => {
-        const banking = sortedAccounts.filter(a => a.type === AccountType.CHECKING || a.type === AccountType.CASH || a.type === AccountType.SAVINGS);
-        const credit = sortedAccounts.filter(a => a.type === AccountType.CREDIT_CARD);
-        const others = sortedAccounts.filter(a => a.type === AccountType.INVESTMENT || (a.type as any) === 'OTHER');
-
-        return (
-            <>
-                <option value="" disabled className="text-slate-900">Selecione...</option>
-                {banking.length > 0 && (
-                    <optgroup label="Contas e Carteira" className="text-slate-900">
-                        {banking.map(acc => <option key={acc.id} value={acc.id} className="text-slate-900">{acc.name}</option>)}
-                    </optgroup>
-                )}
-                {credit.length > 0 && (
-                    <optgroup label="Cartões de Crédito" className="text-slate-900">
-                        {credit.map(acc => <option key={acc.id} value={acc.id} className="text-slate-900">{acc.name}</option>)}
-                    </optgroup>
-                )}
-                {others.length > 0 && (
-                    <optgroup label="Investimentos e Outros" className="text-slate-900">
-                        {others.map(acc => <option key={acc.id} value={acc.id} className="text-slate-900">{acc.name}</option>)}
-                    </optgroup>
-                )}
-            </>
-        );
     };
 
     if (accounts.length === 0) {
@@ -438,25 +514,16 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         </div>
                     </div>
 
-                    {/* Account Selection */}
+                    {/* Account Selection with Custom Selector */}
                     <div className="grid grid-cols-1 gap-3">
                         {payerId === 'me' ? (
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">{isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}</label>
-                                <div className={`relative rounded-xl p-3 flex items-center gap-3 shadow-md transition-all active:scale-[0.99] cursor-pointer overflow-hidden group ${!selectedAccountObj ? 'bg-white border border-slate-200' : isCreditCard ? 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white' : 'bg-gradient-to-br from-slate-800 to-slate-900 text-white'}`}>
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${selectedAccountObj ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}>
-                                        {getAccountIcon(selectedAccountObj?.type)}
-                                    </div>
-                                    <div className="flex-1 overflow-hidden z-10">
-                                        <span className={`block text-sm font-medium truncate mb-0.5 ${selectedAccountObj ? 'text-white' : 'text-slate-900'}`}>{selectedAccountObj?.name || 'Selecione uma conta'}</span>
-                                        {selectedAccountObj && <span className="text-[10px] opacity-80 block">{selectedAccountObj.type}</span>}
-                                    </div>
-                                    <ChevronDown className={`w-5 h-5 shrink-0 z-10 ${selectedAccountObj ? 'text-white/70' : 'text-slate-400'}`} />
-                                    <select value={accountId} onChange={e => setAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900">
-                                        {renderAccountOptions()}
-                                    </select>
-                                </div>
-                            </div>
+                            <AccountSelector 
+                                label={isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}
+                                accounts={accounts}
+                                selectedId={accountId}
+                                onSelect={setAccountId}
+                                filterType={(isIncome || isTransfer) ? 'NO_CREDIT' : 'ALL'}
+                            />
                         ) : (
                             <div>
                                 <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">Status do Pagamento</label>
@@ -474,17 +541,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         )}
 
                         {isTransfer && (
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 block pl-1">Vai para (Destino)</label>
-                                <div className={`relative rounded-xl p-3 flex items-center gap-3 shadow-md transition-all active:scale-[0.99] cursor-pointer overflow-hidden group ${!destAccountObj ? 'bg-white border border-slate-200' : 'bg-gradient-to-br from-slate-800 to-slate-900 text-white'}`}>
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${destAccountObj ? 'bg-white/20 backdrop-blur-sm' : 'bg-slate-100 text-slate-500'}`}>
-                                        {getAccountIcon(destAccountObj?.type)}
-                                    </div>
-                                    <div className="flex-1 overflow-hidden z-10"><span className={`block text-sm font-medium truncate mb-0.5 ${destAccountObj ? 'text-white' : 'text-slate-900'}`}>{destAccountObj?.name || 'Selecione o destino'}</span></div>
-                                    <ChevronDown className={`w-5 h-5 shrink-0 z-10 ${destAccountObj ? 'text-white/70' : 'text-slate-400'}`} />
-                                    <select value={destinationAccountId} onChange={e => setDestinationAccountId(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900">{accounts.filter(a => a.id !== accountId).map(acc => <option key={acc.id} value={acc.id} className="text-slate-900">{acc.name}</option>)}</select>
-                                </div>
-                            </div>
+                            <AccountSelector 
+                                label="Vai para (Destino)"
+                                accounts={accounts.filter(a => a.id !== accountId)}
+                                selectedId={destinationAccountId}
+                                onSelect={setDestinationAccountId}
+                                filterType="NO_CREDIT"
+                            />
                         )}
                     </div>
 

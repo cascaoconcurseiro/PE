@@ -6,7 +6,7 @@ import { parseDate } from '../utils';
 import { BackupSchema } from '../services/schemas';
 
 export const useDataStore = () => {
-    // --- LIVE QUERIES ---
+    // --- LIVE QUERIES (All data comes from DB, no localStorage for core data) ---
     const user = useLiveQuery(() => db.userProfile.toCollection().first(), []);
     const accounts = useLiveQuery(() => db.accounts.filter(a => !a.deleted).toArray(), []);
     const transactions = useLiveQuery(() => db.transactions.filter(t => !t.deleted).toArray(), []);
@@ -155,14 +155,20 @@ export const useDataStore = () => {
     const handleAnticipateInstallments = async (idsToAnticipate: string[], targetDate: string) => {
         await db.transaction('rw', [db.transactions, db.auditLogs], async () => {
             const txs = await db.transactions.bulkGet(idsToAnticipate);
-            const updates = txs.filter(t => t).map(t => ({
-                ...t!,
-                date: targetDate,
-                updatedAt: new Date().toISOString(),
-                syncStatus: SyncStatus.PENDING
-            }));
-            await db.transactions.bulkPut(updates);
-            await logAudit('TRANSACTION', 'BATCH', 'UPDATE', { action: 'ANTICIPATE', count: updates.length });
+            const updates = txs
+                .filter((t): t is Transaction => !!t)
+                .map(t => ({
+                    ...t,
+                    date: targetDate, // Move to target date (usually today)
+                    description: t.description.includes('(Antecipado)') ? t.description : `${t.description} (Antecipado)`,
+                    updatedAt: new Date().toISOString(),
+                    syncStatus: SyncStatus.PENDING
+                }));
+            
+            if (updates.length > 0) {
+                await db.transactions.bulkPut(updates);
+                await logAudit('TRANSACTION', 'BATCH', 'UPDATE', { action: 'ANTICIPATE', count: updates.length, targetDate });
+            }
         });
     };
 
