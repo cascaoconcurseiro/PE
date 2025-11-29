@@ -65,6 +65,12 @@ export const useDataStore = () => {
             // CRITICAL: Divide the TOTAL amount by number of installments
             const amountPerInstallment = newTx.amount / totalInstallments; 
 
+            // FIX: Divide shared amounts as well
+            const sharedWithPerInstallment = newTx.sharedWith?.map(s => ({
+                ...s,
+                assignedAmount: s.assignedAmount / totalInstallments
+            }));
+
             for (let i = 0; i < totalInstallments; i++) {
                 const nextDate = new Date(baseDate);
                 nextDate.setMonth(baseDate.getMonth() + i);
@@ -80,6 +86,7 @@ export const useDataStore = () => {
                     id: crypto.randomUUID(),
                     amount: amountPerInstallment, // Saved value is the MONTHLY payment
                     originalAmount: newTx.amount, // Save original total for reference
+                    sharedWith: sharedWithPerInstallment, // Use divided splits
                     seriesId: seriesId,
                     date: nextDate.toISOString().split('T')[0],
                     currentInstallment: i + 1,
