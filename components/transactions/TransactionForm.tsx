@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, TransactionSplit, Frequency, AccountType } from '../../types';
+import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, TransactionSplit, Frequency, AccountType, CustomCategory } from '../../types';
 import { Button } from '../ui/Button';
 import { 
     Check, Plane, Users, ChevronDown, Calendar, Wallet, ArrowUpRight, ArrowDownLeft, 
@@ -17,6 +17,7 @@ interface TransactionFormProps {
     accounts: Account[];
     trips: Trip[];
     familyMembers: FamilyMember[];
+    customCategories: CustomCategory[];
     onSave: (data: any, isEdit: boolean, updateFuture: boolean) => void;
     onCancel: () => void;
     onNavigateToAccounts?: () => void;
@@ -31,6 +32,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     accounts,
     trips,
     familyMembers,
+    customCategories,
     onSave,
     onCancel,
     onNavigateToAccounts,
@@ -408,7 +410,24 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                     <div className="bg-slate-50 rounded-xl h-12 flex items-center px-3 border border-slate-200 relative group cursor-pointer focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
                                         <CategoryIcon className="w-4 h-4 text-slate-400 mr-2" />
                                         <select value={category} onChange={e => setCategory(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900">
-                                            {Object.values(Category).map(c => <option key={c} value={c} className="text-slate-900">{c}</option>)}
+                                            <optgroup label="Essenciais" className="text-slate-900">
+                                                {Object.values(Category).filter(c => [Category.HOUSING, Category.FOOD, Category.TRANSPORTATION, Category.UTILITIES, Category.HEALTH].includes(c)).map(c => <option key={c} value={c}>{c}</option>)}
+                                            </optgroup>
+                                            <optgroup label="Estilo de Vida" className="text-slate-900">
+                                                {Object.values(Category).filter(c => [Category.SHOPPING, Category.ENTERTAINMENT, Category.PERSONAL_CARE, Category.TRAVEL, Category.PETS].includes(c)).map(c => <option key={c} value={c}>{c}</option>)}
+                                            </optgroup>
+                                            <optgroup label="Financeiro" className="text-slate-900">
+                                                {Object.values(Category).filter(c => [Category.INCOME, Category.INVESTMENT, Category.TAXES, Category.INSURANCE, Category.GIFTS].includes(c)).map(c => <option key={c} value={c}>{c}</option>)}
+                                            </optgroup>
+                                            <optgroup label="Outros" className="text-slate-900">
+                                                <option value={Category.EDUCATION}>{Category.EDUCATION}</option>
+                                                <option value={Category.OTHER}>{Category.OTHER}</option>
+                                            </optgroup>
+                                            {customCategories.length > 0 && (
+                                                <optgroup label="Personalizadas" className="text-slate-900">
+                                                    {customCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                                </optgroup>
+                                            )}
                                         </select>
                                         <span className="pointer-events-none truncate text-sm font-medium text-slate-700 flex-1">{category}</span>
                                     </div>

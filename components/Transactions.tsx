@@ -172,6 +172,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 accounts={accounts}
                 trips={trips}
                 familyMembers={familyMembers}
+                customCategories={customCategories}
                 onSave={handleSaveTransaction}
                 onCancel={handleCancelForm}
                 onNavigateToAccounts={onNavigateToAccounts}

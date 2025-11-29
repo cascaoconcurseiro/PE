@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../services/db';
-import { Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset, CustomCategory, SyncStatus, UserProfile, AccountType, Category, TransactionType, Snapshot, AuditLog } from '../types';
+import { Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset, CustomCategory, SyncStatus, UserProfile, TransactionType, Snapshot, AuditLog } from '../types';
 import { parseDate } from '../utils';
 import { BackupSchema } from '../services/schemas';
 
@@ -16,11 +16,7 @@ export const useDataStore = () => {
     const familyMembers = useLiveQuery(() => db.familyMembers.filter(f => !f.deleted).toArray(), []);
     const assets = useLiveQuery(() => db.assets.filter(a => !a.deleted).toArray(), []);
     const snapshots = useLiveQuery(() => db.snapshots.toArray(), []);
-
-    // Local Storage for non-critical data
-    const [customCategories, setCustomCategories] = useState<CustomCategory[]>(() => {
-        try { return JSON.parse(localStorage.getItem('pdm_categories') || '[]'); } catch { return []; }
-    });
+    const customCategories = useLiveQuery(() => db.customCategories.filter(c => !c.deleted).toArray(), []);
 
     // --- AUDIT HELPER ---
     const logAudit = async (entity: AuditLog['entity'], entityId: string, action: AuditLog['action'], changes: any) => {
@@ -54,7 +50,6 @@ export const useDataStore = () => {
         const newTransactionsList: Transaction[] = [];
         const now = new Date().toISOString();
 
-        // Conversão forçada para garantir que seja número
         const totalInstallments = Number(newTx.totalInstallments);
         
         if (newTx.isInstallment && totalInstallments > 1) {
@@ -179,18 +174,16 @@ export const useDataStore = () => {
         const account: Account = {
             ...newAccount,
             id: accountId,
-            initialBalance: initialBalance, // Fixed: Use the provided value
-            balance: initialBalance,        // Fixed: Use the provided value
+            initialBalance: initialBalance,
+            balance: initialBalance,
             createdAt: now,
             updatedAt: now,
             syncStatus: SyncStatus.PENDING
         };
 
-        await db.transaction('rw', [db.accounts, db.transactions, db.auditLogs], async () => {
+        await db.transaction('rw', [db.accounts, db.auditLogs], async () => {
             await db.accounts.put(account);
             await logAudit('ACCOUNT', accountId, 'CREATE', newAccount);
-            // Removed: Automatic creation of transaction for initial balance. 
-            // The balance engine will use account.initialBalance as the starting point.
         });
     };
 
@@ -288,23 +281,27 @@ export const useDataStore = () => {
         }
     };
 
-    const handleAddCategory = (name: string) => {
-        const newCat: CustomCategory = {
+    const handleAddCategory = async (name: string) => {
+        const now = new Date().toISOString();
+        await db.customCategories.add({
             id: crypto.randomUUID(),
             name,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            createdAt: now,
+            updatedAt: now,
             syncStatus: SyncStatus.PENDING
-        };
-        const updated = [...customCategories, newCat];
-        setCustomCategories(updated);
-        localStorage.setItem('pdm_categories', JSON.stringify(updated));
+        });
     };
 
-    const handleDeleteCategory = (id: string) => {
-        const updated = customCategories.filter(c => c.id !== id);
-        setCustomCategories(updated);
-        localStorage.setItem('pdm_categories', JSON.stringify(updated));
+    const handleDeleteCategory = async (id: string) => {
+        const cat = await db.customCategories.get(id);
+        if (cat) {
+            await db.customCategories.put({
+                ...cat,
+                deleted: true,
+                updatedAt: new Date().toISOString(),
+                syncStatus: SyncStatus.PENDING
+            });
+        }
     };
 
     const handleAddBudget = async (newBudget: Omit<Budget, 'id'>) => {
@@ -417,7 +414,7 @@ export const useDataStore = () => {
 
         const validData = result.data;
 
-        await db.transaction('rw', [db.accounts, db.transactions, db.trips, db.budgets, db.goals, db.familyMembers, db.assets, db.snapshots, db.auditLogs], async () => {
+        await db.transaction('rw', [db.accounts, db.transactions, db.trips, db.budgets, db.goals, db.familyMembers, db.assets, db.snapshots, db.auditLogs, db.customCategories], async () => {
             if (validData.accounts) await db.accounts.bulkPut(validData.accounts as Account[]);
             if (validData.transactions) await db.transactions.bulkPut(validData.transactions as Transaction[]);
             if (validData.trips) await db.trips.bulkPut(validData.trips as unknown as Trip[]);
@@ -426,12 +423,11 @@ export const useDataStore = () => {
             if (validData.familyMembers) await db.familyMembers.bulkPut(validData.familyMembers as unknown as FamilyMember[]);
             if (validData.assets) await db.assets.bulkPut(validData.assets as unknown as Asset[]);
             if (validData.snapshots) await db.snapshots.bulkPut(validData.snapshots as unknown as Snapshot[]);
+            if (validData.customCategories) await db.customCategories.bulkPut(validData.customCategories as unknown as CustomCategory[]);
+            
             await logAudit('ACCOUNT', 'SYSTEM', 'UPDATE', { action: 'IMPORT_DATA', timestamp: new Date().toISOString() });
         });
-        if (validData.customCategories) {
-            setCustomCategories(validData.customCategories as unknown as CustomCategory[]);
-            localStorage.setItem('pdm_categories', JSON.stringify(validData.customCategories));
-        }
+        
         alert('Dados restaurados com sucesso!');
     };
 
@@ -445,7 +441,7 @@ export const useDataStore = () => {
         familyMembers,
         assets,
         snapshots,
-        customCategories,
+        customCategories: customCategories || [],
         handlers: {
             handleLogin,
             handleLogout,

@@ -9,7 +9,8 @@ import {
     FamilyMember,
     UserProfile,
     Snapshot,
-    AuditLog
+    AuditLog,
+    CustomCategory
 } from '../types';
 
 export class PeDeMeiaDB extends Dexie {
@@ -23,6 +24,7 @@ export class PeDeMeiaDB extends Dexie {
     userProfile!: Table<UserProfile, string>;
     snapshots!: Table<Snapshot, string>;
     auditLogs!: Table<AuditLog, string>;
+    customCategories!: Table<CustomCategory, string>;
 
     constructor() {
         super('PeDeMeiaDB');
@@ -56,9 +58,10 @@ export class PeDeMeiaDB extends Dexie {
             snapshots: 'id, date'
         });
 
-        // Version 4: Add Audit Logs (Princípio 8 - Auditabilidade)
+        // Version 4: Add Audit Logs & Custom Categories
         this.version(4).stores({
-            auditLogs: 'id, entity, entityId, action, createdAt'
+            auditLogs: 'id, entity, entityId, action, createdAt',
+            customCategories: 'id, name, syncStatus, deleted'
         });
     }
 }
@@ -67,6 +70,9 @@ export const db = new PeDeMeiaDB();
 
 export const initDatabase = async () => {
     try {
+        if (!db.isOpen()) {
+             await db.open();
+        }
         const count = await db.userProfile.count();
         if (count > 0) {
             console.log('Database initialized.');
