@@ -179,8 +179,8 @@ export const useDataStore = () => {
         const account: Account = {
             ...newAccount,
             id: accountId,
-            initialBalance: 0,
-            balance: 0,
+            initialBalance: initialBalance, // Fixed: Use the provided value
+            balance: initialBalance,        // Fixed: Use the provided value
             createdAt: now,
             updatedAt: now,
             syncStatus: SyncStatus.PENDING
@@ -189,24 +189,8 @@ export const useDataStore = () => {
         await db.transaction('rw', [db.accounts, db.transactions, db.auditLogs], async () => {
             await db.accounts.put(account);
             await logAudit('ACCOUNT', accountId, 'CREATE', newAccount);
-
-            if (Math.abs(initialBalance) > 0) {
-                const isPositive = initialBalance > 0;
-                await db.transactions.add({
-                    id: crypto.randomUUID(),
-                    description: 'Saldo Inicial / Ajuste de Abertura',
-                    amount: Math.abs(initialBalance),
-                    type: isPositive ? TransactionType.INCOME : TransactionType.EXPENSE,
-                    category: Category.OPENING_BALANCE,
-                    accountId: accountId,
-                    date: now.split('T')[0],
-                    createdAt: now,
-                    updatedAt: now,
-                    syncStatus: SyncStatus.PENDING,
-                    reconciled: true
-                });
-                await logAudit('TRANSACTION', 'SYSTEM', 'CREATE', { reason: 'Initial Balance for ' + accountId });
-            }
+            // Removed: Automatic creation of transaction for initial balance. 
+            // The balance engine will use account.initialBalance as the starting point.
         });
     };
 
