@@ -41,27 +41,27 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
     const [aiAnalysis, setAiAnalysis] = useState<string>('');
     const [loadingAi, setLoadingAi] = useState(false);
 
-    // New Transaction form state for Trip
-    const [amount, setAmount] = useState('');
-    const [description, setDescription] = useState('');
-
     // Itinerary Form State
     const [itiDesc, setItiDesc] = useState('');
     const [itiDate, setItiDate] = useState(new Date().toISOString().split('T')[0]);
     const [itiTime, setItiTime] = useState('');
     const [itiType, setItiType] = useState<TripItineraryItem['type']>('ACTIVITY');
+    const [editingItineraryId, setEditingItineraryId] = useState<string | null>(null);
 
     // Checklist Form State
     const [checkItem, setCheckItem] = useState('');
+    const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
 
     // Shopping Form State
     const [shopItem, setShopItem] = useState('');
     const [shopEstCost, setShopEstCost] = useState('');
+    const [editingShoppingId, setEditingShoppingId] = useState<string | null>(null);
 
     // Exchange Form State
     const [exchangeDate, setExchangeDate] = useState(new Date().toISOString().split('T')[0]);
     const [exchangeBRL, setExchangeBRL] = useState('');
     const [exchangeForeign, setExchangeForeign] = useState('');
+    const [editingExchangeId, setEditingExchangeId] = useState<string | null>(null);
 
     const selectedTrip = trips.find(t => t.id === selectedTripId);
     const tripTransactions = transactions.filter(t => t.tripId === selectedTripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -176,22 +176,6 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
         setLoadingAi(false);
     };
 
-    const handleAddTripExpense = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedTrip || !amount || parseFloat(amount) <= 0 || !description.trim()) return;
-        onAddTransaction({
-            amount: parseFloat(amount),
-            description: description.trim() || 'Despesa de Viagem',
-            type: TransactionType.EXPENSE,
-            category: Category.TRAVEL,
-            accountId: accounts[0]?.id,
-            tripId: selectedTrip.id,
-            date: new Date().toISOString()
-        });
-        setAmount('');
-        setDescription('');
-    };
-
     const handleSaveBudget = () => {
         if (!selectedTrip || !onUpdateTrip) return;
         const budgetVal = parseFloat(tempBudget);
@@ -212,37 +196,76 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
     };
 
     // --- LOGIC: ITINERARY ---
-    const addItineraryItem = () => {
+    const handleSaveItineraryItem = () => {
         if (!selectedTrip || !onUpdateTrip || !itiDesc.trim() || !itiDate) return;
-        const newItem: TripItineraryItem = {
-            id: Math.random().toString(36).substr(2, 9),
-            description: itiDesc,
-            date: itiDate,
-            time: itiTime,
-            type: itiType
-        };
-        const updatedTrip = { ...selectedTrip, itinerary: [...(selectedTrip.itinerary || []), newItem] };
-        onUpdateTrip(updatedTrip);
-        setItiDesc(''); setItiTime('');
+        
+        let updatedItinerary = [...(selectedTrip.itinerary || [])];
+        
+        if (editingItineraryId) {
+            updatedItinerary = updatedItinerary.map(item => item.id === editingItineraryId ? {
+                ...item,
+                description: itiDesc,
+                date: itiDate,
+                time: itiTime,
+                type: itiType
+            } : item);
+        } else {
+            updatedItinerary.push({
+                id: Math.random().toString(36).substr(2, 9),
+                description: itiDesc,
+                date: itiDate,
+                time: itiTime,
+                type: itiType
+            });
+        }
+        
+        onUpdateTrip({ ...selectedTrip, itinerary: updatedItinerary });
+        setItiDesc(''); setItiTime(''); setEditingItineraryId(null);
+    };
+
+    const startEditingItinerary = (item: TripItineraryItem) => {
+        setItiDesc(item.description);
+        setItiDate(item.date);
+        setItiTime(item.time || '');
+        setItiType(item.type);
+        setEditingItineraryId(item.id);
     };
 
     const deleteItineraryItem = (itemId: string) => {
         if (!selectedTrip || !onUpdateTrip) return;
         const updatedTrip = { ...selectedTrip, itinerary: (selectedTrip.itinerary || []).filter(i => i.id !== itemId) };
         onUpdateTrip(updatedTrip);
+        if (editingItineraryId === itemId) {
+            setItiDesc(''); setItiTime(''); setEditingItineraryId(null);
+        }
     };
 
     // --- LOGIC: CHECKLIST ---
-    const addChecklistItem = () => {
+    const handleSaveChecklistItem = () => {
         if (!selectedTrip || !onUpdateTrip || !checkItem.trim()) return;
-        const newItem: TripChecklistItem = {
-            id: Math.random().toString(36).substr(2, 9),
-            text: checkItem,
-            isCompleted: false
-        };
-        const updatedTrip = { ...selectedTrip, checklist: [...(selectedTrip.checklist || []), newItem] };
-        onUpdateTrip(updatedTrip);
-        setCheckItem('');
+        
+        let updatedChecklist = [...(selectedTrip.checklist || [])];
+
+        if (editingChecklistId) {
+            updatedChecklist = updatedChecklist.map(item => item.id === editingChecklistId ? {
+                ...item,
+                text: checkItem
+            } : item);
+        } else {
+            updatedChecklist.push({
+                id: Math.random().toString(36).substr(2, 9),
+                text: checkItem,
+                isCompleted: false
+            });
+        }
+
+        onUpdateTrip({ ...selectedTrip, checklist: updatedChecklist });
+        setCheckItem(''); setEditingChecklistId(null);
+    };
+
+    const startEditingChecklist = (item: TripChecklistItem) => {
+        setCheckItem(item.text);
+        setEditingChecklistId(item.id);
     };
 
     const toggleChecklistItem = (itemId: string) => {
@@ -258,20 +281,41 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
         if (!selectedTrip || !onUpdateTrip) return;
         const updatedTrip = { ...selectedTrip, checklist: (selectedTrip.checklist || []).filter(i => i.id !== itemId) };
         onUpdateTrip(updatedTrip);
+        if (editingChecklistId === itemId) {
+            setCheckItem(''); setEditingChecklistId(null);
+        }
     };
 
     // --- LOGIC: SHOPPING ---
-    const addShoppingItem = () => {
+    const handleSaveShoppingItem = () => {
         if (!selectedTrip || !onUpdateTrip || !shopItem.trim()) return;
-        const newItem: TripShoppingItem = {
-            id: Math.random().toString(36).substr(2, 9),
-            item: shopItem,
-            estimatedCost: shopEstCost ? parseFloat(shopEstCost) : 0,
-            purchased: false
-        };
-        const updatedTrip = { ...selectedTrip, shoppingList: [...(selectedTrip.shoppingList || []), newItem] };
-        onUpdateTrip(updatedTrip);
-        setShopItem(''); setShopEstCost('');
+        
+        let updatedList = [...(selectedTrip.shoppingList || [])];
+        const estCost = shopEstCost ? parseFloat(shopEstCost) : 0;
+
+        if (editingShoppingId) {
+            updatedList = updatedList.map(item => item.id === editingShoppingId ? {
+                ...item,
+                item: shopItem,
+                estimatedCost: estCost
+            } : item);
+        } else {
+            updatedList.push({
+                id: Math.random().toString(36).substr(2, 9),
+                item: shopItem,
+                estimatedCost: estCost,
+                purchased: false
+            });
+        }
+
+        onUpdateTrip({ ...selectedTrip, shoppingList: updatedList });
+        setShopItem(''); setShopEstCost(''); setEditingShoppingId(null);
+    };
+
+    const startEditingShopping = (item: TripShoppingItem) => {
+        setShopItem(item.item);
+        setShopEstCost(item.estimatedCost?.toString() || '');
+        setEditingShoppingId(item.id);
     };
 
     const toggleShoppingItem = (itemId: string) => {
@@ -287,32 +331,57 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
         if (!selectedTrip || !onUpdateTrip) return;
         const updatedTrip = { ...selectedTrip, shoppingList: (selectedTrip.shoppingList || []).filter(i => i.id !== itemId) };
         onUpdateTrip(updatedTrip);
+        if (editingShoppingId === itemId) {
+            setShopItem(''); setShopEstCost(''); setEditingShoppingId(null);
+        }
     };
 
     // --- LOGIC: EXCHANGE ---
-    const addExchangeEntry = () => {
+    const handleSaveExchangeEntry = () => {
         if (!selectedTrip || !onUpdateTrip || !exchangeBRL || !exchangeForeign) return;
         const brl = parseFloat(exchangeBRL);
         const foreign = parseFloat(exchangeForeign);
         const rate = foreign > 0 ? brl / foreign : 0;
 
-        const newEntry: TripExchangeEntry = {
-            id: Math.random().toString(36).substr(2, 9),
-            date: exchangeDate,
-            amountBRL: brl,
-            amountForeign: foreign,
-            exchangeRate: rate,
-            currency: selectedTrip.currency
-        };
-        const updatedTrip = { ...selectedTrip, exchangeEntries: [...(selectedTrip.exchangeEntries || []), newEntry] };
-        onUpdateTrip(updatedTrip);
-        setExchangeBRL(''); setExchangeForeign('');
+        let updatedEntries = [...(selectedTrip.exchangeEntries || [])];
+
+        if (editingExchangeId) {
+            updatedEntries = updatedEntries.map(entry => entry.id === editingExchangeId ? {
+                ...entry,
+                date: exchangeDate,
+                amountBRL: brl,
+                amountForeign: foreign,
+                exchangeRate: rate
+            } : entry);
+        } else {
+            updatedEntries.push({
+                id: Math.random().toString(36).substr(2, 9),
+                date: exchangeDate,
+                amountBRL: brl,
+                amountForeign: foreign,
+                exchangeRate: rate,
+                currency: selectedTrip.currency
+            });
+        }
+
+        onUpdateTrip({ ...selectedTrip, exchangeEntries: updatedEntries });
+        setExchangeBRL(''); setExchangeForeign(''); setEditingExchangeId(null);
+    };
+
+    const startEditingExchange = (entry: TripExchangeEntry) => {
+        setExchangeDate(entry.date);
+        setExchangeBRL(entry.amountBRL.toString());
+        setExchangeForeign(entry.amountForeign.toString());
+        setEditingExchangeId(entry.id);
     };
 
     const deleteExchangeEntry = (itemId: string) => {
         if (!selectedTrip || !onUpdateTrip) return;
         const updatedTrip = { ...selectedTrip, exchangeEntries: (selectedTrip.exchangeEntries || []).filter(i => i.id !== itemId) };
         onUpdateTrip(updatedTrip);
+        if (editingExchangeId === itemId) {
+            setExchangeBRL(''); setExchangeForeign(''); setEditingExchangeId(null);
+        }
     };
 
     // --- VIEW: CREATE/EDIT TRIP FORM ---
@@ -644,30 +713,6 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                             )}
                         </Card>
 
-                        {/* Add Expense Quick Form */}
-                        <Card title="Adicionar Despesa Rápida">
-                            <form onSubmit={handleAddTripExpense} className="flex flex-col md:flex-row gap-3">
-                                <input
-                                    className="flex-1 w-full rounded-xl border-slate-200 border p-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-violet-500 outline-none bg-white placeholder-slate-500"
-                                    placeholder="Descrição (ex: Jantar, Uber)"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                />
-                                <div className="flex gap-3 w-full md:w-auto">
-                                    <input
-                                        className="flex-1 md:w-32 rounded-xl border-slate-200 border p-3 text-sm focus:ring-2 focus:ring-violet-500 outline-none bg-white font-bold text-slate-900 placeholder-slate-500"
-                                        type="number"
-                                        placeholder="R$ 0,00"
-                                        value={amount}
-                                        onChange={(e) => setAmount(e.target.value)}
-                                    />
-                                    <Button type="submit" variant="primary" className="bg-violet-700 hover:bg-violet-800 rounded-xl px-6 w-auto flex-shrink-0" disabled={!amount || !description}>
-                                        <Plus className="w-4 h-4 mr-2" /> Registrar
-                                    </Button>
-                                </div>
-                            </form>
-                        </Card>
-
                         {/* Transactions List */}
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                             <div className="p-4 border-b border-slate-100 bg-slate-50/50">
@@ -758,7 +803,7 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                 {/* TAB 2: ITINERARY */}
                 {activeTab === 'ITINERARY' && (
                     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                        <Card title="Adicionar Evento">
+                        <Card title={editingItineraryId ? "Editar Evento" : "Adicionar Evento"}>
                             <div className="space-y-3">
                                 <div className="flex flex-col gap-2">
                                     <div className="flex gap-2">
@@ -804,7 +849,14 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                         value={itiDesc}
                                         onChange={e => setItiDesc(e.target.value)}
                                     />
-                                    <Button onClick={addItineraryItem} disabled={!itiDate || !itiDesc} size="sm"><Plus className="w-4 h-4" /></Button>
+                                    <Button onClick={handleSaveItineraryItem} disabled={!itiDate || !itiDesc} size="sm">
+                                        {editingItineraryId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                    </Button>
+                                    {editingItineraryId && (
+                                        <Button onClick={() => { setEditingItineraryId(null); setItiDesc(''); setItiTime(''); }} size="sm" variant="secondary">
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         </Card>
@@ -821,7 +873,7 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                             )}
 
                             {selectedTrip.itinerary?.sort((a, b) => (a.date + (a.time || '')) > (b.date + (b.time || '')) ? 1 : -1).map(item => (
-                                <div key={item.id} className="relative pl-6">
+                                <div key={item.id} className={`relative pl-6 ${editingItineraryId === item.id ? 'opacity-50' : ''}`}>
                                     <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm ${item.type === 'FLIGHT' ? 'bg-blue-500' :
                                         item.type === 'LODGING' ? 'bg-indigo-500' :
                                             item.type === 'FOOD' ? 'bg-orange-500' : 'bg-emerald-500'
@@ -840,7 +892,10 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                             <p className="font-bold text-slate-800 text-sm">{item.description}</p>
                                             {item.location && <p className="text-xs text-slate-600 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {item.location}</p>}
                                         </div>
-                                        <button onClick={() => deleteItineraryItem(item.id)} className="text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                                        <div className="flex gap-1">
+                                            <button onClick={() => startEditingItinerary(item)} className="p-1 text-slate-400 hover:text-violet-600"><Pencil className="w-4 h-4" /></button>
+                                            <button onClick={() => deleteItineraryItem(item.id)} className="p-1 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -854,12 +909,19 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                         <div className="flex gap-2">
                             <input
                                 className="flex-1 rounded-xl border border-slate-300 p-3 shadow-sm focus:ring-2 focus:ring-violet-500 outline-none bg-white text-slate-900 font-bold placeholder-slate-500"
-                                placeholder="Adicionar item (ex: Passaporte, Protetor solar)"
+                                placeholder={editingChecklistId ? "Editar item..." : "Adicionar item (ex: Passaporte, Protetor solar)"}
                                 value={checkItem}
                                 onChange={e => setCheckItem(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && addChecklistItem()}
+                                onKeyDown={e => e.key === 'Enter' && handleSaveChecklistItem()}
                             />
-                            <Button onClick={addChecklistItem}><Plus className="w-5 h-5" /></Button>
+                            <Button onClick={handleSaveChecklistItem}>
+                                {editingChecklistId ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                            </Button>
+                            {editingChecklistId && (
+                                <Button onClick={() => { setEditingChecklistId(null); setCheckItem(''); }} variant="secondary">
+                                    <X className="w-5 h-5" />
+                                </Button>
+                            )}
                         </div>
 
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
@@ -870,8 +932,8 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                 </div>
                             )}
                             {selectedTrip.checklist?.map(item => (
-                                <div key={item.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                                    <div className="flex items-center gap-3">
+                                <div key={item.id} className={`p-4 flex items-center justify-between hover:bg-slate-50 transition-colors ${editingChecklistId === item.id ? 'bg-violet-50' : ''}`}>
+                                    <div className="flex items-center gap-3 flex-1">
                                         <button
                                             onClick={() => toggleChecklistItem(item.id)}
                                             className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${item.isCompleted ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}
@@ -880,7 +942,10 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                         </button>
                                         <span className={`text-sm font-medium ${item.isCompleted ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{item.text}</span>
                                     </div>
-                                    <button onClick={() => deleteChecklistItem(item.id)} className="text-slate-300 hover:text-red-500"><X className="w-4 h-4" /></button>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => startEditingChecklist(item)} className="text-slate-300 hover:text-violet-600"><Pencil className="w-4 h-4" /></button>
+                                        <button onClick={() => deleteChecklistItem(item.id)} className="text-slate-300 hover:text-red-500"><X className="w-4 h-4" /></button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -937,7 +1002,7 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                 {/* TAB 5: SHOPPING */}
                 {activeTab === 'SHOPPING' && (
                     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                        <Card title="Lista de Desejos">
+                        <Card title={editingShoppingId ? "Editar Item" : "Lista de Desejos"}>
                             <div className="bg-violet-50 p-4 rounded-xl mb-4 border border-violet-100 flex justify-between items-center">
                                 <span className="text-sm font-bold text-violet-700">Previsão Total de Gastos</span>
                                 <span className="text-lg font-black text-violet-900">
@@ -962,7 +1027,14 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                     value={shopEstCost}
                                     onChange={e => setShopEstCost(e.target.value)}
                                 />
-                                <Button onClick={addShoppingItem} disabled={!shopItem}><Plus className="w-5 h-5" /></Button>
+                                <Button onClick={handleSaveShoppingItem} disabled={!shopItem}>
+                                    {editingShoppingId ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                                </Button>
+                                {editingShoppingId && (
+                                    <Button onClick={() => { setEditingShoppingId(null); setShopItem(''); setShopEstCost(''); }} variant="secondary">
+                                        <X className="w-5 h-5" />
+                                    </Button>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -973,8 +1045,8 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                     </div>
                                 )}
                                 {selectedTrip.shoppingList?.map(item => (
-                                    <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                        <div className="flex items-center gap-3">
+                                    <div key={item.id} className={`flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 ${editingShoppingId === item.id ? 'ring-2 ring-violet-200' : ''}`}>
+                                        <div className="flex items-center gap-3 flex-1">
                                             <button onClick={() => toggleShoppingItem(item.id)} className={`w-5 h-5 rounded border flex items-center justify-center ${item.purchased ? 'bg-emerald-500 border-emerald-500' : 'border-slate-400 bg-white'}`}>
                                                 {item.purchased && <Check className="w-3 h-3 text-white" />}
                                             </button>
@@ -983,7 +1055,10 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                                 {item.estimatedCost ? <p className="text-xs text-slate-500">Est: {formatCurrency(item.estimatedCost, selectedTrip.currency)}</p> : null}
                                             </div>
                                         </div>
-                                        <button onClick={() => deleteShoppingItem(item.id)} className="text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => startEditingShopping(item)} className="text-slate-300 hover:text-violet-600"><Pencil className="w-4 h-4" /></button>
+                                            <button onClick={() => deleteShoppingItem(item.id)} className="text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -994,7 +1069,7 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                 {/* TAB 6: EXCHANGE */}
                 {activeTab === 'EXCHANGE' && (
                     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                        <Card title="Controle de Câmbio">
+                        <Card title={editingExchangeId ? "Editar Câmbio" : "Controle de Câmbio"}>
                             <div className="bg-violet-50 p-4 rounded-xl mb-6 border border-violet-100">
                                 <div className="flex justify-between items-center">
                                     <div>
@@ -1022,20 +1097,27 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                             </div>
 
                             <div className="flex flex-col gap-3 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                <h4 className="font-bold text-sm text-slate-700">Nova Compra de Moeda</h4>
+                                <h4 className="font-bold text-sm text-slate-700">{editingExchangeId ? "Editar Entrada" : "Nova Compra de Moeda"}</h4>
                                 <div className="flex gap-2">
                                     <input type="date" className="w-32 p-2 border rounded-lg text-sm" value={exchangeDate} onChange={e => setExchangeDate(e.target.value)} />
                                     <input type="number" className="flex-1 p-2 border rounded-lg text-sm" placeholder="Valor em R$ (BRL)" value={exchangeBRL} onChange={e => setExchangeBRL(e.target.value)} />
                                     <input type="number" className="flex-1 p-2 border rounded-lg text-sm" placeholder={`Valor em ${selectedTrip.currency}`} value={exchangeForeign} onChange={e => setExchangeForeign(e.target.value)} />
                                 </div>
-                                <Button onClick={addExchangeEntry} disabled={!exchangeBRL || !exchangeForeign} className="w-full">
-                                    <Plus className="w-4 h-4 mr-2" /> Registrar Câmbio
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button onClick={handleSaveExchangeEntry} disabled={!exchangeBRL || !exchangeForeign} className="w-full">
+                                        {editingExchangeId ? <><Save className="w-4 h-4 mr-2" /> Salvar</> : <><Plus className="w-4 h-4 mr-2" /> Registrar Câmbio</>}
+                                    </Button>
+                                    {editingExchangeId && (
+                                        <Button onClick={() => { setEditingExchangeId(null); setExchangeBRL(''); setExchangeForeign(''); }} variant="secondary">
+                                            Cancelar
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="space-y-2">
                                 {selectedTrip.exchangeEntries?.map(entry => (
-                                    <div key={entry.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                                    <div key={entry.id} className={`flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm ${editingExchangeId === entry.id ? 'ring-2 ring-violet-200' : ''}`}>
                                         <div>
                                             <p className="font-bold text-slate-800">{new Date(entry.date).toLocaleDateString('pt-BR')}</p>
                                             <p className="text-xs text-slate-500">Taxa: R$ {entry.exchangeRate.toFixed(4)}</p>
@@ -1044,7 +1126,10 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                             <p className="font-bold text-emerald-600">+ {formatCurrency(entry.amountForeign, entry.currency)}</p>
                                             <p className="text-xs text-slate-500">- {formatCurrency(entry.amountBRL, 'BRL')}</p>
                                         </div>
-                                        <button onClick={() => deleteExchangeEntry(entry.id)} className="text-slate-300 hover:text-red-500 ml-2"><Trash2 className="w-4 h-4" /></button>
+                                        <div className="flex gap-2 ml-4">
+                                            <button onClick={() => startEditingExchange(entry)} className="text-slate-300 hover:text-violet-600"><Pencil className="w-4 h-4" /></button>
+                                            <button onClick={() => deleteExchangeEntry(entry.id)} className="text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
