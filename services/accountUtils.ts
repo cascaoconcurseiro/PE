@@ -1,50 +1,88 @@
 import { Account, Transaction, TransactionType } from '../types';
 
 export const getInvoiceData = (account: Account, transactions: Transaction[], referenceDate: Date) => {
-    if (!account.closingDay || !account.limit) return { invoiceTotal: 0, transactions: [], status: 'OPEN', daysToClose: 0, closingDate: new Date(), dueDate: new Date() };
+    // Default fallback
+    if (!account.closingDay || !account.limit) {
+        return { 
+            invoiceTotal: 0, 
+            transactions: [], 
+            status: 'OPEN', 
+            daysToClose: 0, 
+            closingDate: new Date(), 
+            dueDate: new Date() 
+        };
+    }
     
+    // Create Date objects relative to the reference date (avoiding time shifts)
+    const year = referenceDate.getFullYear();
+    const month = referenceDate.getMonth();
     const currentDay = referenceDate.getDate();
     const closingDay = account.closingDay;
     
-    let startCycle = new Date(referenceDate);
-    let endCycle = new Date(referenceDate);
+    // Determine the closing date for the CURRENT view's cycle
+    // Logic: If we are viewing 'May 10th' and closing is '5th', we are in the cycle that ends 'June 5th'.
+    // If we are viewing 'May 1st' and closing is '5th', we are in the cycle that ends 'May 5th'.
     
+    let closingDate: Date;
+    
+    // If the reference day is before/on closing day, this cycle ends in the current month
     if (currentDay <= closingDay) {
-        startCycle.setMonth(startCycle.getMonth() - 1);
-        startCycle.setDate(closingDay + 1);
-        endCycle.setDate(closingDay);
+        closingDate = new Date(year, month, closingDay);
     } else {
-        startCycle.setDate(closingDay + 1);
-        endCycle.setMonth(endCycle.getMonth() + 1);
-        endCycle.setDate(closingDay);
+        // If reference day is after closing day, this cycle ends in the next month
+        closingDate = new Date(year, month + 1, closingDay);
     }
     
-    startCycle.setHours(0, 0, 0, 0);
-    endCycle.setHours(23, 59, 59, 999);
+    // Calculate Start Date (Closing Date of previous month + 1 day)
+    const startDate = new Date(closingDate);
+    startDate.setMonth(startDate.getMonth() - 1);
+    startDate.setDate(closingDay + 1);
     
-    const tempDueDate = new Date(endCycle);
-    tempDueDate.setDate(account.dueDay || 10);
-    if (tempDueDate < endCycle) tempDueDate.setMonth(tempDueDate.getMonth() + 1);
+    // Calculate Due Date
+    const dueDate = new Date(closingDate);
+    dueDate.setDate(account.dueDay || 10);
+    // If due day is smaller than closing day, it usually means next month (e.g. Close 25, Due 5)
+    if (account.dueDay && account.dueDay < closingDay) {
+        dueDate.setMonth(dueDate.getMonth() + 1);
+    } else if (dueDate < closingDate) {
+        // Safety check: Due date can't be before closing date
+        dueDate.setMonth(dueDate.getMonth() + 1);
+    }
     
-    const finalDueDate = tempDueDate;
+    // Filter Transactions using String Comparison (YYYY-MM-DD) to avoid Timezone issues
+    // We convert boundaries to YYYY-MM-DD strings for reliable comparison
+    const startStr = startDate.toISOString().split('T')[0];
+    const endStr = closingDate.toISOString().split('T')[0];
     
     const txs = transactions.filter(t => {
-        const tDate = new Date(t.date);
-        return t.accountId === account.id && tDate >= startCycle && tDate <= endCycle;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        if (t.accountId !== account.id) return false;
+        // Simple string comparison works for ISO dates (YYYY-MM-DD)
+        return t.date >= startStr && t.date <= endStr;
+    }).sort((a, b) => b.date.localeCompare(a.date)); // Sort Newest First
     
     const total = txs.reduce((acc, t) => {
         if (t.isRefund) return acc - t.amount;
         if (t.type === TransactionType.EXPENSE) return acc + t.amount;
-        if (t.type === TransactionType.INCOME) return acc - t.amount;
+        if (t.type === TransactionType.INCOME) return acc - t.amount; // Payment/Credit
         return acc;
     }, 0);
     
     const now = new Date();
-    const daysToClose = Math.ceil((endCycle.getTime() - now.getTime()) / (1000 * 3600 * 24));
-    const status = endCycle < now ? 'CLOSED' : 'OPEN';
+    // Reset hours for fair comparison
+    const nowZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const closingZero = new Date(closingDate.getFullYear(), closingDate.getMonth(), closingDate.getDate());
     
-    return { invoiceTotal: total, transactions: txs, status, daysToClose, closingDate: endCycle, dueDate: finalDueDate };
+    const daysToClose = Math.ceil((closingZero.getTime() - nowZero.getTime()) / (1000 * 3600 * 24));
+    const status = closingZero < nowZero ? 'CLOSED' : 'OPEN';
+    
+    return { 
+        invoiceTotal: total, 
+        transactions: txs, 
+        status, 
+        daysToClose, 
+        closingDate, 
+        dueDate 
+    };
 };
 
 export const getCommittedBalance = (account: Account, transactions: Transaction[]) => {
@@ -67,5 +105,5 @@ export const getCommittedBalance = (account: Account, transactions: Transaction[
 export const getBankExtract = (accountId: string, transactions: Transaction[]) => {
     return transactions
         .filter(t => t.accountId === accountId)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort((a, b) => b.date.localeCompare(a.date));
 };

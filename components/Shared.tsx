@@ -3,7 +3,7 @@ import { Transaction, Trip, FamilyMember, TransactionType, Account, SyncStatus, 
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Users, Home, Plane, ArrowRight, AlertCircle, Calendar, Wallet, CheckCircle2, Sparkles, ChevronDown } from 'lucide-react';
-import { formatCurrency, isSameMonth } from '../utils';
+import { formatCurrency } from '../utils';
 
 interface SharedProps {
     transactions: Transaction[];
@@ -127,25 +127,28 @@ export const Shared: React.FC<SharedProps> = ({
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else {
             // REGULAR TAB LOGIC
-            const endOfSelectedMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-            endOfSelectedMonth.setHours(23, 59, 59, 999);
+            const selectedMonthStr = currentDate.toISOString().slice(0, 7); // YYYY-MM
+            
+            // Calculate end of selected month as YYYY-MM-DD string to avoid timezone issues
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            const endOfMonthStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${lastDay}`;
 
             return allItems.filter(i => {
                 if (i.tripId) return false; // Filter out trip items from Regular tab
 
-                const itemDate = new Date(i.date + 'T12:00:00'); // Safe parsing
-                
                 // 1. If Paid: Only show if it belongs strictly to this month (History for this month)
                 if (i.isPaid) {
-                    return isSameMonth(i.date, currentDate);
+                    return i.date.startsWith(selectedMonthStr);
                 }
                 
                 // 2. If Unpaid (Pending):
                 // Show if it belongs to this month OR if it is Overdue (Past)
                 // HIDE if it is in the future (Next month's installment)
-                return itemDate <= endOfSelectedMonth;
+                return i.date <= endOfMonthStr;
 
-            }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            }).sort((a, b) => b.date.localeCompare(a.date));
         }
     };
 

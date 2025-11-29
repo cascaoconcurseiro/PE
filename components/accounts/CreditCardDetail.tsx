@@ -30,6 +30,14 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     const available = limit - committedBalance;
     const percentageUsed = limit > 0 ? Math.min((committedBalance / limit) * 100, 100) : 0;
 
+    // Helper to safely navigate months without date overflow bugs (e.g. 31 Jan -> Feb)
+    const changeMonth = (direction: 'prev' | 'next') => {
+        const d = new Date(currentDate);
+        d.setDate(15); // Safe middle of month
+        d.setMonth(d.getMonth() + (direction === 'next' ? 1 : -1));
+        onInvoiceDateChange(d);
+    };
+
     return (
         <div className="space-y-6">
             <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200 relative print:shadow-none print:border">
@@ -42,11 +50,22 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                                 {status === 'CLOSED' ? 'Fatura Fechada' : 'Fatura Aberta'}
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                                <Button variant="ghost" size="sm" onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() - 1); onInvoiceDateChange(d); }} className="h-6 w-6 p-0 rounded-full bg-slate-100 hover:bg-slate-200 no-print"><ArrowLeft className="w-3 h-3" /></Button>
-                                <span className="text-xs font-bold text-slate-700 capitalize">{closingDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</span>
-                                <Button variant="ghost" size="sm" onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() + 1); onInvoiceDateChange(d); }} className="h-6 w-6 p-0 rounded-full bg-slate-100 hover:bg-slate-200 no-print"><ArrowRight className="w-3 h-3" /></Button>
+                                <Button variant="ghost" size="sm" onClick={() => changeMonth('prev')} className="h-8 w-8 p-0 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 no-print">
+                                    <ArrowLeft className="w-4 h-4" />
+                                </Button>
+                                <span className="text-sm font-bold text-slate-800 capitalize min-w-[120px] text-center">
+                                    {closingDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+                                </span>
+                                <Button variant="ghost" size="sm" onClick={() => changeMonth('next')} className="h-8 w-8 p-0 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 no-print">
+                                    <ArrowRight className="w-4 h-4" />
+                                </Button>
                             </div>
-                            <p className="text-sm text-slate-600 font-medium mt-2">{status === 'OPEN' ? `Fecha em ${daysToClose} dias` : `Fechou dia ${closingDate.getDate()}`}</p>
+                            <p className="text-sm text-slate-600 font-medium mt-2">
+                                {status === 'OPEN' 
+                                    ? `Fecha em ${daysToClose} dias (Dia ${account.closingDay})` 
+                                    : `Fechada em ${closingDate.toLocaleDateString('pt-BR')}`
+                                }
+                            </p>
                         </div>
                         <div className="text-right">
                             <p className="text-sm text-slate-600 font-bold mb-1">Valor da Fatura</p>
