@@ -25,7 +25,8 @@ export const useDataStore = () => {
     // --- HANDLERS ---
 
     const handleLogin = async (user: UserProfile) => {
-        await db.userProfile.add(user);
+        // Use put instead of add to prevent ConstraintError if user exists but isn't loaded yet
+        await db.userProfile.put(user);
     };
 
     const handleLogout = async () => {
@@ -119,7 +120,8 @@ export const useDataStore = () => {
             updatedAt: now,
             syncStatus: SyncStatus.PENDING
         };
-        await db.accounts.add(account);
+        // Use put instead of add to handle manual ID generation cases (like Investments page)
+        await db.accounts.put(account);
     };
 
     const handleUpdateAccount = async (updatedAccount: Account) => {
