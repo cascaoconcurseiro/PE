@@ -55,13 +55,26 @@ export const useDataStore = () => {
         const now = new Date().toISOString();
 
         if (newTx.isInstallment && newTx.totalInstallments && newTx.totalInstallments > 1) {
-            const baseDate = parseDate(newTx.date);
+            // Installment Logic: Create N transactions for future dates
+            const baseDate = parseDate(newTx.date); // Use helper to handle timezones
             const seriesId = crypto.randomUUID();
+            const installmentAmount = newTx.amount / newTx.totalInstallments; // Split value if needed, but usually user enters installment value? 
+            // NOTE: In TransactionForm, activeAmount is usually the TOTAL purchase price in Brazil, but sometimes user enters monthly.
+            // Let's assume user enters the TOTAL amount for the purchase, and we divide it.
+            // Wait, standard UI behavior: User enters TOTAL amount.
+            // But if user enters 1000 and selects 10x, is it 10x 100? Yes.
+            // Let's ensure amount is divided.
+            // Actually, in TransactionForm we send the full amount. We should divide here.
+            
+            // Correction: If it is an installment, 'amount' passed from form is the TOTAL.
+            // We need to divide it by totalInstallments for each record.
+            const amountPerInstallment = newTx.amount / newTx.totalInstallments;
 
             for (let i = 0; i < newTx.totalInstallments; i++) {
                 const nextDate = new Date(baseDate);
                 nextDate.setMonth(baseDate.getMonth() + i);
 
+                // Handle end of month edge cases (e.g. Jan 31 -> Feb 28)
                 if (baseDate.getDate() > 28) {
                     const daysInTargetMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
                     nextDate.setDate(Math.min(baseDate.getDate(), daysInTargetMonth));
@@ -70,16 +83,18 @@ export const useDataStore = () => {
                 newTransactionsList.push({
                     ...newTx,
                     id: crypto.randomUUID(),
+                    amount: amountPerInstallment, // Use divided amount
                     seriesId: seriesId,
                     date: nextDate.toISOString().split('T')[0],
-                    currentInstallment: (newTx.currentInstallment || 1) + i,
-                    description: newTx.description,
+                    currentInstallment: i + 1,
+                    description: `${newTx.description} (${i + 1}/${newTx.totalInstallments})`,
                     createdAt: now,
                     updatedAt: now,
                     syncStatus: SyncStatus.PENDING
                 });
             }
         } else {
+            // Regular Transaction
             newTransactionsList.push({
                 ...newTx,
                 id: crypto.randomUUID(),
@@ -140,8 +155,6 @@ export const useDataStore = () => {
         });
     };
 
-    // --- CRITICAL FIX: Partidas Dobradas & Integrity ---
-    // Instead of setting 'balance' arbitrarily, we create a transaction for the initial amount.
     const handleAddAccount = async (newAccount: Omit<Account, 'id'>) => {
         const now = new Date().toISOString();
         const accountId = (newAccount as any).id || crypto.randomUUID();
@@ -163,7 +176,6 @@ export const useDataStore = () => {
             await logAudit('ACCOUNT', accountId, 'CREATE', newAccount);
 
             // 2. Create "Opening Balance" Transaction if needed (Double Entry Principle)
-            // This ensures "Assets = Equity" logic holds true.
             if (Math.abs(initialBalance) > 0) {
                 const isPositive = initialBalance > 0;
                 await db.transactions.add({
@@ -202,24 +214,21 @@ export const useDataStore = () => {
             alert('Não é possível excluir esta conta pois existem transações associadas a ela. Exclua as transações primeiro.');
             return;
         }
-        if (confirm('Tem certeza que deseja excluir esta conta?')) {
-            const acc = await db.accounts.get(id);
-            if (acc) {
-                await db.transaction('rw', [db.accounts, db.auditLogs], async () => {
-                    await db.accounts.put({
-                        ...acc,
-                        deleted: true,
-                        updatedAt: new Date().toISOString(),
-                        syncStatus: SyncStatus.PENDING
-                    });
-                    await logAudit('ACCOUNT', id, 'DELETE', acc);
+        // No confirmation alert needed here as UI should handle confirmation
+        const acc = await db.accounts.get(id);
+        if (acc) {
+            await db.transaction('rw', [db.accounts, db.auditLogs], async () => {
+                await db.accounts.put({
+                    ...acc,
+                    deleted: true,
+                    updatedAt: new Date().toISOString(),
+                    syncStatus: SyncStatus.PENDING
                 });
-            }
+                await logAudit('ACCOUNT', id, 'DELETE', acc);
+            });
         }
     };
 
-    // ... (Keep other handlers similar but with audit wrapping where appropriate)
-    
     const handleAddTrip = async (newTrip: Trip) => {
         const now = new Date().toISOString();
         await db.transaction('rw', [db.trips, db.auditLogs], async () => {

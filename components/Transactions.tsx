@@ -5,6 +5,7 @@ import { isSameMonth } from '../utils';
 import { TransactionList } from './transactions/TransactionList';
 import { TransactionSummary } from './transactions/TransactionSummary';
 import { TransactionForm } from './transactions/TransactionForm';
+import { ConfirmModal } from './ui/ConfirmModal';
 
 // Export PrivacyBlur for reuse if needed, though mostly handled internally now
 export const PrivacyBlur = ({ children, showValues }: { children: React.ReactNode, showValues: boolean }) => {
@@ -60,6 +61,9 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const [formMode, setFormMode] = useState<TransactionType | null>(modalMode ? TransactionType.EXPENSE : null);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // Delete State
+    const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id: string | null }>({ isOpen: false, id: null });
 
     useEffect(() => {
         if (modalMode && !editingTransaction) {
@@ -114,6 +118,17 @@ export const Transactions: React.FC<TransactionsProps> = ({
             onAddTransaction(data);
         }
         handleCancelForm();
+    };
+
+    const handleDeleteRequest = (id: string) => {
+        setDeleteModal({ isOpen: true, id });
+    };
+
+    const confirmDelete = () => {
+        if (deleteModal.id) {
+            onDeleteTransaction(deleteModal.id);
+            setDeleteModal({ isOpen: false, id: null });
+        }
     };
 
     // Filter Logic
@@ -191,8 +206,17 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 familyMembers={familyMembers}
                 showValues={showValues} 
                 onEdit={handleEditRequest} 
-                onDelete={onDeleteTransaction}
+                onDelete={handleDeleteRequest}
                 onAddClick={() => setFormMode(TransactionType.EXPENSE)}
+            />
+
+            <ConfirmModal 
+                isOpen={deleteModal.isOpen}
+                title="Excluir Transação"
+                message="Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita."
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteModal({ isOpen: false, id: null })}
+                isDanger
             />
         </div>
     );

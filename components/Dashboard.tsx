@@ -5,7 +5,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import { TrendingUp, TrendingDown, Bell, Clock, Wallet, PieChart as PieIcon, ChevronLeft, ChevronRight, BarChart3, LineChart, AlertCircle } from 'lucide-react';
 import { formatCurrency, isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
-import { calculateProjectedBalance, analyzeFinancialHealth } from '../services/financialLogic';
+import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue } from '../services/financialLogic';
 
 interface DashboardProps {
     accounts: Account[];
@@ -47,7 +47,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
         transactions.filter(t => isSameMonth(t.date, currentDate)),
         [transactions, currentDate]);
 
-    // 3. Realized Totals (Past + Today)
+    // 3. Realized Totals (Using Effective Values to Reflect Splits)
     const monthlyIncome = useMemo(() => monthlyTransactions
         .filter(t => t.type === TransactionType.INCOME)
         .reduce((acc, t) => {
@@ -60,7 +60,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
         .filter(t => t.type === TransactionType.EXPENSE)
         .reduce((acc, t) => {
             const account = accounts.find(a => a.id === t.accountId);
-            const amount = t.isRefund ? -t.amount : t.amount;
+            // Use Effective Value (My Share) instead of raw Amount
+            const effectiveAmount = calculateEffectiveTransactionValue(t);
+            const amount = t.isRefund ? -effectiveAmount : effectiveAmount;
             return acc + convertToBRL(amount, account?.currency || 'BRL');
         }, 0), [monthlyTransactions, accounts]);
 
@@ -78,7 +80,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
         }, 0),
         [accounts]);
 
-    // Annual Cash Flow Data
+    // Annual Cash Flow Data (Using Effective Values)
     const cashFlowData = useMemo(() => {
         const data = Array.from({ length: 12 }, (_, i) => {
             const date = new Date(selectedYear, i, 1);
@@ -97,7 +99,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
 
             const monthIndex = tDate.getMonth();
             const account = accounts.find(a => a.id === t.accountId);
-            const amountBRL = convertToBRL(t.amount, account?.currency || 'BRL');
+            
+            // Calculate Effective Amount in BRL
+            const effectiveAmount = calculateEffectiveTransactionValue(t);
+            const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
 
             if (t.type === TransactionType.EXPENSE) {
                 const value = t.isRefund ? -amountBRL : amountBRL;
@@ -131,13 +136,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
             .slice(0, 3);
     }, [transactions]);
 
-    // Category Pie Chart Data
+    // Category Pie Chart Data (Using Effective Values)
     const categoryData = useMemo(() => Object.entries(
         monthlyTransactions
             .filter(t => t.type === TransactionType.EXPENSE)
             .reduce((acc, t) => {
                 const account = accounts.find(a => a.id === t.accountId);
-                const amountBRL = convertToBRL(t.amount, account?.currency || 'BRL');
+                const effectiveAmount = calculateEffectiveTransactionValue(t);
+                const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
                 const amount = t.isRefund ? -amountBRL : amountBRL;
                 acc[t.category] = (acc[t.category] || 0) + (amount as number);
                 return acc;
@@ -283,7 +289,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                             <div className="flex justify-between items-start relative z-10">
                                 <div>
                                     <p className="text-red-200/80 font-bold text-[10px] uppercase tracking-widest mb-1">
-                                        Saídas ({currentDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')})
+                                        Saídas (Minha Parte)
                                     </p>
                                     <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white">
                                         <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(monthlyExpense)}</PrivacyBlur>
@@ -298,7 +304,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                 </div>
             </div>
 
-            {/* ANNUAL CASH FLOW CHART - VISIBLE ON MOBILE NOW */}
+            {/* ANNUAL CASH FLOW CHART */}
             <Card className="border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800">
                 <div className="flex items-center gap-3 mb-6 px-2">
                     <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
@@ -309,7 +315,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                         <p className="text-xs text-slate-500 dark:text-slate-400">Visão anual de {selectedYear}</p>
                     </div>
                 </div>
-                {/* Changed height for mobile and removed hidden md:block */}
                 <div className="h-60 md:h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -404,7 +409,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                     </div>
                     <div>
                         <h3 className="font-bold text-slate-800 dark:text-white text-lg">Distribuição de Gastos</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Top categorias do mês</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Top categorias do mês (Valor Efetivo)</p>
                     </div>
                 </div>
 
