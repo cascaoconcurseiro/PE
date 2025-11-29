@@ -2,7 +2,6 @@ import React from 'react';
 import { Asset } from '../../../types';
 import { formatCurrency } from '../../../utils';
 import { Modal } from '../../ui/Modal';
-import { X } from 'lucide-react';
 
 interface HistoryModalProps {
     isOpen: boolean;

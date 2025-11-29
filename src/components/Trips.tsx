@@ -9,7 +9,6 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Ba
 import { formatCurrency, getCategoryIcon } from '../utils';
 import { exportToCSV, prepareTripExpensesForExport, printComponent } from '../services/exportUtils';
 
-// ... (Rest of the file remains identical, just ensuring imports are correct)
 interface TripsProps {
     trips: Trip[];
     transactions: Transaction[];
@@ -23,7 +22,6 @@ interface TripsProps {
 }
 
 export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared }) => {
-    // ... (Logic remains the same)
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
     const [isCreatingTrip, setIsCreatingTrip] = useState(false);
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'ITINERARY' | 'CHECKLIST' | 'STATS' | 'SHOPPING' | 'EXCHANGE'>('OVERVIEW');

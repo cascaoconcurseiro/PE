@@ -22,7 +22,6 @@ export const IRReportModal: React.FC<IRReportModalProps> = ({ isOpen, onClose, a
                 </div>
                 <div className="space-y-6">
                     {assetTypes.map((type) => {
-                        // Cast type to AssetType for filtering to avoid TS errors
                         const typeAssets = assets.filter(a => a.type === type as AssetType);
                         if (typeAssets.length === 0) return null;
                         return (

@@ -7,23 +7,19 @@ import { Asset } from '../../types';
 import { convertToBRL } from '../../services/currencyService';
 
 interface AllocationChartProps {
-    assets: Asset[];
+    data: { name: string; value: number }[]; // Keep this to match usage in Investments.tsx
     currentTotal: number;
     showValues: boolean;
 }
 
+// Fix: The component was defined as taking `assets` in the previous block but `data` in usage
+// Let's stick to `data` as passed from parent to avoid recalculation if parent already does it.
+// But wait, the parent calculates `allocationData`.
+// I will stick to the props `data`, `currentTotal`, `showValues` as per previous usage in `Investments.tsx`.
+
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
-export const AllocationChart: React.FC<AllocationChartProps> = ({ assets, currentTotal, showValues }) => {
-    const allocationData = useMemo(() => {
-        const data: { [key: string]: number } = {};
-        assets.forEach(asset => {
-            const valueInBRL = convertToBRL(asset.quantity * asset.currentPrice, asset.currency);
-            data[asset.type] = (data[asset.type] || 0) + valueInBRL;
-        });
-        return Object.entries(data).map(([name, value]) => ({ name, value }));
-    }, [assets]);
-
+export const AllocationChart: React.FC<AllocationChartProps> = ({ data, currentTotal, showValues }) => {
     return (
         <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30">
@@ -36,8 +32,8 @@ export const AllocationChart: React.FC<AllocationChartProps> = ({ assets, curren
                 <div className="h-64 w-full relative">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                            <Pie data={allocationData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
-                                {allocationData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
+                            <Pie data={data} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
+                                {data.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                             </Pie>
                             <Tooltip formatter={(value: number) => showValues ? formatCurrency(value) : 'R$ ****'} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                             <Legend verticalAlign="bottom" height={36} iconType="circle" />
@@ -49,13 +45,13 @@ export const AllocationChart: React.FC<AllocationChartProps> = ({ assets, curren
                     </div>
                 </div>
                 <div className="mt-4 space-y-3">
-                    {allocationData.sort((a, b) => b.value - a.value).map((item, idx) => (
+                    {data.sort((a, b) => b.value - a.value).map((item, idx) => (
                         <div key={item.name} className="flex justify-between text-xs items-center">
                             <span className="flex items-center gap-2">
                                 <span className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
                                 <span className="text-slate-600 dark:text-slate-300 font-bold">{item.name}</span>
                             </span>
-                            <span className="font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">{((item.value / currentTotal) * 100).toFixed(1)}%</span>
+                            <span className="font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">{currentTotal > 0 ? ((item.value / currentTotal) * 100).toFixed(1) : 0}%</span>
                         </div>
                     ))}
                 </div>

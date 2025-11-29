@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Account, Transaction, Asset, AssetType, AccountType, TransactionType, Category } from '../types';
 import { convertToBRL } from '../services/currencyService';
 import { formatCurrency } from '../utils';
-import { prepareAssetsForExport } from '../services/exportUtils';
+import { prepareAssetsForExport, exportToCSV } from '../services/exportUtils';
 import { printAssetsReport } from '../services/printUtils';
 
 // Modular Components
@@ -42,7 +42,6 @@ export const Investments: React.FC<InvestmentsProps> = ({
     onAddAccount,
     showValues
 }) => {
-    // Modal States
     const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
     const [isSellModalOpen, setIsSellModalOpen] = useState(false);
     const [isDividendModalOpen, setIsDividendModalOpen] = useState(false);
@@ -50,20 +49,26 @@ export const Investments: React.FC<InvestmentsProps> = ({
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
-    // Data States
     const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
     const [newAccountName, setNewAccountName] = useState('');
 
-    // Filter States
     const [filterType, setFilterType] = useState<AssetType | 'ALL'>('ALL');
     const [searchTerm, setSearchTerm] = useState('');
 
-    // --- Calculations ---
     const totalInvested = assets.reduce((acc, asset) => acc + convertToBRL(asset.quantity * asset.averagePrice, asset.currency), 0);
     const currentTotal = assets.reduce((acc, asset) => acc + convertToBRL(asset.quantity * asset.currentPrice, asset.currency), 0);
     const profit = currentTotal - totalInvested;
     const profitPercentage = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
+
+    const allocationData = useMemo(() => {
+        const data: { [key: string]: number } = {};
+        assets.forEach(asset => {
+            const valueInBRL = convertToBRL(asset.quantity * asset.currentPrice, asset.currency);
+            data[asset.type] = (data[asset.type] || 0) + valueInBRL;
+        });
+        return Object.entries(data).map(([name, value]) => ({ name, value }));
+    }, [assets]);
 
     const filteredAssets = assets.filter(asset => {
         const matchesSearch = asset.ticker.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -74,13 +79,9 @@ export const Investments: React.FC<InvestmentsProps> = ({
 
     const bankingAccounts = accounts.filter(a => a.type !== AccountType.CREDIT_CARD);
 
-    // --- Handlers ---
-
     const handleExport = () => {
         const data = prepareAssetsForExport(filteredAssets);
-        import('../services/exportUtils').then(({ exportToCSV }) => {
-            exportToCSV(data, ['Ticker', 'Nome', 'Tipo', 'Qtd', 'Preço Médio', 'Preço Atual', 'Total Atual'], 'Carteira_Investimentos');
-        });
+        exportToCSV(data, ['Ticker', 'Nome', 'Tipo', 'Qtd', 'Preço Médio', 'Preço Atual', 'Total Atual'], 'Carteira_Investimentos');
     };
 
     const handlePrint = () => {
@@ -344,9 +345,10 @@ export const Investments: React.FC<InvestmentsProps> = ({
 
                 <div className="xl:col-span-1 space-y-6">
                     <AllocationChart
-                        assets={assets}
+                        data={allocationData}
                         currentTotal={currentTotal}
                         showValues={showValues}
+                        assets={assets}
                     />
                 </div>
             </div>
