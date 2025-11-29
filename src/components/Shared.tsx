@@ -47,11 +47,13 @@ export const Shared: React.FC<SharedProps> = ({
     const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || '');
 
     // --- ENGINE: GENERATE INVOICES ---
-    const invoices = useMemo<Record<string, InvoiceItem[]>>(() => {
+    const invoices = useMemo(() => {
         const invoiceMap: Record<string, InvoiceItem[]> = {};
         
-        // Initialize for all members
-        members.forEach(m => invoiceMap[m.id] = []);
+        // Initialize for known members to ensure empty state exists
+        members.forEach(m => {
+            if (!invoiceMap[m.id]) invoiceMap[m.id] = [];
+        });
 
         transactions.forEach(t => {
             // Only care about shared expenses
@@ -61,31 +63,36 @@ export const Shared: React.FC<SharedProps> = ({
             if (!t.payerId) {
                 t.sharedWith?.forEach(split => {
                     const memberId = split.memberId;
-                    if (invoiceMap[memberId]) {
-                        invoiceMap[memberId].push({
-                            id: `${t.id}-credit-${memberId}`,
-                            originalTxId: t.id,
-                            description: t.description,
-                            date: t.date,
-                            category: t.category as string,
-                            amount: split.assignedAmount,
-                            type: 'CREDIT', // They owe me
-                            isPaid: !!split.isSettled,
-                            tripId: t.tripId,
-                            memberId: memberId
-                        });
-                    }
+                    
+                    // Dynamic Initialization (Safety check)
+                    if (!invoiceMap[memberId]) invoiceMap[memberId] = [];
+
+                    invoiceMap[memberId].push({
+                        id: `${t.id}-credit-${memberId}`,
+                        originalTxId: t.id,
+                        description: t.description,
+                        date: t.date,
+                        category: t.category as string,
+                        amount: split.assignedAmount,
+                        type: 'CREDIT', // They owe me
+                        isPaid: !!split.isSettled,
+                        tripId: t.tripId,
+                        memberId: memberId
+                    });
                 });
             } 
             // 2. DEBIT LOGIC: Member Paid (payerId exists), User Owes Member
             else {
                 const payerId = t.payerId;
-                // Calculate My Share (Remainder or Explicit?)
-                // Default logic: Total - Splits(others) = My Share
+                
+                // Dynamic Initialization (Safety check)
+                if (!invoiceMap[payerId]) invoiceMap[payerId] = [];
+
+                // Calculate My Share
                 const totalSplits = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
                 const myShare = t.amount - totalSplits;
 
-                if (myShare > 0.01 && invoiceMap[payerId]) {
+                if (myShare > 0.01) {
                     invoiceMap[payerId].push({
                         id: `${t.id}-debit-${payerId}`,
                         originalTxId: t.id,
@@ -105,6 +112,15 @@ export const Shared: React.FC<SharedProps> = ({
         return invoiceMap;
     }, [transactions, members]);
 
+    // Build a comprehensive list of members to display (Props + Any found in transactions)
+    const displayMembers = useMemo(() => {
+        const uniqueIds = new Set([...members.map(m => m.id), ...Object.keys(invoices)]);
+        return Array.from(uniqueIds).map(id => {
+            const knownMember = members.find(m => m.id === id);
+            return knownMember || { id, name: 'Membro Desconhecido', role: 'Unknown' } as FamilyMember;
+        });
+    }, [members, invoices]);
+
     // --- FILTERING ---
     const getFilteredInvoice = (memberId: string) => {
         const allItems = invoices[memberId] || [];
@@ -112,9 +128,9 @@ export const Shared: React.FC<SharedProps> = ({
         if (activeTab === 'TRAVEL') {
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else {
-            // Regular: No trip ID AND matches selected month (OR is unpaid/pending regardless of month? 
-            // Usually invoices accumulate. Let's show ALL PENDING + Current Month History)
-            // Strategy: Show ALL Pending (Active Debt) + Settled items from Current Month (History)
+            // Regular: No trip ID.
+            // Show ALL pending items regardless of date (Debts don't expire visually until paid)
+            // Show PAID items only if they belong to the selected month (History)
             return allItems.filter(i => 
                 !i.tripId && 
                 (!i.isPaid || isSameMonth(i.date, selectedMonth))
@@ -146,29 +162,12 @@ export const Shared: React.FC<SharedProps> = ({
     const handleConfirmSettlement = () => {
         if (!settleModal.memberId || !selectedAccountId) return;
         
-        const account = accounts.find(a => a.id === selectedAccountId);
-        const member = members.find(m => m.id === settleModal.memberId);
         const now = new Date().toISOString();
 
         // 1. Create Individual Transactions for EACH Item
         settleModal.items.forEach(item => {
-            // Determine transaction type based on item type
-            // CREDIT (They owe me): I am receiving -> INCOME
-            // DEBIT (I owe them): I am paying -> EXPENSE
-            
-            // However, in "OFFSET" (Compensação), no money moves, so we don't create bank transactions?
-            // Or we create Income and Expense that cancel out?
-            // Better: If OFFSET, create "fake" transactions or just update status?
-            // To keep history clean: Create transactions with a special "Compensação" category or notes.
-            // But if bank balance shouldn't change, maybe skip transaction creation for offset items?
-            // Wait, Offset logic: I owed 100, He owed 100. Net 0.
-            // If I don't record transactions, I lose the fact that "Dinner" was paid.
-            // Let's create transactions but maybe mark them? Or simply rely on the fact that +100 and -100 = 0 change.
-            
             const isReceiving = item.type === 'CREDIT';
             const descriptionPrefix = isReceiving ? 'Recebimento' : 'Pagamento';
-            
-            // Create the settlement transaction
             const settlementTxId = crypto.randomUUID();
             
             onAddTransaction({
@@ -214,7 +213,7 @@ export const Shared: React.FC<SharedProps> = ({
         let totalReceivable = 0;
         let totalPayable = 0;
         
-        // EXPLICIT CAST to fix TS errors: Property 'isPaid' does not exist on type 'unknown'
+        // EXPLICIT CAST to fix TS errors
         const allItems = Object.values(invoices).flat() as InvoiceItem[];
         
         allItems.forEach(item => {
@@ -288,14 +287,14 @@ export const Shared: React.FC<SharedProps> = ({
 
             {/* Members Invoices List */}
             <div className="space-y-6">
-                {members.length === 0 && (
+                {displayMembers.length === 0 && (
                     <div className="text-center py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-300">
                         <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500 font-medium">Nenhum membro cadastrado.</p>
+                        <p className="text-slate-500 font-medium">Nenhum membro ou despesa encontrada.</p>
                     </div>
                 )}
 
-                {members.map(member => {
+                {displayMembers.map(member => {
                     const items = getFilteredInvoice(member.id);
                     const { credits, debits, net } = getTotals(items);
                     const isSettled = Math.abs(net) < 0.01;
@@ -311,7 +310,7 @@ export const Shared: React.FC<SharedProps> = ({
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-4">
                                         <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xl border-4 border-white shadow-sm">
-                                            {member.name[0]}
+                                            {member.name ? member.name[0] : '?'}
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
