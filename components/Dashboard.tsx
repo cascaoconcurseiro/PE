@@ -1,10 +1,11 @@
 import React, { useMemo, useRef } from 'react';
-import { Account, Transaction, TransactionType } from '../types';
+import { Account, Transaction, TransactionType, AccountType } from '../types';
 import { Card } from './ui/Card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { TrendingUp, TrendingDown, Bell, Clock, Wallet, PieChart as PieIcon, ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Bell, Clock, Wallet, PieChart as PieIcon, ChevronLeft, ChevronRight, BarChart3, LineChart, AlertCircle } from 'lucide-react';
 import { formatCurrency, isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
+import { calculateProjectedBalance, analyzeFinancialHealth } from '../services/financialLogic';
 
 interface DashboardProps {
     accounts: Account[];
@@ -35,20 +36,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
         }
     };
 
-    // 1. FILTER TRANSACTIONS FOR SELECTED MONTH (Memoized)
+    // --- FINANCIAL LOGIC INTEGRATION ---
+    // 1. Calculate Projection
+    const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() => 
+        calculateProjectedBalance(accounts, transactions, currentDate), 
+    [accounts, transactions, currentDate]);
+
+    // 2. Filter Transactions for Charts
     const monthlyTransactions = useMemo(() =>
         transactions.filter(t => isSameMonth(t.date, currentDate)),
         [transactions, currentDate]);
 
-    // 2. CALCULATE NET WORTH (PATRIMÔNIO) NORMALIZED TO BRL (Memoized)
-    const totalBalance = useMemo(() =>
-        accounts.reduce((acc, curr) => {
-            const normalizedBalance = convertToBRL(curr.balance, curr.currency || 'BRL');
-            return acc + normalizedBalance;
-        }, 0),
-        [accounts]);
-
-    // 3. SANITIZED METRICS FOR CARDS (Memoized)
+    // 3. Realized Totals (Past + Today)
     const monthlyIncome = useMemo(() => monthlyTransactions
         .filter(t => t.type === TransactionType.INCOME)
         .reduce((acc, t) => {
@@ -65,7 +64,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
             return acc + convertToBRL(amount, account?.currency || 'BRL');
         }, 0), [monthlyTransactions, accounts]);
 
-    // 4. ANNUAL CASH FLOW LOGIC (12 MONTHS) (Memoized)
+    // 4. Financial Health Check
+    const healthStatus = analyzeFinancialHealth(monthlyIncome + pendingIncome, monthlyExpense + pendingExpenses);
+
+    // 5. Total Net Worth (All Accounts including Investments)
+    const netWorth = useMemo(() =>
+        accounts.reduce((acc, curr) => {
+            // Subtract Credit Card Debt from Net Worth
+            if (curr.type === AccountType.CREDIT_CARD) {
+                return acc - Math.abs(convertToBRL(curr.balance, curr.currency || 'BRL'));
+            }
+            return acc + convertToBRL(curr.balance, curr.currency || 'BRL');
+        }, 0),
+        [accounts]);
+
+    // Annual Cash Flow Data
     const cashFlowData = useMemo(() => {
         const data = Array.from({ length: 12 }, (_, i) => {
             const date = new Date(selectedYear, i, 1);
@@ -98,7 +111,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
         return data;
     }, [transactions, selectedYear, accounts]);
 
-    // Reminders Logic (Memoized)
+    // Upcoming Bills Logic
     const upcomingBills = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -118,7 +131,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
             .slice(0, 3);
     }, [transactions]);
 
-    // Data for Category Pie Chart (Memoized)
+    // Category Pie Chart Data
     const categoryData = useMemo(() => Object.entries(
         monthlyTransactions
             .filter(t => t.type === TransactionType.EXPENSE)
@@ -139,6 +152,57 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
+
+            {/* --- NEW PROJECTION CARD (Financial Logic) --- */}
+            <div className="bg-indigo-900 dark:bg-indigo-950 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-10">
+                    <LineChart className="w-40 h-40 text-white" />
+                </div>
+                
+                <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2 text-indigo-300">
+                            <Wallet className="w-5 h-5" />
+                            <span className="text-xs font-bold uppercase tracking-widest">Fluxo de Caixa Previsto</span>
+                        </div>
+                        <div className="mb-1">
+                            <span className="text-4xl font-black tracking-tight">
+                                <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(projectedBalance)}</PrivacyBlur>
+                            </span>
+                        </div>
+                        <p className="text-sm text-indigo-200">
+                            Previsão para o final de {currentDate.toLocaleDateString('pt-BR', { month: 'long' })}
+                        </p>
+                    </div>
+
+                    <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10">
+                        <div className="flex justify-between items-center mb-3 pb-3 border-b border-white/10">
+                            <span className="text-sm font-medium text-indigo-100">Saldo Hoje</span>
+                            <span className="font-bold text-white"><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(currentBalance)}</PrivacyBlur></span>
+                        </div>
+                        <div className="space-y-2 text-xs">
+                            <div className="flex justify-between items-center text-emerald-300">
+                                <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> A Receber</span>
+                                <span className="font-bold">+ {formatCurrency(pendingIncome)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-red-300">
+                                <span className="flex items-center gap-1"><TrendingDown className="w-3 h-3" /> A Pagar</span>
+                                <span className="font-bold">- {formatCurrency(pendingExpenses)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {healthStatus === 'CRITICAL' && (
+                    <div className="mt-4 bg-red-500/20 border border-red-500/30 rounded-xl p-3 flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-300 shrink-0" />
+                        <div>
+                            <p className="text-sm font-bold text-red-100">Atenção ao Orçamento</p>
+                            <p className="text-xs text-red-200">Suas despesas projetadas superam suas receitas este mês. Revise seus gastos.</p>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* SUMMARY CARDS SECTION */}
             <div className="relative group">
@@ -165,7 +229,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                         scrollbar-hide scroll-smooth
                     "
                 >
-                    {/* TOTAL BALANCE CARD */}
+                    {/* NET WORTH CARD */}
                     <div className="snap-center shrink-0 w-[88vw] sm:w-[45vw] md:w-auto h-full">
                         <Card className="bg-gradient-to-br from-slate-800 to-slate-950 text-white border-none shadow-xl shadow-slate-900/10 relative overflow-hidden h-full">
                             <div className="absolute top-0 right-0 p-4 opacity-5">
@@ -175,7 +239,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                                 <div>
                                     <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1">Patrimônio Líquido</p>
                                     <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white">
-                                        <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(totalBalance)}</PrivacyBlur>
+                                        <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(netWorth)}</PrivacyBlur>
                                     </h3>
                                 </div>
                                 <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-md border border-white/5">
@@ -183,7 +247,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                                 </div>
                             </div>
                             <div className="mt-6 inline-flex items-center gap-1.5 text-[10px] text-slate-300 bg-slate-800/80 border border-slate-700 px-2 py-1 rounded-lg font-bold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Consolidado
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Total Real (Ativos - Dívidas)
                             </div>
                         </Card>
                     </div>
@@ -241,7 +305,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                         <BarChart3 className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-slate-800 dark:text-white text-lg">Fluxo de Caixa</h3>
+                        <h3 className="font-bold text-slate-800 dark:text-white text-lg">Fluxo de Caixa Realizado</h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400">Visão consolidada do ano de {selectedYear}</p>
                     </div>
                 </div>
@@ -330,7 +394,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                 </div>
             )}
 
-            {/* CATEGORY SPENDING CHART (Improved) */}
+            {/* CATEGORY SPENDING CHART */}
             <Card className="border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-600 dark:text-emerald-400">

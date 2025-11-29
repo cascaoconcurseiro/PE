@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { db } from '../services/db';
 import { convertToBRL } from '../services/currencyService';
 import { processRecurringTransactions } from '../services/recurrenceEngine';
+import { checkDataConsistency } from '../services/financialLogic';
 import { parseDate } from '../utils';
 import { Account, Transaction, Asset, AccountType, TransactionType, Frequency, SyncStatus } from '../types';
 
@@ -15,6 +16,22 @@ interface UseAppLogicProps {
 export const useAppLogic = ({ accounts, transactions, assets, isMigrating }: UseAppLogicProps) => {
     const hasCheckedRecurrence = useRef(false);
     const hasCheckedReminders = useRef(false);
+    const hasCheckedConsistency = useRef(false);
+
+    // --- DATA CONSISTENCY CHECK ---
+    useEffect(() => {
+        if (isMigrating || !accounts || !transactions || hasCheckedConsistency.current) return;
+
+        const issues = checkDataConsistency(accounts, transactions);
+        
+        if (issues.length > 0) {
+            console.warn("Inconsistências encontradas nos dados:", issues);
+            // In a real app, we might want to auto-fix or alert user. 
+            // For now, logging allows developers to debug.
+        }
+        
+        hasCheckedConsistency.current = true;
+    }, [isMigrating, accounts, transactions]);
 
     // --- SNAPSHOT ENGINE ---
     useEffect(() => {
