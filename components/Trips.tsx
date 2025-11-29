@@ -3,7 +3,8 @@ import { Trip, Transaction, TransactionType, Category, Account, FamilyMember, Tr
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { calculateTripDebts } from '../services/balanceEngine';
-import { MapPin, Users, Calendar, Plus, Calculator, Sparkles, ArrowLeft, Check, Plane, ListChecks, PieChart as PieIcon, Map, Hotel, Utensils, Flag, Trash2, X, Clock, Target, Pencil, Save, AlertCircle, ShoppingBag, Banknote, RefreshCw, ArrowRight } from 'lucide-react';
+import { AVAILABLE_CURRENCIES } from '../services/currencyService';
+import { MapPin, Users, Calendar, Plus, Calculator, Sparkles, ArrowLeft, Check, Plane, ListChecks, PieChart as PieIcon, Map, Hotel, Utensils, Flag, Trash2, X, Clock, Target, Pencil, Save, AlertCircle, ShoppingBag, Banknote, RefreshCw, ArrowRight, Globe, ChevronDown } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { formatCurrency, getCategoryIcon } from '../utils';
 
@@ -463,17 +464,18 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
 
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">Moeda Principal</label>
-                            <div className="grid grid-cols-3 gap-3">
-                                {['BRL', 'USD', 'EUR'].map(curr => (
-                                    <button
-                                        key={curr}
-                                        type="button"
-                                        onClick={() => setNewTripCurrency(curr)}
-                                        className={`p-3 rounded-xl border font-bold text-sm transition-all ${newTripCurrency === curr ? 'bg-violet-700 text-white border-violet-700 shadow-md' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}
-                                    >
-                                        {curr}
-                                    </button>
-                                ))}
+                            <div className="relative">
+                                <Globe className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                <select
+                                    value={newTripCurrency}
+                                    onChange={(e) => setNewTripCurrency(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 font-bold outline-none focus:ring-2 focus:ring-violet-500 appearance-none"
+                                >
+                                    {AVAILABLE_CURRENCIES.map(curr => (
+                                        <option key={curr.code} value={curr.code}>{curr.code} - {curr.name}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
                             </div>
                         </div>
 

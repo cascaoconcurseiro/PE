@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, TransactionSplit, Frequency, CustomCategory, AccountType } from '../types';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
-import { Check, Plane, Users, Trash2, ChevronDown, Calendar, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCcw, Bell, BellRing, Repeat, Undo2, Download, CreditCard, Layers, AlertCircle, X, Percent, DollarSign, Loader2, ScanLine, Pencil, ArrowRight, TrendingUp, Banknote, PiggyBank, Landmark, AlertTriangle, Clock, User, Filter, Search, Plus } from 'lucide-react';
+import { Check, Plane, Users, Trash2, ChevronDown, Calendar, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCcw, Bell, BellRing, Repeat, Undo2, Download, CreditCard, Layers, AlertCircle, X, Percent, DollarSign, Loader2, ScanLine, Pencil, ArrowRight, TrendingUp, Banknote, PiggyBank, Landmark, AlertTriangle, Clock, User, Filter, Search, Plus, Globe } from 'lucide-react';
 import { formatCurrency, getCategoryIcon, isSameMonth, parseDate } from '../utils';
 import { useToast } from './ui/Toast';
 import { ConfirmModal } from './ui/ConfirmModal';
@@ -66,6 +66,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const [destinationAmountStr, setDestinationAmountStr] = useState('');
 
     const [tripId, setTripId] = useState('');
+    const [tripAmountStr, setTripAmountStr] = useState(''); // NEW: Amount in trip currency
     const [isTripSelectorOpen, setIsTripSelectorOpen] = useState(false);
     
     // --- SHARED / PAYER STATE ---
@@ -98,6 +99,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const activeAmount = parseFloat(amountStr.replace(',', '.')) || 0;
     const selectedAccountObj = accounts.find(a => a.id === accountId);
     const destAccountObj = accounts.find(a => a.id === destinationAccountId);
+    const selectedTrip = trips.find(t => t.id === tripId);
 
     const isCreditCard = selectedAccountObj?.type === AccountType.CREDIT_CARD;
     const activeCurrency = selectedAccountObj?.currency || 'BRL';
@@ -106,6 +108,10 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const isIncome = formMode === TransactionType.INCOME;
     const isTransfer = formMode === TransactionType.TRANSFER;
     const CategoryIcon = getCategoryIcon(category);
+
+    // Calculate Exchange Rate Helper
+    const tripCurrency = selectedTrip?.currency || 'BRL';
+    const showTripCurrencyInput = tripId && selectedTrip && (tripCurrency !== activeCurrency || payerId !== 'me');
 
     // Ensure accountId is valid when accounts change or on init
     useEffect(() => {
@@ -161,6 +167,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
         setDestinationAmountStr(t.destinationAmount ? t.destinationAmount.toString() : '');
 
         setTripId(t.tripId || '');
+        // Restore trip specific logic if implemented in backend (simplified here)
         
         // Payer Logic
         setPayerId(t.payerId || 'me');
@@ -218,6 +225,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
         setCurrentInstallment(1);
         setTotalInstallments(2);
         setTripId('');
+        setTripAmountStr('');
         setIsTripSelectorOpen(false);
         
         setEnableNotification(false);
@@ -266,6 +274,25 @@ export const Transactions: React.FC<TransactionsProps> = ({
             return;
         }
 
+        // Logic for Exchange Rate / Foreign Currency
+        let exchangeRate = 1;
+        let finalAmount = activeAmount;
+
+        // If trip currency is different, use the Trip Amount as base for expense calculation if provided
+        if (showTripCurrencyInput && tripAmountStr) {
+            const tripAmount = parseFloat(tripAmountStr.replace(',', '.'));
+            if (tripAmount > 0) {
+                // If payer is 'me', activeAmount is what came out of my wallet (BRL).
+                // tripAmount is what was spent (EUR).
+                // Exchange Rate = BRL / EUR
+                if (activeAmount > 0) {
+                    exchangeRate = activeAmount / tripAmount;
+                }
+                // We store the amount in the Account's currency (BRL) as standard 'amount'
+                // But we store the exchange rate so we can calculate the original foreign amount.
+            }
+        }
+
         let finalDestinationAmount = activeAmount;
         if (isTransfer && destinationAccountId) {
             const destAcc = accounts.find(a => a.id === destinationAccountId);
@@ -303,7 +330,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             date,
             type: formMode!,
             category: formMode === TransactionType.TRANSFER ? Category.TRANSFER : category,
-            accountId: accountId || (accounts[0] ? accounts[0].id : ''), 
+            accountId: accountId || (accounts[0] ? accounts[0].id : ''), // Fallback mainly for external payer
             destinationAccountId: isTransfer ? destinationAccountId : undefined,
             destinationAmount: isTransfer && destinationAccountId ? finalDestinationAmount : undefined,
             tripId: tripId || undefined,
@@ -323,7 +350,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
             enableNotification: enableNotification,
             notificationDate: enableNotification ? notificationDate : undefined,
-            isRefund: isRefund
+            isRefund: isRefund,
+            exchangeRate: exchangeRate !== 1 ? exchangeRate : undefined
         };
 
         if (editingId && onUpdateTransaction) {
@@ -472,7 +500,6 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                     <label className="text-xs font-bold text-slate-500 mb-1 block">Data</label>
                                     <div className="bg-slate-50 rounded-xl h-12 flex items-center px-3 border border-slate-200 relative group cursor-pointer focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
                                         <Calendar className="w-4 h-4 text-slate-400 mr-2" />
-                                        {/* 2. CALENDÁRIO NATIVO ON CLICK */}
                                         <input 
                                             type="date" 
                                             value={date} 
@@ -520,7 +547,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                                             <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700"><User className="w-5 h-5" /></div>
                                             <div>
                                                 <span className="block text-sm font-bold text-indigo-900">Pago por {familyMembers.find(m => m.id === payerId)?.name || 'Outro'}</span>
-                                                <span className="text-xs text-indigo-600">Você deve este valor</span>
+                                                <span className="text-xs text-indigo-600">Não sai da sua conta</span>
                                             </div>
                                         </div>
                                         <Button size="sm" variant="secondary" onClick={() => setIsSplitModalOpen(true)} className="text-xs h-8">Alterar</Button>
@@ -542,56 +569,78 @@ export const Transactions: React.FC<TransactionsProps> = ({
                         </div>
 
                         {isExpense && (
-                            <div className="relative z-20">
-                                <div 
-                                    onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)}
-                                    className={`border rounded-2xl p-4 flex items-center gap-3 shadow-sm relative transition-all cursor-pointer ${tripId ? 'bg-violet-50 border-violet-200' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
-                                >
-                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${tripId ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                        <Plane className="w-5 h-5" />
+                            <div className="space-y-3">
+                                <div className="relative z-20">
+                                    <div 
+                                        onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)}
+                                        className={`border rounded-2xl p-4 flex items-center gap-3 shadow-sm relative transition-all cursor-pointer ${tripId ? 'bg-violet-50 border-violet-200' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                                    >
+                                        <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${tripId ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                            <Plane className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex-1 overflow-hidden">
+                                            <span className={`block text-lg font-bold truncate mb-0.5 ${tripId ? 'text-violet-900' : 'text-slate-600'}`}>
+                                                {tripId ? trips.find(t => t.id === tripId)?.name : 'Vincular a uma Viagem'}
+                                            </span>
+                                            <span className="text-sm text-slate-500 font-medium truncate block">Opcional</span>
+                                        </div>
+                                        <ChevronDown className={`w-5 h-5 ${isTripSelectorOpen ? 'rotate-180' : ''} transition-transform text-slate-400`} />
                                     </div>
-                                    <div className="flex-1 overflow-hidden">
-                                        <span className={`block text-lg font-bold truncate mb-0.5 ${tripId ? 'text-violet-900' : 'text-slate-600'}`}>
-                                            {tripId ? trips.find(t => t.id === tripId)?.name : 'Vincular a uma Viagem'}
-                                        </span>
-                                        <span className="text-sm text-slate-500 font-medium truncate block">Opcional</span>
-                                    </div>
-                                    <ChevronDown className={`w-5 h-5 ${isTripSelectorOpen ? 'rotate-180' : ''} transition-transform text-slate-400`} />
+
+                                    {isTripSelectorOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-10" onClick={() => setIsTripSelectorOpen(false)} />
+                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto custom-scrollbar">
+                                                <div 
+                                                    onClick={() => { setTripId(''); setIsTripSelectorOpen(false); }}
+                                                    className="p-3 hover:bg-slate-50 cursor-pointer text-slate-600 font-medium text-sm border-b border-slate-50"
+                                                >
+                                                    Nenhuma
+                                                </div>
+                                                {trips.map(t => (
+                                                    <div 
+                                                        key={t.id}
+                                                        onClick={() => { setTripId(t.id); setIsTripSelectorOpen(false); }}
+                                                        className={`p-3 hover:bg-violet-50 cursor-pointer flex items-center gap-3 ${tripId === t.id ? 'bg-violet-50' : ''}`}
+                                                    >
+                                                        <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-xs">
+                                                            <Plane className="w-4 h-4" />
+                                                        </div>
+                                                        <span className="text-slate-800 font-bold text-sm">{t.name}</span>
+                                                    </div>
+                                                ))}
+                                                {propOnNavigateToTrips && (
+                                                    <div 
+                                                        onClick={propOnNavigateToTrips}
+                                                        className="p-3 hover:bg-violet-100 cursor-pointer flex items-center gap-2 text-violet-700 font-bold text-sm border-t border-slate-100 bg-violet-50"
+                                                    >
+                                                        <Plus className="w-4 h-4" /> Criar Nova Viagem
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
-                                {isTripSelectorOpen && (
-                                    <>
-                                        <div className="fixed inset-0 z-10" onClick={() => setIsTripSelectorOpen(false)} />
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto custom-scrollbar">
-                                            <div 
-                                                onClick={() => { setTripId(''); setIsTripSelectorOpen(false); }}
-                                                className="p-3 hover:bg-slate-50 cursor-pointer text-slate-600 font-medium text-sm border-b border-slate-50"
-                                            >
-                                                Nenhuma
-                                            </div>
-                                            {trips.map(t => (
-                                                <div 
-                                                    key={t.id}
-                                                    onClick={() => { setTripId(t.id); setIsTripSelectorOpen(false); }}
-                                                    className={`p-3 hover:bg-violet-50 cursor-pointer flex items-center gap-3 ${tripId === t.id ? 'bg-violet-50' : ''}`}
-                                                >
-                                                    <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-xs">
-                                                        <Plane className="w-4 h-4" />
-                                                    </div>
-                                                    <span className="text-slate-800 font-bold text-sm">{t.name}</span>
-                                                </div>
-                                            ))}
-                                            {/* 3. ATALHO PARA CRIAR VIAGEM */}
-                                            {propOnNavigateToTrips && (
-                                                <div 
-                                                    onClick={propOnNavigateToTrips}
-                                                    className="p-3 hover:bg-violet-100 cursor-pointer flex items-center gap-2 text-violet-700 font-bold text-sm border-t border-slate-100 bg-violet-50"
-                                                >
-                                                    <Plus className="w-4 h-4" /> Criar Nova Viagem
-                                                </div>
-                                            )}
+                                {showTripCurrencyInput && (
+                                    <div className="bg-violet-50 rounded-2xl p-4 border border-violet-100 animate-in fade-in slide-in-from-top-1">
+                                        <div className="flex items-center gap-2 mb-2 text-violet-800">
+                                            <Globe className="w-4 h-4" />
+                                            <span className="font-bold text-xs uppercase tracking-wide">Valor na Moeda da Viagem ({tripCurrency})</span>
                                         </div>
-                                    </>
+                                        <div className="relative">
+                                            <input 
+                                                type="number" 
+                                                value={tripAmountStr}
+                                                onChange={e => setTripAmountStr(e.target.value)}
+                                                placeholder={`0,00 ${tripCurrency}`}
+                                                className="w-full bg-white border border-violet-200 rounded-xl p-3 text-violet-900 font-bold outline-none focus:ring-2 focus:ring-violet-400"
+                                            />
+                                        </div>
+                                        <p className="text-[10px] text-violet-600 mt-2">
+                                            O valor oficial da transação será em {activeCurrency} (R$ {amountStr}), mas será contabilizado como {formatCurrency(parseFloat(tripAmountStr) || 0, tripCurrency)} no orçamento da viagem.
+                                        </p>
+                                    </div>
                                 )}
                             </div>
                         )}

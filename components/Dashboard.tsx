@@ -298,18 +298,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                 </div>
             </div>
 
-            {/* ANNUAL CASH FLOW CHART - DESKTOP ONLY */}
-            <Card className="hidden md:block border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800">
+            {/* ANNUAL CASH FLOW CHART - VISIBLE ON MOBILE NOW */}
+            <Card className="border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800">
                 <div className="flex items-center gap-3 mb-6 px-2">
                     <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
                         <BarChart3 className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-slate-800 dark:text-white text-lg">Fluxo de Caixa Realizado</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Visão consolidada do ano de {selectedYear}</p>
+                        <h3 className="font-bold text-slate-800 dark:text-white text-lg">Fluxo de Caixa</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Visão anual de {selectedYear}</p>
                     </div>
                 </div>
-                <div className="h-72 w-full">
+                {/* Changed height for mobile and removed hidden md:block */}
+                <div className="h-60 md:h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" className="stroke-slate-200 dark:stroke-slate-800" />
@@ -317,17 +318,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                                 dataKey="month" 
                                 axisLine={false} 
                                 tickLine={false} 
-                                tick={{ fontSize: 12, fill: 'currentColor' }} 
+                                tick={{ fontSize: 10, fill: 'currentColor' }} 
                                 className="text-slate-500 dark:text-slate-400 font-medium"
+                                interval="preserveStartEnd"
                             />
                             <YAxis
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fontSize: 11, fill: 'currentColor' }}
+                                tick={{ fontSize: 10, fill: 'currentColor' }}
                                 className="text-slate-400 dark:text-slate-500"
                                 tickFormatter={(value) => {
-                                    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-                                    if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+                                    if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
+                                    if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
                                     return value.toFixed(0);
                                 }}
                             />
