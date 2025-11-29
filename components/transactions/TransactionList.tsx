@@ -21,12 +21,12 @@ const BlurValue = ({ value, show }: { value: string, show: boolean }) => {
     return <span className="blur-sm select-none opacity-60">R$ ••••</span>;
 };
 
-export const TransactionList: React.FC<TransactionListProps> = ({ 
-    groupedTxs, 
-    accounts, 
+export const TransactionList: React.FC<TransactionListProps> = ({
+    groupedTxs,
+    accounts,
     familyMembers,
-    showValues, 
-    onEdit, 
+    showValues,
+    onEdit,
     onDelete,
     onAddClick,
     emptyMessage,
@@ -68,7 +68,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             const account = accounts.find(a => a.id === t.accountId);
                             const accountName = account?.name || 'Conta';
                             const isCreditCard = account?.type === AccountType.CREDIT_CARD;
-                            
+
                             // Logic for Shared/Trip Display
                             const isShared = t.isShared || (t.sharedWith && t.sharedWith.length > 0);
                             const isTrip = !!t.tripId;
@@ -79,7 +79,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             let displayAmount = t.amount;
                             let subText = '';
                             let payerName = 'Você';
-                            
+
                             // Determine Payer Name
                             if (t.payerId && t.payerId !== 'me') {
                                 payerName = familyMembers.find(m => m.id === t.payerId)?.name || 'Outro';
@@ -87,7 +87,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
                             if (t.type === TransactionType.EXPENSE && isShared) {
                                 const splitsTotal = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
-                                
+
                                 if (payerName === 'Você') {
                                     // I paid full amount
                                     displayAmount = t.amount - splitsTotal; // Show net cost (my share)
@@ -102,8 +102,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             }
 
                             return (
-                                <div 
-                                    key={t.id} 
+                                <div
+                                    key={t.id}
                                     className={`p-4 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group relative ${isSettled ? 'opacity-60 grayscale' : ''}`}
                                 >
                                     {/* Clickable Area for Edit */}
@@ -113,12 +113,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                         </div>
                                         <div className="overflow-hidden pr-2">
                                             <div className="flex items-center gap-2">
-                                                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{t.description}</p>
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white break-words">{t.description}</p>
                                                 {/* Icons Badges */}
                                                 {isTrip && <span className="bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 p-0.5 rounded"><Plane className="w-3 h-3" /></span>}
                                                 {isShared && <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 p-0.5 rounded"><Users className="w-3 h-3" /></span>}
                                             </div>
-                                            
+
                                             <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
                                                 <span className="truncate max-w-[100px] font-medium text-slate-700 dark:text-slate-300">{t.category}</span>
                                                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
@@ -141,7 +141,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                             <span className={`block font-bold text-sm ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
                                                 {isPositive ? '+' : ''} <BlurValue value={formatCurrency(displayAmount)} show={showValues} />
                                             </span>
-                                            
+
                                             {/* Subtext Logic */}
                                             {isInstallment && t.originalAmount && !subText && (
                                                 <div className="text-[9px] font-medium text-slate-400 mt-0.5">
@@ -169,18 +169,18 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                         </div>
 
                                         {isInstallment && !isSettled && onAnticipateInstallments && (
-                                            <Button 
-                                                size="sm" 
-                                                variant="ghost" 
-                                                onClick={(e) => { e.stopPropagation(); onAnticipateInstallments(t); }} 
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={(e) => { e.stopPropagation(); onAnticipateInstallments(t); }}
                                                 className="text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-xs h-7 px-2"
                                             >
                                                 <Clock className="w-3 h-3 mr-1" /> Antecipar
                                             </Button>
                                         )}
 
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); if(confirm('Tem certeza que deseja excluir esta transação?')) onDelete(t.id); }}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); if (confirm('Tem certeza que deseja excluir esta transação?')) onDelete(t.id); }}
                                             className="p-2 text-slate-300 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
                                             title="Excluir"
                                         >

@@ -1,8 +1,8 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { Account, Transaction, TransactionType, AccountType } from '../types';
 import { Card } from './ui/Card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { TrendingUp, TrendingDown, Bell, Clock, Wallet, PieChart as PieIcon, ChevronLeft, ChevronRight, BarChart3, LineChart, AlertCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Bell, Clock, Wallet, PieChart as PieIcon, BarChart3, LineChart, AlertCircle } from 'lucide-react';
 import { formatCurrency, isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
 import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue } from '../services/financialLogic';
@@ -22,25 +22,11 @@ const PrivacyBlur = ({ children, showValues, darkBg = false }: { children?: Reac
 
 export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, currentDate = new Date(), showValues, onEditRequest }) => {
     const selectedYear = currentDate.getFullYear();
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-    // Scroll Handler for Mobile Cards
-    const scrollCards = (direction: 'left' | 'right') => {
-        if (scrollContainerRef.current) {
-            const container = scrollContainerRef.current;
-            const scrollAmount = container.clientWidth * 0.85; // Scroll ~85% of width
-            container.scrollBy({
-                left: direction === 'left' ? -scrollAmount : scrollAmount,
-                behavior: 'smooth'
-            });
-        }
-    };
-
     // --- FINANCIAL LOGIC INTEGRATION ---
     // 1. Calculate Projection
-    const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() => 
-        calculateProjectedBalance(accounts, transactions, currentDate), 
-    [accounts, transactions, currentDate]);
+    const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() =>
+        calculateProjectedBalance(accounts, transactions, currentDate),
+        [accounts, transactions, currentDate]);
 
     // 2. Filter Transactions for Charts
     const monthlyTransactions = useMemo(() =>
@@ -99,7 +85,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
 
             const monthIndex = tDate.getMonth();
             const account = accounts.find(a => a.id === t.accountId);
-            
+
             // Calculate Effective Amount in BRL
             const effectiveAmount = calculateEffectiveTransactionValue(t);
             const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
@@ -152,7 +138,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
         .filter(([_, val]) => (val as number) > 0)
         .map(([name, value]) => ({ name, value: value as number }))
         .sort((a, b) => b.value - a.value), // Sort by value desc
-    [monthlyTransactions, accounts]);
+        [monthlyTransactions, accounts]);
 
     const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e'];
 
@@ -164,7 +150,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                 <div className="absolute top-0 right-0 p-6 opacity-10">
                     <LineChart className="w-40 h-40 text-white" />
                 </div>
-                
+
                 <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div>
                         <div className="flex items-center gap-2 mb-2 text-indigo-300">
@@ -211,97 +197,67 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
             </div>
 
             {/* SUMMARY CARDS SECTION */}
-            <div className="relative group">
-                {/* Mobile Navigation Arrows */}
-                <div className="md:hidden absolute left-0 top-1/2 -translate-y-1/2 z-20 pl-1">
-                    <button onClick={() => scrollCards('left')} className="p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-full shadow-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 active:scale-90 transition-transform">
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                </div>
-                <div className="md:hidden absolute right-0 top-1/2 -translate-y-1/2 z-20 pr-1">
-                    <button onClick={() => scrollCards('right')} className="p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-full shadow-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 active:scale-90 transition-transform">
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <div 
-                    ref={scrollContainerRef}
-                    className="
-                        flex md:grid md:grid-cols-3 gap-4 
-                        overflow-x-auto md:overflow-visible 
-                        pb-4 md:pb-0 
-                        snap-x snap-mandatory 
-                        -mx-4 px-4 md:mx-0 md:px-0 
-                        scrollbar-hide scroll-smooth
-                    "
-                >
-                    {/* NET WORTH CARD */}
-                    <div className="snap-center shrink-0 w-[88vw] sm:w-[45vw] md:w-auto h-full">
-                        <Card className="bg-gradient-to-br from-slate-800 to-slate-950 text-white border-none shadow-xl shadow-slate-900/10 relative overflow-hidden h-full">
-                            <div className="absolute top-0 right-0 p-4 opacity-5">
-                                <Wallet className="w-24 h-24 text-white" />
-                            </div>
-                            <div className="flex justify-between items-start relative z-10">
-                                <div>
-                                    <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1">Patrimônio Líquido</p>
-                                    <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white">
-                                        <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(netWorth)}</PrivacyBlur>
-                                    </h3>
-                                </div>
-                                <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-md border border-white/5">
-                                    <Wallet className="w-6 h-6 text-white" />
-                                </div>
-                            </div>
-                            <div className="mt-6 inline-flex items-center gap-1.5 text-[10px] text-slate-300 bg-slate-800/80 border border-slate-700 px-2 py-1 rounded-lg font-bold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Total Real (Ativos - Dívidas)
-                            </div>
-                        </Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* NET WORTH CARD */}
+                <Card className="bg-gradient-to-br from-slate-800 to-slate-950 text-white border-none shadow-xl shadow-slate-900/10 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5">
+                        <Wallet className="w-24 h-24 text-white" />
                     </div>
-
-                    {/* INCOME CARD */}
-                    <div className="snap-center shrink-0 w-[88vw] sm:w-[45vw] md:w-auto h-full">
-                        <Card className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white border-none shadow-xl shadow-emerald-900/10 relative overflow-hidden h-full">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <TrendingUp className="w-24 h-24 text-white" />
-                            </div>
-                            <div className="flex justify-between items-start relative z-10">
-                                <div>
-                                    <p className="text-emerald-200/80 font-bold text-[10px] uppercase tracking-widest mb-1">
-                                        Entradas ({currentDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')})
-                                    </p>
-                                    <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white">
-                                        <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(monthlyIncome)}</PrivacyBlur>
-                                    </h3>
-                                </div>
-                                <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-md border border-white/5">
-                                    <TrendingUp className="w-6 h-6 text-white" />
-                                </div>
-                            </div>
-                        </Card>
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1">Patrimônio Líquido</p>
+                            <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white">
+                                <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(netWorth)}</PrivacyBlur>
+                            </h3>
+                        </div>
+                        <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-md border border-white/5">
+                            <Wallet className="w-6 h-6 text-white" />
+                        </div>
                     </div>
-
-                    {/* EXPENSE CARD */}
-                    <div className="snap-center shrink-0 w-[88vw] sm:w-[45vw] md:w-auto h-full">
-                        <Card className="bg-gradient-to-br from-red-600 to-rose-700 text-white border-none shadow-xl shadow-red-900/10 relative overflow-hidden h-full">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <TrendingDown className="w-24 h-24 text-white" />
-                            </div>
-                            <div className="flex justify-between items-start relative z-10">
-                                <div>
-                                    <p className="text-red-200/80 font-bold text-[10px] uppercase tracking-widest mb-1">
-                                        Saídas (Minha Parte)
-                                    </p>
-                                    <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white">
-                                        <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(monthlyExpense)}</PrivacyBlur>
-                                    </h3>
-                                </div>
-                                <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-md border border-white/5">
-                                    <TrendingDown className="w-6 h-6 text-white" />
-                                </div>
-                            </div>
-                        </Card>
+                    <div className="mt-6 inline-flex items-center gap-1.5 text-[10px] text-slate-300 bg-slate-800/80 border border-slate-700 px-2 py-1 rounded-lg font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Total Real (Ativos - Dívidas)
                     </div>
-                </div>
+                </Card>
+
+                {/* INCOME CARD */}
+                <Card className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white border-none shadow-xl shadow-emerald-900/10 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <TrendingUp className="w-24 h-24 text-white" />
+                    </div>
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-emerald-200/80 font-bold text-[10px] uppercase tracking-widest mb-1">
+                                Entradas ({currentDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')})
+                            </p>
+                            <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white">
+                                <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(monthlyIncome)}</PrivacyBlur>
+                            </h3>
+                        </div>
+                        <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-md border border-white/5">
+                            <TrendingUp className="w-6 h-6 text-white" />
+                        </div>
+                    </div>
+                </Card>
+
+                {/* EXPENSE CARD */}
+                <Card className="bg-gradient-to-br from-red-600 to-rose-700 text-white border-none shadow-xl shadow-red-900/10 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <TrendingDown className="w-24 h-24 text-white" />
+                    </div>
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-red-200/80 font-bold text-[10px] uppercase tracking-widest mb-1">
+                                Saídas (Minha Parte)
+                            </p>
+                            <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white">
+                                <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(monthlyExpense)}</PrivacyBlur>
+                            </h3>
+                        </div>
+                        <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-md border border-white/5">
+                            <TrendingDown className="w-6 h-6 text-white" />
+                        </div>
+                    </div>
+                </Card>
             </div>
 
             {/* ANNUAL CASH FLOW CHART */}
@@ -319,11 +275,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" className="stroke-slate-200 dark:stroke-slate-800" />
-                            <XAxis 
-                                dataKey="month" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fontSize: 10, fill: 'currentColor' }} 
+                            <XAxis
+                                dataKey="month"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 10, fill: 'currentColor' }}
                                 className="text-slate-500 dark:text-slate-400 font-medium"
                                 interval="preserveStartEnd"
                             />
@@ -340,10 +296,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                             />
                             <Tooltip
                                 formatter={(value: number) => showValues ? formatCurrency(value) : '****'}
-                                contentStyle={{ 
-                                    backgroundColor: 'var(--color-bg)', 
-                                    borderColor: 'var(--color-border)', 
-                                    borderRadius: '12px', 
+                                contentStyle={{
+                                    backgroundColor: 'var(--color-bg)',
+                                    borderColor: 'var(--color-border)',
+                                    borderRadius: '12px',
                                     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                                     color: 'var(--color-text)'
                                 }}
@@ -433,12 +389,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip 
-                                        formatter={(value: number) => showValues ? formatCurrency(value) : 'R$ ****'} 
-                                        contentStyle={{ 
-                                            borderRadius: '12px', 
-                                            border: 'none', 
-                                            backgroundColor: '#1e293b', 
+                                    <Tooltip
+                                        formatter={(value: number) => showValues ? formatCurrency(value) : 'R$ ****'}
+                                        contentStyle={{
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            backgroundColor: '#1e293b',
                                             color: '#fff',
                                             boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                                         }}
@@ -446,7 +402,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, cu
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
-                            
+
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div className="text-center">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Gasto</span>
