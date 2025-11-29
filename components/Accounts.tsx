@@ -392,15 +392,20 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                             <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-3 px-2">Lançamentos na Fatura</h3>
                             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
                                 {invoiceTxs.length === 0 ? <div className="p-8 text-center text-slate-500"><ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-50" /><p className="text-sm">Nenhuma compra nesta fatura.</p></div> : 
-                                    invoiceTxs.map(t => (
-                                        <div key={t.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.isRefund ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>{t.isRefund ? <ArrowDownLeft className="w-5 h-5" /> : getCategoryIcon(t.category)({ className: "w-5 h-5" })}</div>
-                                                <div><p className="text-sm font-bold text-slate-800">{t.description}</p><div className="flex gap-2 text-xs text-slate-600"><span>{new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>{t.currentInstallment && <span>• {t.currentInstallment}/{t.totalInstallments}</span>}</div></div>
+                                    invoiceTxs.map(t => {
+                                        const CatIcon = getCategoryIcon(t.category);
+                                        return (
+                                            <div key={t.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.isRefund ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                        {t.isRefund ? <ArrowDownLeft className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
+                                                    </div>
+                                                    <div><p className="text-sm font-bold text-slate-800">{t.description}</p><div className="flex gap-2 text-xs text-slate-600"><span>{new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>{t.currentInstallment && <span>• {t.currentInstallment}/{t.totalInstallments}</span>}</div></div>
+                                                </div>
+                                                <span className={`font-bold ${t.isRefund ? 'text-amber-700' : 'text-slate-800'}`}>{t.isRefund ? '-' : ''}{formatCurrency(t.amount, selectedAccount.currency)}</span>
                                             </div>
-                                            <span className={`font-bold ${t.isRefund ? 'text-amber-700' : 'text-slate-800'}`}>{t.isRefund ? '-' : ''}{formatCurrency(t.amount, selectedAccount.currency)}</span>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 }
                             </div>
                         </div>
@@ -499,7 +504,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Para (Destino)</label>
                                         <select className="w-full p-3 bg-white border border-slate-300 rounded-xl outline-none" value={paymentSourceId} onChange={(e) => setPaymentSourceId(e.target.value)}>
                                             <option value="">Selecione...</option>
-                                            {accounts.filter(a => a.id !== selectedAccount.id).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                            {accounts.filter(a => a.id !== selectedAccount.id).map(acc => <option key={acc.id} value={acc.id}>{acc.name} ({formatCurrency(acc.balance, acc.currency)})</option>)}
                                         </select>
                                     </div>
                                 )}
