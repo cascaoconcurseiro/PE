@@ -1,4 +1,3 @@
-
 import { Account, Transaction, TransactionType } from '../types';
 
 /**
@@ -29,12 +28,8 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
         if (!amount || amount <= 0) return;
 
         // TIME TRAVEL LOGIC:
-        // If a cutOffDate is provided, skip transactions that happen in the future relative to that date.
-        // This allows seeing "What was my balance last month?" or "What is my balance today (ignoring next week's bills)?"
         if (cutOffDate) {
             const txDate = new Date(tx.date);
-            // We set hours to 0 to compare dates purely, or compare timestamps. 
-            // Here we compare strictly: if txDate is after the end of the cutOffDate day.
             const cutOff = new Date(cutOffDate);
             cutOff.setHours(23, 59, 59, 999);
 
@@ -67,7 +62,6 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
             const destAcc = accountMap.get(tx.destinationAccountId);
             if (destAcc) {
                 // Transfer In always adds to Destination
-                // Use destinationAmount if available (Multi-currency), otherwise use standard amount
                 const finalAmount = tx.destinationAmount !== undefined ? tx.destinationAmount : amount;
                 destAcc.balance += finalAmount;
             }
@@ -87,8 +81,6 @@ export const calculateTripDebts = (transactions: Transaction[], participants: { 
     const balances: { [id: string]: number } = {};
     const participantIds = participants.map(p => p.id);
 
-    // Add "Me" (User) to participants logic if not explicitly in the list but involved in transactions
-    // We'll use 'user' as the ID for the main user if payerId is undefined
     balances['user'] = 0;
     participants.forEach(p => balances[p.id] = 0);
 
@@ -96,44 +88,102 @@ export const calculateTripDebts = (transactions: Transaction[], participants: { 
     transactions.forEach(tx => {
         if (tx.type !== TransactionType.EXPENSE) return; // Only expenses count for debts
 
+        // Check if the MAIN debt (Me -> Other) is settled
+        // If payerId is set (someone else paid), and isSettled is true, I already paid them back.
+        if (tx.payerId && tx.isSettled) return;
+
         const amount = tx.amount;
         const payerId = tx.payerId || 'user'; // 'user' is the main user
 
-        // Credit the Payer
-        if (balances[payerId] === undefined) balances[payerId] = 0;
-        balances[payerId] += amount;
-
         // Debit the Consumers
         if (tx.isShared && tx.sharedWith && tx.sharedWith.length > 0) {
+            let totalSplitAmount = 0;
+
             // Explicit Split
             tx.sharedWith.forEach(split => {
+                // If I paid, and this specific split is settled, skip it (they paid me back)
+                if (payerId === 'user' && split.isSettled) return;
+
                 if (balances[split.memberId] === undefined) balances[split.memberId] = 0;
                 balances[split.memberId] -= split.assignedAmount;
+                totalSplitAmount += split.assignedAmount;
             });
 
-            // Check if there's a remainder (e.g. if split doesn't sum to total, or if user is part of it)
-            // In our logic, sharedWith usually includes everyone involved. 
-            // If the user is included in the split, they should be in sharedWith too? 
-            // The current UI for split doesn't explicitly show "Me" in the list of *members* to split with, 
-            // but usually "Me" is the remainder.
-            // Let's assume the `sharedWith` array covers the *other* people. 
-            // The remainder is the user's share.
-            const totalSplit = tx.sharedWith.reduce((sum, s) => sum + s.assignedAmount, 0);
-            const remainder = amount - totalSplit;
-            if (remainder > 0.01) {
-                balances['user'] -= remainder;
+            // Credit the Payer (Only credit what is outstanding or total if I am the payer)
+            // If I am the payer, I credited myself for the parts that are NOT settled above.
+            // If someone else is payer, and it's not settled (checked above), they get full credit.
+            
+            // Re-calculating credit based on active splits
+            if (payerId === 'user') {
+                 // For User Payer: Credit = Sum of Unsettled Splits
+                 // We already debited the splits. Now we balance the equation.
+                 // Actually, the logic is: Balance += Amount Paid - Amount Consumed.
+                 // But since we are skipping settled things, we only add the *Unsettled* amount to the Payer's receivable column.
+                 
+                 if (balances[payerId] === undefined) balances[payerId] = 0;
+                 balances[payerId] += totalSplitAmount; 
+            } else {
+                // External Payer: They paid 'amount'.
+                // If I (user) am the consumer (implicit remainder), I owe them.
+                // The explicit splits (other people) owe them.
+                // Since this is Single Player, we mostly care about Me vs Them.
+                
+                // If I paid them back (isSettled checked at top), we returned.
+                // If not, they are owed the full amount (minus what I might have split to others?)
+                // Let's stick to the simple model:
+                if (balances[payerId] === undefined) balances[payerId] = 0;
+                balances[payerId] += amount;
+
+                // Debit explicit splits (Other people owe Payer) - Purely informational in Single Player
+                tx.sharedWith.forEach(split => {
+                     if (balances[split.memberId] === undefined) balances[split.memberId] = 0;
+                     balances[split.memberId] -= split.assignedAmount;
+                });
+
+                // Debit User (Remainder)
+                const totalSplit = tx.sharedWith.reduce((sum, s) => sum + s.assignedAmount, 0);
+                const remainder = amount - totalSplit;
+                if (remainder > 0.01) {
+                    balances['user'] -= remainder;
+                }
             }
 
         } else {
             // Implicit Split (Split Equally among ALL participants + User)
             // If it's a trip expense and not explicitly shared, we assume it's for the group.
+            // CAUTION: Unshared expenses in a trip usually mean "I paid for myself".
+            // Only transactions marked `isShared` should trigger debt logic ideally.
+            // But legacy/simple logic might assume all trip expenses are shared? 
+            // Let's restrict to `isShared` or explicit splits to avoid confusion.
+            
+            if (!tx.isShared) return; // If not marked shared, assume personal expense
+
             const allInvolved = ['user', ...participantIds];
             const splitAmount = amount / allInvolved.length;
 
-            allInvolved.forEach(pid => {
-                if (balances[pid] === undefined) balances[pid] = 0;
-                balances[pid] -= splitAmount;
-            });
+            if (payerId === 'user') {
+                // I Paid. Everyone else owes me.
+                let myCredit = 0;
+                allInvolved.forEach(pid => {
+                    if (pid === 'user') return; // I don't owe myself
+                    // Implicit split has no specific isSettled flag per person easily unless we generated splits.
+                    // Assuming implicit splits are unsettled for now.
+                    if (balances[pid] === undefined) balances[pid] = 0;
+                    balances[pid] -= splitAmount;
+                    myCredit += splitAmount;
+                });
+                if (balances['user'] === undefined) balances['user'] = 0;
+                balances['user'] += myCredit;
+            } else {
+                // Someone else paid. I owe them my share. Others owe them theirs.
+                if (balances[payerId] === undefined) balances[payerId] = 0;
+                balances[payerId] += amount;
+
+                allInvolved.forEach(pid => {
+                    if (balances[pid] === undefined) balances[pid] = 0;
+                    balances[pid] -= splitAmount;
+                });
+            }
         }
     });
 
@@ -176,7 +226,7 @@ export const calculateTripDebts = (transactions: Transaction[], participants: { 
     }
 
     if (settlementLines.length === 0) {
-        return ["Ninguém deve nada a ninguém. Tudo quitado!"];
+        return ["Tudo quitado! Nenhuma pendência em aberto."];
     }
 
     return settlementLines;

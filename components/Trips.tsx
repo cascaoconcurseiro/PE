@@ -3,7 +3,7 @@ import { Trip, Transaction, TransactionType, Category, Account, FamilyMember, Tr
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { calculateTripDebts } from '../services/balanceEngine';
-import { MapPin, Users, Calendar, Plus, Calculator, Sparkles, ArrowLeft, Check, Plane, ListChecks, PieChart as PieIcon, Map, Hotel, Utensils, Flag, Trash2, X, Clock, Target, Pencil, Save, AlertCircle, ShoppingBag, Banknote, RefreshCw } from 'lucide-react';
+import { MapPin, Users, Calendar, Plus, Calculator, Sparkles, ArrowLeft, Check, Plane, ListChecks, PieChart as PieIcon, Map, Hotel, Utensils, Flag, Trash2, X, Clock, Target, Pencil, Save, AlertCircle, ShoppingBag, Banknote, RefreshCw, ArrowRight } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { formatCurrency, getCategoryIcon } from '../utils';
 
@@ -16,9 +16,10 @@ interface TripsProps {
     onAddTrip: (t: Trip) => void;
     onUpdateTrip?: (t: Trip) => void;
     onDeleteTrip?: (id: string) => void;
+    onNavigateToShared?: () => void;
 }
 
-export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onAddTrip, onUpdateTrip, onDeleteTrip }) => {
+export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared }) => {
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
     const [isCreatingTrip, setIsCreatingTrip] = useState(false);
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'ITINERARY' | 'CHECKLIST' | 'STATS' | 'SHOPPING' | 'EXCHANGE'>('OVERVIEW');
@@ -160,7 +161,6 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
         if (!selectedTrip) return;
         setLoadingAi(true);
 
-        // Use deterministic calculation instead of AI for accuracy
         const settlementLines = calculateTripDebts(tripTransactions, selectedTrip.participants);
 
         const report = `
@@ -169,7 +169,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
 ${settlementLines.map(l => `- ${l}`).join('\n')}
 
 ---
-*Cálculo baseado nas despesas registradas e divisões informadas.*
+*Este cálculo considera apenas dívidas não quitadas.*
         `;
 
         setAiAnalysis(report);
@@ -715,19 +715,33 @@ ${settlementLines.map(l => `- ${l}`).join('\n')}
                                     </div>
                                     <h3 className="text-xl font-bold">Divisão Inteligente</h3>
                                     <p className="text-slate-300 text-sm leading-relaxed">Calcular quem deve quanto a quem (Split).</p>
-                                    <Button
-                                        className="w-full bg-white text-slate-900 hover:bg-slate-100 font-bold rounded-xl"
-                                        onClick={handleSettlement}
-                                        isLoading={loadingAi}
-                                    >
-                                        <Calculator className="w-4 h-4 mr-2" />
-                                        Calcular Acerto
-                                    </Button>
+                                    
+                                    <div className="w-full space-y-2">
+                                        <Button
+                                            className="w-full bg-white text-slate-900 hover:bg-slate-100 font-bold rounded-xl"
+                                            onClick={handleSettlement}
+                                            isLoading={loadingAi}
+                                        >
+                                            <Calculator className="w-4 h-4 mr-2" />
+                                            Calcular Acerto Pendente
+                                        </Button>
+                                        
+                                        {onNavigateToShared && (
+                                            <Button
+                                                variant="secondary"
+                                                className="w-full bg-slate-800 text-slate-200 hover:bg-slate-700 font-bold rounded-xl border-slate-700"
+                                                onClick={onNavigateToShared}
+                                            >
+                                                Ver Detalhes no Compartilhado
+                                                <ArrowRight className="w-4 h-4 ml-2" />
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                             </Card>
 
                             {aiAnalysis && (
-                                <Card title="Resultado do Acerto" className="border-violet-200 shadow-md bg-violet-50/50">
+                                <Card title="Resultado do Acerto (Pendentes)" className="border-violet-200 shadow-md bg-violet-50/50">
                                     <div className="prose prose-sm prose-violet max-w-none">
                                         {aiAnalysis.split('\n').map((line, i) => (
                                             <p key={i} className={`text-slate-700 text-sm mb-2 ${line.startsWith('#') ? 'font-bold mt-2 text-violet-900' : ''} ${line.startsWith('-') ? 'ml-4' : ''}`}>
