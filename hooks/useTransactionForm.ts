@@ -33,6 +33,11 @@ export const useTransactionForm = ({
     const [category, setCategory] = useState<string>(Category.FOOD);
     const [accountId, setAccountId] = useState('');
     const [destinationAccountId, setDestinationAccountId] = useState('');
+    
+    // Multi-currency fields
+    const [destinationAmountStr, setDestinationAmountStr] = useState('');
+    const [manualExchangeRate, setManualExchangeRate] = useState('');
+
     const [tripId, setTripId] = useState('');
     const [isTripSelectorOpen, setIsTripSelectorOpen] = useState(false);
 
@@ -60,20 +65,30 @@ export const useTransactionForm = ({
         if (!accountId) setAccountId(getDefaultAccount());
     }, [accounts, formMode, initialData]);
 
-    // Derived
+    // Derived Values
     const activeAmount = parseFloat(amountStr.replace(',', '.')) || 0;
     const selectedAccountObj = accounts.find(a => a.id === accountId);
+    const selectedDestAccountObj = accounts.find(a => a.id === destinationAccountId);
     const selectedTrip = trips.find(t => String(t.id) === String(tripId));
+    const availableAccounts = accounts;
 
-    // Lógica de Moeda: Se tem viagem, a moeda é a da viagem.
+    // Multi-currency Check
+    const isMultiCurrencyTransfer = formMode === TransactionType.TRANSFER && 
+                                    selectedAccountObj && 
+                                    selectedDestAccountObj && 
+                                    selectedAccountObj.currency !== selectedDestAccountObj.currency;
+
+    // Calculate implied rate if both amounts exist
+    useEffect(() => {
+        if (isMultiCurrencyTransfer && activeAmount > 0 && parseFloat(destinationAmountStr) > 0) {
+            const rate = parseFloat(destinationAmountStr) / activeAmount;
+            setManualExchangeRate(rate.toFixed(4));
+        }
+    }, [activeAmount, destinationAmountStr, isMultiCurrencyTransfer]);
+
+    // Logic for Currency: If trip selected, assume transaction is in Trip Currency (for Expense)
     const activeCurrency = selectedTrip ? selectedTrip.currency : (selectedAccountObj?.currency || 'BRL');
     
-    // Validação: Conta deve ter a mesma moeda da viagem
-    const isCurrencyMismatch = selectedTrip && selectedAccountObj && selectedTrip.currency !== selectedAccountObj.currency;
-
-    // Filtra contas compatíveis para facilitar (opcional, mas a validação isCurrencyMismatch é o bloqueio principal)
-    const availableAccounts = accounts; // Mostramos todas, mas validamos na seleção/submit
-
     const isCreditCard = selectedAccountObj?.type === AccountType.CREDIT_CARD;
     const isExpense = formMode === TransactionType.EXPENSE;
     const isIncome = formMode === TransactionType.INCOME;
@@ -94,6 +109,10 @@ export const useTransactionForm = ({
             setIsShared(!!t.isShared || (!!t.payerId && t.payerId !== 'me'));
             setSplits(t.sharedWith || []);
             setEnableNotification(!!t.enableNotification);
+            
+            if (t.destinationAmount) {
+                setDestinationAmountStr(t.destinationAmount.toString());
+            }
 
             if (t.enableNotification && t.notificationDate) {
                 setNotificationDate(t.notificationDate);
@@ -133,16 +152,19 @@ export const useTransactionForm = ({
         if (!description.trim()) newErrors.description = 'Descrição obrigatória';
         if (!date) newErrors.date = 'Data obrigatória';
         if (!accountId && payerId === 'me') newErrors.account = 'Conta obrigatória';
+        
         if (isTransfer) {
             if (!destinationAccountId) newErrors.destination = 'Conta destino obrigatória';
             if (destinationAccountId === accountId) newErrors.destination = 'Origem e destino iguais';
+            
+            if (isMultiCurrencyTransfer) {
+                const destAmt = parseFloat(destinationAmountStr);
+                if (!destAmt || destAmt <= 0) {
+                    newErrors.destinationAmount = 'Informe o valor final na moeda de destino';
+                }
+            }
         }
         
-        // Bloqueio por moeda incompatível
-        if (isCurrencyMismatch) {
-            newErrors.account = `A conta deve ser em ${selectedTrip?.currency || 'moeda compatível'}.`;
-        }
-
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
@@ -173,6 +195,7 @@ export const useTransactionForm = ({
             category: formMode === TransactionType.TRANSFER ? Category.TRANSFER : category,
             accountId: (payerId && payerId !== 'me') ? 'EXTERNAL' : (accountId || (accounts[0] ? accounts[0].id : '')),
             destinationAccountId: isTransfer ? destinationAccountId : undefined,
+            destinationAmount: (isTransfer && isMultiCurrencyTransfer) ? parseFloat(destinationAmountStr) : undefined,
             tripId: tripId || undefined,
             isShared: shouldBeShared,
             sharedWith: finalSplits,
@@ -195,6 +218,8 @@ export const useTransactionForm = ({
 
     return {
         amountStr, setAmountStr,
+        destinationAmountStr, setDestinationAmountStr,
+        manualExchangeRate,
         description, setDescription,
         date, setDate,
         category, setCategory,
@@ -220,7 +245,9 @@ export const useTransactionForm = ({
         activeAmount,
         activeCurrency,
         availableAccounts,
-        isCurrencyMismatch,
+        isMultiCurrencyTransfer,
+        selectedAccountObj,
+        selectedDestAccountObj,
         isCreditCard,
         isExpense,
         isIncome,

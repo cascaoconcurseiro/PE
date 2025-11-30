@@ -63,6 +63,14 @@ export class PeDeMeiaDB extends Dexie {
             auditLogs: 'id, entity, entityId, action, createdAt',
             customCategories: 'id, name, syncStatus, deleted'
         });
+
+        // Version 5: Index Currency for multi-currency optimization
+        this.version(5).stores({
+            accounts: 'id, type, currency, syncStatus, deleted',
+            transactions: 'id, date, type, category, accountId, destinationAccountId, tripId, currency, syncStatus, deleted',
+            assets: 'id, type, accountId, ticker, currency, syncStatus, deleted',
+            trips: 'id, startDate, endDate, currency, syncStatus, deleted'
+        });
     }
 }
 

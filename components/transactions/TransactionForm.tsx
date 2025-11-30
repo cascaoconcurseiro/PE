@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import {
     Plane, Users, ChevronDown, Calendar, ArrowUpRight, ArrowDownLeft,
     RefreshCcw, Bell, BellRing, Repeat, Undo2, DollarSign, CreditCard, X,
-    Pencil, User, Plus, AlertCircle, Globe
+    Pencil, User, Plus, AlertCircle, Globe, ArrowRight
 } from 'lucide-react';
 import { getCategoryIcon } from '../../utils';
 import { SplitModal } from './SplitModal';
@@ -44,6 +44,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
     const {
         amountStr, setAmountStr,
+        destinationAmountStr, setDestinationAmountStr,
+        manualExchangeRate,
         description, setDescription,
         date, setDate,
         category, setCategory,
@@ -68,7 +70,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         activeAmount,
         activeCurrency,
         availableAccounts,
-        isCurrencyMismatch,
+        isMultiCurrencyTransfer,
+        selectedAccountObj,
+        selectedDestAccountObj,
         isCreditCard,
         isExpense,
         isIncome,
@@ -137,11 +141,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     
                     <div className="relative flex items-center justify-center w-full px-4">
                         <span className={`text-4xl font-bold mr-2 opacity-80 ${mainColor}`}>
-                            {activeCurrency === 'BRL' ? 'R$' :
-                             activeCurrency === 'USD' ? 'US$' :
-                             activeCurrency === 'EUR' ? '€' :
-                             activeCurrency === 'GBP' ? '£' :
-                             activeCurrency}
+                            {activeCurrency === 'BRL' ? 'R$' : activeCurrency}
                         </span>
                         <input 
                             type="number" 
@@ -155,7 +155,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     </div>
                     {errors.amount && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-2 bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full">{errors.amount}</p>}
 
-                    {selectedTrip && (
+                    {selectedTrip && !isTransfer && (
                         <div className="mt-3 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-black/20 px-3 py-1 rounded-lg">
                             <Plane className="w-3 h-3" />
                             Moeda da Viagem: <strong>{selectedTrip.currency}</strong>
@@ -206,7 +206,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         </div>
                     </div>
 
-                    {/* Trip Selection */}
+                    {/* Trip Selection (Expense Only) */}
                     {isExpense && (
                         <div className="space-y-1">
                             <div className="relative z-20">
@@ -239,22 +239,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     {/* Account Selection */}
                     <div className="grid grid-cols-1 gap-3">
                         {payerId === 'me' ? (
-                            <>
-                                <AccountSelector
-                                    label={isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}
-                                    accounts={availableAccounts}
-                                    selectedId={accountId}
-                                    onSelect={setAccountId}
-                                    filterType={(isIncome || isTransfer) ? 'NO_CREDIT' : 'ALL'}
-                                    disabled={!!initialData}
-                                />
-                                {isCurrencyMismatch && (
-                                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 p-3 rounded-xl flex items-start gap-2 text-xs text-red-700 dark:text-red-300 animate-in fade-in">
-                                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                        <p>Atenção: Você selecionou uma viagem em <strong>{selectedTrip?.currency}</strong>. É obrigatório selecionar uma conta na mesma moeda ({selectedTrip?.currency}).</p>
-                                    </div>
-                                )}
-                            </>
+                            <AccountSelector
+                                label={isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}
+                                accounts={availableAccounts}
+                                selectedId={accountId}
+                                onSelect={setAccountId}
+                                filterType={(isIncome || isTransfer) ? 'NO_CREDIT' : 'ALL'}
+                                disabled={!!initialData}
+                            />
                         ) : (
                             <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -269,7 +261,42 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         )}
 
                         {isTransfer && (
-                            <AccountSelector label="Vai para (Destino)" accounts={accounts.filter(a => a.id !== accountId)} selectedId={destinationAccountId} onSelect={setDestinationAccountId} filterType="NO_CREDIT" />
+                            <>
+                                <AccountSelector label="Vai para (Destino)" accounts={accounts.filter(a => a.id !== accountId)} selectedId={destinationAccountId} onSelect={setDestinationAccountId} filterType="NO_CREDIT" />
+                                
+                                {/* Multi-currency Transfer UI */}
+                                {isMultiCurrencyTransfer && (
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2 mb-3 text-blue-800 dark:text-blue-300">
+                                            <Globe className="w-4 h-4" />
+                                            <span className="text-xs font-bold uppercase">Conversão de Moeda</span>
+                                        </div>
+                                        <div className="flex gap-3 items-center">
+                                            <div className="flex-1">
+                                                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Saiu ({selectedAccountObj?.currency})</label>
+                                                <div className="text-lg font-bold text-slate-700 dark:text-slate-300">{activeAmount.toFixed(2)}</div>
+                                            </div>
+                                            <ArrowRight className="w-4 h-4 text-slate-400" />
+                                            <div className="flex-1">
+                                                <label className="text-[10px] font-bold text-blue-600 dark:text-blue-400 block mb-1">Entrou ({selectedDestAccountObj?.currency})</label>
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="0.00"
+                                                    className="w-full bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 rounded-lg px-2 py-1 text-lg font-bold text-blue-700 dark:text-blue-300 outline-none focus:ring-2 focus:ring-blue-500"
+                                                    value={destinationAmountStr}
+                                                    onChange={(e) => setDestinationAmountStr(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        {manualExchangeRate && (
+                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 text-center">
+                                                Taxa Implícita: 1 {selectedAccountObj?.currency} = {manualExchangeRate} {selectedDestAccountObj?.currency}
+                                            </p>
+                                        )}
+                                        {errors.destinationAmount && <p className="text-red-500 text-xs font-bold mt-2">{errors.destinationAmount}</p>}
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
@@ -346,8 +373,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 </div>
 
                 <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 fixed bottom-0 left-0 right-0 md:relative md:border-none md:bg-transparent dark:md:bg-transparent z-20">
-                    <Button onClick={handleSubmit} disabled={isCurrencyMismatch} className={`w-full h-14 text-lg shadow-xl shadow-slate-200 ${buttonMainBg} hover:opacity-90 transition-opacity`}>
-                        {isCurrencyMismatch ? 'Moeda Incompatível' : (initialData ? 'Salvar Alterações' : 'Confirmar Transação')}
+                    <Button onClick={handleSubmit} className={`w-full h-14 text-lg shadow-xl shadow-slate-200 ${buttonMainBg} hover:opacity-90 transition-opacity`}>
+                        {initialData ? 'Salvar Alterações' : 'Confirmar Transação'}
                     </Button>
                 </div>
             </div>

@@ -129,29 +129,29 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                             <p><strong>Competência (Consumo):</strong> Quando a compra foi feita.</p>
                             <p><strong>Caixa (Pagamento):</strong> Quando o dinheiro efetivamente sai da conta (ex: vencimento da fatura).</p>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                        <div className="overflow-x-auto pb-4">
+                            <table className="w-full text-sm text-left min-w-[600px]">
                                 <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
                                     <tr>
-                                        <th className="px-6 py-4">Mês</th>
-                                        <th className="px-6 py-4 text-right">Competência (Consumo)</th>
-                                        <th className="px-6 py-4 text-right">Caixa (Pagamento)</th>
-                                        <th className="px-6 py-4 text-right">Diferença</th>
+                                        <th className="px-6 py-4 whitespace-nowrap">Mês</th>
+                                        <th className="px-6 py-4 text-right whitespace-nowrap">Competência (Consumo)</th>
+                                        <th className="px-6 py-4 text-right whitespace-nowrap">Caixa (Pagamento)</th>
+                                        <th className="px-6 py-4 text-right whitespace-nowrap">Diferença</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {cashFlowReport.map((item) => (
                                         <tr key={item.month} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                            <td className="px-6 py-4 font-bold text-slate-800 dark:text-white capitalize">
+                                            <td className="px-6 py-4 font-bold text-slate-800 dark:text-white capitalize whitespace-nowrap">
                                                 {new Date(item.month + '-02').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                                             </td>
-                                            <td className="px-6 py-4 text-right font-mono text-slate-600 dark:text-slate-300">
+                                            <td className="px-6 py-4 text-right font-mono text-slate-600 dark:text-slate-300 whitespace-nowrap">
                                                 <PrivacyBlur>{formatCurrency(item.accrual)}</PrivacyBlur>
                                             </td>
-                                            <td className="px-6 py-4 text-right font-mono text-slate-600 dark:text-slate-300">
+                                            <td className="px-6 py-4 text-right font-mono text-slate-600 dark:text-slate-300 whitespace-nowrap">
                                                 <PrivacyBlur>{formatCurrency(item.cash)}</PrivacyBlur>
                                             </td>
-                                            <td className={`px-6 py-4 text-right font-bold font-mono ${item.cash > item.accrual ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                            <td className={`px-6 py-4 text-right font-bold font-mono whitespace-nowrap ${item.cash > item.accrual ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                                 <PrivacyBlur>{formatCurrency(item.accrual - item.cash)}</PrivacyBlur>
                                             </td>
                                         </tr>
@@ -161,27 +161,27 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                         </div>
                     </div>
                 ) : activeTab === 'TRIAL' ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
+                    <div className="overflow-x-auto pb-4">
+                        <table className="w-full text-sm text-left min-w-[600px]">
                             <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
                                 <tr>
-                                    <th className="px-6 py-4">Conta / Categoria</th>
-                                    <th className="px-6 py-4 text-right text-red-600 dark:text-red-400">Débito Total</th>
-                                    <th className="px-6 py-4 text-right text-emerald-600 dark:text-emerald-400">Crédito Total</th>
-                                    <th className="px-6 py-4 text-right">Saldo Líquido</th>
+                                    <th className="px-6 py-4 whitespace-nowrap">Conta / Categoria</th>
+                                    <th className="px-6 py-4 text-right text-red-600 dark:text-red-400 whitespace-nowrap">Débito Total</th>
+                                    <th className="px-6 py-4 text-right text-emerald-600 dark:text-emerald-400 whitespace-nowrap">Crédito Total</th>
+                                    <th className="px-6 py-4 text-right whitespace-nowrap">Saldo Líquido</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {trialBalance.map((item) => (
                                     <tr key={item.accountName} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-slate-800 dark:text-white">{item.accountName}</td>
-                                        <td className="px-6 py-4 text-right text-red-600 dark:text-red-400 font-mono">
+                                        <td className="px-6 py-4 font-medium text-slate-800 dark:text-white whitespace-nowrap">{item.accountName}</td>
+                                        <td className="px-6 py-4 text-right text-red-600 dark:text-red-400 font-mono whitespace-nowrap">
                                             <PrivacyBlur>{formatCurrency(item.debit)}</PrivacyBlur>
                                         </td>
-                                        <td className="px-6 py-4 text-right text-emerald-600 dark:text-emerald-400 font-mono">
+                                        <td className="px-6 py-4 text-right text-emerald-600 dark:text-emerald-400 font-mono whitespace-nowrap">
                                             <PrivacyBlur>{formatCurrency(item.credit)}</PrivacyBlur>
                                         </td>
-                                        <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white font-mono">
+                                        <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white font-mono whitespace-nowrap">
                                             <PrivacyBlur>{formatCurrency(item.balance)}</PrivacyBlur>
                                         </td>
                                     </tr>
@@ -197,15 +197,15 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                         </table>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
+                    <div className="overflow-x-auto pb-4">
+                        <table className="w-full text-sm text-left min-w-[800px]">
                             <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
                                 <tr>
-                                    <th className="px-6 py-4">Data</th>
-                                    <th className="px-6 py-4">Descrição</th>
-                                    <th className="px-6 py-4 text-red-600 dark:text-red-400">Débito (Destino)</th>
-                                    <th className="px-6 py-4 text-emerald-600 dark:text-emerald-400">Crédito (Origem)</th>
-                                    <th className="px-6 py-4 text-right">Valor</th>
+                                    <th className="px-6 py-4 whitespace-nowrap">Data</th>
+                                    <th className="px-6 py-4 whitespace-nowrap">Descrição</th>
+                                    <th className="px-6 py-4 text-red-600 dark:text-red-400 whitespace-nowrap">Débito (Destino)</th>
+                                    <th className="px-6 py-4 text-emerald-600 dark:text-emerald-400 whitespace-nowrap">Crédito (Origem)</th>
+                                    <th className="px-6 py-4 text-right whitespace-nowrap">Valor</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -214,10 +214,10 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                                         <td className="px-6 py-4 text-slate-500 dark:text-slate-400 whitespace-nowrap">
                                             {new Date(entry.date).toLocaleDateString('pt-BR')}
                                         </td>
-                                        <td className="px-6 py-4 font-medium text-slate-800 dark:text-white">{entry.description}</td>
-                                        <td className="px-6 py-4 text-red-600 dark:text-red-400">{entry.debit}</td>
-                                        <td className="px-6 py-4 text-emerald-600 dark:text-emerald-400">{entry.credit}</td>
-                                        <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white font-mono">
+                                        <td className="px-6 py-4 font-medium text-slate-800 dark:text-white max-w-xs truncate" title={entry.description}>{entry.description}</td>
+                                        <td className="px-6 py-4 text-red-600 dark:text-red-400 whitespace-nowrap">{entry.debit}</td>
+                                        <td className="px-6 py-4 text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{entry.credit}</td>
+                                        <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white font-mono whitespace-nowrap">
                                             <PrivacyBlur>{formatCurrency(entry.amount)}</PrivacyBlur>
                                         </td>
                                     </tr>

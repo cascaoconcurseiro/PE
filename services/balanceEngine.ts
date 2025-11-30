@@ -21,7 +21,7 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
 
     // 2. Iterate through every single transaction to apply changes
     transactions.forEach(tx => {
-        const amount = tx.amount;
+        const amount = tx.amount; // Amount is ALWAYS in the currency of the Source Account (accountId)
 
         // Skip invalid transactions
         if (!amount || amount <= 0) return;
@@ -37,46 +37,45 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
             }
         }
 
-        // Logic for Source Account
+        // Logic for Source Account (The account spending/sending money)
         const sourceAcc = accountMap.get(tx.accountId);
         if (sourceAcc) {
-            // Determine the actual amount affecting the account
-            // If exchangeRate exists, it means tx.amount is in foreign currency
-            // and we need to convert back to account currency.
-            // Rate definition: AccountAmount / TxAmount => AccountAmount = TxAmount * Rate
-            const effectiveAmount = (tx.exchangeRate && tx.exchangeRate > 0)
-                ? tx.amount * tx.exchangeRate
-                : amount;
-
             if (tx.type === TransactionType.EXPENSE) {
-                // Se 'payerId' existe e não é 'me' (ou seja, outro pagou),
-                // o dinheiro NÃO sai da minha conta bancária. É uma dívida, não um fluxo de caixa.
+                // Check if someone else paid (Debt logic)
                 const someoneElsePaid = tx.payerId && tx.payerId !== 'me';
 
                 if (!someoneElsePaid) {
-                    // Expense subtracts, unless it's a refund (then adds)
-                    // Using round2dec to prevent floating point errors
-                    const change = tx.isRefund ? effectiveAmount : -effectiveAmount;
+                    // Expense subtracts from source
+                    const change = tx.isRefund ? amount : -amount;
                     sourceAcc.balance = round2dec(sourceAcc.balance + change);
                 }
             } else if (tx.type === TransactionType.INCOME) {
-                // Income adds, unless it's a refund (then subtracts)
-                const change = tx.isRefund ? -effectiveAmount : effectiveAmount;
+                // Income adds to source
+                const change = tx.isRefund ? -amount : amount;
                 sourceAcc.balance = round2dec(sourceAcc.balance + change);
 
             } else if (tx.type === TransactionType.TRANSFER) {
-                // Transfer Out always subtracts from Source
-                sourceAcc.balance = round2dec(sourceAcc.balance - effectiveAmount);
+                // Transfer Out always subtracts 'amount' from Source
+                // 'amount' is guaranteed to be in Source Currency
+                sourceAcc.balance = round2dec(sourceAcc.balance - amount);
             }
         }
 
-        // Logic for Destination Account (Transfer)
+        // Logic for Destination Account (Transfer Only)
         if (tx.type === TransactionType.TRANSFER && tx.destinationAccountId) {
             const destAcc = accountMap.get(tx.destinationAccountId);
             if (destAcc) {
+                // Determine the amount arriving at destination
+                // If explicit destinationAmount exists (multi-currency), use it.
+                // Otherwise, assume 1:1 (same currency).
+                let amountIncoming = amount;
+
+                if (tx.destinationAmount && tx.destinationAmount > 0) {
+                    amountIncoming = tx.destinationAmount;
+                }
+
                 // Transfer In always adds to Destination
-                const finalAmount = tx.destinationAmount !== undefined ? tx.destinationAmount : amount;
-                destAcc.balance = round2dec(destAcc.balance + finalAmount);
+                destAcc.balance = round2dec(destAcc.balance + amountIncoming);
             }
         }
     });
