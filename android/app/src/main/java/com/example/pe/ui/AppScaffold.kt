@@ -19,6 +19,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.pe.ui.features.accounts.AccountsScreen
 import com.example.pe.ui.features.main.MainScreen
 
 sealed class BottomNavItem(val route: String, val icon: ImageVector, val label: String) {
@@ -61,7 +62,7 @@ fun AppScaffold() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(BottomNavItem.Transactions.route) { MainScreen(navController) }
-            // composable(BottomNavItem.Accounts.route) { AccountsScreen(navController) }
+            composable(BottomNavItem.Accounts.route) { AccountsScreen(navController) }
         }
     }
 }

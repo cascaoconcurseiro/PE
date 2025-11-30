@@ -1,6 +1,7 @@
 package com.example.pe.ui.features.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,13 +26,18 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
-fun TransactionItem(transactionWithCategory: TransactionWithCategory) {
+fun TransactionItem(
+    transactionWithCategory: TransactionWithCategory,
+    onClick: () -> Unit
+) {
     val transaction = transactionWithCategory.transaction
     val category = transactionWithCategory.category
     val formattedDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(transaction.date)
 
     Row(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(

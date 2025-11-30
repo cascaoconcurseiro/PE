@@ -1,5 +1,6 @@
 package com.example.pe.ui.features.main
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -64,7 +65,12 @@ fun MainScreen(
             // Transactions List
             LazyColumn {
                 items(transactions) { transactionWithCategory ->
-                    TransactionItem(transactionWithCategory = transactionWithCategory)
+                    TransactionItem(
+                        transactionWithCategory = transactionWithCategory,
+                        onClick = {
+                            navController.navigate("${Routes.EDIT_TRANSACTION}/${transactionWithCategory.transaction.id}")
+                        }
+                    )
                 }
             }
         }

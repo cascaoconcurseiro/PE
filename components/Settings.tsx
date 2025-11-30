@@ -1,14 +1,14 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Download, Upload, Trash2, ShieldCheck, Database, AlertTriangle, Tag, Plus, X, Key, Eye, EyeOff } from 'lucide-react';
+import { Download, Upload, Trash2, ShieldCheck, Database, AlertTriangle, Tag, Plus, X, Key, Eye, EyeOff, CloudUpload } from 'lucide-react';
 import { Account, Budget, CustomCategory, FamilyMember, Transaction, Trip, Asset, Goal, Snapshot } from '../types';
 import { useToast } from './ui/Toast';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { Modal } from './ui/Modal';
-import { downloadBackup, importBackup, autoBackupToLocalStorage, getAutoBackupInfo } from '../services/backupService';
+
 interface SettingsProps {
-    onImport: (data: any) => void;
+    onImport: (data: any) => void; // Reused for "Sync to Cloud"
     customCategories: CustomCategory[];
     onAddCategory: (name: string) => void;
     onDeleteCategory: (id: string) => void;
@@ -29,25 +29,18 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({
-    onImport,
+    onImport, // This is actually handleImportData from useDataStore, which we modified to be Sync
     customCategories,
     onAddCategory,
     onDeleteCategory,
     accounts,
-    transactions,
     trips,
-    budgets,
-    goals,
-    familyMembers,
-    assets,
-    snapshots,
     onUpdateAccount,
     onDeleteAccount,
     onUpdateTrip,
     onDeleteTrip,
     onResetSystem
 }) => {
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [globalCurrency, setGlobalCurrency] = useState('BRL');
     const { addToast } = useToast();
@@ -60,15 +53,6 @@ export const Settings: React.FC<SettingsProps> = ({
         isOpen: false, title: '', value: '', onConfirm: () => { }
     });
 
-    // Security Modal State
-    const [securityModal, setSecurityModal] = useState({
-        isOpen: false,
-        step: 0,
-        generatedCode: '',
-        inputCode: ''
-    });
-
-    // API Key State
     const [apiKey, setApiKey] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
 
@@ -80,86 +64,6 @@ export const Settings: React.FC<SettingsProps> = ({
     const handleSaveApiKey = () => {
         localStorage.setItem('pdm_api_key', apiKey);
         addToast('Chave API salva com segurança no navegador!', 'success');
-    };
-
-    const handleExport = () => {
-        const data = {
-            accounts,
-            transactions,
-            trips,
-            budgets,
-            goals,
-            familyMembers,
-            customCategories,
-            assets,
-            snapshots,
-            exportedAt: new Date().toISOString(),
-            version: '3.1'
-        };
-
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `pede-meia_backup_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    const handleImportClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const json = JSON.parse(event.target?.result as string);
-                setConfirmModal({
-                    isOpen: true,
-                    title: 'Restaurar Backup',
-                    message: 'Isso substituirá todos os seus dados atuais. Tem certeza que deseja restaurar o backup?',
-                    onConfirm: () => {
-                        onImport(json);
-                        addToast('Backup restaurado com sucesso!', 'success');
-                    }
-                });
-            } catch (err) {
-                addToast('Erro ao ler arquivo de backup. Certifique-se que é um JSON válido.', 'error');
-            }
-        };
-        reader.readAsText(file);
-    };
-
-    const handleStartReset = () => {
-        const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-        setSecurityModal({
-            isOpen: true,
-            step: 1,
-            generatedCode: code,
-            inputCode: ''
-        });
-    };
-
-    const handleSecuritySubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (securityModal.step === 1) {
-            if (securityModal.inputCode.toUpperCase() === securityModal.generatedCode) {
-                setSecurityModal(prev => ({ ...prev, step: 2, inputCode: '' }));
-            } else {
-                addToast('Código de segurança incorreto.', 'error');
-            }
-        } else if (securityModal.step === 2) {
-            if (securityModal.inputCode.toUpperCase() === 'CONFIRMAR') {
-                onResetSystem();
-            } else {
-                addToast('Digite CONFIRMAR para prosseguir.', 'error');
-            }
-        }
     };
 
     const handleAddCat = (e: React.FormEvent) => {
@@ -179,10 +83,32 @@ export const Settings: React.FC<SettingsProps> = ({
         <div className="space-y-8 pb-20">
             <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Configurações e Sistema</h2>
 
+            {/* Cloud Migration */}
+            <Card className="p-6 border-indigo-100 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-900/10">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                        <CloudUpload className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Migração para Nuvem</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Envie seus dados locais para o Supabase.</p>
+                    </div>
+                </div>
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                        Se você já usava o app antes da atualização para nuvem, clique abaixo para sincronizar seus dados antigos. 
+                        Isso garantirá que você não perca nada ao trocar de dispositivo.
+                    </p>
+                    <Button onClick={() => onImport(null)} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 dark:shadow-none">
+                        <CloudUpload className="w-4 h-4 mr-2" /> Sincronizar Dados Locais Agora
+                    </Button>
+                </div>
+            </Card>
+
             {/* Global Preferences */}
             <Card className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                    <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
                         <Tag className="w-6 h-6" />
                     </div>
                     <div>
@@ -206,7 +132,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 </div>
             </Card>
 
-            {/* AI Integration (Security Fix #1) */}
+            {/* AI Integration */}
             <Card className="p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-3 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-xl">
@@ -239,117 +165,7 @@ export const Settings: React.FC<SettingsProps> = ({
                             </div>
                             <Button onClick={handleSaveApiKey} className="bg-violet-600 hover:bg-violet-700 text-white">Salvar</Button>
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                            Sua chave é armazenada apenas no armazenamento local do seu navegador.
-                            Nunca compartilhe sua chave API.
-                        </p>
                     </div>
-                </div>
-            </Card>
-
-            {/* Data Management */}
-            <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
-                        <Database className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Gerenciamento de Dados</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Edite ou remova itens criados.</p>
-                    </div>
-                </div>
-
-                <div className="space-y-6">
-                    {/* Accounts List */}
-                    <div>
-                        <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2">Contas e Cartões</h4>
-                        <div className="space-y-2">
-                            {accounts.map(acc => (
-                                <div key={acc.id} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                                    <span className="font-medium text-slate-800 dark:text-white">{acc.name} ({acc.type})</span>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => {
-                                            setInputModal({
-                                                isOpen: true,
-                                                title: 'Renomear Conta',
-                                                value: acc.name,
-                                                onConfirm: (val) => onUpdateAccount({ ...acc, name: val })
-                                            });
-                                        }} className="text-blue-600 dark:text-blue-400 text-xs font-bold hover:underline">Editar</button>
-                                        <button onClick={() => {
-                                            setConfirmModal({
-                                                isOpen: true,
-                                                title: 'Excluir Conta',
-                                                message: `Deseja excluir a conta ${acc.name}?`,
-                                                onConfirm: () => onDeleteAccount(acc.id)
-                                            });
-                                        }} className="text-red-600 dark:text-red-400 text-xs font-bold hover:underline">Excluir</button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Trips List */}
-                    <div>
-                        <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2">Viagens</h4>
-                        <div className="space-y-2">
-                            {trips.map(trip => (
-                                <div key={trip.id} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                                    <span className="font-medium text-slate-800 dark:text-white">{trip.name}</span>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => {
-                                            setInputModal({
-                                                isOpen: true,
-                                                title: 'Renomear Viagem',
-                                                value: trip.name,
-                                                onConfirm: (val) => onUpdateTrip({ ...trip, name: val })
-                                            });
-                                        }} className="text-blue-600 dark:text-blue-400 text-xs font-bold hover:underline">Editar</button>
-                                        <button onClick={() => {
-                                            setConfirmModal({
-                                                isOpen: true,
-                                                title: 'Excluir Viagem',
-                                                message: `Deseja excluir a viagem ${trip.name}?`,
-                                                onConfirm: () => onDeleteTrip(trip.id)
-                                            });
-                                        }} className="text-red-600 dark:text-red-400 text-xs font-bold hover:underline">Excluir</button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </Card>
-
-            {/* Backup Section */}
-            <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
-                        <Database className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Backup e Restauração</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Salve seus dados ou restaure de um arquivo.</p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button variant="secondary" onClick={handleExport} className="h-12 flex items-center justify-center gap-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">
-                        <Download className="w-4 h-4" />
-                        Exportar Backup (JSON)
-                    </Button>
-                    <Button variant="secondary" onClick={handleImportClick} className="h-12 flex items-center justify-center gap-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">
-                        <Upload className="w-4 h-4" />
-                        Restaurar Backup
-                    </Button>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept=".json"
-                        className="hidden"
-                    />
                 </div>
             </Card>
 
@@ -396,33 +212,6 @@ export const Settings: React.FC<SettingsProps> = ({
                 </div>
             </Card>
 
-            {/* Danger Zone */}
-            <Card className="p-6 border-red-100 dark:border-red-900/30 bg-red-50/30 dark:bg-red-900/10">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl">
-                        <AlertTriangle className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-lg text-red-700 dark:text-red-300">Zona de Perigo</h3>
-                        <p className="text-sm text-red-500/80 dark:text-red-400/80">Ações irreversíveis.</p>
-                    </div>
-                </div>
-
-                <Button
-                    variant="danger"
-                    onClick={handleStartReset}
-                    className="w-full h-12 flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-800 shadow-sm"
-                >
-                    <Trash2 className="w-4 h-4" />
-                    Apagar Todos os Dados e Reiniciar
-                </Button>
-            </Card>
-
-            <div className="text-center text-xs text-slate-400 mt-8">
-                <p>Pé de Meia v3.1.0</p>
-                <p className="mt-1">Desenvolvido com IA</p>
-            </div>
-
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
@@ -455,65 +244,6 @@ export const Settings: React.FC<SettingsProps> = ({
                         <Button type="submit" className="flex-1">Salvar</Button>
                     </div>
                 </form>
-            </Modal>
-
-            {/* Security Reset Modal */}
-            <Modal
-                isOpen={securityModal.isOpen}
-                onClose={() => setSecurityModal(prev => ({ ...prev, isOpen: false, step: 0 }))}
-                title="Resetar Sistema"
-            >
-                <div className="space-y-4">
-                    <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-800 text-red-800 dark:text-red-300 text-sm">
-                        <p className="font-bold flex items-center gap-2 mb-2"><AlertTriangle className="w-4 h-4" /> AÇÃO IRREVERSÍVEL</p>
-                        <p>Todos os dados serão apagados permanentemente. Não será possível recuperar as informações após esta ação.</p>
-                    </div>
-
-                    <form onSubmit={handleSecuritySubmit} className="space-y-4">
-                        {securityModal.step === 1 && (
-                            <div className="space-y-3 animate-in slide-in-from-right">
-                                <p className="text-sm text-slate-600 dark:text-slate-300">
-                                    Para confirmar, digite o código de segurança abaixo:
-                                </p>
-                                <div className="text-center py-4 bg-slate-100 dark:bg-slate-800 rounded-xl font-mono text-2xl font-black tracking-widest text-slate-800 dark:text-white select-none">
-                                    {securityModal.generatedCode}
-                                </div>
-                                <input
-                                    autoFocus
-                                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none font-bold text-center uppercase"
-                                    placeholder="Digite o código"
-                                    value={securityModal.inputCode}
-                                    onChange={e => setSecurityModal(prev => ({ ...prev, inputCode: e.target.value }))}
-                                />
-                            </div>
-                        )}
-
-                        {securityModal.step === 2 && (
-                            <div className="space-y-3 animate-in slide-in-from-right">
-                                <p className="text-sm text-slate-600 dark:text-slate-300 font-bold">
-                                    Última verificação.
-                                </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Digite a palavra <strong>CONFIRMAR</strong> para apagar tudo.
-                                </p>
-                                <input
-                                    autoFocus
-                                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-red-200 dark:border-red-800 outline-none font-bold text-center uppercase text-red-600 dark:text-red-400"
-                                    placeholder="CONFIRMAR"
-                                    value={securityModal.inputCode}
-                                    onChange={e => setSecurityModal(prev => ({ ...prev, inputCode: e.target.value }))}
-                                />
-                            </div>
-                        )}
-
-                        <div className="flex gap-2 pt-2">
-                            <Button type="button" variant="secondary" onClick={() => setSecurityModal(prev => ({ ...prev, isOpen: false, step: 0 }))} className="flex-1">Cancelar</Button>
-                            <Button type="submit" variant="danger" className="flex-1" disabled={!securityModal.inputCode}>
-                                {securityModal.step === 1 ? 'Verificar' : 'APAGAR TUDO'}
-                            </Button>
-                        </div>
-                    </form>
-                </div>
             </Modal>
         </div >
     );
