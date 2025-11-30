@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material3.Icon
@@ -29,6 +30,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.pe.ui.features.accounts.AccountsScreen
 import com.example.pe.ui.features.cards.CardsScreen
+import com.example.pe.ui.features.family.FamilyScreen
 import com.example.pe.ui.features.main.MainScreen
 import com.example.pe.ui.features.reports.ReportsScreen
 
@@ -37,12 +39,13 @@ sealed class BottomNavItem(val route: String, val icon: ImageVector, val label: 
     object Accounts : BottomNavItem("accounts", Icons.Default.AccountBalance, "Contas")
     object Cards : BottomNavItem("cards", Icons.Default.CreditCard, "Cartões")
     object Reports : BottomNavItem("reports", Icons.Default.PieChart, "Relatórios")
+    object Family : BottomNavItem("family", Icons.Default.Group, "Família")
 }
 
 @Composable
 fun AppScaffold(appViewModel: MainAppViewModel = hiltViewModel()) {
     val navController = rememberNavController()
-    val items = listOf(BottomNavItem.Transactions, BottomNavItem.Accounts, BottomNavItem.Cards, BottomNavItem.Reports)
+    val items = listOf(BottomNavItem.Transactions, BottomNavItem.Accounts, BottomNavItem.Cards, BottomNavItem.Reports, BottomNavItem.Family)
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarManager = appViewModel.snackbarManager
 
@@ -88,6 +91,7 @@ fun AppScaffold(appViewModel: MainAppViewModel = hiltViewModel()) {
             composable(BottomNavItem.Accounts.route) { AccountsScreen(navController) }
             composable(BottomNavItem.Cards.route) { CardsScreen(navController) }
             composable(BottomNavItem.Reports.route) { ReportsScreen() }
+            composable(BottomNavItem.Family.route) { FamilyScreen(navController) }
         }
     }
 }

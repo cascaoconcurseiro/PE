@@ -10,8 +10,14 @@ import com.example.pe.data.local.AppDatabase
 import com.example.pe.data.local.CardDao
 import com.example.pe.data.local.Category
 import com.example.pe.data.local.CategoryDao
+import com.example.pe.data.local.DebtParticipantDao
 import com.example.pe.data.local.MIGRATION_1_2
 import com.example.pe.data.local.MIGRATION_2_3
+import com.example.pe.data.local.MIGRATION_3_4
+import com.example.pe.data.local.MIGRATION_4_5
+import com.example.pe.data.local.Person
+import com.example.pe.data.local.PersonDao
+import com.example.pe.data.local.SharedDebtDao
 import com.example.pe.data.local.TransactionDao
 import dagger.Module
 import dagger.Provides
@@ -35,7 +41,8 @@ object DatabaseModule {
         @ApplicationContext context: Context,
         // Using Provider to avoid cyclic dependency
         categoryDaoProvider: Provider<CategoryDao>,
-        accountDaoProvider: Provider<AccountDao>
+        accountDaoProvider: Provider<AccountDao>,
+        personDaoProvider: Provider<PersonDao>
     ): AppDatabase {
         return Room.databaseBuilder(
             context,
@@ -49,10 +56,11 @@ object DatabaseModule {
                 CoroutineScope(Dispatchers.IO).launch {
                     categoryDaoProvider.get().insertAll(defaultCategories)
                     accountDaoProvider.get().insert(defaultAccount)
+                    personDaoProvider.get().insert(defaultUser)
                 }
             }
         })
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
         .build()
     }
 
@@ -75,6 +83,21 @@ object DatabaseModule {
     fun provideCardDao(appDatabase: AppDatabase): CardDao {
         return appDatabase.cardDao()
     }
+
+    @Provides
+    fun providePersonDao(appDatabase: AppDatabase): PersonDao {
+        return appDatabase.personDao()
+    }
+
+    @Provides
+    fun provideSharedDebtDao(appDatabase: AppDatabase): SharedDebtDao {
+        return appDatabase.sharedDebtDao()
+    }
+
+    @Provides
+    fun provideDebtParticipantDao(appDatabase: AppDatabase): DebtParticipantDao {
+        return appDatabase.debtParticipantDao()
+    }
 }
 
 private val defaultCategories = listOf(
@@ -88,3 +111,4 @@ private val defaultCategories = listOf(
 )
 
 private val defaultAccount = Account(id = UUID.randomUUID().toString(), name = "Carteira", initialBalance = 0.0)
+private val defaultUser = Person(id = UUID.randomUUID().toString(), name = "Você")

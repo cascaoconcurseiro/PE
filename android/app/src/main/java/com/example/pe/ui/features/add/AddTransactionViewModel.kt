@@ -8,6 +8,13 @@ import com.example.pe.data.local.Card
 import com.example.pe.data.local.CardDao
 import com.example.pe.data.local.Category
 import com.example.pe.data.local.CategoryDao
+import com.example.pe.data.local.DebtParticipant
+import com.example.pe.data.local.DebtParticipantDao
+import com.example.pe.data.local.Person
+import com.example.pe.data.local.PersonDao
+import com.example.pe.data.local.SharedDebt
+import com.example.pe.data.local.SharedDebtDao
+import com.example.pe.data.local.SplitType
 import com.example.pe.data.local.Transaction
 import com.example.pe.data.local.TransactionDao
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,9 +30,12 @@ enum class PaymentType { DEBIT, CREDIT }
 @HiltViewModel
 class AddTransactionViewModel @Inject constructor(
     private val transactionDao: TransactionDao,
+    private val sharedDebtDao: SharedDebtDao,
+    private val debtParticipantDao: DebtParticipantDao,
     categoryDao: CategoryDao,
     accountDao: AccountDao,
-    cardDao: CardDao
+    cardDao: CardDao,
+    personDao: PersonDao
 ) : ViewModel() {
 
     val categories: StateFlow<List<Category>> = categoryDao.getAll()
@@ -36,6 +46,9 @@ class AddTransactionViewModel @Inject constructor(
 
     val cards: StateFlow<List<Card>> = cardDao.getAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        
+    val people: StateFlow<List<Person>> = personDao.getAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun saveTransaction(
         description: String, 
@@ -44,7 +57,12 @@ class AddTransactionViewModel @Inject constructor(
         categoryId: String, 
         paymentType: PaymentType,
         accountId: String?,
-        cardId: String?
+        cardId: String?,
+        isShared: Boolean,
+        paidByPersonId: String?,
+        participants: List<Person>,
+        splitType: SplitType,
+        customAmounts: Map<String, Double>
     ) {
         viewModelScope.launch {
             val amountDouble = amount.toDoubleOrNull() ?: 0.0
@@ -59,6 +77,32 @@ class AddTransactionViewModel @Inject constructor(
                 cardId = if (paymentType == PaymentType.CREDIT) cardId else null
             )
             transactionDao.insert(newTransaction)
+
+            if (isShared && paidByPersonId != null && participants.isNotEmpty()) {
+                val sharedDebtId = UUID.randomUUID().toString()
+                val newSharedDebt = SharedDebt(
+                    id = sharedDebtId,
+                    transactionId = newTransaction.id,
+                    paidByPersonId = paidByPersonId,
+                    splitType = splitType
+                )
+                sharedDebtDao.insert(newSharedDebt)
+
+                val debtParticipants = participants.map { person ->
+                    val amountOwed = when (splitType) {
+                        SplitType.EQUAL -> amountDouble / participants.size
+                        SplitType.VALUE -> customAmounts[person.id] ?: 0.0
+                        SplitType.PERCENTAGE -> (customAmounts[person.id] ?: 0.0) / 100 * amountDouble
+                    }
+                    DebtParticipant(
+                        sharedDebtId = sharedDebtId,
+                        personId = person.id,
+                        amountOwed = amountOwed,
+                        hasPaid = person.id == paidByPersonId
+                    )
+                }
+                debtParticipantDao.insertAll(debtParticipants)
+            }
         }
     }
 }

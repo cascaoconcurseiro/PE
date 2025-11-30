@@ -12,12 +12,14 @@ import com.example.pe.ui.features.add.AddTransactionScreen
 import com.example.pe.ui.features.cards.AddCardScreen
 import com.example.pe.ui.features.cards.EditCardScreen
 import com.example.pe.ui.features.edit.EditTransactionScreen
+import com.example.pe.ui.features.family.AddPersonScreen
 
 object Routes {
     const val HOME = "home"
     const val ADD_TRANSACTION = "add_transaction"
     const val ADD_ACCOUNT = "add_account"
     const val ADD_CARD = "add_card"
+    const val ADD_PERSON = "add_person"
     const val EDIT_TRANSACTION = "edit_transaction"
     const val EDIT_ACCOUNT = "edit_account"
     const val EDIT_CARD = "edit_card"
@@ -39,6 +41,9 @@ fun AppNavigation() {
         }
         composable(Routes.ADD_CARD) {
             AddCardScreen(navController = navController)
+        }
+        composable(Routes.ADD_PERSON) {
+            AddPersonScreen(navController = navController)
         }
         composable(
             route = "${Routes.EDIT_TRANSACTION}/{transactionId}",

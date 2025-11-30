@@ -14,13 +14,16 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,6 +31,8 @@ import androidx.navigation.NavController
 import com.example.pe.data.local.Account
 import com.example.pe.data.local.Card
 import com.example.pe.data.local.Category
+import com.example.pe.data.local.Person
+import com.example.pe.data.local.SplitType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,10 +42,11 @@ fun AddTransactionScreen(
 ) {
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
-    var currency by remember { mutableStateOf("BRL") } // Default to BRL
+    var currency by remember { mutableStateOf("BRL") } 
     val categories by viewModel.categories.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val cards by viewModel.cards.collectAsState()
+    val people by viewModel.people.collectAsState()
     
     var paymentType by remember { mutableStateOf(PaymentType.DEBIT) }
     var selectedCategory by remember { mutableStateOf<Category?>(null) }
@@ -49,6 +55,13 @@ fun AddTransactionScreen(
     var isCategoryMenuExpanded by remember { mutableStateOf(false) }
     var isAccountMenuExpanded by remember { mutableStateOf(false) }
     var isCardMenuExpanded by remember { mutableStateOf(false) }
+
+    // Share expense state
+    var isShared by remember { mutableStateOf(false) }
+    var paidBy by remember { mutableStateOf<Person?>(null) }
+    var participants by remember { mutableStateOf<List<Person>>(emptyList()) }
+    var splitType by remember { mutableStateOf(SplitType.EQUAL) }
+    val customAmounts = remember { mutableStateMapOf<String, Double>() }
 
     Column(modifier = Modifier.padding(16.dp)) {
         OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Descrição") }, modifier = Modifier.fillMaxWidth())
@@ -94,8 +107,25 @@ fun AddTransactionScreen(
         ExposedDropdownMenuBox(expanded = isCategoryMenuExpanded, onExpandedChange = { isCategoryMenuExpanded = !isCategoryMenuExpanded }) {
             OutlinedTextField(value = selectedCategory?.name ?: "", onValueChange = {}, readOnly = true, label = { Text("Categoria") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isCategoryMenuExpanded) }, modifier = Modifier.menuAnchor().fillMaxWidth())
             ExposedDropdownMenu(expanded = isCategoryMenuExpanded, onDismissRequest = { isCategoryMenuExpanded = false }) {
-                categories.forEach { category -> DropdownMenuItem(text = { Text(category.name) }, onClick = { selectedCategory = category; isCategoryMenuExpanded = false }) }
+                categories.forEach { category -> DropdownMenuItem(text = { Text(category.name) }, onClick = { selectedCategory = category; isCategoryMenuexpanded = false }) }
             }
+        }
+
+        // Share Expense Toggle
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Compartilhar Despesa")
+            Spacer(modifier = Modifier.weight(1f))
+            Switch(checked = isShared, onCheckedChange = { isShared = it })
+        }
+
+        if (isShared) {
+            ShareExpenseContent(
+                people = people,
+                onParticipantsChange = { participants = it },
+                onPaidByChange = { paidBy = it },
+                onSplitTypeChange = { splitType = it },
+                onCustomAmountsChange = { customAmounts.clear(); customAmounts.putAll(it) }
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -103,7 +133,10 @@ fun AddTransactionScreen(
         Button(
             onClick = {
                 selectedCategory?.let { category ->
-                    viewModel.saveTransaction(description, amount, currency, category.id, paymentType, selectedAccount?.id, selectedCard?.id)
+                    viewModel.saveTransaction(
+                        description, amount, currency, category.id, paymentType, 
+                        selectedAccount?.id, selectedCard?.id, isShared, paidBy?.id, participants, splitType, customAmounts
+                    )
                     navController.popBackStack()
                 }
             },

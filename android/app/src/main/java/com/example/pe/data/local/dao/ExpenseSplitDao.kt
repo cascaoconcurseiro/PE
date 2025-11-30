@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ExpenseSplitDao {
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(splits: List<ExpenseSplit>)
 
