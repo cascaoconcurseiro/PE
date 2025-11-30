@@ -8,6 +8,7 @@ import { TransactionForm } from './transactions/TransactionForm';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { InstallmentAnticipationModal } from './transactions/InstallmentAnticipationModal';
 import { Button } from './ui/Button'; // Assuming Button is already imported
+import { calculateMyExpense } from '../utils/expenseUtils';
 
 // Export PrivacyBlur for reuse if needed, though mostly handled internally now
 export const PrivacyBlur = ({ children, showValues }: { children: React.ReactNode, showValues: boolean }) => {
@@ -174,7 +175,10 @@ export const Transactions: React.FC<TransactionsProps> = ({
         let exp = 0;
         filteredTxs.forEach(t => {
             if (t.type === TransactionType.INCOME) inc += t.isRefund ? -t.amount : t.amount;
-            else if (t.type === TransactionType.EXPENSE) exp += t.isRefund ? -t.amount : t.amount;
+            else if (t.type === TransactionType.EXPENSE) {
+                const myVal = calculateMyExpense(t);
+                exp += t.isRefund ? -myVal : myVal;
+            }
         });
         return { income: inc, expense: exp, balance: inc - exp };
     }, [filteredTxs]);

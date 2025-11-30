@@ -172,6 +172,54 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                             Moeda da Viagem: <strong>{selectedTrip.currency}</strong>
                         </div>
                     )}
+
+                    {/* Currency Conversion for Travel Expenses */}
+                    {isExpense && selectedTrip && selectedAccountObj && selectedTrip.currency !== selectedAccountObj.currency && (
+                        <div className="mt-4 mx-4 bg-white/50 dark:bg-black/20 rounded-xl p-3 border border-slate-200/50 dark:border-slate-700/50 animate-in fade-in slide-in-from-top-1">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Globe className="w-3 h-3 text-indigo-500" />
+                                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Conversão Automática</span>
+                            </div>
+                            <div className="flex items-end gap-2">
+                                <div className="flex-1">
+                                    <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Valor {selectedTrip.currency}</label>
+                                    <input
+                                        type="number"
+                                        inputMode="decimal"
+                                        placeholder="0.00"
+                                        className="w-full bg-white dark:bg-slate-800 rounded-lg px-2 py-1.5 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none border border-slate-200 dark:border-slate-700 focus:border-indigo-500"
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const rate = document.getElementById('exchange-rate-input') as HTMLInputElement;
+                                            if (val && rate.value) {
+                                                const calc = parseFloat(val) * parseFloat(rate.value);
+                                                if (!isNaN(calc)) setAmountStr(calc.toFixed(2));
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <div className="pb-2 text-slate-400 font-bold">x</div>
+                                <div className="flex-1">
+                                    <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Cotação</label>
+                                    <input
+                                        id="exchange-rate-input"
+                                        type="number"
+                                        inputMode="decimal"
+                                        placeholder="Ex: 5.50"
+                                        className="w-full bg-white dark:bg-slate-800 rounded-lg px-2 py-1.5 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none border border-slate-200 dark:border-slate-700 focus:border-indigo-500"
+                                        onChange={(e) => {
+                                            const rate = e.target.value;
+                                            const valInput = e.target.parentElement?.previousElementSibling?.previousElementSibling?.querySelector('input') as HTMLInputElement;
+                                            if (rate && valInput?.value) {
+                                                const calc = parseFloat(valInput.value) * parseFloat(rate);
+                                                if (!isNaN(calc)) setAmountStr(calc.toFixed(2));
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 p-3 sm:p-4 space-y-3 sm:space-y-4">

@@ -10,5 +10,6 @@ data class Transaction(
     val amount: Double,
     val currency: String,
     val date: Long,
-    val categoryId: String
+    val categoryId: String,
+    val accountId: String // New field
 )

@@ -2,19 +2,19 @@ package com.example.pe.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.example.pe.data.local.dao.ParticipantDao
-import com.example.pe.data.local.dao.TransactionDao
-import com.example.pe.data.local.dao.TripDao
-import com.example.pe.data.local.dao.TripExpenseDao
-import com.example.pe.data.local.model.Participant
-import com.example.pe.data.local.model.Transaction
-import com.example.pe.data.local.model.Trip
-import com.example.pe.data.local.model.TripExpense
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Transaction::class, Trip::class, Participant::class, TripExpense::class], version = 4, exportSchema = false)
+@Database(entities = [Transaction::class, Account::class, Card::class, Category::class], version = 2)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
-    abstract fun tripDao(): TripDao
-    abstract fun participantDao(): ParticipantDao
-    abstract fun tripExpenseDao(): TripExpenseDao
+    abstract fun accountDao(): AccountDao
+    abstract fun cardDao(): CardDao
+    abstract fun categoryDao(): CategoryDao
+}
+
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE transactions ADD COLUMN accountId TEXT NOT NULL DEFAULT ''")
+    }
 }

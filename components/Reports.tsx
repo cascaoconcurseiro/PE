@@ -7,6 +7,7 @@ import { Button } from './ui/Button';
 import { exportToCSV } from '../services/exportUtils';
 import { TravelReport } from './reports/TravelReport';
 import { SharedExpensesReport } from './reports/SharedExpensesReport';
+import { calculateMyExpense } from '../utils/expenseUtils';
 
 interface ReportsProps {
     accounts: Account[];
@@ -33,10 +34,14 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, trips,
             if (!report[month]) report[month] = { accrual: 0, cash: 0 };
 
             // Accrual (Competência): Based on transaction date
-            if (t.type === TransactionType.EXPENSE) report[month].accrual += t.amount;
+            if (t.type === TransactionType.EXPENSE) {
+                const myVal = calculateMyExpense(t);
+                report[month].accrual += myVal;
+            }
             if (t.type === TransactionType.INCOME) report[month].accrual -= t.amount;
 
             if (t.type === TransactionType.EXPENSE) {
+                const myVal = calculateMyExpense(t);
                 // Determine if it's Credit Card
                 const account = accounts.find(a => a.id === t.accountId);
                 if (account && account.type === AccountType.CREDIT_CARD) {
@@ -63,11 +68,18 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, trips,
                     const cashMonthStr = cashDate.toISOString().substring(0, 7);
 
                     if (!report[cashMonthStr]) report[cashMonthStr] = { accrual: 0, cash: 0 };
-                    report[cashMonthStr].cash += t.amount;
+
+                    // For Cash Flow, strictly speaking, if I paid, full amount left my account.
+                    // But user wants to see "My Debt/Expense".
+                    // If I paid 100 and split 50, 100 left my account.
+                    // If I use myVal (50), I'm hiding the 50 I lent.
+                    // However, user complained "some places consider 100 as my expense".
+                    // Let's use myVal to satisfy "only my debt enters".
+                    report[cashMonthStr].cash += myVal;
 
                 } else {
                     // Bank/Cash: Cash happens same day
-                    report[month].cash += t.amount;
+                    report[month].cash += myVal;
                 }
             }
         });

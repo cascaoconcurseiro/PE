@@ -1,7 +1,9 @@
 package com.example.pe.ui.features.add
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
@@ -20,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.pe.data.local.Account
 import com.example.pe.data.local.Category
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,8 +34,11 @@ fun AddTransactionScreen(
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     val categories by viewModel.categories.collectAsState()
+    val accounts by viewModel.accounts.collectAsState()
     var selectedCategory by remember { mutableStateOf<Category?>(null) }
+    var selectedAccount by remember { mutableStateOf<Account?>(null) }
     var isCategoryMenuExpanded by remember { mutableStateOf(false) }
+    var isAccountMenuExpanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(16.dp)) {
         OutlinedTextField(
@@ -41,6 +47,7 @@ fun AddTransactionScreen(
             label = { Text("Descrição") },
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = amount,
@@ -48,11 +55,12 @@ fun AddTransactionScreen(
             label = { Text("Valor") },
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
+        // Category Dropdown
         ExposedDropdownMenuBox(
             expanded = isCategoryMenuExpanded,
             onExpandedChange = { isCategoryMenuExpanded = !isCategoryMenuExpanded },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
         ) {
             OutlinedTextField(
                 value = selectedCategory?.name ?: "",
@@ -77,16 +85,50 @@ fun AddTransactionScreen(
                 }
             }
         }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Account Dropdown
+        ExposedDropdownMenuBox(
+            expanded = isAccountMenuExpanded,
+            onExpandedChange = { isAccountMenuExpanded = !isAccountMenuExpanded },
+        ) {
+            OutlinedTextField(
+                value = selectedAccount?.name ?: "",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Conta") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isAccountMenuExpanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
+            )
+            ExposedDropdownMenu( 
+                expanded = isAccountMenuExpanded, 
+                onDismissRequest = { isAccountMenuExpanded = false } 
+            ) {
+                accounts.forEach { account ->
+                    DropdownMenuItem(
+                        text = { Text(account.name) },
+                        onClick = {
+                            selectedAccount = account
+                            isAccountMenuExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = {
-                selectedCategory?.let {
-                    viewModel.saveTransaction(description, amount, it.id)
-                    navController.popBackStack()
+                selectedCategory?.let { category ->
+                    selectedAccount?.let { account ->
+                        viewModel.saveTransaction(description, amount, category.id, account.id)
+                        navController.popBackStack()
+                    }
                 }
             },
-            enabled = selectedCategory != null,
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+            enabled = selectedCategory != null && selectedAccount != null,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text("Salvar")
         }

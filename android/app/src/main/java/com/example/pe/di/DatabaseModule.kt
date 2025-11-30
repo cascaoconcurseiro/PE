@@ -4,8 +4,12 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.pe.data.local.Account
+import com.example.pe.data.local.AccountDao
 import com.example.pe.data.local.AppDatabase
 import com.example.pe.data.local.Category
+import com.example.pe.data.local.CategoryDao
+import com.example.pe.data.local.MIGRATION_1_2
 import com.example.pe.data.local.TransactionDao
 import dagger.Module
 import dagger.Provides
@@ -28,7 +32,8 @@ object DatabaseModule {
     fun provideAppDatabase(
         @ApplicationContext context: Context,
         // Using Provider to avoid cyclic dependency
-        categoryDaoProvider: Provider<com.example.pe.data.local.CategoryDao>
+        categoryDaoProvider: Provider<CategoryDao>,
+        accountDaoProvider: Provider<AccountDao>
     ): AppDatabase {
         return Room.databaseBuilder(
             context,
@@ -41,9 +46,11 @@ object DatabaseModule {
                 // Pre-populate database
                 CoroutineScope(Dispatchers.IO).launch {
                     categoryDaoProvider.get().insertAll(defaultCategories)
+                    accountDaoProvider.get().insert(defaultAccount)
                 }
             }
         })
+        .addMigrations(MIGRATION_1_2)
         .build()
     }
 
@@ -53,8 +60,13 @@ object DatabaseModule {
     }
 
     @Provides
-    fun provideCategoryDao(appDatabase: AppDatabase): com.example.pe.data.local.CategoryDao {
+    fun provideCategoryDao(appDatabase: AppDatabase): CategoryDao {
         return appDatabase.categoryDao()
+    }
+
+    @Provides
+    fun provideAccountDao(appDatabase: AppDatabase): AccountDao {
+        return appDatabase.accountDao()
     }
 }
 
@@ -67,3 +79,5 @@ private val defaultCategories = listOf(
     Category(id = UUID.randomUUID().toString(), name = "Educação", icon = "", color = "#581845"),
     Category(id = UUID.randomUUID().toString(), name = "Salário", icon = "", color = "#33FF57")
 )
+
+private val defaultAccount = Account(id = UUID.randomUUID().toString(), name = "Carteira", initialBalance = 0.0)
