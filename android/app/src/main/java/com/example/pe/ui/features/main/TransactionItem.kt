@@ -58,10 +58,15 @@ fun TransactionItem(
             Text(text = formattedDate, style = MaterialTheme.typography.bodySmall)
         }
 
-        Text(
-            text = "R$ %.2f".format(transaction.amount),
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (transaction.amount >= 0) Color(0xFF2E7D32) else Color(0xFFC62828) // Green for income, Red for expense
-        )
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = "${transaction.currency} %.2f".format(transaction.amount),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (transaction.amount >= 0) Color(0xFF2E7D32) else Color(0xFFC62828) // Green for income, Red for expense
+            )
+            if (transaction.currency != "BRL") {
+                // TODO: Show converted value
+            }
+        }
     }
 }

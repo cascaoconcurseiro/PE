@@ -18,6 +18,15 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE id = :id")
     fun getById(id: String): Flow<Transaction>
+    
+    @Query("""
+        SELECT c.name as categoryName, SUM(t.amount) as totalAmount, c.color as color
+        FROM transactions t
+        INNER JOIN categories c ON t.categoryId = c.id
+        WHERE t.amount < 0 -- Only expenses
+        GROUP BY c.name
+        """)
+    fun getSpendingByCategory(): Flow<List<CategorySpending>>
 
     @Insert
     suspend fun insert(transaction: Transaction)

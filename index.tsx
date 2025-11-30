@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PiggyBank, Loader2 } from 'lucide-react';
-import { db, migrateFromLocalStorage } from './services/db';
+import { migrateFromLocalStorage } from './services/db'; // Only for migration
 import { supabase } from './integrations/supabase/client';
 import { Dashboard } from './components/Dashboard';
 import { Accounts } from './components/Accounts';
@@ -26,14 +26,12 @@ import { MainLayout } from './components/MainLayout';
 import './index.css';
 
 const App = () => {
-    const [isLoading, setIsLoading] = useState(true);
     const [sessionUser, setSessionUser] = useState<any>(null);
+    const [isSessionLoading, setIsSessionLoading] = useState(true);
 
     // Initial Setup & Session Check
     useEffect(() => {
         const init = async () => {
-            await migrateFromLocalStorage();
-
             // Check active session
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
@@ -43,7 +41,7 @@ const App = () => {
                     email: session.user.email
                 });
             }
-            setIsLoading(false);
+            setIsSessionLoading(false);
         };
         init();
 
@@ -63,10 +61,10 @@ const App = () => {
     }, []);
 
     const {
-        user: storedUser, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, handlers
+        user: storedUser, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading: isDataLoading, handlers
     } = useDataStore();
 
-    // Sync Auth State with Local DB
+    // Sync Auth State with Data Store
     useEffect(() => {
         if (sessionUser && !storedUser) {
             handlers.handleLogin({
@@ -75,12 +73,23 @@ const App = () => {
                 email: sessionUser.email,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
-                syncStatus: SyncStatus.PENDING
+                syncStatus: SyncStatus.SYNCED
             });
         }
     }, [sessionUser, storedUser]);
 
-    useAppLogic({ accounts, transactions, assets, isMigrating: isLoading });
+    // Inject Handlers into Logic so it writes to Cloud, not Local DB
+    useAppLogic({ 
+        accounts, 
+        transactions, 
+        assets, 
+        isMigrating: isDataLoading, 
+        handlers: {
+            handleAddTransaction: handlers.handleAddTransaction,
+            handleUpdateTransaction: handlers.handleUpdateTransaction,
+            handleAddSnapshot: handlers.handleAddSnapshot
+        }
+    });
 
     const [activeView, setActiveView] = useState<View>(View.DASHBOARD);
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -147,11 +156,11 @@ const App = () => {
         }
     };
 
-    if (isLoading) {
+    if (isSessionLoading) {
         return (
             <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center">
                 <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
-                <p className="text-slate-400 font-medium">Iniciando sistema seguro...</p>
+                <p className="text-slate-400 font-medium">Conectando...</p>
             </div>
         );
     }
@@ -160,7 +169,7 @@ const App = () => {
         return <Auth onLogin={() => { }} />;
     }
 
-    if (!accounts || !transactions) {
+    if (isDataLoading && !accounts.length) {
         return (
             <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
                 <div className="flex-1 p-8">
@@ -220,7 +229,7 @@ const App = () => {
             {isTxModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsTxModalOpen(false)} />
-                    <div className="bg-white w-full sm:max-w-2xl h-[90vh] sm:h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 flex flex-col animate-in slide-in-from-bottom-full duration-300 overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 w-full sm:max-w-2xl h-[90vh] sm:h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 flex flex-col animate-in slide-in-from-bottom-full duration-300 overflow-hidden border dark:border-slate-800">
                         <Transactions
                             transactions={transactions}
                             accounts={calculatedAccounts}

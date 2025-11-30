@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.pe.ui.Routes
@@ -40,8 +39,10 @@ fun AccountsScreen(
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.padding(innerPadding)) {
             items(accounts) { account ->
-                // TODO: Create a nice AccountItem composable
-                Text(text = "${account.name} - R$%.2f".format(account.initialBalance), modifier = Modifier.padding(16.dp))
+                AccountItem(
+                    account = account, 
+                    onClick = { navController.navigate("${Routes.EDIT_ACCOUNT}/${account.id}") }
+                )
             }
         }
     }

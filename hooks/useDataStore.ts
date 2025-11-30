@@ -19,17 +19,14 @@ export const useDataStore = () => {
     const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
     const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
     
-    // Loading States
-    const [isLoading, setIsLoading] = useState(true); // Full screen loader
-    const [isRefetching, setIsRefetching] = useState(false); // Background loader
+    const [isLoading, setIsLoading] = useState(true);
     const isInitialized = useRef(false);
 
     // --- FETCH DATA FROM SUPABASE ---
     const fetchData = useCallback(async (forceLoading = false) => {
+        // Only show full loader on first load or explicit force
         if (!isInitialized.current || forceLoading) {
             setIsLoading(true);
-        } else {
-            setIsRefetching(true);
         }
 
         try {
@@ -47,6 +44,7 @@ export const useDataStore = () => {
                 supabaseService.getCustomCategories()
             ]);
 
+            // Batch updates to avoid multiple renders
             setAccounts(accs);
             setTransactions(txs);
             setTrips(trps);
@@ -62,20 +60,21 @@ export const useDataStore = () => {
             console.error("Error fetching data from Supabase:", error);
         } finally {
             setIsLoading(false);
-            setIsRefetching(false);
         }
     }, []);
 
     // Initial Load
     useEffect(() => {
-        fetchData(true);
+        fetchData();
     }, [fetchData]);
 
-    // --- ACTIONS (Optimistic Updates + Cloud Save) ---
+    // --- ACTIONS ---
 
     const handleLogin = async (userProfile: UserProfile) => {
         setUser(userProfile);
-        fetchData(true); // Reload data for this user with full loader
+        // Don't force load here if we already fetching in useEffect, 
+        // but usually we want to ensure data matches user.
+        fetchData(true); 
     };
 
     const handleLogout = async () => {
@@ -85,7 +84,6 @@ export const useDataStore = () => {
         isInitialized.current = false;
     };
 
-    // Helper to refresh data after mutation
     const refresh = () => fetchData(false);
 
     const handleAddTransaction = async (newTx: Omit<Transaction, 'id'>) => {
@@ -142,8 +140,6 @@ export const useDataStore = () => {
             });
         }
 
-        // Optimistic UI Update (Optional but good for feeling instant)
-        // For now, we rely on fast background refresh
         await supabaseService.bulkCreate('transactions', txsToCreate);
         refresh();
     };
@@ -174,10 +170,7 @@ export const useDataStore = () => {
     };
 
     // --- GENERIC HANDLERS ---
-    const handleAddAccount = async (acc: any) => { 
-        await supabaseService.create('accounts', { ...acc, id: crypto.randomUUID() }); 
-        refresh(); 
-    };
+    const handleAddAccount = async (acc: any) => { await supabaseService.create('accounts', { ...acc, id: crypto.randomUUID() }); refresh(); };
     const handleUpdateAccount = async (acc: any) => { await supabaseService.update('accounts', acc); refresh(); };
     const handleDeleteAccount = async (id: string) => { await supabaseService.delete('accounts', id); refresh(); };
 
@@ -203,7 +196,9 @@ export const useDataStore = () => {
     const handleUpdateAsset = async (a: any) => { await supabaseService.update('assets', a); refresh(); };
     const handleDeleteAsset = async (id: string) => { await supabaseService.delete('assets', id); refresh(); };
 
-    // --- MIGRATION TOOL (Local -> Cloud) ---
+    const handleAddSnapshot = async (s: any) => { await supabaseService.create('snapshots', { ...s, id: crypto.randomUUID() }); refresh(); };
+
+    // --- MIGRATION TOOL ---
     const handleImportData = async () => {
         if (!confirm("Isso irá pegar todos os dados locais deste navegador e enviar para a nuvem Supabase. Deseja continuar?")) return;
         
@@ -219,7 +214,6 @@ export const useDataStore = () => {
             const localCats = await db.customCategories.toArray();
             const localSnaps = await db.snapshots.toArray();
 
-            // Bulk Upload
             if (localAccounts.length) await supabaseService.bulkCreate('accounts', localAccounts);
             if (localTxs.length) await supabaseService.bulkCreate('transactions', localTxs);
             if (localTrips.length) await supabaseService.bulkCreate('trips', localTrips);
@@ -230,64 +224,37 @@ export const useDataStore = () => {
             if (localCats.length) await supabaseService.bulkCreate('custom_categories', localCats);
             if (localSnaps.length) await supabaseService.bulkCreate('snapshots', localSnaps);
 
-            alert("Migração concluída com sucesso! Seus dados agora estão na nuvem.");
+            alert("Migração concluída com sucesso!");
             refresh();
         } catch (e) {
             console.error(e);
-            alert("Erro na migração. Verifique o console.");
+            alert("Erro na migração.");
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleResetSystem = async () => {
-        if (confirm("ATENÇÃO: Isso apagará os dados LOCAIS (cache) para corrigir conflitos. Seus dados na nuvem (Supabase) estarão seguros. Continuar?")) {
+        if (confirm("Isso apagará os dados LOCAIS. Continuar?")) {
             await db.delete();
             window.location.reload();
         }
     };
 
     return {
-        user,
-        accounts,
-        transactions,
-        trips,
-        budgets,
-        goals,
-        familyMembers,
-        assets,
-        snapshots,
-        customCategories,
-        isLoading,
-        isRefetching,
+        user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading,
         handlers: {
-            handleLogin,
-            handleLogout,
-            handleAddTransaction,
-            handleUpdateTransaction,
-            handleDeleteTransaction,
-            handleAnticipateInstallments,
-            handleAddAccount,
-            handleUpdateAccount,
-            handleDeleteAccount,
-            handleAddTrip,
-            handleUpdateTrip,
-            handleDeleteTrip,
-            handleAddMember,
-            handleDeleteMember,
-            handleAddCategory,
-            handleDeleteCategory,
-            handleAddBudget,
-            handleUpdateBudget,
-            handleDeleteBudget,
-            handleAddGoal,
-            handleUpdateGoal,
-            handleDeleteGoal,
-            handleAddAsset,
-            handleUpdateAsset,
-            handleDeleteAsset,
-            handleImportData, 
-            handleResetSystem
+            handleLogin, handleLogout,
+            handleAddTransaction, handleUpdateTransaction, handleDeleteTransaction, handleAnticipateInstallments,
+            handleAddAccount, handleUpdateAccount, handleDeleteAccount,
+            handleAddTrip, handleUpdateTrip, handleDeleteTrip,
+            handleAddMember, handleDeleteMember,
+            handleAddCategory, handleDeleteCategory,
+            handleAddBudget, handleUpdateBudget, handleDeleteBudget,
+            handleAddGoal, handleUpdateGoal, handleDeleteGoal,
+            handleAddAsset, handleUpdateAsset, handleDeleteAsset,
+            handleAddSnapshot, // Exposed
+            handleImportData, handleResetSystem
         }
     };
 };

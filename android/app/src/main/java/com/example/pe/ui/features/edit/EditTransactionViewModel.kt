@@ -7,6 +7,7 @@ import com.example.pe.data.local.AccountDao
 import com.example.pe.data.local.CategoryDao
 import com.example.pe.data.local.Transaction
 import com.example.pe.data.local.TransactionDao
+import com.example.pe.ui.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -18,6 +19,7 @@ class EditTransactionViewModel @Inject constructor(
     private val transactionDao: TransactionDao,
     categoryDao: CategoryDao,
     accountDao: AccountDao,
+    private val snackbarManager: SnackbarManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -42,12 +44,16 @@ class EditTransactionViewModel @Inject constructor(
                 accountId = accountId
             )
             transactionDao.update(updatedTransaction)
+            snackbarManager.showMessage("Transação atualizada com sucesso")
         }
     }
 
     fun deleteTransaction() {
         viewModelScope.launch {
-            transaction.value?.let { transactionDao.delete(it) }
+            transaction.value?.let { 
+                transactionDao.delete(it)
+                snackbarManager.showMessage("Transação excluída")
+            }
         }
     }
 }
