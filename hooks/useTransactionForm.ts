@@ -13,7 +13,7 @@ export const useTransactionForm = ({
     initialData,
     formMode,
     accounts,
-    trips,
+    trips = [],
     onSave
 }: UseTransactionFormProps) => {
     // Initial Logic: Only change default account if not editing
@@ -78,6 +78,11 @@ export const useTransactionForm = ({
     // When a trip is selected, use the trip's currency directly
     const activeCurrency = selectedTrip ? (selectedTrip.currency || 'BRL') : (selectedAccountObj?.currency || 'BRL');
     const accountCurrency = selectedAccountObj?.currency || 'BRL';
+
+    // Filter accounts by trip currency when a trip is selected
+    const availableAccounts = selectedTrip
+        ? accounts.filter(acc => acc.currency === selectedTrip.currency)
+        : accounts;
 
     const isCreditCard = selectedAccountObj?.type === AccountType.CREDIT_CARD;
     const isExpense = formMode === TransactionType.EXPENSE;
@@ -297,6 +302,7 @@ export const useTransactionForm = ({
         activeAmount,
         activeCurrency,
         accountCurrency,
+        availableAccounts,
         needsConversion,
         convertedValue,
         isCreditCard,
