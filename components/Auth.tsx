@@ -70,6 +70,20 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                             {isSignUp ? 'Criar Nova Conta' : 'Acesse sua Conta'}
                         </h2>
 
+                        {/* Security Disclaimer */}
+                        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-xl flex items-start gap-3">
+                            <div className="p-2 bg-amber-100 dark:bg-amber-900/20 rounded-full">
+                                <HardDrive className="w-5 h-5 text-amber-600 dark:text-amber-500" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase mb-1">Armazenamento Local</p>
+                                <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                                    Seus dados financeiros são salvos <strong>apenas neste dispositivo</strong>.
+                                    Não use computadores públicos, pois os dados não são criptografados no navegador.
+                                </p>
+                            </div>
+                        </div>
+
                         <form onSubmit={handleAuth} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1">E-mail</label>
@@ -166,14 +180,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                                 >
                                     {isSignUp ? 'Fazer Login' : 'Cadastre-se'}
                                 </button>
-                            </p>
-                        </div>
-                        
-                        {/* Security Disclaimer */}
-                        <div className="mt-6 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-lg flex items-start gap-2">
-                            <HardDrive className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
-                            <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                                <strong>Nota de Privacidade:</strong> Seus dados financeiros são armazenados localmente neste dispositivo. Não utilize computadores públicos para acessar suas finanças.
                             </p>
                         </div>
                     </div>
