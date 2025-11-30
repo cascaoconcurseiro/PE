@@ -258,11 +258,14 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
                             </div>
                             <div className="divide-y divide-slate-100 dark:divide-slate-700">
                                 {tripTransactions.length === 0 ? <div className="p-8 text-center text-slate-500 dark:text-slate-400"><Sparkles className="w-8 h-8 text-violet-300 dark:text-violet-700 mx-auto mb-2" /><p className="text-sm font-medium">Nenhuma despesa registrada ainda.</p><p className="text-xs text-slate-400 dark:text-slate-500">Comece a aproveitar sua viagem!</p></div> :
-                                    tripTransactions.map(t => (
-                                        <div key={t.id} className="flex justify-between items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                            <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-full bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-violet-700 dark:text-violet-400 font-bold border border-violet-100 dark:border-violet-800">{getCategoryIcon(t.category)({ className: "w-5 h-5" })}</div><div><p className="text-sm font-bold text-slate-900 dark:text-white">{t.description}</p><div className="flex gap-2 text-xs text-slate-500 dark:text-slate-400"><span>{new Date(t.date).toLocaleDateString('pt-BR')}</span><span>•</span><span>{t.category}</span></div></div></div><span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(t.amount, selectedTrip.currency)}</span>
-                                        </div>
-                                    ))
+                                    tripTransactions.map(t => {
+                                        const CatIcon = getCategoryIcon(t.category);
+                                        return (
+                                            <div key={t.id} className="flex justify-between items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                                <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-full bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-violet-700 dark:text-violet-400 font-bold border border-violet-100 dark:border-violet-800"><CatIcon className="w-5 h-5" /></div><div><p className="text-sm font-bold text-slate-900 dark:text-white">{t.description}</p><div className="flex gap-2 text-xs text-slate-500 dark:text-slate-400"><span>{new Date(t.date).toLocaleDateString('pt-BR')}</span><span>•</span><span>{t.category}</span></div></div></div><span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(t.amount, selectedTrip.currency)}</span>
+                                            </div>
+                                        );
+                                    })
                                 }
                             </div>
                         </div>
