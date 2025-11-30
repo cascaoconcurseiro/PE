@@ -67,11 +67,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         notificationDate, setNotificationDate,
         reminderOption, setReminderOption,
         isRefund,
+        convertedAmountStr, setConvertedAmountStr,
         errors,
 
         // Derived
         activeAmount,
         activeCurrency,
+        accountCurrency,
+        needsConversion,
         isCreditCard,
         isExpense,
         isIncome,
@@ -153,6 +156,26 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         <input type="number" inputMode="decimal" value={amountStr} onChange={(e) => setAmountStr(e.target.value)} placeholder="0,00" className={`w-full max-w-[240px] text-center text-5xl font-black bg-transparent border-none outline-none placeholder-slate-400 ${mainColor}`} autoFocus={!initialData} />
                     </div>
                     {errors.amount && <p className="text-red-700 text-xs font-bold mt-2 bg-red-100 px-3 py-1 rounded-full border border-red-200">{errors.amount}</p>}
+
+                    {needsConversion && (
+                        <div className="mt-4 flex flex-col items-center animate-in fade-in slide-in-from-top-2 w-full border-t border-slate-200/50 pt-4">
+                            <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                <RefreshCcw className="w-3 h-3" /> Valor Convertido ({accountCurrency})
+                            </label>
+                            <div className="relative flex items-center justify-center w-full px-4">
+                                <span className="text-xl font-bold mr-1 opacity-70 text-slate-600">R$</span>
+                                <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    value={convertedAmountStr}
+                                    onChange={(e) => setConvertedAmountStr(e.target.value)}
+                                    placeholder="0,00"
+                                    className="w-full max-w-[150px] text-center text-2xl font-bold bg-transparent border-b-2 border-slate-300 outline-none placeholder-slate-400 text-slate-700 focus:border-slate-500 transition-all"
+                                />
+                            </div>
+                            {errors.convertedAmount && <p className="text-red-700 text-xs font-bold mt-1">{errors.convertedAmount}</p>}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">

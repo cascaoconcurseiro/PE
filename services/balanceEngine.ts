@@ -39,22 +39,30 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
         // Logic for Source Account
         const sourceAcc = accountMap.get(tx.accountId);
         if (sourceAcc) {
+            // Determine the actual amount affecting the account
+            // If exchangeRate exists, it means tx.amount is in foreign currency
+            // and we need to convert back to account currency.
+            // Rate definition: AccountAmount / TxAmount => AccountAmount = TxAmount * Rate
+            const effectiveAmount = (tx.exchangeRate && tx.exchangeRate > 0)
+                ? tx.amount * tx.exchangeRate
+                : amount;
+
             if (tx.type === TransactionType.EXPENSE) {
                 // CORREÇÃO CRÍTICA: Se 'payerId' existe e não é 'me' (ou seja, outro pagou),
                 // o dinheiro NÃO sai da minha conta bancária. É uma dívida, não um fluxo de caixa.
                 // O fluxo de caixa só acontece quando eu crio a transação de "Pagamento" (Acerto).
                 const someoneElsePaid = tx.payerId && tx.payerId !== 'me';
-                
+
                 if (!someoneElsePaid) {
                     // Expense subtracts, unless it's a refund (then adds)
-                    sourceAcc.balance += tx.isRefund ? amount : -amount;
+                    sourceAcc.balance += tx.isRefund ? effectiveAmount : -effectiveAmount;
                 }
             } else if (tx.type === TransactionType.INCOME) {
                 // Income adds, unless it's a refund (then subtracts)
-                sourceAcc.balance += tx.isRefund ? -amount : amount;
+                sourceAcc.balance += tx.isRefund ? -effectiveAmount : effectiveAmount;
             } else if (tx.type === TransactionType.TRANSFER) {
                 // Transfer Out always subtracts from Source
-                sourceAcc.balance -= amount;
+                sourceAcc.balance -= effectiveAmount;
             }
         }
 
@@ -111,15 +119,15 @@ export const calculateTripDebts = (transactions: Transaction[], participants: { 
 
             // Credit the Payer
             if (payerId === 'user') {
-                 if (balances[payerId] === undefined) balances[payerId] = 0;
-                 balances[payerId] += totalSplitAmount; 
+                if (balances[payerId] === undefined) balances[payerId] = 0;
+                balances[payerId] += totalSplitAmount;
             } else {
                 if (balances[payerId] === undefined) balances[payerId] = 0;
                 balances[payerId] += amount;
 
                 tx.sharedWith.forEach(split => {
-                     if (balances[split.memberId] === undefined) balances[split.memberId] = 0;
-                     balances[split.memberId] -= split.assignedAmount;
+                    if (balances[split.memberId] === undefined) balances[split.memberId] = 0;
+                    balances[split.memberId] -= split.assignedAmount;
                 });
 
                 const totalSplit = tx.sharedWith.reduce((sum, s) => sum + s.assignedAmount, 0);
@@ -131,7 +139,7 @@ export const calculateTripDebts = (transactions: Transaction[], participants: { 
 
         } else {
             // Implicit Split logic (kept for legacy support)
-            if (!tx.isShared) return; 
+            if (!tx.isShared) return;
 
             const allInvolved = ['user', ...participantIds];
             const splitAmount = amount / allInvolved.length;

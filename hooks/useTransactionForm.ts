@@ -40,6 +40,8 @@ export const useTransactionForm = ({
     const [tripId, setTripId] = useState('');
     const [isTripSelectorOpen, setIsTripSelectorOpen] = useState(false);
 
+    const [convertedAmountStr, setConvertedAmountStr] = useState('');
+
     // Logic: Shared/Split
     const [isShared, setIsShared] = useState(false);
     const [splits, setSplits] = useState<TransactionSplit[]>([]);
@@ -72,13 +74,19 @@ export const useTransactionForm = ({
     const selectedAccountObj = accounts.find(a => a.id === accountId);
     const destAccountObj = accounts.find(a => a.id === destinationAccountId);
     const selectedTrip = trips.find(t => t.id === tripId);
+
     // When a trip is selected, use the trip's currency directly
     const activeCurrency = selectedTrip ? (selectedTrip.currency || 'BRL') : (selectedAccountObj?.currency || 'BRL');
+    const accountCurrency = selectedAccountObj?.currency || 'BRL';
 
     const isCreditCard = selectedAccountObj?.type === AccountType.CREDIT_CARD;
     const isExpense = formMode === TransactionType.EXPENSE;
     const isIncome = formMode === TransactionType.INCOME;
     const isTransfer = formMode === TransactionType.TRANSFER;
+
+    // Check if conversion is needed (Trip Currency != Account Currency)
+    // Only for Expenses/Incomes. Transfers handle their own conversion via destinationAmount.
+    const needsConversion = activeCurrency !== accountCurrency && !isTransfer && payerId === 'me';
 
     // Effects
     useEffect(() => {
@@ -120,6 +128,15 @@ export const useTransactionForm = ({
             setCurrentInstallment(t.currentInstallment || 1);
             setTotalInstallments(t.totalInstallments || 2);
             setIsRefund(!!t.isRefund);
+
+            // If editing, try to calculate converted amount from exchange rate if available
+            if (t.exchangeRate && t.amount) {
+                const conv = t.amount * t.exchangeRate;
+                setConvertedAmountStr(conv.toFixed(2));
+            } else {
+                setConvertedAmountStr('');
+            }
+
         } else {
             // If switching modes, verify if account is valid for that mode
             if (formMode === TransactionType.INCOME || formMode === TransactionType.TRANSFER) {
@@ -171,6 +188,19 @@ export const useTransactionForm = ({
         if (isTransfer) {
             if (!destinationAccountId) errors.destination = 'Conta destino obrigatória';
             if (destinationAccountId === accountId) errors.destination = 'Origem e destino iguais';
+        }
+
+        // Validate conversion if needed
+        let finalExchangeRate: number | undefined = undefined;
+        if (needsConversion) {
+            const convertedAmount = parseFloat(convertedAmountStr.replace(',', '.'));
+            if (!convertedAmount || convertedAmount <= 0) {
+                errors.convertedAmount = 'Valor convertido obrigatório';
+            } else {
+                // Calculate exchange rate: How much Account Currency needed for 1 Unit of Transaction Currency
+                // Rate = Account Amount / Transaction Amount
+                finalExchangeRate = convertedAmount / activeAmount;
+            }
         }
 
         if (Object.keys(errors).length > 0) {
@@ -227,7 +257,8 @@ export const useTransactionForm = ({
             enableNotification,
             notificationDate: enableNotification ? notificationDate : undefined,
             isRefund,
-            currency: activeCurrency
+            currency: activeCurrency,
+            exchangeRate: finalExchangeRate
         };
 
         onSave(data, !!initialData, updateFuture);
@@ -258,11 +289,14 @@ export const useTransactionForm = ({
         notificationDate, setNotificationDate,
         reminderOption, setReminderOption,
         isRefund, setIsRefund,
+        convertedAmountStr, setConvertedAmountStr,
         errors,
 
         // Derived
         activeAmount,
         activeCurrency,
+        accountCurrency,
+        needsConversion,
         isCreditCard,
         isExpense,
         isIncome,
