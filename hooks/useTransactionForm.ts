@@ -226,7 +226,8 @@ export const useTransactionForm = ({
             totalInstallments: isInstallment ? totalInstallments : undefined,
             enableNotification,
             notificationDate: enableNotification ? notificationDate : undefined,
-            isRefund
+            isRefund,
+            currency: activeCurrency
         };
 
         onSave(data, !!initialData, updateFuture);

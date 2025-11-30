@@ -124,6 +124,7 @@ export interface Transaction extends BaseEntity {
   accountId: string;
   destinationAccountId?: string;
   tripId?: string;
+  currency?: string;
 
   isRecurring?: boolean;
   frequency?: Frequency;
