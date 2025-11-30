@@ -180,8 +180,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                 <Globe className="w-3 h-3 text-indigo-500" />
                                 <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Conversão Automática</span>
                             </div>
-                            <div className="flex items-end gap-2">
-                                <div className="flex-1">
+                            <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
+                                <div>
                                     <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Valor {selectedTrip.currency}</label>
                                     <input
                                         type="number"
@@ -198,8 +198,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                         }}
                                     />
                                 </div>
-                                <div className="pb-2 text-slate-400 font-bold">x</div>
-                                <div className="flex-1">
+                                <div className="text-slate-400 font-bold text-center">x</div>
+                                <div>
                                     <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Cotação</label>
                                     <input
                                         id="exchange-rate-input"

@@ -64,7 +64,7 @@ export const SharedExpensesReport: React.FC<SharedExpensesReportProps> = ({ tran
 
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                 <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-6">Evolução de Gastos Compartilhados (Últimos 12 meses)</h3>
-                <div className="h-[350px]">
+                <div className="h-[300px] md:h-[350px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={monthlyData}>
                             <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
