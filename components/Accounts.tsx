@@ -1,12 +1,12 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Account, AccountType, Transaction, TransactionType, Category } from '../types';
 import { Button } from './ui/Button';
-import { Wallet, CreditCard, Plus, ArrowLeft, Search, Download, Printer, FileUp, MoreHorizontal, Landmark, Banknote, Edit2, Trash2 } from 'lucide-react';
+import { Wallet, CreditCard, Plus, ArrowLeft, Search, Download, Printer, FileUp, MoreHorizontal, Landmark, Banknote, Edit2, Trash2, Globe } from 'lucide-react';
 import { formatCurrency } from '../utils';
 import { useToast } from './ui/Toast';
 import { exportToCSV, prepareTransactionsForExport } from '../services/exportUtils';
 import { printAccountStatement } from '../services/printUtils';
-import { getInvoiceData, getBankExtract } from '../services/accountUtils';
+import { getInvoiceData } from '../services/accountUtils';
 
 // Sub-components
 import { AccountForm } from './accounts/AccountForm';
@@ -26,7 +26,7 @@ interface AccountsProps {
     onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
     showValues: boolean;
     currentDate?: Date;
-    onAnticipate: (ids: string[], date: string, accountId: string) => void; // Updated signature
+    onAnticipate: (ids: string[], date: string, accountId: string) => void; 
 }
 
 const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
@@ -36,11 +36,10 @@ const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, sho
 
 export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, showValues, currentDate = new Date(), onAnticipate }) => {
     const [viewState, setViewState] = useState<'LIST' | 'DETAIL'>('LIST');
-    const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS'>('BANKING');
+    const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS' | 'INTERNATIONAL'>('BANKING');
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
     const { addToast } = useToast();
 
     // Invoice Navigation State
@@ -58,11 +57,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
 
     // Payment/Action Modal State
     const [actionModal, setActionModal] = useState<{ isOpen: boolean, type: ActionType, amount?: string }>({ isOpen: false, type: 'PAY_INVOICE' });
-
-    // Import Modal State
     const [importModal, setImportModal] = useState<{ isOpen: boolean, transactions: OFXTransaction[] }>({ isOpen: false, transactions: [] });
-
-    // Anticipate Modal State
     const [anticipateModal, setAnticipateModal] = useState<{ isOpen: boolean, transaction: Transaction | null }>({ isOpen: false, transaction: null });
 
     const handleAccountClick = (account: Account) => {
@@ -105,7 +100,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
             const data = prepareTransactionsForExport(txs, accounts);
             exportToCSV(data, ['Data', 'Descrição', 'Categoria', 'Tipo', 'Conta', 'Destino', 'Valor'], `Extrato_${selectedAccount.name}`);
         } else {
-            // Use new Print Service
             printAccountStatement(selectedAccount, txs);
         }
     };
@@ -198,7 +192,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
             addToast("Erro ao ler arquivo OFX.", 'error');
             console.error(error);
         }
-        // Reset input
         if (ofxInputRef.current) ofxInputRef.current.value = '';
     };
 
@@ -207,8 +200,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
 
         let count = 0;
         importedTxs.forEach(tx => {
-            // Check for duplicates (Simple check by date & amount & description)
-            // Ideally we would use the FITID but our internal DB doesn't store it yet.
             const isDuplicate = transactions.some(t =>
                 t.accountId === selectedAccount.id &&
                 t.amount === tx.amount &&
@@ -222,7 +213,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     description: tx.description,
                     date: tx.date,
                     type: tx.type,
-                    category: Category.OTHER, // Default category
+                    category: Category.OTHER, 
                     accountId: selectedAccount.id,
                     isRecurring: false
                 });
@@ -238,7 +229,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
         setImportModal({ isOpen: false, transactions: [] });
     };
 
-    // --- ANTICIPATION LOGIC ---
     const handleAnticipateRequest = (tx: Transaction) => {
         setAnticipateModal({ isOpen: true, transaction: tx });
     };
@@ -250,7 +240,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
         setAnticipateModal({ isOpen: false, transaction: null });
     };
 
-    const totalBalance = useMemo(() => accounts.filter(a => a.type !== AccountType.CREDIT_CARD).reduce((acc, curr) => acc + curr.balance, 0), [accounts]);
+    const totalBalance = useMemo(() => accounts.filter(a => a.type !== AccountType.CREDIT_CARD && a.currency === 'BRL').reduce((acc, curr) => acc + curr.balance, 0), [accounts]);
     const totalCreditUsed = useMemo(() => accounts.filter(a => a.type === AccountType.CREDIT_CARD).reduce((acc, curr) => acc + Math.abs(curr.balance), 0), [accounts]);
 
     const getIcon = (type: AccountType) => {
@@ -263,8 +253,10 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
         }
     };
 
-    const bankingAccounts = accounts.filter(a => a.type !== AccountType.CREDIT_CARD).filter(a => a.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    const creditCards = accounts.filter(a => a.type === AccountType.CREDIT_CARD).filter(a => a.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    // --- FILTERING ---
+    const bankingAccounts = accounts.filter(a => a.type !== AccountType.CREDIT_CARD && a.currency === 'BRL');
+    const creditCards = accounts.filter(a => a.type === AccountType.CREDIT_CARD);
+    const internationalAccounts = accounts.filter(a => a.currency !== 'BRL');
 
     // --- RENDER DETAIL VIEW ---
     if (viewState === 'DETAIL' && selectedAccount) {
@@ -333,7 +325,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                         showValues={showValues}
                         onInvoiceDateChange={setInvoiceDate}
                         onAction={(type, amount) => setActionModal({ isOpen: true, type, amount })}
-                        onAnticipateInstallments={handleAnticipateRequest} // Pass the handler
+                        onAnticipateInstallments={handleAnticipateRequest} 
                     />
                 ) : (
                     <BankingDetail
@@ -344,7 +336,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     />
                 )}
 
-                {/* Shared Action Modal */}
                 <ActionModal
                     isOpen={actionModal.isOpen}
                     type={actionModal.type}
@@ -362,7 +353,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     importedTransactions={importModal.transactions}
                 />
 
-                {/* Anticipate Modal */}
                 {anticipateModal.isOpen && anticipateModal.transaction && (
                     <InstallmentAnticipationModal
                         isOpen={anticipateModal.isOpen}
@@ -383,7 +373,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10"><Wallet className="w-32 h-32" /></div>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Saldo Total em Contas</p>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Saldo Bancário (BRL)</p>
                     <h2 className="text-3xl font-black tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(totalBalance)}</PrivacyBlur></h2>
                 </div>
                 <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-sm relative overflow-hidden">
@@ -393,28 +383,17 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                 </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div className="bg-slate-100 dark:bg-slate-900 p-1 rounded-xl flex gap-1 w-full sm:w-auto">
-                    <button onClick={() => setActiveTab('BANKING')} className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'BANKING' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Contas Bancárias</button>
-                    <button onClick={() => setActiveTab('CARDS')} className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'CARDS' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Cartões de Crédito</button>
-                </div>
-
-                {/* Improved Search Bar */}
-                <div className="relative w-full sm:flex-1 sm:max-w-md group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Buscar conta ou cartão..."
-                        className="w-full pl-12 pr-4 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm transition-all text-slate-700 dark:text-white placeholder:text-slate-400"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
+            <div className="flex justify-start items-center overflow-x-auto no-scrollbar">
+                <div className="bg-slate-100 dark:bg-slate-900 p-1 rounded-xl flex gap-1">
+                    <button onClick={() => setActiveTab('BANKING')} className={`px-4 py-2.5 text-sm font-bold rounded-lg transition-all whitespace-nowrap ${activeTab === 'BANKING' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Contas Bancárias</button>
+                    <button onClick={() => setActiveTab('CARDS')} className={`px-4 py-2.5 text-sm font-bold rounded-lg transition-all whitespace-nowrap ${activeTab === 'CARDS' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Cartões de Crédito</button>
+                    <button onClick={() => setActiveTab('INTERNATIONAL')} className={`px-4 py-2.5 text-sm font-bold rounded-lg transition-all whitespace-nowrap ${activeTab === 'INTERNATIONAL' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Conta Internacional</button>
                 </div>
             </div>
 
             {isFormOpen && (
                 <AccountForm
-                    type={activeTab}
+                    type={activeTab === 'CARDS' ? 'CARDS' : 'BANKING'}
                     onSave={(acc) => { onAddAccount(acc as any); setIsFormOpen(false); }}
                     onCancel={() => setIsFormOpen(false)}
                 />
@@ -429,7 +408,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                             <div className="relative z-10"><h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{account.name}</h3><p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-4">{account.type}</p><p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(account.balance, account.currency)}</PrivacyBlur></p></div>
                         </div>
                     ))}
-                    <button onClick={() => setIsFormOpen(true)} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 text-slate-400 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all group min-h-[200px]"><div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:bg-emerald-100 transition-colors"><Plus className="w-6 h-6" /></div><span className="font-bold text-sm">Adicionar Nova Conta</span></button>
+                    <button onClick={() => setIsFormOpen(true)} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 text-slate-400 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all group min-h-[200px]"><div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:bg-emerald-100 transition-colors"><Plus className="w-6 h-6" /></div><span className="font-bold text-sm">Adicionar Conta</span></button>
                 </div>
             )}
 
@@ -442,61 +421,37 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                         const percentageUsed = limit > 0 ? Math.min((committedBalance / limit) * 100, 100) : 0;
                         return (
                             <div key={account.id} onClick={() => handleAccountClick(account)} className="group relative w-full aspect-[1.586/1] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden text-white p-6 flex flex-col justify-between">
-                                {/* Background Effects */}
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                                 <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
-
-                                {/* Header: Bank Name & Contactless Icon */}
-                                <div className="relative z-10 flex justify-between items-start">
-                                    <h3 className="font-bold text-lg tracking-wider uppercase opacity-90">{account.name}</h3>
-                                    <svg className="w-8 h-8 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M8.5 10a3.5 3.5 0 0 1 7 0" />
-                                        <path d="M12 10a3.5 3.5 0 0 1 0 7" />
-                                        <path d="M5 10a7 7 0 0 1 14 0" />
-                                    </svg>
-                                </div>
-
-                                {/* Chip & Number */}
-                                <div className="relative z-10 space-y-4">
-                                    <div className="w-12 h-9 bg-yellow-200/80 rounded-md border border-yellow-400/50 flex items-center justify-center overflow-hidden">
-                                        <div className="w-full h-[1px] bg-yellow-600/50 absolute top-1/3"></div>
-                                        <div className="w-full h-[1px] bg-yellow-600/50 absolute bottom-1/3"></div>
-                                        <div className="h-full w-[1px] bg-yellow-600/50 absolute left-1/3"></div>
-                                        <div className="h-full w-[1px] bg-yellow-600/50 absolute right-1/3"></div>
-                                    </div>
-                                    <div className="font-mono text-xl tracking-widest opacity-90 drop-shadow-md">
-                                        •••• •••• •••• <span className="text-sm align-middle">1234</span>
-                                    </div>
-                                </div>
-
-                                {/* Footer: Invoice Info & Logo */}
-                                <div className="relative z-10 flex justify-between items-end">
-                                    <div>
-                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Fatura Atual</p>
-                                        <p className="font-mono font-bold text-lg tracking-tight">
-                                            <PrivacyBlur showValues={showValues}>{formatCurrency(invoiceTotal, account.currency)}</PrivacyBlur>
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-col items-end">
-                                        <div className="flex -space-x-3 opacity-80 mb-1">
-                                            <div className="w-8 h-8 rounded-full bg-red-500/80"></div>
-                                            <div className="w-8 h-8 rounded-full bg-yellow-500/80"></div>
-                                        </div>
-                                        <span className="text-[10px] font-bold opacity-60">{percentageUsed.toFixed(0)}% Limite</span>
-                                    </div>
-                                </div>
-
-                                {/* Progress Bar */}
-                                <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-700/50">
-                                    <div
-                                        className={`h-full transition-all duration-1000 ${percentageUsed > 90 ? 'bg-red-500' : 'bg-emerald-400'}`}
-                                        style={{ width: `${percentageUsed}%` }}
-                                    ></div>
-                                </div>
+                                <div className="relative z-10 flex justify-between items-start"><h3 className="font-bold text-lg tracking-wider uppercase opacity-90">{account.name}</h3><CreditCard className="w-6 h-6 opacity-60" /></div>
+                                <div className="relative z-10 flex justify-between items-end"><div><p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Fatura Atual</p><p className="font-mono font-bold text-lg tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(invoiceTotal, account.currency)}</PrivacyBlur></p></div><div className="flex flex-col items-end"><span className="text-[10px] font-bold opacity-60">{percentageUsed.toFixed(0)}% Limite</span></div></div>
+                                <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-700/50"><div className={`h-full transition-all duration-1000 ${percentageUsed > 90 ? 'bg-red-500' : 'bg-emerald-400'}`} style={{ width: `${percentageUsed}%` }}></div></div>
                             </div>
                         );
                     })}
-                    <button onClick={() => setIsFormOpen(true)} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 text-slate-400 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all group min-h-[220px]"><div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:bg-emerald-100 transition-colors"><Plus className="w-6 h-6" /></div><span className="font-bold text-sm">Adicionar Novo Cartão</span></button>
+                    <button onClick={() => setIsFormOpen(true)} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 text-slate-400 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all group min-h-[200px]"><div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:bg-emerald-100 transition-colors"><Plus className="w-6 h-6" /></div><span className="font-bold text-sm">Adicionar Cartão</span></button>
+                </div>
+            )}
+
+            {activeTab === 'INTERNATIONAL' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {internationalAccounts.length === 0 && !isFormOpen && (
+                         <div className="col-span-full text-center py-12 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 border border-dashed rounded-xl border-slate-300 dark:border-slate-700">
+                            <Globe className="w-12 h-12 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+                            <p>Nenhuma conta internacional (Nomad, Wise, etc.) cadastrada.</p>
+                            <Button variant="ghost" onClick={() => setIsFormOpen(true)} className="mt-2">Criar Conta Global</Button>
+                         </div>
+                    )}
+                    {internationalAccounts.map(account => (
+                        <div key={account.id} onClick={() => handleAccountClick(account)} className="group bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden">
+                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 dark:bg-blue-900/20 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
+                             <div className="relative z-10 flex justify-between items-start mb-8"><div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl text-blue-700 dark:text-blue-400 group-hover:bg-blue-200 transition-colors"><Globe className="w-6 h-6" /></div><button className="text-slate-300 dark:text-slate-500 hover:text-slate-600 transition-colors"><MoreHorizontal className="w-5 h-5" /></button></div>
+                             <div className="relative z-10"><h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{account.name}</h3><p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-4">Conta Global</p><p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(account.balance, account.currency)}</PrivacyBlur></p></div>
+                        </div>
+                    ))}
+                    {internationalAccounts.length > 0 && (
+                        <button onClick={() => setIsFormOpen(true)} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 text-slate-400 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50/50 transition-all group min-h-[200px]"><div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:bg-blue-100 transition-colors"><Plus className="w-6 h-6" /></div><span className="font-bold text-sm">Adicionar Conta Global</span></button>
+                    )}
                 </div>
             )}
         </div>

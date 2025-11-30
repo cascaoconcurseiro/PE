@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.pe.data.local.AppDatabase
 import com.example.pe.data.local.dao.TransactionDao
+import com.example.pe.data.local.dao.TripDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,11 +23,16 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "pe-de-meia.db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides
     fun provideTransactionDao(appDatabase: AppDatabase): TransactionDao {
         return appDatabase.transactionDao()
+    }
+
+    @Provides
+    fun provideTripDao(appDatabase: AppDatabase): TripDao {
+        return appDatabase.tripDao()
     }
 }

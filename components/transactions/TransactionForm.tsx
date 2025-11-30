@@ -1,10 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, CustomCategory, Frequency, AccountType } from '../../types';
 import { Button } from '../ui/Button';
 import {
     Plane, Users, ChevronDown, Calendar, Wallet, ArrowUpRight, ArrowDownLeft,
     RefreshCcw, Bell, BellRing, Repeat, Undo2, DollarSign, CreditCard, X,
-    Pencil, User, Plus, Clock
+    Pencil, User, Plus, Clock, AlertCircle
 } from 'lucide-react';
 import { getCategoryIcon } from '../../utils';
 import { SplitModal } from './SplitModal';
@@ -53,7 +53,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         destinationAmountStr, setDestinationAmountStr,
         tripId, setTripId,
         isTripSelectorOpen, setIsTripSelectorOpen,
-        // isShared, setIsShared, // Not used directly in JSX, logic handled in hook/modal
         splits, setSplits,
         isSplitModalOpen, setIsSplitModalOpen,
         payerId, setPayerId,
@@ -93,11 +92,50 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         onSave
     });
 
+    // Scroll to top on mount/mode change
+    useEffect(() => {
+        topRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [formMode]);
+
     const CategoryIcon = getCategoryIcon(category);
 
-    const mainColor = isRefund ? 'text-amber-800' : isExpense ? 'text-red-700' : isIncome ? 'text-emerald-700' : 'text-blue-700';
-    const mainBg = isRefund ? 'bg-amber-600' : isExpense ? 'bg-red-600' : isIncome ? 'bg-emerald-600' : 'bg-blue-600';
-    const secondaryBg = isRefund ? 'bg-amber-50' : isExpense ? 'bg-red-50' : isIncome ? 'bg-emerald-50' : 'bg-blue-50';
+    // Colors Logic
+    const mainColor = isRefund ? 'text-amber-600 dark:text-amber-400' : isExpense ? 'text-red-600 dark:text-red-400' : isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400';
+    
+    // Fixed: Better contrast backgrounds for dark mode
+    const headerBg = isRefund 
+        ? 'bg-amber-50 dark:bg-amber-950/30 border-b border-amber-100 dark:border-amber-900/50' 
+        : isExpense 
+            ? 'bg-red-50 dark:bg-red-950/30 border-b border-red-100 dark:border-red-900/50' 
+            : isIncome 
+                ? 'bg-emerald-50 dark:bg-emerald-950/30 border-b border-emerald-100 dark:border-emerald-900/50' 
+                : 'bg-blue-50 dark:bg-blue-950/30 border-b border-blue-100 dark:border-blue-900/50';
+
+    const buttonMainBg = isRefund ? 'bg-amber-600 hover:bg-amber-700' : isExpense ? 'bg-red-600 hover:bg-red-700' : isIncome ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700';
+
+    // Validation: Trip Currency Match
+    const selectedAccount = accounts.find(a => a.id === accountId);
+    const selectedTrip = trips.find(t => t.id === tripId);
+    const isCurrencyMismatch = selectedTrip && selectedAccount && selectedTrip.currency !== selectedAccount.currency;
+
+    // Filter accounts logic for display
+    // If Trip is selected, ONLY show accounts with matching currency
+    const filteredAccountsForSelector = useMemo(() => {
+        let list = availableAccounts;
+        
+        // If trip is selected, STRICTLY filter by currency
+        if (selectedTrip) {
+            list = accounts.filter(a => a.currency === selectedTrip.currency);
+        }
+
+        if ((isIncome || isTransfer) && !isCurrencyMismatch) {
+             // Typically income doesn't go to credit card, but we allow user to choose from "All" in selector
+             // The selector component handles the NO_CREDIT filter if passed
+             return list;
+        }
+        return list;
+    }, [availableAccounts, accounts, selectedTrip, isIncome, isTransfer]);
+
 
     if (accounts.length === 0) {
         return (
@@ -128,7 +166,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <div ref={topRef} />
 
             {/* Header Tabs */}
-            <div className="px-3 py-2 shrink-0 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2">
+            <div className="px-3 py-2 shrink-0 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2 bg-white dark:bg-slate-900 z-20">
                 <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl relative shadow-inner flex-1">
                     <button onClick={() => setFormMode(TransactionType.EXPENSE)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isExpense ? 'bg-white dark:bg-slate-700 text-red-700 dark:text-red-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-200'}`}><ArrowDownLeft className="w-3.5 h-3.5" /> Despesa</button>
                     <button onClick={() => setFormMode(TransactionType.INCOME)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isIncome ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-sm' : 'text-slate-600 dark:text-slate-300'}`}><ArrowUpRight className="w-3.5 h-3.5" /> Receita</button>
@@ -142,86 +180,80 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <div className="flex-1 overflow-y-auto custom-scrollbar pb-32">
                 {initialData && (
                     <div className="px-5 pt-4 animate-in slide-in-from-top-2">
-                        <div className="bg-amber-50 text-amber-800 p-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-amber-100">
+                        <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-amber-100 dark:border-amber-800">
                             <Pencil className="w-3 h-3" /> Editando Transação
                         </div>
                     </div>
                 )}
 
-                {/* Amount Input */}
-                <div className={`flex flex-col items-center justify-center py-6 ${secondaryBg} border-b border-slate-100/50 transition-colors duration-300 shrink-0`}>
-                    <label className="text-[10px] font-bold text-slate-800 uppercase tracking-widest mb-1 flex items-center gap-1">
-                        {isRefund ? <Undo2 className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />} {isRefund ? 'Valor do Estorno' : 'Valor da Transação'}
+                {/* Amount Input Area - Improved Colors */}
+                <div className={`flex flex-col items-center justify-center py-8 ${headerBg} transition-colors duration-300 shrink-0`}>
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                        {isRefund ? <Undo2 className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />} 
+                        {isRefund ? 'Valor do Estorno' : 'Valor da Transação'}
                     </label>
+                    
                     <div className="relative flex items-center justify-center w-full px-4">
-                        <span className={`text-3xl font-bold mr-1.5 opacity-70 ${mainColor}`}>
+                        <span className={`text-4xl font-bold mr-2 opacity-80 ${mainColor}`}>
                             {activeCurrency === 'BRL' ? 'R$' :
-                                activeCurrency === 'USD' ? '$' :
-                                    activeCurrency === 'EUR' ? '€' :
-                                        activeCurrency === 'GBP' ? '£' :
-                                            activeCurrency}
+                             activeCurrency === 'USD' ? 'US$' :
+                             activeCurrency === 'EUR' ? '€' :
+                             activeCurrency === 'GBP' ? '£' :
+                             activeCurrency}
                         </span>
-                        <input type="number" inputMode="decimal" value={amountStr} onChange={(e) => setAmountStr(e.target.value)} placeholder="0,00" className={`w-full max-w-[240px] text-center text-5xl font-black bg-transparent border-none outline-none placeholder-slate-400 ${mainColor}`} autoFocus={!initialData} />
+                        <input 
+                            type="number" 
+                            inputMode="decimal" 
+                            value={amountStr} 
+                            onChange={(e) => setAmountStr(e.target.value)} 
+                            placeholder="0,00" 
+                            className={`w-full max-w-[240px] text-center text-5xl font-black bg-transparent border-none outline-none placeholder-slate-300 dark:placeholder-slate-700 ${mainColor}`} 
+                            autoFocus={!initialData} 
+                        />
                     </div>
-                    {errors.amount && <p className="text-red-700 text-xs font-bold mt-2 bg-red-100 px-3 py-1 rounded-full border border-red-200">{errors.amount}</p>}
+                    {errors.amount && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-2 bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/30">{errors.amount}</p>}
 
-                    {needsConversion && (
-                        <div className="mt-4 flex flex-col items-center animate-in fade-in slide-in-from-top-2 w-full border-t border-slate-200/50 pt-4">
-                            <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-1">
-                                <RefreshCcw className="w-3 h-3" /> Cotação (1 {activeCurrency} = ? {accountCurrency})
-                            </label>
-                            <div className="relative flex items-center justify-center w-full px-4 mb-2">
-                                <span className="text-xl font-bold mr-1 opacity-70 text-slate-600">Tx</span>
-                                <input
-                                    type="number"
-                                    inputMode="decimal"
-                                    value={exchangeRateStr}
-                                    onChange={(e) => setExchangeRateStr(e.target.value)}
-                                    placeholder="0,00"
-                                    className="w-full max-w-[150px] text-center text-2xl font-bold bg-transparent border-b-2 border-slate-300 outline-none placeholder-slate-400 text-slate-700 focus:border-slate-500 transition-all"
-                                />
-                            </div>
-                            {errors.exchangeRate && <p className="text-red-700 text-xs font-bold mt-1 mb-2">{errors.exchangeRate}</p>}
-
-                            <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-500">Total a Debitar:</span>
-                                <span className="text-sm font-black text-slate-800 dark:text-white">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: accountCurrency }).format(convertedValue)}
-                                </span>
-                            </div>
+                    {/* Currency/Conversion Warning or Info */}
+                    {selectedTrip && (
+                        <div className="mt-3 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-black/20 px-3 py-1 rounded-lg">
+                            <Plane className="w-3 h-3" />
+                            Moeda da Viagem: <strong>{selectedTrip.currency}</strong>
                         </div>
                     )}
+                    
+                    {/* Removed Exchange Rate Input based on requirements. 
+                        Logic now enforces account currency match for trips. */}
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+                <div className="flex-1 p-5 space-y-5">
                     {/* Basic Info */}
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         <div>
-                            <label className="text-xs font-bold text-slate-500 dark:text-slate-300 mb-1 block">Descrição</label>
-                            <input placeholder="Ex: Almoço, Uber, Salário" value={description} onChange={e => { setDescription(e.target.value); }} className="w-full text-lg font-medium text-slate-900 dark:text-white border-b-2 border-slate-100 dark:border-slate-700 pb-2 outline-none focus:border-indigo-500 dark:focus:border-indigo-400 bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors" />
-                            {errors.description && <p className="text-red-700 text-[10px] mt-0.5 pl-1 font-bold">{errors.description}</p>}
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">Descrição</label>
+                            <input placeholder="Ex: Almoço, Uber, Salário" value={description} onChange={e => { setDescription(e.target.value); }} className="w-full text-lg font-medium text-slate-900 dark:text-white border-b-2 border-slate-200 dark:border-slate-700 pb-2 outline-none focus:border-indigo-500 dark:focus:border-indigo-400 bg-transparent placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-colors rounded-none px-0" />
+                            {errors.description && <p className="text-red-600 dark:text-red-400 text-[10px] mt-1 font-bold">{errors.description}</p>}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-300 mb-1 block">Data</label>
-                                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-12 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative group cursor-pointer focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900/30">
-                                    <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-300 mr-2" />
+                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">Data</label>
+                                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-12 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative group cursor-pointer focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900/30 transition-all">
+                                    <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500 mr-2" />
                                     <input
                                         type="date"
                                         value={date}
                                         onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
                                         onChange={e => setDate(e.target.value)}
-                                        className="bg-transparent font-medium text-slate-700 dark:text-slate-200 text-sm outline-none w-full h-full cursor-pointer"
+                                        className="bg-transparent font-bold text-slate-700 dark:text-slate-200 text-sm outline-none w-full h-full cursor-pointer"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-300 mb-1 block">Categoria</label>
+                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">Categoria</label>
                                 {!isTransfer ? (
-                                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-12 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative group cursor-pointer focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900/30">
-                                        <CategoryIcon className="w-4 h-4 text-slate-400 dark:text-slate-300 mr-2" />
+                                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-12 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative group cursor-pointer focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900/30 transition-all">
+                                        <CategoryIcon className="w-4 h-4 text-slate-400 dark:text-slate-500 mr-2" />
                                         <select value={category} onChange={e => setCategory(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900">
                                             <optgroup label="Essenciais" className="text-slate-900">
                                                 {Object.values(Category).filter(c => [Category.HOUSING, Category.FOOD, Category.TRANSPORTATION, Category.UTILITIES, Category.HEALTH].includes(c)).map(c => <option key={c} value={c}>{c}</option>)}
@@ -242,7 +274,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                                 </optgroup>
                                             )}
                                         </select>
-                                        <span className="pointer-events-none truncate text-sm font-medium text-slate-700 dark:text-slate-200 flex-1">{category}</span>
+                                        <span className="pointer-events-none truncate text-sm font-bold text-slate-700 dark:text-slate-200 flex-1">{category}</span>
+                                        <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                                     </div>
                                 ) : (
                                     <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-12 flex items-center justify-center border border-slate-200 dark:border-slate-700"><span className="text-xs font-bold text-slate-400">Automático</span></div>
@@ -251,50 +284,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         </div>
                     </div>
 
-                    {/* Account Selection with Custom Selector */}
-                    <div className="grid grid-cols-1 gap-3">
-                        {payerId === 'me' ? (
-                            <AccountSelector
-                                label={isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}
-                                accounts={availableAccounts}
-                                selectedId={accountId}
-                                onSelect={setAccountId}
-                                filterType={(isIncome || isTransfer) ? 'NO_CREDIT' : 'ALL'}
-                            />
-                        ) : (
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1 block pl-1">Status do Pagamento</label>
-                                <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-700 dark:text-indigo-400"><User className="w-5 h-5" /></div>
-                                        <div>
-                                            <span className="block text-sm font-bold text-indigo-900 dark:text-indigo-300">Pago por {familyMembers.find(m => m.id === payerId)?.name || 'Outro'}</span>
-                                            <span className="text-xs text-indigo-600 dark:text-indigo-400">Não sai da sua conta</span>
-                                        </div>
-                                    </div>
-                                    <Button size="sm" variant="secondary" onClick={() => setIsSplitModalOpen(true)} className="text-xs h-8">Alterar</Button>
-                                </div>
-                            </div>
-                        )}
-
-                        {isTransfer && (
-                            <AccountSelector
-                                label="Vai para (Destino)"
-                                accounts={availableAccounts.filter(a => a.id !== accountId)}
-                                selectedId={destinationAccountId}
-                                onSelect={setDestinationAccountId}
-                                filterType="NO_CREDIT"
-                            />
-                        )}
-                    </div>
-
                     {/* Trip Selection */}
                     {isExpense && (
-                        <div className="space-y-3">
+                        <div className="space-y-1">
                             <div className="relative z-20">
                                 <div
                                     onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)}
-                                    className={`border rounded-2xl p-4 flex items-center gap-3 shadow-sm relative transition-all cursor-pointer ${tripId ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                                    className={`border rounded-2xl p-4 flex items-center gap-3 shadow-sm relative transition-all cursor-pointer ${tripId ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 ring-1 ring-violet-200 dark:ring-violet-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                                 >
                                     <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${tripId ? 'bg-violet-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
                                         <Plane className="w-5 h-5" />
@@ -303,7 +299,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                         <span className={`block text-lg font-bold truncate mb-0.5 ${tripId ? 'text-violet-900 dark:text-violet-300' : 'text-slate-600 dark:text-slate-300'}`}>
                                             {tripId ? trips.find(t => t.id === tripId)?.name : 'Vincular a uma Viagem'}
                                         </span>
-                                        <span className="text-sm text-slate-500 dark:text-slate-400 font-medium truncate block">Opcional</span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate block">
+                                            {tripId ? `Moeda: ${selectedTrip?.currency}` : 'Opcional'}
+                                        </span>
                                     </div>
                                     <ChevronDown className={`w-5 h-5 ${isTripSelectorOpen ? 'rotate-180' : ''} transition-transform text-slate-400 dark:text-slate-300`} />
                                 </div>
@@ -324,10 +322,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                                     onClick={() => { setTripId(t.id); setIsTripSelectorOpen(false); }}
                                                     className={`p-3 hover:bg-violet-50 dark:hover:bg-violet-900/20 cursor-pointer flex items-center gap-3 ${tripId === t.id ? 'bg-violet-50 dark:bg-violet-900/20' : ''}`}
                                                 >
-                                                    <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-xs">
+                                                    <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center text-violet-600 dark:text-violet-400 font-bold text-xs">
                                                         <Plane className="w-4 h-4" />
                                                     </div>
-                                                    <span className="text-slate-800 dark:text-slate-200 font-bold text-sm">{t.name}</span>
+                                                    <div>
+                                                        <span className="text-slate-800 dark:text-slate-200 font-bold text-sm block">{t.name}</span>
+                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">{t.currency}</span>
+                                                    </div>
                                                 </div>
                                             ))}
                                             {onNavigateToTrips && (
@@ -342,14 +343,58 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                     </>
                                 )}
                             </div>
-
-
                         </div>
                     )}
 
+                    {/* Account Selection */}
+                    <div className="grid grid-cols-1 gap-3">
+                        {payerId === 'me' ? (
+                            <>
+                                <AccountSelector
+                                    label={isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}
+                                    accounts={filteredAccountsForSelector}
+                                    selectedId={accountId}
+                                    onSelect={setAccountId}
+                                    filterType={(isIncome || isTransfer) ? 'NO_CREDIT' : 'ALL'}
+                                    disabled={!!initialData}
+                                />
+                                {isCurrencyMismatch && !initialData && (
+                                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 p-3 rounded-xl flex items-start gap-2 text-xs text-red-700 dark:text-red-300 animate-in fade-in">
+                                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                        <p>Atenção: Você selecionou uma viagem em <strong>{selectedTrip?.currency}</strong>, mas a conta selecionada é em <strong>{selectedAccount?.currency}</strong>. Por favor, selecione uma conta na moeda da viagem (ex: Nomad/Wise) para continuar.</p>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1 block pl-1">Status do Pagamento</label>
+                                <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-700 dark:text-indigo-400"><User className="w-5 h-5" /></div>
+                                        <div>
+                                            <span className="block text-sm font-bold text-indigo-900 dark:text-indigo-300">Pago por {familyMembers.find(m => m.id === payerId)?.name || 'Outro'}</span>
+                                            <span className="text-xs text-indigo-600 dark:text-indigo-400">Não sai da sua conta</span>
+                                        </div>
+                                    </div>
+                                    <Button size="sm" variant="secondary" onClick={() => setIsSplitModalOpen(true)} className="text-xs h-8">Alterar</Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {isTransfer && (
+                            <AccountSelector
+                                label="Vai para (Destino)"
+                                accounts={accounts.filter(a => a.id !== accountId)}
+                                selectedId={destinationAccountId}
+                                onSelect={setDestinationAccountId}
+                                filterType="NO_CREDIT"
+                            />
+                        )}
+                    </div>
+
                     {/* Additional Options */}
                     <div>
-                        <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1 block pl-1">Opções Adicionais</label>
+                        <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 block pl-1">Opções Adicionais</label>
                         <div className="grid grid-cols-4 gap-2">
                             <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isRecurring ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Repeat className="w-5 h-5" /><span className="text-[10px] font-bold">Repetir</span></button>
                             {isExpense && isCreditCard && (
@@ -388,14 +433,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                             value={notificationDate}
                                             onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
                                             onChange={e => setNotificationDate(e.target.value)}
-                                            className="w-full p-2 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none"
+                                            className="w-full p-2 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none bg-transparent"
                                         />
-                                    </div>
-                                )}
-                                {reminderOption !== 'custom' && (
-                                    <div className="flex items-center gap-2 text-xs text-amber-700 font-medium px-1">
-                                        <Clock className="w-3 h-3" />
-                                        <span>Lembrete: <strong>{new Date(notificationDate).toLocaleDateString('pt-BR')}</strong></span>
                                     </div>
                                 )}
                             </div>
@@ -428,8 +467,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 </div>
 
                 <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 fixed bottom-0 left-0 right-0 md:relative md:border-none md:bg-transparent dark:md:bg-transparent z-20">
-                    <Button onClick={handleSubmit} className={`w-full h-14 text-lg shadow-xl shadow-slate-200 ${mainBg} hover:opacity-90 transition-opacity`}>
-                        {initialData ? 'Salvar Alterações' : 'Confirmar Transação'}
+                    <Button 
+                        onClick={handleSubmit} 
+                        disabled={isCurrencyMismatch}
+                        className={`w-full h-14 text-lg shadow-xl shadow-slate-200 ${buttonMainBg} hover:opacity-90 transition-opacity`}
+                    >
+                        {isCurrencyMismatch ? 'Moeda Incompatível' : (initialData ? 'Salvar Alterações' : 'Confirmar Transação')}
                     </Button>
                 </div>
             </div>
