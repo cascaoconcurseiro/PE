@@ -73,7 +73,7 @@ export const useTransactionForm = ({
     const activeAmount = parseFloat(amountStr.replace(',', '.')) || 0;
     const selectedAccountObj = accounts.find(a => a.id === accountId);
     const destAccountObj = accounts.find(a => a.id === destinationAccountId);
-    const selectedTrip = trips.find(t => t.id === tripId);
+    const selectedTrip = trips.find(t => String(t.id) === String(tripId));
 
     // When a trip is selected, use the trip's currency directly
     const activeCurrency = selectedTrip ? (selectedTrip.currency || 'BRL') : (selectedAccountObj?.currency || 'BRL');
