@@ -125,12 +125,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             {/* Header Tabs */}
             <div className="px-3 py-2 shrink-0 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2">
                 <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl relative shadow-inner flex-1">
-                    <button onClick={() => setFormMode(TransactionType.EXPENSE)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isExpense ? 'bg-white dark:bg-slate-700 text-red-700 dark:text-red-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}><ArrowDownLeft className="w-3.5 h-3.5" /> Despesa</button>
-                    <button onClick={() => setFormMode(TransactionType.INCOME)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isIncome ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}><ArrowUpRight className="w-3.5 h-3.5" /> Receita</button>
-                    <button onClick={() => setFormMode(TransactionType.TRANSFER)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isTransfer ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}><RefreshCcw className="w-3.5 h-3.5" /> Transf.</button>
+                    <button onClick={() => setFormMode(TransactionType.EXPENSE)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isExpense ? 'bg-white dark:bg-slate-700 text-red-700 dark:text-red-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-200'}`}><ArrowDownLeft className="w-3.5 h-3.5" /> Despesa</button>
+                    <button onClick={() => setFormMode(TransactionType.INCOME)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isIncome ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-sm' : 'text-slate-600 dark:text-slate-300'}`}><ArrowUpRight className="w-3.5 h-3.5" /> Receita</button>
+                    <button onClick={() => setFormMode(TransactionType.TRANSFER)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isTransfer ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-400 shadow-sm' : 'text-slate-600 dark:text-slate-300'}`}><RefreshCcw className="w-3.5 h-3.5" /> Transf.</button>
                 </div>
                 <div className="shrink-0">
-                    <button onClick={onCancel} className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all" title="Cancelar"><X className="w-5 h-5" /></button>
+                    <button onClick={onCancel} className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all" title="Cancelar"><X className="w-5 h-5" /></button>
                 </div>
             </div>
 
@@ -159,31 +159,31 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     {/* Basic Info */}
                     <div className="space-y-3">
                         <div>
-                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Descrição</label>
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-300 mb-1 block">Descrição</label>
                             <input placeholder="Ex: Almoço, Uber, Salário" value={description} onChange={e => { setDescription(e.target.value); }} className="w-full text-lg font-medium text-slate-900 dark:text-white border-b-2 border-slate-100 dark:border-slate-700 pb-2 outline-none focus:border-indigo-500 dark:focus:border-indigo-400 bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors" />
                             {errors.description && <p className="text-red-700 text-[10px] mt-0.5 pl-1 font-bold">{errors.description}</p>}
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Data</label>
+                                <label className="text-xs font-bold text-slate-500 dark:text-slate-300 mb-1 block">Data</label>
                                 <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-12 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative group cursor-pointer focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900/30">
-                                    <Calendar className="w-4 h-4 text-slate-400 mr-2" />
+                                    <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-300 mr-2" />
                                     <input
                                         type="date"
                                         value={date}
                                         onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
                                         onChange={e => setDate(e.target.value)}
-                                        className="bg-transparent font-medium text-slate-700 dark:text-slate-300 text-sm outline-none w-full h-full cursor-pointer"
+                                        className="bg-transparent font-medium text-slate-700 dark:text-slate-200 text-sm outline-none w-full h-full cursor-pointer"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Categoria</label>
+                                <label className="text-xs font-bold text-slate-500 dark:text-slate-300 mb-1 block">Categoria</label>
                                 {!isTransfer ? (
                                     <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-12 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative group cursor-pointer focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900/30">
-                                        <CategoryIcon className="w-4 h-4 text-slate-400 mr-2" />
+                                        <CategoryIcon className="w-4 h-4 text-slate-400 dark:text-slate-300 mr-2" />
                                         <select value={category} onChange={e => setCategory(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900">
                                             <optgroup label="Essenciais" className="text-slate-900">
                                                 {Object.values(Category).filter(c => [Category.HOUSING, Category.FOOD, Category.TRANSPORTATION, Category.UTILITIES, Category.HEALTH].includes(c)).map(c => <option key={c} value={c}>{c}</option>)}
@@ -204,7 +204,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                                 </optgroup>
                                             )}
                                         </select>
-                                        <span className="pointer-events-none truncate text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">{category}</span>
+                                        <span className="pointer-events-none truncate text-sm font-medium text-slate-700 dark:text-slate-200 flex-1">{category}</span>
                                     </div>
                                 ) : (
                                     <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-12 flex items-center justify-center border border-slate-200 dark:border-slate-700"><span className="text-xs font-bold text-slate-400">Automático</span></div>
@@ -267,7 +267,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                         </span>
                                         <span className="text-sm text-slate-500 dark:text-slate-400 font-medium truncate block">Opcional</span>
                                     </div>
-                                    <ChevronDown className={`w-5 h-5 ${isTripSelectorOpen ? 'rotate-180' : ''} transition-transform text-slate-400`} />
+                                    <ChevronDown className={`w-5 h-5 ${isTripSelectorOpen ? 'rotate-180' : ''} transition-transform text-slate-400 dark:text-slate-300`} />
                                 </div>
 
                                 {isTripSelectorOpen && (
@@ -313,12 +313,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     <div>
                         <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1 block pl-1">Opções Adicionais</label>
                         <div className="grid grid-cols-4 gap-2">
-                            <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isRecurring ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Repeat className="w-5 h-5" /><span className="text-[10px] font-bold">Repetir</span></button>
+                            <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isRecurring ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Repeat className="w-5 h-5" /><span className="text-[10px] font-bold">Repetir</span></button>
                             {isExpense && isCreditCard && (
-                                <button type="button" onClick={() => setIsInstallment(!isInstallment)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isInstallment ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><CreditCard className="w-5 h-5" /><span className="text-[10px] font-bold">Parcelar</span></button>
+                                <button type="button" onClick={() => setIsInstallment(!isInstallment)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isInstallment ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><CreditCard className="w-5 h-5" /><span className="text-[10px] font-bold">Parcelar</span></button>
                             )}
-                            <button type="button" onClick={() => setEnableNotification(!enableNotification)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${enableNotification ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Bell className="w-5 h-5" /><span className="text-[10px] font-bold">Lembrar</span></button>
-                            {isExpense && <button type="button" onClick={() => setIsSplitModalOpen(true)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${splits.length > 0 || payerId !== 'me' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Users className="w-5 h-5" /><span className="text-[10px] font-bold">Dividir</span></button>}
+                            <button type="button" onClick={() => setEnableNotification(!enableNotification)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${enableNotification ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Bell className="w-5 h-5" /><span className="text-[10px] font-bold">Lembrar</span></button>
+                            {isExpense && <button type="button" onClick={() => setIsSplitModalOpen(true)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${splits.length > 0 || payerId !== 'me' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Users className="w-5 h-5" /><span className="text-[10px] font-bold">Dividir</span></button>}
                         </div>
                     </div>
 

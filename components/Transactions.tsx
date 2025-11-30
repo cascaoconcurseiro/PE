@@ -203,11 +203,11 @@ export const Transactions: React.FC<TransactionsProps> = ({
         <div className="space-y-6 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* SEARCH BAR */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-2 flex items-center gap-2">
-                <Search className="w-5 h-5 text-slate-400 ml-2" />
+                <Search className="w-5 h-5 text-slate-400 dark:text-slate-300 ml-2" />
                 <input
                     type="text"
                     placeholder="Buscar transações..."
-                    className="flex-1 outline-none text-sm font-medium text-slate-700 dark:text-white placeholder:text-slate-400 h-10 bg-transparent"
+                    className="flex-1 outline-none text-sm font-medium text-slate-700 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-300 h-10 bg-transparent"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />

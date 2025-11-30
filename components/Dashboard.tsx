@@ -336,7 +336,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                                 axisLine={false}
                                 tickLine={false}
                                 tick={{ fontSize: 10, fill: 'currentColor' }}
-                                className="text-slate-400 dark:text-slate-500"
+                                className="text-slate-400 dark:text-slate-400"
                                 tickFormatter={(value) => {
                                     if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
                                     if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
@@ -468,7 +468,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                                 <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <div className="flex items-center gap-3 overflow-hidden">
                                         <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                                        <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm truncate">{entry.name}</span>
+                                        <span className="font-semibold text-slate-700 dark:text-slate-300">{entry.name}</span>
                                     </div>
                                     <div className="text-right shrink-0">
                                         <span className="text-slate-900 dark:text-white font-bold text-sm block">
