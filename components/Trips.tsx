@@ -59,8 +59,8 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
     const [exchangeForeign, setExchangeForeign] = useState('');
     const [editingExchangeId, setEditingExchangeId] = useState<string | null>(null);
 
-    const selectedTrip = trips.find(t => t.id === selectedTripId);
-    const tripTransactions = transactions.filter(t => t.tripId === selectedTripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const selectedTrip = trips.find(t => String(t.id) === String(selectedTripId));
+    const tripTransactions = transactions.filter(t => t.tripId && String(t.tripId) === String(selectedTripId)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const totalSpent = tripTransactions.reduce((acc, t) => acc + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0);
 
     const calculateDuration = () => {
