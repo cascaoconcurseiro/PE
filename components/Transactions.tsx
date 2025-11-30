@@ -64,6 +64,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
+
     // Delete State
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id: string | null }>({ isOpen: false, id: null });
 
@@ -153,10 +155,19 @@ export const Transactions: React.FC<TransactionsProps> = ({
             .filter(t => {
                 const matchesDate = isSameMonth(t.date, currentDate);
                 const matchesSearch = searchTerm ? t.description.toLowerCase().includes(searchTerm.toLowerCase()) : true;
-                return matchesDate && matchesSearch;
+
+                // Logic: Regular = BRL only. Travel = Foreign Currency.
+                const isForeign = t.currency && t.currency !== 'BRL';
+
+                if (activeTab === 'REGULAR') {
+                    return matchesDate && matchesSearch && !isForeign;
+                } else {
+                    // Travel Tab: Show foreign currency transactions.
+                    return matchesDate && matchesSearch && isForeign;
+                }
             })
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [transactions, currentDate, searchTerm]);
+    }, [transactions, currentDate, searchTerm, activeTab]);
 
     const { income, expense, balance } = useMemo(() => {
         let inc = 0;
@@ -201,6 +212,22 @@ export const Transactions: React.FC<TransactionsProps> = ({
     // RENDER LIST
     return (
         <div className="space-y-6 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* TABS */}
+            <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
+                <button
+                    onClick={() => setActiveTab('REGULAR')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'REGULAR' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
+                >
+                    Transações Regulares
+                </button>
+                <button
+                    onClick={() => setActiveTab('TRAVEL')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'TRAVEL' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
+                >
+                    Viagens Internacionais
+                </button>
+            </div>
+
             {/* SEARCH BAR */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-2 flex items-center gap-2">
                 <Search className="w-5 h-5 text-slate-400 dark:text-slate-300 ml-2" />

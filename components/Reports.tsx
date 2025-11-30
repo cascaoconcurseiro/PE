@@ -1,19 +1,23 @@
 import React, { useState, useMemo } from 'react';
-import { Account, Transaction, TransactionType, AccountType } from '../types';
+import { Account, Transaction, TransactionType, AccountType, Trip, FamilyMember } from '../types';
 import { generateLedger, getTrialBalance } from '../services/ledger';
 import { formatCurrency } from '../utils';
-import { FileText, BookOpen, Download, TrendingUp } from 'lucide-react';
+import { FileText, BookOpen, Download, TrendingUp, Plane, Users } from 'lucide-react';
 import { Button } from './ui/Button';
 import { exportToCSV } from '../services/exportUtils';
+import { TravelReport } from './reports/TravelReport';
+import { SharedExpensesReport } from './reports/SharedExpensesReport';
 
 interface ReportsProps {
     accounts: Account[];
     transactions: Transaction[];
+    trips: Trip[];
+    familyMembers: FamilyMember[];
     showValues: boolean;
 }
 
-export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showValues }) => {
-    const [activeTab, setActiveTab] = useState<'TRIAL' | 'LEDGER' | 'CASH_FLOW'>('TRIAL');
+export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, trips, familyMembers, showValues }) => {
+    const [activeTab, setActiveTab] = useState<'TRIAL' | 'LEDGER' | 'CASH_FLOW' | 'TRAVEL' | 'SHARED'>('TRIAL');
 
     const ledger = useMemo(() => generateLedger(transactions, accounts), [transactions, accounts]);
     const trialBalance = useMemo(() => getTrialBalance(ledger), [ledger]);
@@ -23,6 +27,8 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
         const report: Record<string, { accrual: number, cash: number }> = {};
 
         transactions.forEach(t => {
+            if (t.currency !== 'BRL') return; // Cash Flow Report usually focuses on main currency (BRL)
+
             const month = t.date.substring(0, 7); // YYYY-MM
             if (!report[month]) report[month] = { accrual: 0, cash: 0 };
 
@@ -77,7 +83,7 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
             exportToCSV(trialBalance, ['Conta', 'Débito', 'Crédito', 'Saldo'], 'Balancete');
         } else if (activeTab === 'LEDGER') {
             exportToCSV(ledger, ['ID', 'Data', 'Descrição', 'Débito', 'Crédito', 'Valor'], 'Razao_Contabil');
-        } else {
+        } else if (activeTab === 'CASH_FLOW') {
             exportToCSV(cashFlowReport, ['Mês', 'Competência (Consumo)', 'Caixa (Pagamento)'], 'Fluxo_Caixa');
         }
     };
@@ -91,12 +97,14 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
         <div className="space-y-6 pb-24 animate-in fade-in duration-500">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Relatórios Contábeis</h2>
-                    <p className="text-slate-500 dark:text-slate-400">Visão detalhada de partidas dobradas e balancetes.</p>
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Relatórios Avançados</h2>
+                    <p className="text-slate-500 dark:text-slate-400">Análise detalhada de fluxo de caixa, viagens e contabilidade.</p>
                 </div>
-                <Button onClick={handleExport} variant="secondary" className="gap-2">
-                    <Download className="w-4 h-4" /> Exportar CSV
-                </Button>
+                {['TRIAL', 'LEDGER', 'CASH_FLOW'].includes(activeTab) && (
+                    <Button onClick={handleExport} variant="secondary" className="gap-2">
+                        <Download className="w-4 h-4" /> Exportar CSV
+                    </Button>
+                )}
             </div>
 
             {/* Tabs */}
@@ -111,7 +119,7 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                     onClick={() => setActiveTab('LEDGER')}
                     className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'LEDGER' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                 >
-                    <BookOpen className="w-4 h-4" /> Razão (Diário)
+                    <BookOpen className="w-4 h-4" /> Razão
                 </button>
                 <button
                     onClick={() => setActiveTab('CASH_FLOW')}
@@ -119,11 +127,31 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                 >
                     <TrendingUp className="w-4 h-4" /> Fluxo de Caixa
                 </button>
+                <button
+                    onClick={() => setActiveTab('TRAVEL')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'TRAVEL' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Plane className="w-4 h-4" /> Viagens
+                </button>
+                <button
+                    onClick={() => setActiveTab('SHARED')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'SHARED' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Users className="w-4 h-4" /> Compartilhado
+                </button>
             </div>
 
             {/* Content */}
-            <div className="bg-white dark:bg-slate-900/50 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                {activeTab === 'CASH_FLOW' ? (
+            <div className="bg-white dark:bg-slate-900/50 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden min-h-[400px]">
+                {activeTab === 'TRAVEL' ? (
+                    <div className="p-6">
+                        <TravelReport trips={trips} transactions={transactions} />
+                    </div>
+                ) : activeTab === 'SHARED' ? (
+                    <div className="p-6">
+                        <SharedExpensesReport transactions={transactions} familyMembers={familyMembers} />
+                    </div>
+                ) : activeTab === 'CASH_FLOW' ? (
                     <div className="p-6">
                         <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl text-amber-800 dark:text-amber-300 text-sm mb-6">
                             <p><strong>Competência (Consumo):</strong> Quando a compra foi feita.</p>
