@@ -11,7 +11,7 @@ import { convertToBRL } from './currencyService';
 export const calculateEffectiveTransactionValue = (t: Transaction): number => {
     // Se não for despesa ou não for compartilhada, o valor é o original
     const isShared = t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me');
-    
+
     if (t.type !== TransactionType.EXPENSE || !isShared) {
         return t.amount;
     }
@@ -22,8 +22,8 @@ export const calculateEffectiveTransactionValue = (t: Transaction): number => {
     if (!t.payerId || t.payerId === 'me') {
         // Custo Efetivo = O que saiu da conta - O que vou receber de volta
         return Math.max(0, t.amount - splitsTotal);
-    } 
-    
+    }
+
     // Cenário 2: Outro pagou
     else {
         // Custo Efetivo = O que eu devo (Minha parte)
@@ -66,15 +66,15 @@ export const checkDataConsistency = (accounts: Account[], transactions: Transact
  * Lógica: Saldo Atual + Receitas Pendentes - Despesas Pendentes
  */
 export const calculateProjectedBalance = (
-    accounts: Account[], 
-    transactions: Transaction[], 
+    accounts: Account[],
+    transactions: Transaction[],
     currentDate: Date
 ): { currentBalance: number, projectedBalance: number, pendingIncome: number, pendingExpenses: number } => {
-    
+
     // Saldo Atual Consolidado (Apenas Contas Bancárias e Carteira, ignora Cartão de Crédito e Investimentos para fluxo de caixa)
-    const liquidityAccounts = accounts.filter(a => 
-        a.type === AccountType.CHECKING || 
-        a.type === AccountType.SAVINGS || 
+    const liquidityAccounts = accounts.filter(a =>
+        a.type === AccountType.CHECKING ||
+        a.type === AccountType.SAVINGS ||
         a.type === AccountType.CASH
     );
 
@@ -83,7 +83,7 @@ export const calculateProjectedBalance = (
     // Definir intervalo de tempo (Hoje até Fim do Mês)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
     endOfMonth.setHours(23, 59, 59, 999);
 
@@ -95,16 +95,17 @@ export const calculateProjectedBalance = (
         if (!isSameMonth(t.date, currentDate)) return;
 
         const tDate = new Date(t.date);
-        tDate.setHours(12, 0, 0, 0); // Normalizar hora
+        tDate.setHours(0, 0, 0, 0); // Normalizar para meia-noite para comparação justa
 
-        // Considerar apenas transações FUTURAS ou HOJE que ainda não aconteceram efetivamente (simulação)
-        if (tDate >= today) {
+        // Considerar apenas transações ESTRITAMENTE FUTURAS (Amanhã em diante)
+        // Transações de HOJE já foram deduzidas do saldo atual pelo sistema
+        if (tDate.getTime() > today.getTime()) {
             // Ignorar transferências internas
             if (t.type === TransactionType.TRANSFER) return;
 
             // Usa o valor total para fluxo de caixa bancário (o dinheiro sai todo, o reembolso vem depois)
             // AQUI MANTEMOS O VALOR TOTAL POIS É FLUXO DE CAIXA
-            const amountBRL = convertToBRL(t.amount, 'BRL'); 
+            const amountBRL = convertToBRL(t.amount, 'BRL');
 
             if (t.type === TransactionType.INCOME) {
                 pendingIncome += amountBRL;
@@ -131,7 +132,7 @@ export const calculateProjectedBalance = (
  */
 export const analyzeFinancialHealth = (income: number, expenses: number): 'POSITIVE' | 'WARNING' | 'CRITICAL' => {
     if (income === 0) return expenses > 0 ? 'CRITICAL' : 'POSITIVE';
-    
+
     const savingRate = (income - expenses) / income;
 
     if (savingRate < 0) return 'CRITICAL'; // Gastando mais do que ganha
