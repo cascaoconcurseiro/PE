@@ -74,6 +74,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         activeAmount,
         activeCurrency,
         accountCurrency,
+        availableAccounts,
         needsConversion,
         convertedValue,
         isCreditCard,
@@ -255,7 +256,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         {payerId === 'me' ? (
                             <AccountSelector
                                 label={isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}
-                                accounts={accounts}
+                                accounts={availableAccounts}
                                 selectedId={accountId}
                                 onSelect={setAccountId}
                                 filterType={(isIncome || isTransfer) ? 'NO_CREDIT' : 'ALL'}
@@ -279,7 +280,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         {isTransfer && (
                             <AccountSelector
                                 label="Vai para (Destino)"
-                                accounts={accounts.filter(a => a.id !== accountId)}
+                                accounts={availableAccounts.filter(a => a.id !== accountId)}
                                 selectedId={destinationAccountId}
                                 onSelect={setDestinationAccountId}
                                 filterType="NO_CREDIT"
