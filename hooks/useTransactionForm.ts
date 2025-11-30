@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, TransactionSplit, Frequency, AccountType, CustomCategory } from '../../types';
+import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, TransactionSplit, Frequency, AccountType, CustomCategory } from '../types';
 
 interface UseTransactionFormProps {
     initialData?: Transaction | null;
