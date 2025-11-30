@@ -3,6 +3,7 @@ package com.example.pe.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.CardTravel
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
@@ -16,19 +17,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.pe.ui.features.accounts.AccountsScreen
 import com.example.pe.ui.features.add_transaction.AddTransactionScreen
 import com.example.pe.ui.features.home.HomeScreen
 import com.example.pe.ui.features.transactions.TransactionsScreen
+import com.example.pe.ui.features.trips.CreateEditTripScreen
+import com.example.pe.ui.features.trips.TripsScreen
 
 sealed class BottomNavItem(val screen: Screen, val icon: ImageVector, val label: String) {
     object Home : BottomNavItem(Screen.Home, Icons.Default.Home, "Início")
     object Transactions : BottomNavItem(Screen.Transactions, Icons.Default.SwapHoriz, "Transações")
     object Accounts : BottomNavItem(Screen.Accounts, Icons.Default.AccountBalance, "Contas")
+    object Trips : BottomNavItem(Screen.Trips, Icons.Default.CardTravel, "Viagens")
 }
 
 @Composable
@@ -39,6 +45,7 @@ fun NavGraph() {
         BottomNavItem.Home,
         BottomNavItem.Transactions,
         BottomNavItem.Accounts,
+        BottomNavItem.Trips
     )
 
     Scaffold(
@@ -75,7 +82,16 @@ fun NavGraph() {
             composable(Screen.Transactions.route) { TransactionsScreen() }
             composable(Screen.Accounts.route) { AccountsScreen() }
             composable(Screen.AddTransaction.route) { AddTransactionScreen() }
-            // TODO: Add other destinations
+            composable(Screen.Trips.route) { TripsScreen(navController) }
+            composable(
+                route = Screen.CreateEditTrip.route,
+                arguments = listOf(navArgument("tripId") { 
+                    type = NavType.StringType
+                    nullable = true
+                })
+            ) { 
+                CreateEditTripScreen(navController)
+            }
         }
     }
 }

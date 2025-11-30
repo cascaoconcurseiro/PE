@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, TransactionSplit, Frequency, AccountType, CustomCategory } from '../types';
+import { useState, useEffect } from 'react';
+import { Transaction, TransactionType, Category, Account, Trip, TransactionSplit, Frequency, AccountType } from '../types';
 
 interface UseTransactionFormProps {
     initialData?: Transaction | null;
@@ -16,39 +16,33 @@ export const useTransactionForm = ({
     trips = [],
     onSave
 }: UseTransactionFormProps) => {
-    // Initial Logic: Only change default account if not editing
     const getDefaultAccount = () => {
         if (initialData) return initialData.accountId;
-        // For income/transfer source, prioritize non-credit cards
         if (formMode === TransactionType.INCOME || formMode === TransactionType.TRANSFER) {
             const liquid = accounts.find(a => a.type !== AccountType.CREDIT_CARD);
             return liquid ? liquid.id : '';
         }
-        // For expense, anything goes, prefer credit card or checking
         const prefer = accounts.find(a => a.type === AccountType.CREDIT_CARD || a.type === AccountType.CHECKING);
         return prefer ? prefer.id : accounts[0]?.id || '';
     };
 
-    // State initialization
+    // State
     const [amountStr, setAmountStr] = useState('');
     const [description, setDescription] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [category, setCategory] = useState<string>(Category.FOOD);
     const [accountId, setAccountId] = useState('');
     const [destinationAccountId, setDestinationAccountId] = useState('');
-    const [destinationAmountStr, setDestinationAmountStr] = useState('');
     const [tripId, setTripId] = useState('');
     const [isTripSelectorOpen, setIsTripSelectorOpen] = useState(false);
 
-    const [exchangeRateStr, setExchangeRateStr] = useState('');
-
-    // Logic: Shared/Split
+    // Shared/Split
     const [isShared, setIsShared] = useState(false);
     const [splits, setSplits] = useState<TransactionSplit[]>([]);
     const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
     const [payerId, setPayerId] = useState<string>('me');
 
-    // Logic: Recurring/Installments/Reminders
+    // Recurring/Installments
     const [isRecurring, setIsRecurring] = useState(false);
     const [frequency, setFrequency] = useState<Frequency>(Frequency.MONTHLY);
     const [recurrenceDay, setRecurrenceDay] = useState<number>(new Date().getDate());
@@ -62,45 +56,32 @@ export const useTransactionForm = ({
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-    // Initialize Account ID correctly
     useEffect(() => {
-        if (!accountId) {
-            setAccountId(getDefaultAccount());
-        }
+        if (!accountId) setAccountId(getDefaultAccount());
     }, [accounts, formMode, initialData]);
 
-    // Derived values
+    // Derived
     const activeAmount = parseFloat(amountStr.replace(',', '.')) || 0;
     const selectedAccountObj = accounts.find(a => a.id === accountId);
-    const destAccountObj = accounts.find(a => a.id === destinationAccountId);
     const selectedTrip = trips.find(t => String(t.id) === String(tripId));
 
-    // When a trip is selected, use the trip's currency directly
-    const activeCurrency = selectedTrip ? (selectedTrip.currency || 'BRL') : (selectedAccountObj?.currency || 'BRL');
-    const accountCurrency = selectedAccountObj?.currency || 'BRL';
+    // Lógica de Moeda: Se tem viagem, a moeda é a da viagem.
+    const activeCurrency = selectedTrip ? selectedTrip.currency : (selectedAccountObj?.currency || 'BRL');
+    
+    // Validação: Conta deve ter a mesma moeda da viagem
+    const isCurrencyMismatch = selectedTrip && selectedAccountObj && selectedTrip.currency !== selectedAccountObj.currency;
 
-    // Filter accounts by trip currency when a trip is selected
-    const availableAccounts = selectedTrip
-        ? accounts.filter(acc => acc.currency === selectedTrip.currency)
-        : accounts;
+    // Filtra contas compatíveis para facilitar (opcional, mas a validação isCurrencyMismatch é o bloqueio principal)
+    const availableAccounts = accounts; // Mostramos todas, mas validamos na seleção/submit
 
     const isCreditCard = selectedAccountObj?.type === AccountType.CREDIT_CARD;
     const isExpense = formMode === TransactionType.EXPENSE;
     const isIncome = formMode === TransactionType.INCOME;
     const isTransfer = formMode === TransactionType.TRANSFER;
 
-    // Check if conversion is needed (Trip Currency != Account Currency)
-    // Only for Expenses/Incomes. Transfers handle their own conversion via destinationAmount.
-    const needsConversion = activeCurrency !== accountCurrency && !isTransfer && payerId === 'me';
-
-    // Calculate converted value for display
-    const activeExchangeRate = parseFloat(exchangeRateStr.replace(',', '.')) || 0;
-    const convertedValue = activeAmount * activeExchangeRate;
-
-    // Effects
+    // Load Data
     useEffect(() => {
         if (initialData) {
-            // Load data for editing
             const t = initialData;
             setAmountStr(t.amount.toString());
             setDescription(t.description);
@@ -108,7 +89,6 @@ export const useTransactionForm = ({
             setCategory(t.category);
             setAccountId(t.accountId);
             setDestinationAccountId(t.destinationAccountId || '');
-            setDestinationAmountStr(t.destinationAmount ? t.destinationAmount.toString() : '');
             setTripId(t.tripId || '');
             setPayerId(t.payerId || 'me');
             setIsShared(!!t.isShared || (!!t.payerId && t.payerId !== 'me'));
@@ -133,101 +113,39 @@ export const useTransactionForm = ({
 
             const isAccCC = accounts.find(a => a.id === t.accountId)?.type === AccountType.CREDIT_CARD;
             setIsInstallment(!!t.isInstallment && (isAccCC || !!t.isInstallment));
-
             setCurrentInstallment(t.currentInstallment || 1);
             setTotalInstallments(t.totalInstallments || 2);
             setIsRefund(!!t.isRefund);
-
-            // If editing, load the exchange rate
-            if (t.exchangeRate) {
-                setExchangeRateStr(t.exchangeRate.toString());
-            } else {
-                setExchangeRateStr('');
-            }
-
-        } else {
-            // If switching modes, verify if account is valid for that mode
-            if (formMode === TransactionType.INCOME || formMode === TransactionType.TRANSFER) {
-                if (selectedAccountObj?.type === AccountType.CREDIT_CARD) {
-                    setAccountId(getDefaultAccount());
-                }
-            }
         }
-    }, [initialData, accounts, formMode]);
-
-    useEffect(() => {
-        if (!isCreditCard && isInstallment) {
-            setIsInstallment(false);
-        }
-    }, [isCreditCard]);
-
-    useEffect(() => {
-        if (enableNotification && reminderOption !== 'custom' && date) {
-            const txDate = new Date(date);
-            txDate.setHours(12, 0, 0, 0);
-            const notifDate = new Date(txDate);
-            notifDate.setDate(txDate.getDate() - (reminderOption as number));
-            setNotificationDate(notifDate.toISOString().split('T')[0]);
-        }
-    }, [date, reminderOption, enableNotification]);
-
-    useEffect(() => {
-        if (!isRecurring) setRecurrenceDay(new Date(date).getDate());
-    }, [date, isRecurring]);
+    }, [initialData, accounts]);
 
     const handleConfirmSplit = () => {
-        if (splits.length === 0 && payerId === 'me') {
-            setIsShared(false);
-        } else {
-            setIsShared(true);
-        }
+        if (splits.length === 0 && payerId === 'me') setIsShared(false);
+        else setIsShared(true);
         setIsSplitModalOpen(false);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        // Validation
-        const errors: { [key: string]: string } = {};
-        if (!activeAmount || activeAmount <= 0) errors.amount = 'Valor inválido';
-        if (!description.trim()) errors.description = 'Descrição obrigatória';
-        if (!date) errors.date = 'Data obrigatória';
-        if (!accountId && payerId === 'me') errors.account = 'Conta obrigatória';
+        const newErrors: { [key: string]: string } = {};
+        
+        if (!activeAmount || activeAmount <= 0) newErrors.amount = 'Valor inválido';
+        if (!description.trim()) newErrors.description = 'Descrição obrigatória';
+        if (!date) newErrors.date = 'Data obrigatória';
+        if (!accountId && payerId === 'me') newErrors.account = 'Conta obrigatória';
         if (isTransfer) {
-            if (!destinationAccountId) errors.destination = 'Conta destino obrigatória';
-            if (destinationAccountId === accountId) errors.destination = 'Origem e destino iguais';
+            if (!destinationAccountId) newErrors.destination = 'Conta destino obrigatória';
+            if (destinationAccountId === accountId) newErrors.destination = 'Origem e destino iguais';
+        }
+        
+        // Bloqueio por moeda incompatível
+        if (isCurrencyMismatch) {
+            newErrors.account = `A conta deve ser em ${selectedTrip?.currency || 'moeda compatível'}.`;
         }
 
-        // Validate conversion if needed
-        let finalExchangeRate: number | undefined = undefined;
-        if (needsConversion) {
-            const rate = parseFloat(exchangeRateStr.replace(',', '.'));
-            if (!rate || rate <= 0) {
-                errors.exchangeRate = 'Cotação obrigatória';
-            } else {
-                finalExchangeRate = rate;
-            }
-        }
-
-        if (Object.keys(errors).length > 0) {
-            setErrors(errors);
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
-        }
-
-        let finalDestinationAmount = activeAmount;
-        if (isTransfer && destinationAccountId) {
-            const destAcc = accounts.find(a => a.id === destinationAccountId);
-            const account = accounts.find(a => a.id === accountId);
-            if (account && destAcc && account.currency !== destAcc.currency && destinationAmountStr) {
-                finalDestinationAmount = parseFloat(destinationAmountStr.replace(',', '.'));
-            }
-        }
-
-        let updateFuture = false;
-        if (initialData && (initialData.seriesId || initialData.isRecurring)) {
-            if (confirm(`Esta transação faz parte de uma série/recorrência.\n\nDeseja aplicar as alterações para TODAS as transações futuras desta série?`)) {
-                updateFuture = true;
-            }
         }
 
         const finalSplits = splits
@@ -240,6 +158,13 @@ export const useTransactionForm = ({
         const isExternalPayer = payerId && payerId !== 'me';
         const shouldBeShared = formMode === TransactionType.EXPENSE && (isShared || finalSplits.length > 0 || isExternalPayer);
 
+        let updateFuture = false;
+        if (initialData && (initialData.seriesId || initialData.isRecurring)) {
+            if (confirm(`Esta transação faz parte de uma série/recorrência.\n\nDeseja aplicar as alterações para TODAS as transações futuras desta série?`)) {
+                updateFuture = true;
+            }
+        }
+
         const data = {
             amount: activeAmount,
             description: description.trim(),
@@ -248,7 +173,6 @@ export const useTransactionForm = ({
             category: formMode === TransactionType.TRANSFER ? Category.TRANSFER : category,
             accountId: (payerId && payerId !== 'me') ? 'EXTERNAL' : (accountId || (accounts[0] ? accounts[0].id : '')),
             destinationAccountId: isTransfer ? destinationAccountId : undefined,
-            destinationAmount: isTransfer && destinationAccountId ? finalDestinationAmount : undefined,
             tripId: tripId || undefined,
             isShared: shouldBeShared,
             sharedWith: finalSplits,
@@ -263,22 +187,19 @@ export const useTransactionForm = ({
             enableNotification,
             notificationDate: enableNotification ? notificationDate : undefined,
             isRefund,
-            currency: activeCurrency,
-            exchangeRate: finalExchangeRate
+            currency: activeCurrency
         };
 
         onSave(data, !!initialData, updateFuture);
     };
 
     return {
-        // State
         amountStr, setAmountStr,
         description, setDescription,
         date, setDate,
         category, setCategory,
         accountId, setAccountId,
         destinationAccountId, setDestinationAccountId,
-        destinationAmountStr, setDestinationAmountStr,
         tripId, setTripId,
         isTripSelectorOpen, setIsTripSelectorOpen,
         isShared, setIsShared,
@@ -295,22 +216,15 @@ export const useTransactionForm = ({
         notificationDate, setNotificationDate,
         reminderOption, setReminderOption,
         isRefund, setIsRefund,
-        exchangeRateStr, setExchangeRateStr,
         errors,
-
-        // Derived
         activeAmount,
         activeCurrency,
-        accountCurrency,
         availableAccounts,
-        needsConversion,
-        convertedValue,
+        isCurrencyMismatch,
         isCreditCard,
         isExpense,
         isIncome,
         isTransfer,
-
-        // Handlers
         handleConfirmSplit,
         handleSubmit
     };

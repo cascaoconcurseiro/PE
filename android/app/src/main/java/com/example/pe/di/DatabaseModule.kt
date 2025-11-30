@@ -3,6 +3,7 @@ package com.example.pe.di
 import android.content.Context
 import androidx.room.Room
 import com.example.pe.data.local.AppDatabase
+import com.example.pe.data.local.dao.ParticipantDao
 import com.example.pe.data.local.dao.TransactionDao
 import com.example.pe.data.local.dao.TripDao
 import dagger.Module
@@ -34,5 +35,10 @@ object DatabaseModule {
     @Provides
     fun provideTripDao(appDatabase: AppDatabase): TripDao {
         return appDatabase.tripDao()
+    }
+
+    @Provides
+    fun provideParticipantDao(appDatabase: AppDatabase): ParticipantDao {
+        return appDatabase.participantDao()
     }
 }

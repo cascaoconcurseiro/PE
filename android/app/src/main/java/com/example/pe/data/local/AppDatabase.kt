@@ -2,13 +2,16 @@ package com.example.pe.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.example.pe.data.local.dao.ParticipantDao
 import com.example.pe.data.local.dao.TransactionDao
 import com.example.pe.data.local.dao.TripDao
+import com.example.pe.data.local.model.Participant
 import com.example.pe.data.local.model.Transaction
 import com.example.pe.data.local.model.Trip
 
-@Database(entities = [Transaction::class, Trip::class], version = 2, exportSchema = false)
+@Database(entities = [Transaction::class, Trip::class, Participant::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun tripDao(): TripDao
+    abstract fun participantDao(): ParticipantDao
 }

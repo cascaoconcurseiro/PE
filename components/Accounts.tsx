@@ -1,14 +1,13 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Account, AccountType, Transaction, TransactionType, Category } from '../types';
 import { Button } from './ui/Button';
-import { Wallet, CreditCard, Plus, ArrowLeft, Search, Download, Printer, FileUp, MoreHorizontal, Landmark, Banknote, Edit2, Trash2, Globe } from 'lucide-react';
+import { Wallet, CreditCard, Plus, ArrowLeft, Download, Printer, FileUp, MoreHorizontal, Landmark, Banknote, Edit2, Trash2, Globe } from 'lucide-react';
 import { formatCurrency } from '../utils';
 import { useToast } from './ui/Toast';
 import { exportToCSV, prepareTransactionsForExport } from '../services/exportUtils';
 import { printAccountStatement } from '../services/printUtils';
 import { getInvoiceData } from '../services/accountUtils';
 
-// Sub-components
 import { AccountForm } from './accounts/AccountForm';
 import { ActionModal, ActionType } from './accounts/ActionModal';
 import { CreditCardDetail } from './accounts/CreditCardDetail';
@@ -42,20 +41,13 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
     const [isEditing, setIsEditing] = useState(false);
     const { addToast } = useToast();
 
-    // Invoice Navigation State
     const [invoiceDate, setInvoiceDate] = useState(currentDate);
 
-    // Sync local invoice date when global date changes
     useEffect(() => {
-        if (!selectedAccount) {
-            setInvoiceDate(currentDate);
-        }
+        if (!selectedAccount) setInvoiceDate(currentDate);
     }, [currentDate, selectedAccount]);
 
-    // OFX State
     const ofxInputRef = useRef<HTMLInputElement>(null);
-
-    // Payment/Action Modal State
     const [actionModal, setActionModal] = useState<{ isOpen: boolean, type: ActionType, amount?: string }>({ isOpen: false, type: 'PAY_INVOICE' });
     const [importModal, setImportModal] = useState<{ isOpen: boolean, transactions: OFXTransaction[] }>({ isOpen: false, transactions: [] });
     const [anticipateModal, setAnticipateModal] = useState<{ isOpen: boolean, transaction: Transaction | null }>({ isOpen: false, transaction: null });
@@ -95,7 +87,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
     const handleExport = (format: 'CSV' | 'PDF') => {
         if (!selectedAccount) return;
         const txs = transactions.filter(t => t.accountId === selectedAccount.id);
-
         if (format === 'CSV') {
             const data = prepareTransactionsForExport(txs, accounts);
             exportToCSV(data, ['Data', 'Descrição', 'Categoria', 'Tipo', 'Conta', 'Destino', 'Valor'], `Extrato_${selectedAccount.name}`);
@@ -104,139 +95,62 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
         }
     };
 
-    // --- QUICK ACTIONS LOGIC ---
     const handleActionSubmit = (amount: number, description: string, sourceId: string) => {
         if (!selectedAccount) return;
         const date = new Date().toISOString();
+        const commonProps = { amount, date, accountId: selectedAccount.id, isRecurring: false };
 
         switch (actionModal.type) {
             case 'DEPOSIT':
-                onAddTransaction({
-                    amount,
-                    description: description || 'Depósito',
-                    date,
-                    type: TransactionType.INCOME,
-                    category: Category.INCOME,
-                    accountId: selectedAccount.id,
-                    isRecurring: false
-                });
-                addToast('Depósito realizado com sucesso!', 'success');
+                onAddTransaction({ ...commonProps, description: description || 'Depósito', type: TransactionType.INCOME, category: Category.INCOME });
+                addToast('Depósito realizado!', 'success');
                 break;
-
             case 'WITHDRAW':
-                if (sourceId) {
-                    onAddTransaction({
-                        amount,
-                        description: description || 'Saque para Carteira',
-                        date,
-                        type: TransactionType.TRANSFER,
-                        category: Category.TRANSFER,
-                        accountId: selectedAccount.id,
-                        destinationAccountId: sourceId,
-                        isRecurring: false
-                    });
-                } else {
-                    onAddTransaction({
-                        amount,
-                        description: description || 'Saque em Espécie',
-                        date,
-                        type: TransactionType.EXPENSE,
-                        category: Category.OTHER,
-                        accountId: selectedAccount.id,
-                        isRecurring: false
-                    });
-                }
-                addToast('Saque registrado com sucesso!', 'success');
+                if (sourceId) onAddTransaction({ ...commonProps, description: description || 'Saque para Carteira', type: TransactionType.TRANSFER, category: Category.TRANSFER, destinationAccountId: sourceId });
+                else onAddTransaction({ ...commonProps, description: description || 'Saque em Espécie', type: TransactionType.EXPENSE, category: Category.OTHER });
+                addToast('Saque registrado!', 'success');
                 break;
-
             case 'TRANSFER':
-                onAddTransaction({
-                    amount,
-                    description: description || 'Transferência',
-                    date,
-                    type: TransactionType.TRANSFER,
-                    category: Category.TRANSFER,
-                    accountId: selectedAccount.id,
-                    destinationAccountId: sourceId,
-                    isRecurring: false
-                });
-                addToast('Transferência realizada com sucesso!', 'success');
+                onAddTransaction({ ...commonProps, description: description || 'Transferência', type: TransactionType.TRANSFER, category: Category.TRANSFER, destinationAccountId: sourceId });
+                addToast('Transferência realizada!', 'success');
                 break;
-
             case 'PAY_INVOICE':
-                onAddTransaction({
-                    amount,
-                    description: `Pagamento Fatura - ${selectedAccount.name}`,
-                    date,
-                    type: TransactionType.TRANSFER,
-                    category: Category.TRANSFER,
-                    accountId: sourceId,
-                    destinationAccountId: selectedAccount.id,
-                    isRecurring: false
-                });
+                onAddTransaction({ amount, description: `Pagamento Fatura - ${selectedAccount.name}`, date, type: TransactionType.TRANSFER, category: Category.TRANSFER, accountId: sourceId, destinationAccountId: selectedAccount.id, isRecurring: false });
                 addToast('Pagamento de fatura registrado!', 'success');
                 break;
         }
-
         setActionModal({ ...actionModal, isOpen: false });
     };
 
     const handleOFXUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         try {
             const transactions = await parseOFX(file);
             setImportModal({ isOpen: true, transactions });
         } catch (error) {
             addToast("Erro ao ler arquivo OFX.", 'error');
-            console.error(error);
         }
         if (ofxInputRef.current) ofxInputRef.current.value = '';
     };
 
     const handleImportConfirm = (importedTxs: OFXTransaction[]) => {
         if (!selectedAccount) return;
-
         let count = 0;
         importedTxs.forEach(tx => {
-            const isDuplicate = transactions.some(t =>
-                t.accountId === selectedAccount.id &&
-                t.amount === tx.amount &&
-                t.date === tx.date &&
-                t.type === tx.type
-            );
-
+            const isDuplicate = transactions.some(t => t.accountId === selectedAccount.id && t.amount === tx.amount && t.date === tx.date && t.type === tx.type);
             if (!isDuplicate) {
-                onAddTransaction({
-                    amount: tx.amount,
-                    description: tx.description,
-                    date: tx.date,
-                    type: tx.type,
-                    category: Category.OTHER, 
-                    accountId: selectedAccount.id,
-                    isRecurring: false
-                });
+                onAddTransaction({ amount: tx.amount, description: tx.description, date: tx.date, type: tx.type, category: Category.OTHER, accountId: selectedAccount.id, isRecurring: false });
                 count++;
             }
         });
-
-        if (count > 0) {
-            addToast(`${count} transações importadas com sucesso!`, 'success');
-        } else {
-            addToast("Nenhuma nova transação importada (duplicatas ignoradas).", 'info');
-        }
+        addToast(`${count} transações importadas!`, count > 0 ? 'success' : 'info');
         setImportModal({ isOpen: false, transactions: [] });
     };
 
-    const handleAnticipateRequest = (tx: Transaction) => {
-        setAnticipateModal({ isOpen: true, transaction: tx });
-    };
-
+    const handleAnticipateRequest = (tx: Transaction) => setAnticipateModal({ isOpen: true, transaction: tx });
     const handleConfirmAnticipation = (ids: string[], date: string, accountId: string) => {
-        if (onAnticipate) {
-            onAnticipate(ids, date, accountId);
-        }
+        onAnticipate(ids, date, accountId);
         setAnticipateModal({ isOpen: false, transaction: null });
     };
 
@@ -253,121 +167,53 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
         }
     };
 
-    // --- FILTERING ---
     const bankingAccounts = accounts.filter(a => a.type !== AccountType.CREDIT_CARD && a.currency === 'BRL');
     const creditCards = accounts.filter(a => a.type === AccountType.CREDIT_CARD);
-    const internationalAccounts = accounts.filter(a => a.currency !== 'BRL');
+    const internationalAccounts = accounts.filter(a => a.type !== AccountType.CREDIT_CARD && a.currency !== 'BRL');
 
-    // --- RENDER DETAIL VIEW ---
     if (viewState === 'DETAIL' && selectedAccount) {
         if (isEditing) {
             return (
                 <div className="pb-24 animate-in fade-in slide-in-from-bottom-4">
                     <div className="mb-4 flex items-center gap-2">
-                        <Button variant="ghost" onClick={() => setIsEditing(false)} className="p-0 hover:bg-transparent">
-                            <ArrowLeft className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-                        </Button>
+                        <Button variant="ghost" onClick={() => setIsEditing(false)} className="p-0 hover:bg-transparent"><ArrowLeft className="w-6 h-6 text-slate-600 dark:text-slate-300" /></Button>
                         <h2 className="text-xl font-bold text-slate-800 dark:text-white">Editar Conta</h2>
                     </div>
-                    <AccountForm
-                        type={selectedAccount.type === AccountType.CREDIT_CARD ? 'CARDS' : 'BANKING'}
-                        initialData={selectedAccount}
-                        onSave={handleUpdate}
-                        onCancel={() => setIsEditing(false)}
-                    />
+                    <AccountForm type={selectedAccount.type === AccountType.CREDIT_CARD ? 'CARDS' : 'BANKING'} initialData={selectedAccount} onSave={handleUpdate} onCancel={() => setIsEditing(false)} />
                 </div>
             );
         }
-
         return (
             <div className="space-y-6 animate-in slide-in-from-right duration-300 pb-24">
-                {/* Detail Header */}
                 <div className="flex items-center justify-between no-print">
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" onClick={handleBack} className="p-0 hover:bg-transparent">
-                            <ArrowLeft className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-                        </Button>
+                        <Button variant="ghost" onClick={handleBack} className="p-0 hover:bg-transparent"><ArrowLeft className="w-6 h-6 text-slate-600 dark:text-slate-300" /></Button>
                         <h2 className="text-xl font-bold text-slate-800 dark:text-white">{selectedAccount.name}</h2>
                         <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded font-bold">{selectedAccount.currency}</span>
                     </div>
-
                     <div className="flex gap-2">
-                        <Button onClick={() => setIsEditing(true)} variant="secondary" size="sm" className="text-slate-500 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">
-                            <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button onClick={handleDelete} variant="secondary" size="sm" className="text-slate-500 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400">
-                            <Trash2 className="w-4 h-4" />
-                        </Button>
-
+                        <Button onClick={() => setIsEditing(true)} variant="secondary" size="sm"><Edit2 className="w-4 h-4" /></Button>
+                        <Button onClick={handleDelete} variant="secondary" size="sm" className="text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
                         <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
-
-                        <Button onClick={() => handleExport('CSV')} variant="secondary" size="sm" className="gap-2 hidden sm:flex text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400">
-                            <Download className="w-4 h-4" /> CSV
-                        </Button>
-                        <Button onClick={() => handleExport('PDF')} variant="secondary" size="sm" className="gap-2 hidden sm:flex text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400">
-                            <Printer className="w-4 h-4" />
-                        </Button>
-
-                        <div className="relative">
-                            <Button onClick={() => ofxInputRef.current?.click()} variant="secondary" size="sm" className="gap-2 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700">
-                                <FileUp className="w-4 h-4" /> OFX
-                            </Button>
-                            <input type="file" ref={ofxInputRef} accept=".ofx" className="hidden" onChange={handleOFXUpload} />
-                        </div>
+                        <Button onClick={() => handleExport('CSV')} variant="secondary" size="sm" className="hidden sm:flex gap-2"><Download className="w-4 h-4" /> CSV</Button>
+                        <Button onClick={() => handleExport('PDF')} variant="secondary" size="sm" className="hidden sm:flex gap-2"><Printer className="w-4 h-4" /></Button>
+                        <div className="relative"><Button onClick={() => ofxInputRef.current?.click()} variant="secondary" size="sm" className="gap-2"><FileUp className="w-4 h-4" /> OFX</Button><input type="file" ref={ofxInputRef} accept=".ofx" className="hidden" onChange={handleOFXUpload} /></div>
                     </div>
                 </div>
 
                 {selectedAccount.type === AccountType.CREDIT_CARD ? (
-                    <CreditCardDetail
-                        account={selectedAccount}
-                        transactions={transactions}
-                        currentDate={invoiceDate}
-                        showValues={showValues}
-                        onInvoiceDateChange={setInvoiceDate}
-                        onAction={(type, amount) => setActionModal({ isOpen: true, type, amount })}
-                        onAnticipateInstallments={handleAnticipateRequest} 
-                    />
+                    <CreditCardDetail account={selectedAccount} transactions={transactions} currentDate={invoiceDate} showValues={showValues} onInvoiceDateChange={setInvoiceDate} onAction={(type, amount) => setActionModal({ isOpen: true, type, amount })} onAnticipateInstallments={handleAnticipateRequest} />
                 ) : (
-                    <BankingDetail
-                        account={selectedAccount}
-                        transactions={transactions}
-                        showValues={showValues}
-                        onAction={(type) => setActionModal({ isOpen: true, type })}
-                    />
+                    <BankingDetail account={selectedAccount} transactions={transactions} showValues={showValues} onAction={(type) => setActionModal({ isOpen: true, type })} />
                 )}
 
-                <ActionModal
-                    isOpen={actionModal.isOpen}
-                    type={actionModal.type}
-                    account={selectedAccount}
-                    accounts={accounts}
-                    initialAmount={actionModal.amount}
-                    onClose={() => setActionModal({ ...actionModal, isOpen: false })}
-                    onConfirm={handleActionSubmit}
-                />
-
-                <ImportModal
-                    isOpen={importModal.isOpen}
-                    onClose={() => setImportModal({ ...importModal, isOpen: false })}
-                    onImport={handleImportConfirm}
-                    importedTransactions={importModal.transactions}
-                />
-
-                {anticipateModal.isOpen && anticipateModal.transaction && (
-                    <InstallmentAnticipationModal
-                        isOpen={anticipateModal.isOpen}
-                        onClose={() => setAnticipateModal({ isOpen: false, transaction: null })}
-                        transaction={anticipateModal.transaction}
-                        allInstallments={transactions}
-                        accounts={accounts}
-                        onConfirm={handleConfirmAnticipation}
-                    />
-                )}
+                <ActionModal isOpen={actionModal.isOpen} type={actionModal.type} account={selectedAccount} accounts={accounts} initialAmount={actionModal.amount} onClose={() => setActionModal({ ...actionModal, isOpen: false })} onConfirm={handleActionSubmit} />
+                <ImportModal isOpen={importModal.isOpen} onClose={() => setImportModal({ ...importModal, isOpen: false })} onImport={handleImportConfirm} importedTransactions={importModal.transactions} />
+                {anticipateModal.isOpen && anticipateModal.transaction && (<InstallmentAnticipationModal isOpen={anticipateModal.isOpen} onClose={() => setAnticipateModal({ isOpen: false, transaction: null })} transaction={anticipateModal.transaction} allInstallments={transactions} accounts={accounts} onConfirm={handleConfirmAnticipation} />)}
             </div>
         );
     }
 
-    // --- RENDER LIST VIEW ---
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-24">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -387,16 +233,12 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                 <div className="bg-slate-100 dark:bg-slate-900 p-1 rounded-xl flex gap-1">
                     <button onClick={() => setActiveTab('BANKING')} className={`px-4 py-2.5 text-sm font-bold rounded-lg transition-all whitespace-nowrap ${activeTab === 'BANKING' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Contas Bancárias</button>
                     <button onClick={() => setActiveTab('CARDS')} className={`px-4 py-2.5 text-sm font-bold rounded-lg transition-all whitespace-nowrap ${activeTab === 'CARDS' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Cartões de Crédito</button>
-                    <button onClick={() => setActiveTab('INTERNATIONAL')} className={`px-4 py-2.5 text-sm font-bold rounded-lg transition-all whitespace-nowrap ${activeTab === 'INTERNATIONAL' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Conta Internacional</button>
+                    <button onClick={() => setActiveTab('INTERNATIONAL')} className={`px-4 py-2.5 text-sm font-bold rounded-lg transition-all whitespace-nowrap ${activeTab === 'INTERNATIONAL' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Internacional</button>
                 </div>
             </div>
 
             {isFormOpen && (
-                <AccountForm
-                    type={activeTab === 'CARDS' ? 'CARDS' : 'BANKING'}
-                    onSave={(acc) => { onAddAccount(acc as any); setIsFormOpen(false); }}
-                    onCancel={() => setIsFormOpen(false)}
-                />
+                <AccountForm type={activeTab === 'CARDS' ? 'CARDS' : 'BANKING'} onSave={(acc) => { onAddAccount(acc as any); setIsFormOpen(false); }} onCancel={() => setIsFormOpen(false)} />
             )}
 
             {activeTab === 'BANKING' && (

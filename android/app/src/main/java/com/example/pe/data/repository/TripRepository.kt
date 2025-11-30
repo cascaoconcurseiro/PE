@@ -10,6 +10,8 @@ class TripRepository @Inject constructor(
 ) {
     fun getAllTrips(): Flow<List<Trip>> = tripDao.getAll()
 
+    fun getTripById(tripId: Int): Flow<Trip?> = tripDao.getTripById(tripId)
+
     suspend fun insertTrip(trip: Trip) {
         tripDao.insert(trip)
     }

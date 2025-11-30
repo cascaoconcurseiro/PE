@@ -278,7 +278,7 @@ export const Shared: React.FC<SharedProps> = ({
 
                             <div className="bg-slate-50/50 dark:bg-slate-900/30 divide-y divide-slate-100 dark:divide-slate-700 max-h-60 overflow-y-auto">
                                 {items.filter(i => !i.isPaid).map(item => {
-                                    const tripName = item.tripId ? trips.find(t => t.id === item.tripId)?.name : null;
+                                    const trip = item.tripId ? trips.find(t => t.id === item.tripId) : null;
                                     return (
                                         <div key={item.id} className="px-6 py-4 flex justify-between items-center">
                                             <div className="flex items-center gap-3">
@@ -288,7 +288,7 @@ export const Shared: React.FC<SharedProps> = ({
                                                 <div>
                                                     <p className="text-sm font-bold text-slate-800 dark:text-white">{item.description}</p>
                                                     <div className="flex flex-wrap gap-2 mt-0.5">
-                                                        {tripName && <span className="text-[10px] bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><Plane className="w-3 h-3" /> {tripName}</span>}
+                                                        {trip && <span className="text-[10px] bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><Plane className="w-3 h-3" /> {trip.name}</span>}
                                                         <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(item.date).toLocaleDateString()}</span>
                                                     </div>
                                                 </div>
