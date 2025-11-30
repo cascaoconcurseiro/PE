@@ -112,7 +112,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <div ref={topRef} />
 
             {/* Header Tabs */}
-            <div className="px-3 py-2 shrink-0 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2 bg-white dark:bg-slate-900 z-20">
+            <div className="px-3 py-1.5 shrink-0 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2 bg-white dark:bg-slate-900 z-20">
                 <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl relative shadow-inner flex-1">
                     <button onClick={() => setFormMode(TransactionType.EXPENSE)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isExpense ? 'bg-white dark:bg-slate-700 text-red-700 dark:text-red-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-200'}`}><ArrowDownLeft className="w-3.5 h-3.5" /> Despesa</button>
                     <button onClick={() => setFormMode(TransactionType.INCOME)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${isIncome ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-sm' : 'text-slate-600 dark:text-slate-300'}`}><ArrowUpRight className="w-3.5 h-3.5" /> Receita</button>
@@ -133,24 +133,24 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 )}
 
                 {/* Amount Input */}
-                <div className={`flex flex-col items-center justify-center py-8 ${headerBg} transition-colors duration-300 shrink-0`}>
+                <div className={`flex flex-col items-center justify-center py-4 ${headerBg} transition-colors duration-300 shrink-0`}>
                     <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                        {isRefund ? <Undo2 className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />} 
+                        {isRefund ? <Undo2 className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />}
                         {isRefund ? 'Valor do Estorno' : 'Valor da Transação'}
                     </label>
-                    
+
                     <div className="relative flex items-center justify-center w-full px-4">
                         <span className={`text-4xl font-bold mr-2 opacity-80 ${mainColor}`}>
                             {activeCurrency === 'BRL' ? 'R$' : activeCurrency}
                         </span>
-                        <input 
-                            type="number" 
-                            inputMode="decimal" 
-                            value={amountStr} 
-                            onChange={(e) => setAmountStr(e.target.value)} 
-                            placeholder="0,00" 
-                            className={`w-full max-w-[240px] text-center text-5xl font-black bg-transparent border-none outline-none placeholder-slate-300 dark:placeholder-slate-700 ${mainColor}`} 
-                            autoFocus={!initialData} 
+                        <input
+                            type="number"
+                            inputMode="decimal"
+                            value={amountStr}
+                            onChange={(e) => setAmountStr(e.target.value)}
+                            placeholder="0,00"
+                            className={`w-full max-w-[240px] text-center text-3xl sm:text-4xl font-black bg-transparent border-none outline-none placeholder-slate-300 dark:placeholder-slate-700 ${mainColor}`}
+                            autoFocus={!initialData}
                         />
                     </div>
                     {errors.amount && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-2 bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full">{errors.amount}</p>}
@@ -163,19 +163,19 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     )}
                 </div>
 
-                <div className="flex-1 p-5 space-y-5">
+                <div className="flex-1 p-3 sm:p-4 space-y-3 sm:space-y-4">
                     {/* Description & Date */}
                     <div className="space-y-4">
                         <div>
                             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">Descrição</label>
-                            <input placeholder="Ex: Almoço, Uber, Salário" value={description} onChange={e => setDescription(e.target.value)} className="w-full text-lg font-medium text-slate-900 dark:text-white border-b-2 border-slate-200 dark:border-slate-700 pb-2 outline-none focus:border-indigo-500 bg-transparent placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-colors rounded-none px-0" />
+                            <input placeholder="Ex: Almoço, Uber, Salário" value={description} onChange={e => setDescription(e.target.value)} className="w-full text-base font-medium text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-1 outline-none focus:border-indigo-500 bg-transparent placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-colors rounded-none px-0" />
                             {errors.description && <p className="text-red-600 text-[10px] mt-1 font-bold">{errors.description}</p>}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">Data</label>
-                                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-12 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative">
+                                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-10 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative">
                                     <Calendar className="w-4 h-4 text-slate-400 mr-2" />
                                     <input type="date" value={date} onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }} onChange={e => setDate(e.target.value)} className="bg-transparent font-bold text-slate-700 dark:text-slate-200 text-sm outline-none w-full h-full" />
                                 </div>
@@ -184,7 +184,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                             <div>
                                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">Categoria</label>
                                 {!isTransfer ? (
-                                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-12 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative">
+                                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-10 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative">
                                         <CategoryIcon className="w-4 h-4 text-slate-400 mr-2" />
                                         <select value={category} onChange={e => setCategory(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900">
                                             <optgroup label="Categorias Padrão">
@@ -200,7 +200,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                         <ChevronDown className="w-4 h-4 text-slate-400" />
                                     </div>
                                 ) : (
-                                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-12 flex items-center justify-center border border-slate-200 dark:border-slate-700"><span className="text-xs font-bold text-slate-400">Automático</span></div>
+                                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-10 flex items-center justify-center border border-slate-200 dark:border-slate-700"><span className="text-xs font-bold text-slate-400">Automático</span></div>
                                 )}
                             </div>
                         </div>
@@ -210,10 +210,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     {isExpense && (
                         <div className="space-y-1">
                             <div className="relative z-20">
-                                <div onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)} className={`border rounded-2xl p-4 flex items-center gap-3 shadow-sm relative transition-all cursor-pointer ${tripId ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
-                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${tripId ? 'bg-violet-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}><Plane className="w-5 h-5" /></div>
+                                <div onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)} className={`border rounded-xl p-3 flex items-center gap-3 shadow-sm relative transition-all cursor-pointer ${tripId ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
+                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${tripId ? 'bg-violet-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}><Plane className="w-4 h-4" /></div>
                                     <div className="flex-1 overflow-hidden">
-                                        <span className={`block text-lg font-bold truncate mb-0.5 ${tripId ? 'text-violet-900 dark:text-violet-300' : 'text-slate-600 dark:text-slate-300'}`}>{tripId ? trips.find(t => t.id === tripId)?.name : 'Vincular a uma Viagem'}</span>
+                                        <span className={`block text-sm font-bold truncate mb-0.5 ${tripId ? 'text-violet-900 dark:text-violet-300' : 'text-slate-600 dark:text-slate-300'}`}>{tripId ? trips.find(t => t.id === tripId)?.name : 'Vincular a uma Viagem'}</span>
                                         <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate block">{tripId ? `Moeda: ${selectedTrip?.currency}` : 'Opcional'}</span>
                                     </div>
                                     <ChevronDown className="w-5 h-5 text-slate-400" />
@@ -263,7 +263,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         {isTransfer && (
                             <>
                                 <AccountSelector label="Vai para (Destino)" accounts={accounts.filter(a => a.id !== accountId)} selectedId={destinationAccountId} onSelect={setDestinationAccountId} filterType="NO_CREDIT" />
-                                
+
                                 {/* Multi-currency Transfer UI */}
                                 {isMultiCurrencyTransfer && (
                                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
@@ -279,8 +279,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                             <ArrowRight className="w-4 h-4 text-slate-400" />
                                             <div className="flex-1">
                                                 <label className="text-[10px] font-bold text-blue-600 dark:text-blue-400 block mb-1">Entrou ({selectedDestAccountObj?.currency})</label>
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
                                                     placeholder="0.00"
                                                     className="w-full bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 rounded-lg px-2 py-1 text-lg font-bold text-blue-700 dark:text-blue-300 outline-none focus:ring-2 focus:ring-blue-500"
                                                     value={destinationAmountStr}
@@ -304,10 +304,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     <div>
                         <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 block pl-1">Opções Adicionais</label>
                         <div className="grid grid-cols-4 gap-2">
-                            <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isRecurring ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Repeat className="w-5 h-5" /><span className="text-[10px] font-bold">Repetir</span></button>
-                            {isExpense && isCreditCard && <button type="button" onClick={() => setIsInstallment(!isInstallment)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isInstallment ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><CreditCard className="w-5 h-5" /><span className="text-[10px] font-bold">Parcelar</span></button>}
-                            <button type="button" onClick={() => setEnableNotification(!enableNotification)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${enableNotification ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Bell className="w-5 h-5" /><span className="text-[10px] font-bold">Lembrar</span></button>
-                            {isExpense && <button type="button" onClick={() => setIsSplitModalOpen(true)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${splits.length > 0 || payerId !== 'me' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Users className="w-5 h-5" /><span className="text-[10px] font-bold">Dividir</span></button>}
+                            <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isRecurring ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Repeat className="w-4 h-4" /><span className="text-[9px] font-bold">Repetir</span></button>
+                            {isExpense && isCreditCard && <button type="button" onClick={() => setIsInstallment(!isInstallment)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${isInstallment ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><CreditCard className="w-4 h-4" /><span className="text-[9px] font-bold">Parcelar</span></button>}
+                            <button type="button" onClick={() => setEnableNotification(!enableNotification)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${enableNotification ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Bell className="w-4 h-4" /><span className="text-[9px] font-bold">Lembrar</span></button>
+                            {isExpense && <button type="button" onClick={() => setIsSplitModalOpen(true)} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all aspect-square ${splits.length > 0 || payerId !== 'me' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Users className="w-4 h-4" /><span className="text-[9px] font-bold">Dividir</span></button>}
                         </div>
                     </div>
 
@@ -373,7 +373,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 </div>
 
                 <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 fixed bottom-0 left-0 right-0 md:relative md:border-none md:bg-transparent dark:md:bg-transparent z-20">
-                    <Button onClick={handleSubmit} className={`w-full h-14 text-lg shadow-xl shadow-slate-200 ${buttonMainBg} hover:opacity-90 transition-opacity`}>
+                    <Button onClick={handleSubmit} className={`w-full h-12 text-base shadow-xl shadow-slate-200 ${buttonMainBg} hover:opacity-90 transition-opacity`}>
                         {initialData ? 'Salvar Alterações' : 'Confirmar Transação'}
                     </Button>
                 </div>
