@@ -235,7 +235,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                                                                 <div className="flex-1">
                                                                     <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{n.description}</p>
                                                                     <p className="text-[10px] text-slate-500 mb-2">
-                                                                        Vence: {new Date(n.notificationDate!).toLocaleDateString('pt-BR')}
+                                                                        Vence: {new Date(n.notificationDate || n.date).toLocaleDateString('pt-BR')}
                                                                     </p>
                                                                     <div className="flex gap-2">
                                                                         <button onClick={() => { onNotificationClick(n.id); setIsNotifOpen(false); }} className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded hover:bg-indigo-100">Ver</button>
