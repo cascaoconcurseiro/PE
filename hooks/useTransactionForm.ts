@@ -40,7 +40,7 @@ export const useTransactionForm = ({
     const [tripId, setTripId] = useState('');
     const [isTripSelectorOpen, setIsTripSelectorOpen] = useState(false);
 
-    const [convertedAmountStr, setConvertedAmountStr] = useState('');
+    const [exchangeRateStr, setExchangeRateStr] = useState('');
 
     // Logic: Shared/Split
     const [isShared, setIsShared] = useState(false);
@@ -88,6 +88,10 @@ export const useTransactionForm = ({
     // Only for Expenses/Incomes. Transfers handle their own conversion via destinationAmount.
     const needsConversion = activeCurrency !== accountCurrency && !isTransfer && payerId === 'me';
 
+    // Calculate converted value for display
+    const activeExchangeRate = parseFloat(exchangeRateStr.replace(',', '.')) || 0;
+    const convertedValue = activeAmount * activeExchangeRate;
+
     // Effects
     useEffect(() => {
         if (initialData) {
@@ -129,12 +133,11 @@ export const useTransactionForm = ({
             setTotalInstallments(t.totalInstallments || 2);
             setIsRefund(!!t.isRefund);
 
-            // If editing, try to calculate converted amount from exchange rate if available
-            if (t.exchangeRate && t.amount) {
-                const conv = t.amount * t.exchangeRate;
-                setConvertedAmountStr(conv.toFixed(2));
+            // If editing, load the exchange rate
+            if (t.exchangeRate) {
+                setExchangeRateStr(t.exchangeRate.toString());
             } else {
-                setConvertedAmountStr('');
+                setExchangeRateStr('');
             }
 
         } else {
@@ -193,13 +196,11 @@ export const useTransactionForm = ({
         // Validate conversion if needed
         let finalExchangeRate: number | undefined = undefined;
         if (needsConversion) {
-            const convertedAmount = parseFloat(convertedAmountStr.replace(',', '.'));
-            if (!convertedAmount || convertedAmount <= 0) {
-                errors.convertedAmount = 'Valor convertido obrigatório';
+            const rate = parseFloat(exchangeRateStr.replace(',', '.'));
+            if (!rate || rate <= 0) {
+                errors.exchangeRate = 'Cotação obrigatória';
             } else {
-                // Calculate exchange rate: How much Account Currency needed for 1 Unit of Transaction Currency
-                // Rate = Account Amount / Transaction Amount
-                finalExchangeRate = convertedAmount / activeAmount;
+                finalExchangeRate = rate;
             }
         }
 
@@ -289,7 +290,7 @@ export const useTransactionForm = ({
         notificationDate, setNotificationDate,
         reminderOption, setReminderOption,
         isRefund, setIsRefund,
-        convertedAmountStr, setConvertedAmountStr,
+        exchangeRateStr, setExchangeRateStr,
         errors,
 
         // Derived
@@ -297,6 +298,7 @@ export const useTransactionForm = ({
         activeCurrency,
         accountCurrency,
         needsConversion,
+        convertedValue,
         isCreditCard,
         isExpense,
         isIncome,

@@ -67,7 +67,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         notificationDate, setNotificationDate,
         reminderOption, setReminderOption,
         isRefund,
-        convertedAmountStr, setConvertedAmountStr,
+        exchangeRateStr, setExchangeRateStr,
         errors,
 
         // Derived
@@ -75,6 +75,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         activeCurrency,
         accountCurrency,
         needsConversion,
+        convertedValue,
         isCreditCard,
         isExpense,
         isIncome,
@@ -160,20 +161,27 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     {needsConversion && (
                         <div className="mt-4 flex flex-col items-center animate-in fade-in slide-in-from-top-2 w-full border-t border-slate-200/50 pt-4">
                             <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-1">
-                                <RefreshCcw className="w-3 h-3" /> Valor Convertido ({accountCurrency})
+                                <RefreshCcw className="w-3 h-3" /> Cotação (1 {activeCurrency} = ? {accountCurrency})
                             </label>
-                            <div className="relative flex items-center justify-center w-full px-4">
-                                <span className="text-xl font-bold mr-1 opacity-70 text-slate-600">R$</span>
+                            <div className="relative flex items-center justify-center w-full px-4 mb-2">
+                                <span className="text-xl font-bold mr-1 opacity-70 text-slate-600">Tx</span>
                                 <input
                                     type="number"
                                     inputMode="decimal"
-                                    value={convertedAmountStr}
-                                    onChange={(e) => setConvertedAmountStr(e.target.value)}
+                                    value={exchangeRateStr}
+                                    onChange={(e) => setExchangeRateStr(e.target.value)}
                                     placeholder="0,00"
                                     className="w-full max-w-[150px] text-center text-2xl font-bold bg-transparent border-b-2 border-slate-300 outline-none placeholder-slate-400 text-slate-700 focus:border-slate-500 transition-all"
                                 />
                             </div>
-                            {errors.convertedAmount && <p className="text-red-700 text-xs font-bold mt-1">{errors.convertedAmount}</p>}
+                            {errors.exchangeRate && <p className="text-red-700 text-xs font-bold mt-1 mb-2">{errors.exchangeRate}</p>}
+
+                            <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-500">Total a Debitar:</span>
+                                <span className="text-sm font-black text-slate-800 dark:text-white">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: accountCurrency }).format(convertedValue)}
+                                </span>
+                            </div>
                         </div>
                     )}
                 </div>
