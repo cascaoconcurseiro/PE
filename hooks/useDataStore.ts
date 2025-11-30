@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabaseService } from '../services/supabaseService';
 import { db } from '../services/db'; // Keeping Dexie only for migration source
 import { 
@@ -19,12 +19,20 @@ export const useDataStore = () => {
     const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
     const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
     
-    const [isLoading, setIsLoading] = useState(true);
+    // Loading States
+    const [isLoading, setIsLoading] = useState(true); // Full screen loader
+    const [isRefetching, setIsRefetching] = useState(false); // Background loader
+    const isInitialized = useRef(false);
 
     // --- FETCH DATA FROM SUPABASE ---
-    const fetchData = useCallback(async () => {
-        try {
+    const fetchData = useCallback(async (forceLoading = false) => {
+        if (!isInitialized.current || forceLoading) {
             setIsLoading(true);
+        } else {
+            setIsRefetching(true);
+        }
+
+        try {
             const [
                 accs, txs, trps, bdgts, gls, fam, assts, snaps, cats
             ] = await Promise.all([
@@ -48,40 +56,40 @@ export const useDataStore = () => {
             setAssets(assts);
             setSnapshots(snaps);
             setCustomCategories(cats);
+            
+            isInitialized.current = true;
         } catch (error) {
             console.error("Error fetching data from Supabase:", error);
         } finally {
             setIsLoading(false);
+            setIsRefetching(false);
         }
     }, []);
 
     // Initial Load
     useEffect(() => {
-        fetchData();
+        fetchData(true);
     }, [fetchData]);
 
     // --- ACTIONS (Optimistic Updates + Cloud Save) ---
 
     const handleLogin = async (userProfile: UserProfile) => {
         setUser(userProfile);
-        fetchData(); // Reload data for this user
+        fetchData(true); // Reload data for this user with full loader
     };
 
     const handleLogout = async () => {
         setUser(null);
         setAccounts([]);
         setTransactions([]);
+        isInitialized.current = false;
     };
 
     // Helper to refresh data after mutation
-    const refresh = fetchData;
+    const refresh = () => fetchData(false);
 
     const handleAddTransaction = async (newTx: Omit<Transaction, 'id'>) => {
         const now = new Date().toISOString();
-        // ... (Keep installment logic logic from previous version if needed, but simplified here for cloud)
-        // For simplicity, assuming single transaction creation or basic installment loop
-        // Re-implementing installment logic on client-side before sending to Supabase:
-        
         const totalInstallments = Number(newTx.totalInstallments);
         const txsToCreate: any[] = [];
 
@@ -134,6 +142,8 @@ export const useDataStore = () => {
             });
         }
 
+        // Optimistic UI Update (Optional but good for feeling instant)
+        // For now, we rely on fast background refresh
         await supabaseService.bulkCreate('transactions', txsToCreate);
         refresh();
     };
@@ -144,15 +154,7 @@ export const useDataStore = () => {
     };
 
     const handleDeleteTransaction = async (id: string) => {
-        // Check for series logic here if needed, simplifed to delete single for now or modify service to support query delete
-        const tx = transactions.find(t => t.id === id);
-        if (tx && tx.seriesId) {
-            // If it's a series, logic to delete all? For safety, deleting only one in this generic handler
-            // To delete series, we'd need a bulk delete in service.
-            await supabaseService.delete('transactions', id);
-        } else {
-            await supabaseService.delete('transactions', id);
-        }
+        await supabaseService.delete('transactions', id);
         refresh();
     };
 
@@ -165,7 +167,6 @@ export const useDataStore = () => {
              updatedAt: new Date().toISOString()
          }));
          
-         // Bulk update is tricky in standard REST, loop for now or add RPC later
          for (const tx of txsToUpdate) {
              await supabaseService.update('transactions', tx);
          }
@@ -204,7 +205,6 @@ export const useDataStore = () => {
 
     // --- MIGRATION TOOL (Local -> Cloud) ---
     const handleImportData = async () => {
-        // Logic handled by Settings component importing JSON, but here we implement "Sync Local DB to Cloud"
         if (!confirm("Isso irá pegar todos os dados locais deste navegador e enviar para a nuvem Supabase. Deseja continuar?")) return;
         
         setIsLoading(true);
@@ -241,12 +241,10 @@ export const useDataStore = () => {
     };
 
     const handleResetSystem = async () => {
-        // WARNING: This deletes from Cloud now!
-        // We might want to restrict this, but for now mapping to delete logic
-        // This implementation is complex on cloud without RLS 'delete all' policy or iterating.
-        // Simplest: Just alert user this feature deletes LOCAL data in this version.
-        await db.delete();
-        window.location.reload();
+        if (confirm("ATENÇÃO: Isso apagará os dados LOCAIS (cache) para corrigir conflitos. Seus dados na nuvem (Supabase) estarão seguros. Continuar?")) {
+            await db.delete();
+            window.location.reload();
+        }
     };
 
     return {
@@ -261,6 +259,7 @@ export const useDataStore = () => {
         snapshots,
         customCategories,
         isLoading,
+        isRefetching,
         handlers: {
             handleLogin,
             handleLogout,
@@ -287,7 +286,7 @@ export const useDataStore = () => {
             handleAddAsset,
             handleUpdateAsset,
             handleDeleteAsset,
-            handleImportData, // Now acts as "Sync to Cloud"
+            handleImportData, 
             handleResetSystem
         }
     };

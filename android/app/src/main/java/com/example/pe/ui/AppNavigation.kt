@@ -8,12 +8,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.pe.ui.features.accounts.AddAccountScreen
 import com.example.pe.ui.features.add.AddTransactionScreen
+import com.example.pe.ui.features.cards.AddCardScreen
 import com.example.pe.ui.features.edit.EditTransactionScreen
 
 object Routes {
     const val HOME = "home"
     const val ADD_TRANSACTION = "add_transaction"
     const val ADD_ACCOUNT = "add_account"
+    const val ADD_CARD = "add_card"
     const val EDIT_TRANSACTION = "edit_transaction"
 }
 
@@ -30,6 +32,9 @@ fun AppNavigation() {
         }
         composable(Routes.ADD_ACCOUNT) {
             AddAccountScreen(navController = navController)
+        }
+        composable(Routes.ADD_CARD) {
+            AddCardScreen(navController = navController)
         }
         composable(
             route = "${Routes.EDIT_TRANSACTION}/{transactionId}",

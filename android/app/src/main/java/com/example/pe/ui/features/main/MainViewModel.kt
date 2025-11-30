@@ -1,6 +1,8 @@
 package com.example.pe.ui.features.main
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.pe.data.ExchangeRateRepository
 import com.example.pe.data.local.TransactionDao
 import com.example.pe.data.local.TransactionWithCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,13 +15,24 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    transactionDao: TransactionDao
+    transactionDao: TransactionDao,
+    exchangeRateRepository: ExchangeRateRepository
 ) : ViewModel() {
+
+    private val baseCurrency = "BRL"
 
     val transactions: Flow<List<TransactionWithCategory>> = transactionDao.getAllWithCategory()
 
     val totalBalance: StateFlow<Double> = transactionDao.getAllWithCategory()
-        .map { it.sumOf { item -> item.transaction.amount } }
+        .map { list ->
+            list.sumOf { item ->
+                exchangeRateRepository.convert(
+                    amount = item.transaction.amount,
+                    from = item.transaction.currency,
+                    to = baseCurrency
+                )
+            }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

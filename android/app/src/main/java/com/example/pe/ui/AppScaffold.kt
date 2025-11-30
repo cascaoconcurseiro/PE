@@ -3,6 +3,7 @@ package com.example.pe.ui
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -20,17 +21,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.pe.ui.features.accounts.AccountsScreen
+import com.example.pe.ui.features.cards.CardsScreen
 import com.example.pe.ui.features.main.MainScreen
 
 sealed class BottomNavItem(val route: String, val icon: ImageVector, val label: String) {
     object Transactions : BottomNavItem("transactions", Icons.Default.SyncAlt, "Transações")
     object Accounts : BottomNavItem("accounts", Icons.Default.AccountBalance, "Contas")
+    object Cards : BottomNavItem("cards", Icons.Default.CreditCard, "Cartões")
 }
 
 @Composable
 fun AppScaffold() {
     val navController = rememberNavController()
-    val items = listOf(BottomNavItem.Transactions, BottomNavItem.Accounts)
+    val items = listOf(BottomNavItem.Transactions, BottomNavItem.Accounts, BottomNavItem.Cards)
 
     Scaffold(
         bottomBar = {
@@ -63,6 +66,7 @@ fun AppScaffold() {
         ) {
             composable(BottomNavItem.Transactions.route) { MainScreen(navController) }
             composable(BottomNavItem.Accounts.route) { AccountsScreen(navController) }
+            composable(BottomNavItem.Cards.route) { CardsScreen(navController) }
         }
     }
 }

@@ -11,5 +11,6 @@ data class Transaction(
     val currency: String,
     val date: Long,
     val categoryId: String,
-    val accountId: String // New field
+    val accountId: String?, // Now nullable
+    val cardId: String?      // New nullable field
 )

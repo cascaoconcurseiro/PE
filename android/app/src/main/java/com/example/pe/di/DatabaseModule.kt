@@ -7,9 +7,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.pe.data.local.Account
 import com.example.pe.data.local.AccountDao
 import com.example.pe.data.local.AppDatabase
+import com.example.pe.data.local.CardDao
 import com.example.pe.data.local.Category
 import com.example.pe.data.local.CategoryDao
 import com.example.pe.data.local.MIGRATION_1_2
+import com.example.pe.data.local.MIGRATION_2_3
 import com.example.pe.data.local.TransactionDao
 import dagger.Module
 import dagger.Provides
@@ -50,7 +52,7 @@ object DatabaseModule {
                 }
             }
         })
-        .addMigrations(MIGRATION_1_2)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
         .build()
     }
 
@@ -67,6 +69,11 @@ object DatabaseModule {
     @Provides
     fun provideAccountDao(appDatabase: AppDatabase): AccountDao {
         return appDatabase.accountDao()
+    }
+
+    @Provides
+    fun provideCardDao(appDatabase: AppDatabase): CardDao {
+        return appDatabase.cardDao()
     }
 }
 

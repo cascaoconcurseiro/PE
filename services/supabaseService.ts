@@ -18,13 +18,10 @@ const mapToApp = (data: any): any => {
     
     const newObj: any = {};
     for (const key in data) {
-        // Convert specific fields manually if needed, or simple mapping
-        if (key === 'user_id') continue; // Don't need user_id in frontend app logic usually
-        
-        // Convert snake_case to camelCase
+        if (key === 'user_id') continue;
         const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
         
-        // Specific Fixes for naming mismatches
+        // Specific Mappings (keeping previous logic)
         if (key === 'account_id') newObj['accountId'] = data[key];
         else if (key === 'destination_account_id') newObj['destinationAccountId'] = data[key];
         else if (key === 'trip_id') newObj['tripId'] = data[key];
@@ -69,17 +66,17 @@ const mapToApp = (data: any): any => {
     return newObj;
 };
 
-// Mapper for Saving (camelCase to snake_case)
+// Mapper for Saving
 const mapToDB = (data: any, userId: string): any => {
     const newObj: any = { user_id: userId };
     
-    // Common fields
+    // Basic Fields
     if (data.id) newObj.id = data.id;
     if (data.createdAt) newObj.created_at = data.createdAt;
     if (data.updatedAt) newObj.updated_at = data.updatedAt;
     if (data.deleted !== undefined) newObj.deleted = data.deleted;
 
-    // Specific Mappings
+    // General
     if (data.name !== undefined) newObj.name = data.name;
     if (data.amount !== undefined) newObj.amount = data.amount;
     if (data.date !== undefined) newObj.date = data.date;
@@ -87,7 +84,7 @@ const mapToDB = (data: any, userId: string): any => {
     if (data.category !== undefined) newObj.category = data.category;
     if (data.description !== undefined) newObj.description = data.description;
     if (data.currency !== undefined) newObj.currency = data.currency;
-    
+
     // Accounts
     if (data.initialBalance !== undefined) newObj.initial_balance = data.initialBalance;
     if (data.balance !== undefined) newObj.balance = data.balance;
@@ -163,10 +160,45 @@ const mapToDB = (data: any, userId: string): any => {
     return newObj;
 };
 
+// Audit Helper
+const logAction = async (table: string, id: string, action: 'CREATE' | 'UPDATE' | 'DELETE', details?: any) => {
+    try {
+        const userId = await getUserId();
+        // Mapeia tabela para entidade
+        let entity = table.toUpperCase().replace('S', ''); // TRANSACTIONS -> TRANSACTION
+        if (entity === 'FAMILY_MEMBER') entity = 'FAMILY';
+        if (entity === 'CUSTOM_CATEGORIE') entity = 'CATEGORY'; // Fix plural edge case
+        
+        // Don't block the main thread with audit logs
+        supabase.from('audit_logs').insert({
+            user_id: userId,
+            entity,
+            entity_id: id,
+            action,
+            changes: details ? JSON.stringify(details) : null
+        }).then(({ error }) => {
+            if (error) console.error('Audit Log Error:', error);
+        });
+    } catch (e) {
+        console.error('Audit Log Failed', e);
+    }
+};
+
 export const supabaseService = {
     // GENERIC CRUD
     async getAll(table: string) {
-        const { data, error } = await supabase.from(table).select('*').eq('deleted', false);
+        let query = supabase.from(table).select('*').eq('deleted', false);
+        
+        // Apply Ordering based on Table
+        if (table === 'transactions' || table === 'assets' || table === 'snapshots') {
+            query = query.order('date', { ascending: false }); // Newest first for Transactions/Snapshots
+        } else if (table === 'trips') {
+            query = query.order('start_date', { ascending: false });
+        } else {
+            query = query.order('created_at', { ascending: true }); // Default
+        }
+        
+        const { data, error } = await query;
         if (error) throw error;
         return mapToApp(data);
     },
@@ -176,6 +208,7 @@ export const supabaseService = {
         const dbItem = mapToDB(item, userId);
         const { error } = await supabase.from(table).insert(dbItem);
         if (error) throw error;
+        await logAction(table, item.id, 'CREATE', item);
     },
 
     async update(table: string, item: any) {
@@ -183,11 +216,13 @@ export const supabaseService = {
         const dbItem = mapToDB(item, userId);
         const { error } = await supabase.from(table).update(dbItem).eq('id', item.id);
         if (error) throw error;
+        await logAction(table, item.id, 'UPDATE', { name: item.name, amount: item.amount }); // Minimal log
     },
 
     async delete(table: string, id: string) {
         const { error } = await supabase.from(table).update({ deleted: true }).eq('id', id);
         if (error) throw error;
+        await logAction(table, id, 'DELETE');
     },
 
     // BULK OPERATIONS (For Migration/Sync)
@@ -208,7 +243,8 @@ export const supabaseService = {
     async getAssets() { return this.getAll('assets'); },
     async getCustomCategories() { return this.getAll('custom_categories'); },
     async getSnapshots() { 
-        const { data, error } = await supabase.from('snapshots').select('*'); 
+        // Snapshots don't have 'deleted' column typically, but let's check or assume all
+        const { data, error } = await supabase.from('snapshots').select('*').order('date', { ascending: false }); 
         if (error) throw error;
         return mapToApp(data);
     }
