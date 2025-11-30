@@ -15,7 +15,7 @@ import { Family } from './components/Family';
 import { Settings } from './components/Settings';
 import { Investments } from './components/Investments';
 import { Reports } from './components/Reports';
-import { View, SyncStatus } from './types';
+import { View, SyncStatus, TransactionType } from './types';
 import { calculateBalances } from './services/balanceEngine';
 import { ThemeProvider } from './components/ui/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
@@ -101,7 +101,19 @@ const App = () => {
     const activeNotifications = useMemo(() => {
         if (!transactions) return [];
         const today = new Date().toISOString().split('T')[0];
-        return transactions.filter(t => t.enableNotification && t.notificationDate && t.notificationDate <= today);
+
+        // 1. Configured Reminders (Explicit)
+        const reminders = transactions.filter(t => t.enableNotification && t.notificationDate && t.notificationDate <= today);
+
+        // 2. Critical: Overdue or Due Today Expenses (Unpaid & No Explicit Reminder)
+        const critical = transactions.filter(t =>
+            t.type === TransactionType.EXPENSE &&
+            !t.isSettled &&
+            t.date <= today &&
+            !t.enableNotification
+        );
+
+        return [...reminders, ...critical].sort((a, b) => a.date.localeCompare(b.date));
     }, [transactions]);
 
     const handleRequestEdit = (id: string) => {
