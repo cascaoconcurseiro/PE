@@ -25,6 +25,7 @@ interface SettingsProps {
     onDeleteAccount: (id: string) => void;
     onUpdateTrip: (trip: Trip) => void;
     onDeleteTrip: (id: string) => void;
+    onResetSystem: () => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({
@@ -43,7 +44,8 @@ export const Settings: React.FC<SettingsProps> = ({
     onUpdateAccount,
     onDeleteAccount,
     onUpdateTrip,
-    onDeleteTrip
+    onDeleteTrip,
+    onResetSystem
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [newCategoryName, setNewCategoryName] = useState('');
@@ -56,6 +58,14 @@ export const Settings: React.FC<SettingsProps> = ({
     });
     const [inputModal, setInputModal] = useState<{ isOpen: boolean; title: string; value: string; onConfirm: (val: string) => void }>({
         isOpen: false, title: '', value: '', onConfirm: () => { }
+    });
+
+    // Security Modal State
+    const [securityModal, setSecurityModal] = useState({
+        isOpen: false,
+        step: 0,
+        generatedCode: '',
+        inputCode: ''
     });
 
     // API Key State
@@ -125,24 +135,31 @@ export const Settings: React.FC<SettingsProps> = ({
         reader.readAsText(file);
     };
 
-    const handleClearData = async () => {
-        setConfirmModal({
+    const handleStartReset = () => {
+        const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+        setSecurityModal({
             isOpen: true,
-            title: 'Zona de Perigo',
-            message: 'ATENÇÃO: Isso apagará TODOS os seus dados deste dispositivo. Se você não fez backup, eles serão perdidos. Deseja continuar?',
-            onConfirm: async () => {
-                try {
-                    localStorage.clear();
-                    const { db } = await import('../services/db');
-                    await db.delete();
-                    await db.open();
-                    window.location.reload();
-                } catch (e) {
-                    console.error("Error clearing data:", e);
-                    addToast("Erro ao limpar dados. Tente novamente.", 'error');
-                }
-            }
+            step: 1,
+            generatedCode: code,
+            inputCode: ''
         });
+    };
+
+    const handleSecuritySubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (securityModal.step === 1) {
+            if (securityModal.inputCode.toUpperCase() === securityModal.generatedCode) {
+                setSecurityModal(prev => ({ ...prev, step: 2, inputCode: '' }));
+            } else {
+                addToast('Código de segurança incorreto.', 'error');
+            }
+        } else if (securityModal.step === 2) {
+            if (securityModal.inputCode.toUpperCase() === 'CONFIRMAR') {
+                onResetSystem();
+            } else {
+                addToast('Digite CONFIRMAR para prosseguir.', 'error');
+            }
+        }
     };
 
     const handleAddCat = (e: React.FormEvent) => {
@@ -393,7 +410,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 <Button
                     variant="danger"
-                    onClick={handleClearData}
+                    onClick={handleStartReset}
                     className="w-full h-12 flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-800 shadow-sm"
                 >
                     <Trash2 className="w-4 h-4" />
@@ -438,6 +455,65 @@ export const Settings: React.FC<SettingsProps> = ({
                         <Button type="submit" className="flex-1">Salvar</Button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Security Reset Modal */}
+            <Modal
+                isOpen={securityModal.isOpen}
+                onClose={() => setSecurityModal(prev => ({ ...prev, isOpen: false, step: 0 }))}
+                title="Resetar Sistema"
+            >
+                <div className="space-y-4">
+                    <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-800 text-red-800 dark:text-red-300 text-sm">
+                        <p className="font-bold flex items-center gap-2 mb-2"><AlertTriangle className="w-4 h-4" /> AÇÃO IRREVERSÍVEL</p>
+                        <p>Todos os dados serão apagados permanentemente. Não será possível recuperar as informações após esta ação.</p>
+                    </div>
+
+                    <form onSubmit={handleSecuritySubmit} className="space-y-4">
+                        {securityModal.step === 1 && (
+                            <div className="space-y-3 animate-in slide-in-from-right">
+                                <p className="text-sm text-slate-600 dark:text-slate-300">
+                                    Para confirmar, digite o código de segurança abaixo:
+                                </p>
+                                <div className="text-center py-4 bg-slate-100 dark:bg-slate-800 rounded-xl font-mono text-2xl font-black tracking-widest text-slate-800 dark:text-white select-none">
+                                    {securityModal.generatedCode}
+                                </div>
+                                <input
+                                    autoFocus
+                                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none font-bold text-center uppercase"
+                                    placeholder="Digite o código"
+                                    value={securityModal.inputCode}
+                                    onChange={e => setSecurityModal(prev => ({ ...prev, inputCode: e.target.value }))}
+                                />
+                            </div>
+                        )}
+
+                        {securityModal.step === 2 && (
+                            <div className="space-y-3 animate-in slide-in-from-right">
+                                <p className="text-sm text-slate-600 dark:text-slate-300 font-bold">
+                                    Última verificação.
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Digite a palavra <strong>CONFIRMAR</strong> para apagar tudo.
+                                </p>
+                                <input
+                                    autoFocus
+                                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-red-200 dark:border-red-800 outline-none font-bold text-center uppercase text-red-600 dark:text-red-400"
+                                    placeholder="CONFIRMAR"
+                                    value={securityModal.inputCode}
+                                    onChange={e => setSecurityModal(prev => ({ ...prev, inputCode: e.target.value }))}
+                                />
+                            </div>
+                        )}
+
+                        <div className="flex gap-2 pt-2">
+                            <Button type="button" variant="secondary" onClick={() => setSecurityModal(prev => ({ ...prev, isOpen: false, step: 0 }))} className="flex-1">Cancelar</Button>
+                            <Button type="submit" variant="danger" className="flex-1" disabled={!securityModal.inputCode}>
+                                {securityModal.step === 1 ? 'Verificar' : 'APAGAR TUDO'}
+                            </Button>
+                        </div>
+                    </form>
+                </div>
             </Modal>
         </div >
     );

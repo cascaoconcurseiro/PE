@@ -458,6 +458,29 @@ export const useDataStore = () => {
         alert('Dados restaurados com sucesso!');
     };
 
+    const handleResetSystem = async () => {
+        try {
+            await db.transaction('rw', db.tables, async () => {
+                // Clear all tables except userProfile (to keep login)
+                const clearPromises = db.tables.map(table => {
+                    if (table.name !== 'userProfile') {
+                        return table.clear();
+                    }
+                    return Promise.resolve();
+                });
+                await Promise.all(clearPromises);
+
+                // Log the reset (will be the only log)
+                await logAudit('ACCOUNT', 'SYSTEM', 'DELETE', { action: 'RESET_SYSTEM', timestamp: new Date().toISOString() });
+            });
+
+            window.location.reload();
+        } catch (error) {
+            console.error("Failed to reset system:", error);
+            alert("Erro ao resetar o sistema. Tente novamente.");
+        }
+    };
+
     return {
         user,
         accounts,
@@ -495,7 +518,8 @@ export const useDataStore = () => {
             handleAddAsset,
             handleUpdateAsset,
             handleDeleteAsset,
-            handleImportData
+            handleImportData,
+            handleResetSystem
         }
     };
 };
