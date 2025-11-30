@@ -3,11 +3,14 @@ import { supabaseService } from '../services/supabaseService';
 import { db } from '../services/db'; // Keeping Dexie only for migration source
 import { 
     Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset, 
-    CustomCategory, SyncStatus, UserProfile, Snapshot, AuditLog, TransactionType 
+    CustomCategory, SyncStatus, UserProfile, Snapshot
 } from '../types';
 import { parseDate } from '../utils';
+import { useToast } from '../components/ui/Toast';
+import { supabase } from '../integrations/supabase/client';
 
 export const useDataStore = () => {
+    const { addToast } = useToast();
     const [user, setUser] = useState<UserProfile | null>(null);
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -24,7 +27,13 @@ export const useDataStore = () => {
 
     // --- FETCH DATA FROM SUPABASE ---
     const fetchData = useCallback(async (forceLoading = false) => {
-        // Only show full loader on first load or explicit force
+        // Check auth first
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            setIsLoading(false);
+            return;
+        }
+
         if (!isInitialized.current || forceLoading) {
             setIsLoading(true);
         }
@@ -44,7 +53,6 @@ export const useDataStore = () => {
                 supabaseService.getCustomCategories()
             ]);
 
-            // Batch updates to avoid multiple renders
             setAccounts(accs);
             setTransactions(txs);
             setTrips(trps);
@@ -58,6 +66,7 @@ export const useDataStore = () => {
             isInitialized.current = true;
         } catch (error) {
             console.error("Error fetching data from Supabase:", error);
+            addToast("Erro ao carregar dados da nuvem.", 'error');
         } finally {
             setIsLoading(false);
         }
@@ -72,8 +81,6 @@ export const useDataStore = () => {
 
     const handleLogin = async (userProfile: UserProfile) => {
         setUser(userProfile);
-        // Don't force load here if we already fetching in useEffect, 
-        // but usually we want to ensure data matches user.
         fetchData(true); 
     };
 
@@ -86,117 +93,133 @@ export const useDataStore = () => {
 
     const refresh = () => fetchData(false);
 
+    // Wrapper for async operations to handle errors
+    const performOperation = async (operation: () => Promise<void>, successMessage?: string) => {
+        try {
+            await operation();
+            if (successMessage) addToast(successMessage, 'success');
+            refresh();
+        } catch (error: any) {
+            console.error("Operation failed:", error);
+            addToast(`Erro: ${error.message || 'Falha na operação'}`, 'error');
+        }
+    };
+
     const handleAddTransaction = async (newTx: Omit<Transaction, 'id'>) => {
-        const now = new Date().toISOString();
-        const totalInstallments = Number(newTx.totalInstallments);
-        const txsToCreate: any[] = [];
+        await performOperation(async () => {
+            const now = new Date().toISOString();
+            const totalInstallments = Number(newTx.totalInstallments);
+            const txsToCreate: any[] = [];
 
-        if (newTx.isInstallment && totalInstallments > 1) {
-            const baseDate = parseDate(newTx.date);
-            const seriesId = crypto.randomUUID();
-            const baseInstallmentValue = Math.floor((newTx.amount / totalInstallments) * 100) / 100;
-            let accumulatedAmount = 0;
+            if (newTx.isInstallment && totalInstallments > 1) {
+                const baseDate = parseDate(newTx.date);
+                const seriesId = crypto.randomUUID();
+                const baseInstallmentValue = Math.floor((newTx.amount / totalInstallments) * 100) / 100;
+                let accumulatedAmount = 0;
 
-            for (let i = 0; i < totalInstallments; i++) {
-                const nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-                nextDate.setMonth(nextDate.getMonth() + i);
-                const targetDay = baseDate.getDate();
-                const daysInTargetMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
-                nextDate.setDate(Math.min(targetDay, daysInTargetMonth));
-                nextDate.setHours(baseDate.getHours(), baseDate.getMinutes(), baseDate.getSeconds());
+                for (let i = 0; i < totalInstallments; i++) {
+                    const nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+                    nextDate.setMonth(nextDate.getMonth() + i);
+                    const targetDay = baseDate.getDate();
+                    const daysInTargetMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+                    nextDate.setDate(Math.min(targetDay, daysInTargetMonth));
+                    nextDate.setHours(baseDate.getHours(), baseDate.getMinutes(), baseDate.getSeconds());
 
-                let currentAmount = baseInstallmentValue;
-                if (i === totalInstallments - 1) {
-                    currentAmount = Number((newTx.amount - accumulatedAmount).toFixed(2));
+                    let currentAmount = baseInstallmentValue;
+                    if (i === totalInstallments - 1) {
+                        currentAmount = Number((newTx.amount - accumulatedAmount).toFixed(2));
+                    }
+                    accumulatedAmount += currentAmount;
+
+                    const currentSharedWith = newTx.sharedWith?.map(s => ({
+                        ...s,
+                        assignedAmount: Number(((s.assignedAmount / newTx.amount) * currentAmount).toFixed(2))
+                    }));
+
+                    txsToCreate.push({
+                        ...newTx,
+                        id: crypto.randomUUID(),
+                        amount: currentAmount,
+                        originalAmount: newTx.amount,
+                        sharedWith: currentSharedWith,
+                        seriesId: seriesId,
+                        date: nextDate.toISOString().split('T')[0],
+                        currentInstallment: i + 1,
+                        totalInstallments: totalInstallments,
+                        description: `${newTx.description} (${i + 1}/${totalInstallments})`,
+                        createdAt: now,
+                        updatedAt: now
+                    });
                 }
-                accumulatedAmount += currentAmount;
-
-                const currentSharedWith = newTx.sharedWith?.map(s => ({
-                    ...s,
-                    assignedAmount: Number(((s.assignedAmount / newTx.amount) * currentAmount).toFixed(2))
-                }));
-
+            } else {
                 txsToCreate.push({
                     ...newTx,
                     id: crypto.randomUUID(),
-                    amount: currentAmount,
-                    originalAmount: newTx.amount,
-                    sharedWith: currentSharedWith,
-                    seriesId: seriesId,
-                    date: nextDate.toISOString().split('T')[0],
-                    currentInstallment: i + 1,
-                    totalInstallments: totalInstallments,
-                    description: `${newTx.description} (${i + 1}/${totalInstallments})`,
                     createdAt: now,
                     updatedAt: now
                 });
             }
-        } else {
-            txsToCreate.push({
-                ...newTx,
-                id: crypto.randomUUID(),
-                createdAt: now,
-                updatedAt: now
-            });
-        }
 
-        await supabaseService.bulkCreate('transactions', txsToCreate);
-        refresh();
+            await supabaseService.bulkCreate('transactions', txsToCreate);
+        }, 'Transação salva!');
     };
 
     const handleUpdateTransaction = async (updatedTx: Transaction) => {
-        await supabaseService.update('transactions', { ...updatedTx, updatedAt: new Date().toISOString() });
-        refresh();
+        await performOperation(async () => {
+            await supabaseService.update('transactions', { ...updatedTx, updatedAt: new Date().toISOString() });
+        }, 'Transação atualizada!');
     };
 
     const handleDeleteTransaction = async (id: string) => {
-        await supabaseService.delete('transactions', id);
-        refresh();
+        await performOperation(async () => {
+            await supabaseService.delete('transactions', id);
+        }, 'Transação excluída.');
     };
 
     const handleAnticipateInstallments = async (ids: string[], targetDate: string, targetAccountId?: string) => {
-         const txsToUpdate = transactions.filter(t => ids.includes(t.id)).map(t => ({
-             ...t,
-             date: targetDate,
-             accountId: targetAccountId || t.accountId,
-             description: t.description.includes('(Antecipado)') ? t.description : `${t.description} (Antecipado)`,
-             updatedAt: new Date().toISOString()
-         }));
-         
-         for (const tx of txsToUpdate) {
-             await supabaseService.update('transactions', tx);
-         }
-         refresh();
+        await performOperation(async () => {
+             const txsToUpdate = transactions.filter(t => ids.includes(t.id)).map(t => ({
+                 ...t,
+                 date: targetDate,
+                 accountId: targetAccountId || t.accountId,
+                 description: t.description.includes('(Antecipado)') ? t.description : `${t.description} (Antecipado)`,
+                 updatedAt: new Date().toISOString()
+             }));
+             
+             for (const tx of txsToUpdate) {
+                 await supabaseService.update('transactions', tx);
+             }
+        }, 'Parcelas antecipadas!');
     };
 
     // --- GENERIC HANDLERS ---
-    const handleAddAccount = async (acc: any) => { await supabaseService.create('accounts', { ...acc, id: crypto.randomUUID() }); refresh(); };
-    const handleUpdateAccount = async (acc: any) => { await supabaseService.update('accounts', acc); refresh(); };
-    const handleDeleteAccount = async (id: string) => { await supabaseService.delete('accounts', id); refresh(); };
+    const handleAddAccount = async (acc: any) => performOperation(async () => { await supabaseService.create('accounts', { ...acc, id: crypto.randomUUID() }); }, 'Conta criada!');
+    const handleUpdateAccount = async (acc: any) => performOperation(async () => { await supabaseService.update('accounts', acc); }, 'Conta atualizada!');
+    const handleDeleteAccount = async (id: string) => performOperation(async () => { await supabaseService.delete('accounts', id); }, 'Conta excluída.');
 
-    const handleAddTrip = async (trip: any) => { await supabaseService.create('trips', { ...trip, id: crypto.randomUUID() }); refresh(); };
-    const handleUpdateTrip = async (trip: any) => { await supabaseService.update('trips', trip); refresh(); };
-    const handleDeleteTrip = async (id: string) => { await supabaseService.delete('trips', id); refresh(); };
+    const handleAddTrip = async (trip: any) => performOperation(async () => { await supabaseService.create('trips', { ...trip, id: crypto.randomUUID() }); }, 'Viagem criada!');
+    const handleUpdateTrip = async (trip: any) => performOperation(async () => { await supabaseService.update('trips', trip); }, 'Viagem atualizada!');
+    const handleDeleteTrip = async (id: string) => performOperation(async () => { await supabaseService.delete('trips', id); }, 'Viagem excluída.');
 
-    const handleAddMember = async (m: any) => { await supabaseService.create('family_members', { ...m, id: crypto.randomUUID() }); refresh(); };
-    const handleDeleteMember = async (id: string) => { await supabaseService.delete('family_members', id); refresh(); };
+    const handleAddMember = async (m: any) => performOperation(async () => { await supabaseService.create('family_members', { ...m, id: crypto.randomUUID() }); }, 'Membro adicionado!');
+    const handleDeleteMember = async (id: string) => performOperation(async () => { await supabaseService.delete('family_members', id); }, 'Membro removido.');
 
-    const handleAddCategory = async (name: string) => { await supabaseService.create('custom_categories', { id: crypto.randomUUID(), name }); refresh(); };
-    const handleDeleteCategory = async (id: string) => { await supabaseService.delete('custom_categories', id); refresh(); };
+    const handleAddCategory = async (name: string) => performOperation(async () => { await supabaseService.create('custom_categories', { id: crypto.randomUUID(), name }); }, 'Categoria adicionada!');
+    const handleDeleteCategory = async (id: string) => performOperation(async () => { await supabaseService.delete('custom_categories', id); }, 'Categoria removida.');
 
-    const handleAddBudget = async (b: any) => { await supabaseService.create('budgets', { ...b, id: crypto.randomUUID() }); refresh(); };
-    const handleUpdateBudget = async (b: any) => { await supabaseService.update('budgets', b); refresh(); };
-    const handleDeleteBudget = async (id: string) => { await supabaseService.delete('budgets', id); refresh(); };
+    const handleAddBudget = async (b: any) => performOperation(async () => { await supabaseService.create('budgets', { ...b, id: crypto.randomUUID() }); }, 'Orçamento salvo!');
+    const handleUpdateBudget = async (b: any) => performOperation(async () => { await supabaseService.update('budgets', b); }, 'Orçamento atualizado!');
+    const handleDeleteBudget = async (id: string) => performOperation(async () => { await supabaseService.delete('budgets', id); }, 'Orçamento removido.');
 
-    const handleAddGoal = async (g: any) => { await supabaseService.create('goals', { ...g, id: crypto.randomUUID() }); refresh(); };
-    const handleUpdateGoal = async (g: any) => { await supabaseService.update('goals', g); refresh(); };
-    const handleDeleteGoal = async (id: string) => { await supabaseService.delete('goals', id); refresh(); };
+    const handleAddGoal = async (g: any) => performOperation(async () => { await supabaseService.create('goals', { ...g, id: crypto.randomUUID() }); }, 'Meta criada!');
+    const handleUpdateGoal = async (g: any) => performOperation(async () => { await supabaseService.update('goals', g); }, 'Meta atualizada!');
+    const handleDeleteGoal = async (id: string) => performOperation(async () => { await supabaseService.delete('goals', id); }, 'Meta excluída.');
 
-    const handleAddAsset = async (a: any) => { await supabaseService.create('assets', { ...a, id: crypto.randomUUID() }); refresh(); };
-    const handleUpdateAsset = async (a: any) => { await supabaseService.update('assets', a); refresh(); };
-    const handleDeleteAsset = async (id: string) => { await supabaseService.delete('assets', id); refresh(); };
+    const handleAddAsset = async (a: any) => performOperation(async () => { await supabaseService.create('assets', { ...a, id: crypto.randomUUID() }); }, 'Ativo adicionado!');
+    const handleUpdateAsset = async (a: any) => performOperation(async () => { await supabaseService.update('assets', a); }, 'Ativo atualizado!');
+    const handleDeleteAsset = async (id: string) => performOperation(async () => { await supabaseService.delete('assets', id); }, 'Ativo removido.');
 
-    const handleAddSnapshot = async (s: any) => { await supabaseService.create('snapshots', { ...s, id: crypto.randomUUID() }); refresh(); };
+    const handleAddSnapshot = async (s: any) => performOperation(async () => { await supabaseService.create('snapshots', { ...s, id: crypto.randomUUID() }); });
 
     // --- MIGRATION TOOL ---
     const handleImportData = async () => {
@@ -224,18 +247,18 @@ export const useDataStore = () => {
             if (localCats.length) await supabaseService.bulkCreate('custom_categories', localCats);
             if (localSnaps.length) await supabaseService.bulkCreate('snapshots', localSnaps);
 
-            alert("Migração concluída com sucesso!");
+            addToast("Migração para nuvem concluída!", 'success');
             refresh();
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("Erro na migração.");
+            addToast(`Erro na migração: ${e.message}`, 'error');
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleResetSystem = async () => {
-        if (confirm("Isso apagará os dados LOCAIS. Continuar?")) {
+        if (confirm("Isso apagará os dados LOCAIS (Dexie). Continuar?")) {
             await db.delete();
             window.location.reload();
         }

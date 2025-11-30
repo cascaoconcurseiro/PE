@@ -4,6 +4,28 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.pe.data.local.dao.AccountDao
+import com.example.pe.data.local.dao.CardDao
+import com.example.pe.data.local.dao.CategoryDao
+import com.example.pe.data.local.dao.DebtParticipantDao
+import com.example.pe.data.local.dao.ExpenseSplitDao
+import com.example.pe.data.local.dao.PersonDao
+import com.example.pe.data.local.dao.SharedDebtDao
+import com.example.pe.data.local.dao.TransactionDao
+import com.example.pe.data.local.dao.TripDao
+import com.example.pe.data.local.dao.TripExpenseDao
+import com.example.pe.data.local.dao.TripParticipantDao
+import com.example.pe.data.local.model.Account
+import com.example.pe.data.local.model.Card
+import com.example.pe.data.local.model.Category
+import com.example.pe.data.local.model.DebtParticipant
+import com.example.pe.data.local.model.ExpenseSplit
+import com.example.pe.data.local.model.Person
+import com.example.pe.data.local.model.SharedDebt
+import com.example.pe.data.local.model.Transaction
+import com.example.pe.data.local.model.Trip
+import com.example.pe.data.local.model.TripExpense
+import com.example.pe.data.local.model.TripParticipant
 
 @Database(entities = [Transaction::class, Account::class, Card::class, Category::class, Person::class, SharedDebt::class, DebtParticipant::class, Trip::class, TripExpense::class, TripParticipant::class, ExpenseSplit::class], version = 6)
 abstract class AppDatabase : RoomDatabase() {
