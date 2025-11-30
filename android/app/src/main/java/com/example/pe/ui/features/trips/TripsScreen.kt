@@ -79,7 +79,7 @@ fun TripsScreen(navController: NavController, viewModel: TripsViewModel = hiltVi
             LazyColumn(modifier = Modifier.padding(innerPadding).padding(vertical = 8.dp)) {
                 items(trips) { trip ->
                     TripItem(trip = trip) {
-                        navController.navigate(Screen.CreateEditTrip.createRoute(trip.id))
+                        navController.navigate(Screen.TripDetails.createRoute(trip.id))
                     }
                 }
             }

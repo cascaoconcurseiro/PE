@@ -6,6 +6,7 @@ import com.example.pe.data.local.AppDatabase
 import com.example.pe.data.local.dao.ParticipantDao
 import com.example.pe.data.local.dao.TransactionDao
 import com.example.pe.data.local.dao.TripDao
+import com.example.pe.data.local.dao.TripExpenseDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -40,5 +41,10 @@ object DatabaseModule {
     @Provides
     fun provideParticipantDao(appDatabase: AppDatabase): ParticipantDao {
         return appDatabase.participantDao()
+    }
+
+    @Provides
+    fun provideTripExpenseDao(appDatabase: AppDatabase): TripExpenseDao {
+        return appDatabase.tripExpenseDao()
     }
 }

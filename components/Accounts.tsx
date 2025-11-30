@@ -179,7 +179,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                         <Button variant="ghost" onClick={() => setIsEditing(false)} className="p-0 hover:bg-transparent"><ArrowLeft className="w-6 h-6 text-slate-600 dark:text-slate-300" /></Button>
                         <h2 className="text-xl font-bold text-slate-800 dark:text-white">Editar Conta</h2>
                     </div>
-                    <AccountForm type={selectedAccount.type === AccountType.CREDIT_CARD ? 'CARDS' : 'BANKING'} initialData={selectedAccount} onSave={handleUpdate} onCancel={() => setIsEditing(false)} />
+                    <AccountForm type={selectedAccount.type === AccountType.CREDIT_CARD ? 'CARDS' : (selectedAccount.currency !== 'BRL' ? 'INTERNATIONAL' : 'BANKING')} initialData={selectedAccount} onSave={handleUpdate} onCancel={() => setIsEditing(false)} />
                 </div>
             );
         }
@@ -238,7 +238,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
             </div>
 
             {isFormOpen && (
-                <AccountForm type={activeTab === 'CARDS' ? 'CARDS' : 'BANKING'} onSave={(acc) => { onAddAccount(acc as any); setIsFormOpen(false); }} onCancel={() => setIsFormOpen(false)} />
+                <AccountForm type={activeTab === 'CARDS' ? 'CARDS' : activeTab === 'INTERNATIONAL' ? 'INTERNATIONAL' : 'BANKING'} onSave={(acc) => { onAddAccount(acc as any); setIsFormOpen(false); }} onCancel={() => setIsFormOpen(false)} />
             )}
 
             {activeTab === 'BANKING' && (
@@ -287,8 +287,8 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                     {internationalAccounts.map(account => (
                         <div key={account.id} onClick={() => handleAccountClick(account)} className="group bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden">
                              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 dark:bg-blue-900/20 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
-                             <div className="relative z-10 flex justify-between items-start mb-8"><div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl text-blue-700 dark:text-blue-400 group-hover:bg-blue-200 transition-colors"><Globe className="w-6 h-6" /></div><button className="text-slate-300 dark:text-slate-500 hover:text-slate-600 transition-colors"><MoreHorizontal className="w-5 h-5" /></button></div>
-                             <div className="relative z-10"><h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{account.name}</h3><p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-4">Conta Global</p><p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(account.balance, account.currency)}</PrivacyBlur></p></div>
+                             <div className="relative z-10 flex justify-between items-start mb-8"><div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl text-blue-700 dark:text-blue-400 group-hover:bg-blue-200 transition-colors">{getIcon(account.type)}</div><button className="text-slate-300 dark:text-slate-500 hover:text-slate-600 transition-colors"><MoreHorizontal className="w-5 h-5" /></button></div>
+                             <div className="relative z-10"><h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{account.name}</h3><p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-4">{account.type === AccountType.CHECKING ? 'Conta Global' : account.type}</p><p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(account.balance, account.currency)}</PrivacyBlur></p></div>
                         </div>
                     ))}
                     {internationalAccounts.length > 0 && (

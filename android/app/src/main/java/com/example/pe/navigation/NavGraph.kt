@@ -27,7 +27,9 @@ import com.example.pe.ui.features.accounts.AccountsScreen
 import com.example.pe.ui.features.add_transaction.AddTransactionScreen
 import com.example.pe.ui.features.home.HomeScreen
 import com.example.pe.ui.features.transactions.TransactionsScreen
+import com.example.pe.ui.features.trips.AddEditExpenseScreen
 import com.example.pe.ui.features.trips.CreateEditTripScreen
+import com.example.pe.ui.features.trips.TripDetailsScreen
 import com.example.pe.ui.features.trips.TripsScreen
 
 sealed class BottomNavItem(val screen: Screen, val icon: ImageVector, val label: String) {
@@ -91,6 +93,24 @@ fun NavGraph() {
                 })
             ) { 
                 CreateEditTripScreen(navController)
+            }
+            composable(
+                route = Screen.TripDetails.route,
+                arguments = listOf(navArgument("tripId") { type = NavType.IntType })
+            ) {
+                TripDetailsScreen(navController)
+            }
+            composable(
+                route = Screen.AddEditExpense.route,
+                arguments = listOf(
+                    navArgument("tripId") { type = NavType.IntType },
+                    navArgument("expenseId") { 
+                        type = NavType.StringType
+                        nullable = true
+                    }
+                )
+            ) {
+                AddEditExpenseScreen(navController)
             }
         }
     }

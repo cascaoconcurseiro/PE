@@ -12,4 +12,16 @@ sealed class Screen(val route: String) {
             return if (tripId != null) "create_edit_trip?tripId=$tripId" else "create_edit_trip"
         }
     }
+    object TripDetails : Screen("trip_details/{tripId}") {
+        fun createRoute(tripId: Int): String = "trip_details/$tripId"
+    }
+    object AddEditExpense : Screen("add_edit_expense/{tripId}?expenseId={expenseId}") {
+        fun createRoute(tripId: Int, expenseId: Int? = null): String {
+            return if (expenseId != null) {
+                "add_edit_expense/$tripId?expenseId=$expenseId"
+            } else {
+                "add_edit_expense/$tripId"
+            }
+        }
+    }
 }
