@@ -1,26 +1,27 @@
-# Análise da Conexão com Supabase
+# Status da Conexão com Supabase
 
-## Arquitetura Atual
-Após analisar todo o código do sistema, confirmo que a arquitetura atual é **Local-First (Armazenamento Local)**.
+## Arquitetura Atual: **Híbrida / Cloud Sync**
+
+O sistema evoluiu de uma arquitetura puramente local para uma arquitetura conectada à nuvem (Supabase), mantendo a performance local.
 
 ### Como funciona a conexão:
-1.  **Autenticação (Login/Senha):**
-    *   O sistema conecta ao **Supabase** apenas para verificar seu e-mail e senha.
-    *   Arquivos envolvidos: `components/Auth.tsx` e `index.tsx`.
-    *   Isso garante que apenas você entre no app.
 
-2.  **Dados Financeiros (Transações, Contas, etc.):**
-    *   **NÃO** são enviados para o Supabase.
-    *   São salvos exclusivamente no **banco de dados interno do seu navegador** (chamado IndexedDB, gerenciado pela biblioteca Dexie.js).
-    *   Arquivos envolvidos: `services/db.ts` e `hooks/useDataStore.ts`.
+1.  **Autenticação:**
+    *   Gerenciada pelo Supabase Auth.
+    *   Usuários fazem login para acessar seus dados específicos.
 
-## O que isso significa para você?
-*   **Velocidade:** O sistema é extremamente rápido porque não precisa esperar a internet para salvar ou ler dados.
-*   **Privacidade:** Seus dados financeiros não saem do seu dispositivo.
-*   **Backup:** Como os dados estão apenas no seu computador/celular, é **CRUCIAL** usar a função de "Exportar Backup" regularmente em Configurações, especialmente antes de limpar dados de navegação.
-*   **Sincronização:** Se você abrir o sistema em outro celular ou computador, os dados **NÃO** estarão lá automaticamente. Você precisaria restaurar um backup manualmente.
+2.  **Dados Financeiros (Sincronização):**
+    *   **Leitura:** Ao iniciar, o app busca os dados mais recentes do Supabase (`hooks/useDataStore.ts`).
+    *   **Escrita:** As operações (criar, editar, excluir) são enviadas para o Supabase através do `services/supabaseService.ts`.
+    *   **Tabelas:** O banco de dados possui 18 tabelas principais, incluindo:
+        *   `transactions`, `accounts`, `assets`
+        *   `budgets`, `goals`, `trips`
+        *   `family_members`, `profiles`
+        *   `snapshots`, `audit_logs`, `custom_categories`
+        *   Tabelas auxiliares (`credit_cards`, `invoices`, etc.)
 
-## Sobre a exclusão de itens
-Como o banco de dados é local, quando você exclui uma transação, ela é marcada como deletada instantaneamente no seu dispositivo. Se você notar que algo não sumiu dos relatórios:
-1.  Verifique se não é uma transação parcelada (onde você excluiu apenas uma parcela e não a série toda).
-2.  Tente recarregar a página (F5), pois pode ser apenas uma questão visual momentânea.
+### Segurança e Privacidade
+*   **Row Level Security (RLS):** O banco de dados está configurado para que cada usuário só possa ler e editar seus próprios dados. Mesmo com 18 tabelas compartilhadas, seus dados estão isolados.
+
+### Backup
+*   Embora os dados estejam na nuvem, o sistema ainda mantém funcionalidades de backup local (`services/backupService.ts`) como uma camada extra de segurança e para facilitar migrações ou cópias de segurança pessoais.
