@@ -111,21 +111,21 @@ export const AccountForm: React.FC<AccountFormProps> = ({ type, initialData, onS
     return (
         <Card className="bg-slate-50/50 border-slate-200 dark:bg-slate-900/50 dark:border-slate-700" title={isEditing ? "Editar Conta" : (type === 'BANKING' ? "Nova Conta Bancária" : type === 'CARDS' ? "Novo Cartão de Crédito" : "Nova Conta Internacional")}>
             <form onSubmit={handleSubmit} className="space-y-4">
-                
+
                 {/* INTERNATIONAL SELECTION LOGIC */}
                 {type === 'INTERNATIONAL' && !isEditing && (
                     <div className="space-y-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
                         <label className="block text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wide">O que você vai cadastrar?</label>
-                        
+
                         <div className="flex gap-2">
-                            <button 
+                            <button
                                 type="button"
                                 onClick={() => setIntlSubType('ACCOUNT')}
                                 className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-2 text-sm font-bold transition-all ${intlSubType === 'ACCOUNT' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm' : 'text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40'}`}
                             >
                                 <Landmark className="w-4 h-4" /> Conta Global
                             </button>
-                            <button 
+                            <button
                                 type="button"
                                 onClick={() => setIntlSubType('CARD')}
                                 className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-2 text-sm font-bold transition-all ${intlSubType === 'CARD' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm' : 'text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40'}`}
@@ -138,14 +138,14 @@ export const AccountForm: React.FC<AccountFormProps> = ({ type, initialData, onS
                             <div className="animate-in slide-in-from-top-2">
                                 <label className="block text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wide mb-2">Tipo do Cartão</label>
                                 <div className="flex gap-2">
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={() => setIntlCardType('DEBIT')}
                                         className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all border-2 ${intlCardType === 'DEBIT' ? 'border-blue-500 bg-blue-500 text-white' : 'border-blue-200 dark:border-blue-800 text-blue-600 bg-transparent'}`}
                                     >
                                         Débito
                                     </button>
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={() => setIntlCardType('CREDIT')}
                                         className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all border-2 ${intlCardType === 'CREDIT' ? 'border-blue-500 bg-blue-500 text-white' : 'border-blue-200 dark:border-blue-800 text-blue-600 bg-transparent'}`}
@@ -193,6 +193,18 @@ export const AccountForm: React.FC<AccountFormProps> = ({ type, initialData, onS
                             <div className="grid grid-cols-2 gap-4">
                                 <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dia Fechamento</label><input type="number" min="1" max="31" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 text-sm font-normal" placeholder="Dia" value={newAccount.closingDay || ''} onChange={e => setNewAccount({ ...newAccount, closingDay: parseInt(e.target.value) })} required /></div>
                                 <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dia Vencimento</label><input type="number" min="1" max="31" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 text-sm font-normal" placeholder="Dia" value={newAccount.dueDay || ''} onChange={e => setNewAccount({ ...newAccount, dueDay: parseInt(e.target.value) })} required /></div>
+                            </div>
+                            <div className="flex items-center gap-2 mt-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
+                                <input
+                                    type="checkbox"
+                                    id="isInternational"
+                                    checked={newAccount.isInternational || false}
+                                    onChange={e => setNewAccount({ ...newAccount, isInternational: e.target.checked })}
+                                    className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                                />
+                                <label htmlFor="isInternational" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    Cartão Internacional <span className="text-xs font-normal text-slate-500">(Habilitar para uso em viagens)</span>
+                                </label>
                             </div>
                         </>
                     ) : (

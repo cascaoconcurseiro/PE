@@ -98,6 +98,17 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
     const selectedTrip = trips.find(t => t.id === tripId);
 
+    // Filter accounts based on Trip Currency logic
+    const filteredAccountsForTrip = React.useMemo(() => {
+        if (!selectedTrip || selectedTrip.currency === 'BRL') {
+            return availableAccounts;
+        }
+        return availableAccounts.filter(acc =>
+            acc.currency === selectedTrip.currency ||
+            (acc.type === AccountType.CREDIT_CARD && acc.isInternational)
+        );
+    }, [availableAccounts, selectedTrip]);
+
     if (accounts.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -241,7 +252,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         {payerId === 'me' ? (
                             <AccountSelector
                                 label={isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}
-                                accounts={availableAccounts}
+                                accounts={filteredAccountsForTrip}
                                 selectedId={accountId}
                                 onSelect={setAccountId}
                                 filterType={(isIncome || isTransfer) ? 'NO_CREDIT' : 'ALL'}

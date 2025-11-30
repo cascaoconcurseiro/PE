@@ -96,6 +96,7 @@ export interface Account extends BaseEntity {
   limit?: number;
   closingDay?: number;
   dueDay?: number;
+  isInternational?: boolean;
 }
 
 export interface FamilyMember extends BaseEntity {
