@@ -1,9 +1,10 @@
 import { Account, Transaction, TransactionType } from '../types';
+import { round2dec } from '../utils';
 
 /**
  * CORE FINANCIAL ENGINE
  * Reconstructs the state of all accounts based on the history of transactions.
- * This ensures Double-Entry Bookkeeping consistency.
+ * This ensures Double-Entry Bookkeeping consistency with floating point safety.
  * 
  * @param cutOffDate If provided, transactions after this date will be ignored.
  */
@@ -48,21 +49,24 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
                 : amount;
 
             if (tx.type === TransactionType.EXPENSE) {
-                // CORREÇÃO CRÍTICA: Se 'payerId' existe e não é 'me' (ou seja, outro pagou),
+                // Se 'payerId' existe e não é 'me' (ou seja, outro pagou),
                 // o dinheiro NÃO sai da minha conta bancária. É uma dívida, não um fluxo de caixa.
-                // O fluxo de caixa só acontece quando eu crio a transação de "Pagamento" (Acerto).
                 const someoneElsePaid = tx.payerId && tx.payerId !== 'me';
 
                 if (!someoneElsePaid) {
                     // Expense subtracts, unless it's a refund (then adds)
-                    sourceAcc.balance += tx.isRefund ? effectiveAmount : -effectiveAmount;
+                    // Using round2dec to prevent floating point errors
+                    const change = tx.isRefund ? effectiveAmount : -effectiveAmount;
+                    sourceAcc.balance = round2dec(sourceAcc.balance + change);
                 }
             } else if (tx.type === TransactionType.INCOME) {
                 // Income adds, unless it's a refund (then subtracts)
-                sourceAcc.balance += tx.isRefund ? -effectiveAmount : effectiveAmount;
+                const change = tx.isRefund ? -effectiveAmount : effectiveAmount;
+                sourceAcc.balance = round2dec(sourceAcc.balance + change);
+
             } else if (tx.type === TransactionType.TRANSFER) {
                 // Transfer Out always subtracts from Source
-                sourceAcc.balance -= effectiveAmount;
+                sourceAcc.balance = round2dec(sourceAcc.balance - effectiveAmount);
             }
         }
 
@@ -72,7 +76,7 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
             if (destAcc) {
                 // Transfer In always adds to Destination
                 const finalAmount = tx.destinationAmount !== undefined ? tx.destinationAmount : amount;
-                destAcc.balance += finalAmount;
+                destAcc.balance = round2dec(destAcc.balance + finalAmount);
             }
         }
     });
@@ -113,27 +117,27 @@ export const calculateTripDebts = (transactions: Transaction[], participants: { 
                 if (payerId === 'user' && split.isSettled) return;
 
                 if (balances[split.memberId] === undefined) balances[split.memberId] = 0;
-                balances[split.memberId] -= split.assignedAmount;
-                totalSplitAmount += split.assignedAmount;
+                balances[split.memberId] = round2dec(balances[split.memberId] - split.assignedAmount);
+                totalSplitAmount = round2dec(totalSplitAmount + split.assignedAmount);
             });
 
             // Credit the Payer
             if (payerId === 'user') {
                 if (balances[payerId] === undefined) balances[payerId] = 0;
-                balances[payerId] += totalSplitAmount;
+                balances[payerId] = round2dec(balances[payerId] + totalSplitAmount);
             } else {
                 if (balances[payerId] === undefined) balances[payerId] = 0;
-                balances[payerId] += amount;
+                balances[payerId] = round2dec(balances[payerId] + amount);
 
                 tx.sharedWith.forEach(split => {
                     if (balances[split.memberId] === undefined) balances[split.memberId] = 0;
-                    balances[split.memberId] -= split.assignedAmount;
+                    balances[split.memberId] = round2dec(balances[split.memberId] - split.assignedAmount);
                 });
 
                 const totalSplit = tx.sharedWith.reduce((sum, s) => sum + s.assignedAmount, 0);
                 const remainder = amount - totalSplit;
                 if (remainder > 0.01) {
-                    balances['user'] -= remainder;
+                    balances['user'] = round2dec(balances['user'] - remainder);
                 }
             }
 
@@ -142,25 +146,25 @@ export const calculateTripDebts = (transactions: Transaction[], participants: { 
             if (!tx.isShared) return;
 
             const allInvolved = ['user', ...participantIds];
-            const splitAmount = amount / allInvolved.length;
+            const splitAmount = round2dec(amount / allInvolved.length);
 
             if (payerId === 'user') {
                 let myCredit = 0;
                 allInvolved.forEach(pid => {
                     if (pid === 'user') return;
                     if (balances[pid] === undefined) balances[pid] = 0;
-                    balances[pid] -= splitAmount;
-                    myCredit += splitAmount;
+                    balances[pid] = round2dec(balances[pid] - splitAmount);
+                    myCredit = round2dec(myCredit + splitAmount);
                 });
                 if (balances['user'] === undefined) balances['user'] = 0;
-                balances['user'] += myCredit;
+                balances['user'] = round2dec(balances['user'] + myCredit);
             } else {
                 if (balances[payerId] === undefined) balances[payerId] = 0;
-                balances[payerId] += amount;
+                balances[payerId] = round2dec(balances[payerId] + amount);
 
                 allInvolved.forEach(pid => {
                     if (balances[pid] === undefined) balances[pid] = 0;
-                    balances[pid] -= splitAmount;
+                    balances[pid] = round2dec(balances[pid] - splitAmount);
                 });
             }
         }
@@ -171,8 +175,9 @@ export const calculateTripDebts = (transactions: Transaction[], participants: { 
     const creditors: { id: string, amount: number }[] = [];
 
     Object.entries(balances).forEach(([id, balance]) => {
-        if (balance < -0.01) debtors.push({ id, amount: balance }); // Negative balance
-        if (balance > 0.01) creditors.push({ id, amount: balance }); // Positive balance
+        const val = round2dec(balance);
+        if (val < -0.01) debtors.push({ id, amount: val }); // Negative balance
+        if (val > 0.01) creditors.push({ id, amount: val }); // Positive balance
     });
 
     debtors.sort((a, b) => a.amount - b.amount);
@@ -187,12 +192,15 @@ export const calculateTripDebts = (transactions: Transaction[], participants: { 
     while (i < debtors.length && j < creditors.length) {
         const debtor = debtors[i];
         const creditor = creditors[j];
-        const amount = Math.min(Math.abs(debtor.amount), creditor.amount);
+        // We need to settle the smaller of the two absolute amounts
+        const amount = round2dec(Math.min(Math.abs(debtor.amount), creditor.amount));
 
-        settlementLines.push(`${getName(debtor.id)} deve pagar ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount)} para ${getName(creditor.id)}`);
+        if (amount > 0) {
+            settlementLines.push(`${getName(debtor.id)} deve pagar ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount)} para ${getName(creditor.id)}`);
 
-        debtor.amount += amount;
-        creditor.amount -= amount;
+            debtor.amount = round2dec(debtor.amount + amount);
+            creditor.amount = round2dec(creditor.amount - amount);
+        }
 
         if (Math.abs(debtor.amount) < 0.01) i++;
         if (creditor.amount < 0.01) j++;

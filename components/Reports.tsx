@@ -100,29 +100,29 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
+            <div className="flex gap-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-fit overflow-x-auto no-scrollbar">
                 <button
                     onClick={() => setActiveTab('TRIAL')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'TRIAL' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'TRIAL' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                 >
-                    <FileText className="w-4 h-4" /> Balancete de Verificação
+                    <FileText className="w-4 h-4" /> Balancete
                 </button>
                 <button
                     onClick={() => setActiveTab('LEDGER')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'LEDGER' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'LEDGER' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                 >
                     <BookOpen className="w-4 h-4" /> Razão (Diário)
                 </button>
                 <button
                     onClick={() => setActiveTab('CASH_FLOW')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'CASH_FLOW' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'CASH_FLOW' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                 >
-                    <TrendingUp className="w-4 h-4" /> Fluxo de Caixa (Competência x Caixa)
+                    <TrendingUp className="w-4 h-4" /> Fluxo de Caixa
                 </button>
             </div>
 
             {/* Content */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900/50 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
                 {activeTab === 'CASH_FLOW' ? (
                     <div className="p-6">
                         <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl text-amber-800 dark:text-amber-300 text-sm mb-6">
@@ -131,7 +131,7 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
-                                <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
+                                <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
                                     <tr>
                                         <th className="px-6 py-4">Mês</th>
                                         <th className="px-6 py-4 text-right">Competência (Consumo)</th>
@@ -139,9 +139,9 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                                         <th className="px-6 py-4 text-right">Diferença</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {cashFlowReport.map((item) => (
-                                        <tr key={item.month} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                        <tr key={item.month} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                             <td className="px-6 py-4 font-bold text-slate-800 dark:text-white capitalize">
                                                 {new Date(item.month + '-02').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                                             </td>
@@ -151,7 +151,7 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                                             <td className="px-6 py-4 text-right font-mono text-slate-600 dark:text-slate-300">
                                                 <PrivacyBlur>{formatCurrency(item.cash)}</PrivacyBlur>
                                             </td>
-                                            <td className={`px-6 py-4 text-right font-bold font-mono ${item.cash > item.accrual ? 'text-red-600' : 'text-emerald-600'}`}>
+                                            <td className={`px-6 py-4 text-right font-bold font-mono ${item.cash > item.accrual ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                                 <PrivacyBlur>{formatCurrency(item.accrual - item.cash)}</PrivacyBlur>
                                             </td>
                                         </tr>
@@ -163,7 +163,7 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                 ) : activeTab === 'TRIAL' ? (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
+                            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
                                 <tr>
                                     <th className="px-6 py-4">Conta / Categoria</th>
                                     <th className="px-6 py-4 text-right text-red-600 dark:text-red-400">Débito Total</th>
@@ -171,9 +171,9 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                                     <th className="px-6 py-4 text-right">Saldo Líquido</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {trialBalance.map((item) => (
-                                    <tr key={item.accountName} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <tr key={item.accountName} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-slate-800 dark:text-white">{item.accountName}</td>
                                         <td className="px-6 py-4 text-right text-red-600 dark:text-red-400 font-mono">
                                             <PrivacyBlur>{formatCurrency(item.debit)}</PrivacyBlur>
@@ -199,7 +199,7 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
+                            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
                                 <tr>
                                     <th className="px-6 py-4">Data</th>
                                     <th className="px-6 py-4">Descrição</th>
@@ -208,9 +208,9 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, showVa
                                     <th className="px-6 py-4 text-right">Valor</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {ledger.map((entry) => (
-                                    <tr key={entry.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <tr key={entry.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="px-6 py-4 text-slate-500 dark:text-slate-400 whitespace-nowrap">
                                             {new Date(entry.date).toLocaleDateString('pt-BR')}
                                         </td>

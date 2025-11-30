@@ -1,4 +1,3 @@
-
 import { Category } from './types';
 import { 
   Home, 
@@ -23,9 +22,19 @@ import {
   Shield
 } from 'lucide-react';
 
+/**
+ * Fixes JavaScript floating point errors (e.g. 0.1 + 0.2 = 0.30000000000000004)
+ * Rounds to 2 decimal places.
+ */
+export const round2dec = (num: number): number => {
+    return Math.round((num + Number.EPSILON) * 100) / 100;
+};
+
 export const formatCurrency = (value: number, currency: string = 'BRL') => {
   try {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: currency }).format(value);
+    // Ensure we format a clean number
+    const cleanValue = round2dec(value);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: currency }).format(cleanValue);
   } catch (e) {
     // Fallback if currency code is invalid
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
