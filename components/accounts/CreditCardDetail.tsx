@@ -1,7 +1,7 @@
 import React from 'react';
 import { Account, Transaction, TransactionType } from '../../types';
 import { Button } from '../ui/Button';
-import { ArrowLeft, ArrowRight, ArrowDownLeft, Calendar, Lock, Smartphone, ShoppingBag, Clock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowDownLeft, Calendar, Lock, Smartphone, ShoppingBag, Clock, FileUp } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../../utils';
 import { getInvoiceData, getCommittedBalance } from '../../services/accountUtils';
 import { ActionType } from './ActionModal';
@@ -20,10 +20,11 @@ interface CreditCardDetailProps {
     onInvoiceDateChange: (date: Date) => void;
     onAction: (type: ActionType, amount?: string) => void;
     onAnticipateInstallments: (tx: Transaction) => void; // New prop for anticipation
+    onImportBills: () => void;
 }
 
 export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
-    account, transactions, currentDate, showValues, onInvoiceDateChange, onAction, onAnticipateInstallments
+    account, transactions, currentDate, showValues, onInvoiceDateChange, onAction, onAnticipateInstallments, onImportBills
 }) => {
     const { invoiceTotal, transactions: invoiceTxs, status, daysToClose, closingDate, dueDate } = getInvoiceData(account, transactions, currentDate);
     const limit = account.limit || 0;
@@ -92,12 +93,17 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                     </div>
 
                     {invoiceTotal > 0 && (
-                        <div className="mb-8 no-print">
+                        <div className="mb-4 no-print">
                             <Button onClick={() => onAction('PAY_INVOICE', invoiceTotal.toString())} className={`w-full rounded-xl font-bold shadow-lg h-14 text-lg ${status === 'CLOSED' ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/30' : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/30'}`}>
                                 <Smartphone className="w-5 h-5 mr-2" /> Pagar Fatura
                             </Button>
                         </div>
                     )}
+                    <div className="mb-8 no-print">
+                        <Button onClick={onImportBills} variant="secondary" className="w-full rounded-xl font-bold h-12 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
+                            <FileUp className="w-5 h-5 mr-2" /> Importar Dívidas Históricas/Futuras
+                        </Button>
+                    </div>
 
                     <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700 pt-6">
                         <div className="flex gap-2 items-center"><Calendar className="w-4 h-4 text-slate-400" /><span>Vence dia <strong>{dueDate.getDate()}</strong></span></div>
