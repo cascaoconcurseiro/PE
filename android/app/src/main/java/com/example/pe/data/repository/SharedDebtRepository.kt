@@ -11,14 +11,24 @@ class SharedDebtRepository @Inject constructor(
     private val sharedDebtDao: SharedDebtDao,
     private val debtParticipantDao: DebtParticipantDao
 ) {
-    // We will add methods here as we need them
+
     fun getSharedDebtForExpense(expenseId: String): Flow<SharedDebt?> {
-        // TODO: Implement in SharedDebtDao
         return sharedDebtDao.getSharedDebtForExpense(expenseId)
     }
 
     fun getDebtParticipants(sharedDebtId: String): Flow<List<DebtParticipant>> {
-        // TODO: Implement in DebtParticipantDao
         return debtParticipantDao.getParticipantsForDebt(sharedDebtId)
+    }
+
+    suspend fun insertOrUpdateSharedDebt(sharedDebt: SharedDebt) {
+        sharedDebtDao.insertOrUpdate(sharedDebt)
+    }
+
+    suspend fun addParticipantToSplit(participant: DebtParticipant) {
+        debtParticipantDao.insert(participant)
+    }
+
+    suspend fun removeParticipantFromSplit(participant: DebtParticipant) {
+        debtParticipantDao.delete(participant)
     }
 }

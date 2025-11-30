@@ -29,6 +29,7 @@ import com.example.pe.ui.features.home.HomeScreen
 import com.example.pe.ui.features.transactions.TransactionsScreen
 import com.example.pe.ui.features.trips.AddEditExpenseScreen
 import com.example.pe.ui.features.trips.CreateEditTripScreen
+import com.example.pe.ui.features.trips.ExpenseDetailsScreen
 import com.example.pe.ui.features.trips.TripDetailsScreen
 import com.example.pe.ui.features.trips.TripsScreen
 
@@ -111,6 +112,18 @@ fun NavGraph() {
                 )
             ) {
                 AddEditExpenseScreen(navController)
+            }
+            composable(
+                route = Screen.ExpenseDetails.route,
+                arguments = listOf(
+                    navArgument("tripId") { type = NavType.IntType },
+                    navArgument(
+                        name = "expenseId",
+                        builder = { type = NavType.StringType } // Changed to String to match the ViewModel
+                    )
+                )
+            ) {
+                ExpenseDetailsScreen(navController)
             }
         }
     }

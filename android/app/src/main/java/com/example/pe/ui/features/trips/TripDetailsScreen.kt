@@ -105,7 +105,7 @@ fun TripDetailsScreen(navController: NavController, viewModel: TripDetailsViewMo
                 items(uiState.expenses) { expense ->
                     ExpenseItem(expense) {
                         trip?.id?.let {
-                            navController.navigate(Screen.AddEditExpense.createRoute(it, expense.id))
+                            navController.navigate(Screen.ExpenseDetails.createRoute(it, expense.id))
                         }
                     }
                 }

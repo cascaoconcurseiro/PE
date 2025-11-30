@@ -3,35 +3,43 @@ package com.example.pe.ui.features.trips
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.pe.data.local.model.Participant
+import com.example.pe.data.local.Person
 import com.example.pe.data.local.model.Trip
-import com.example.pe.data.repository.ParticipantRepository
+import com.example.pe.data.local.model.TripParticipant
+import com.example.pe.data.repository.PersonRepository
+import com.example.pe.data.repository.TripParticipantRepository
 import com.example.pe.data.repository.TripRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class CreateEditTripUiState(
-    val id: Int? = null,
+    val id: String? = null,
     val name: String = "",
     val destination: String = "",
     val startDate: Long? = null,
     val endDate: Long? = null,
     val budget: String = "",
-    val participants: List<Participant> = emptyList()
+    val participants: List<Person> = emptyList(),
+    val allPeople: List<Person> = emptyList()
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class CreateEditTripViewModel @Inject constructor(
     private val tripRepository: TripRepository,
-    private val participantRepository: ParticipantRepository,
+    private val personRepository: PersonRepository,
+    private val tripParticipantRepository: TripParticipantRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -39,25 +47,38 @@ class CreateEditTripViewModel @Inject constructor(
 
     private val _tripState = MutableStateFlow(CreateEditTripUiState())
 
-    val uiState = combine(
+    val uiState: StateFlow<CreateEditTripUiState> = combine(
         _tripState,
-        participantRepository.getParticipantsForTrip(tripId?.toInt() ?: -1)
-    ) { tripState, participants ->
-        tripState.copy(participants = participants)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), _tripState.value)
+        personRepository.getAllPeople(),
+        tripParticipantRepository.getParticipantsForTrip(tripId ?: "").flatMapLatest { tripParticipants ->
+            val participantIds = tripParticipants.map { it.personId }
+            personRepository.getAllPeople().map { allPeople ->
+                allPeople.filter { it.id in participantIds }
+            }
+        }
+    ) { tripState, allPeople, participants ->
+        tripState.copy(
+            allPeople = allPeople,
+            participants = participants
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CreateEditTripUiState())
 
     init {
         if (tripId != null) {
             viewModelScope.launch {
-                tripRepository.getTripById(tripId.toInt()).first()?.let { trip ->
-                    _tripState.value = CreateEditTripUiState(
-                        id = trip.id,
-                        name = trip.name,
-                        destination = trip.destination,
-                        startDate = trip.startDate,
-                        endDate = trip.endDate,
-                        budget = trip.budget.toString()
-                    )
+                tripRepository.getTripById(tripId).collect { trip ->
+                    trip?.let {
+                        _tripState.update {
+                            it.copy(
+                                id = trip.id,
+                                name = trip.name,
+                                destination = trip.destination,
+                                startDate = trip.startDate,
+                                endDate = trip.endDate,
+                                budget = trip.budget.toString()
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -87,7 +108,7 @@ class CreateEditTripViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = uiState.value
             val trip = Trip(
-                id = currentState.id ?: 0,
+                id = currentState.id ?: UUID.randomUUID().toString(),
                 name = currentState.name,
                 destination = currentState.destination,
                 startDate = currentState.startDate ?: 0L,
@@ -110,17 +131,18 @@ class CreateEditTripViewModel @Inject constructor(
         }
     }
 
-    fun addParticipant(name: String, email: String) {
+    fun addParticipant(personId: String) {
         viewModelScope.launch {
             val tripId = uiState.value.id ?: return@launch
-            val participant = Participant(tripId = tripId, name = name, email = email)
-            participantRepository.insertParticipant(participant)
+            val tripParticipant = TripParticipant(tripId = tripId, personId = personId)
+            tripParticipantRepository.insert(tripParticipant)
         }
     }
 
-    fun deleteParticipant(participantId: Int) {
+    fun removeParticipant(personId: String) {
         viewModelScope.launch {
-            participantRepository.deleteParticipant(participantId)
+            val tripId = uiState.value.id ?: return@launch
+            tripParticipantRepository.delete(tripId, personId)
         }
     }
 }

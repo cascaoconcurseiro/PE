@@ -8,11 +8,11 @@ import javax.inject.Inject
 class TripExpenseRepository @Inject constructor(
     private val tripExpenseDao: TripExpenseDao
 ) {
-    fun getExpensesForTrip(tripId: Int): Flow<List<TripExpense>> {
+    fun getExpensesForTrip(tripId: String): Flow<List<TripExpense>> {
         return tripExpenseDao.getExpensesForTrip(tripId)
     }
 
-    fun getExpenseById(expenseId: Int): Flow<TripExpense?> {
+    fun getExpenseById(expenseId: String): Flow<TripExpense?> {
         return tripExpenseDao.getExpenseById(expenseId)
     }
 
@@ -24,7 +24,7 @@ class TripExpenseRepository @Inject constructor(
         tripExpenseDao.update(expense)
     }
 
-    suspend fun deleteExpense(expenseId: Int) {
+    suspend fun deleteExpense(expenseId: String) {
         tripExpenseDao.delete(expenseId)
     }
 }

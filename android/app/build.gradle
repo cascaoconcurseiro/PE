@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace "com.example.pe"
-    compileSdk libs.versions.compileSdk.get().toInteger()
+    compileSdk = libs.versions.compileSdk.get().toInteger()
     defaultConfig {
         applicationId "com.example.pe"
         minSdkVersion libs.versions.minSdk.get().toInteger()
@@ -22,7 +22,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     buildFeatures {
@@ -34,11 +34,19 @@ android {
     packagingOptions {
         resources.excludes.add("/META-INF/{AL2.0,LGPL2.1}")
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
 }
 
 dependencies {
     implementation libs.androidx.coordinatorlayout
     implementation libs.androidx.core.splashscreen
+    implementation libs.google.android.material
 
     // Navigation
     implementation libs.androidx.navigation.compose

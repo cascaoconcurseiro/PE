@@ -5,12 +5,9 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "transactions")
 data class Transaction(
-    @PrimaryKey val id: String,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val description: String,
     val amount: Double,
-    val currency: String,
-    val date: Long,
-    val categoryId: String,
-    val accountId: String?, // Now nullable
-    val cardId: String?      // New nullable field
+    val date: Long
 )

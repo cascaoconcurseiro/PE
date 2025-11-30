@@ -21,7 +21,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,16 +48,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.pe.data.local.model.Participant
+import com.example.pe.data.local.Person
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-fun Long.toFormattedDate(): String {
-    val date = Date(this)
-    val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    return format.format(date)
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -157,21 +154,79 @@ fun CreateEditTripScreen(navController: NavController, viewModel: CreateEditTrip
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                items(uiState.participants) { participant ->
-                    ParticipantItem(participant, onDelete = { viewModel.deleteParticipant(participant.id) })
+                items(uiState.participants) { person ->
+                    PersonItem(person, onDelete = { viewModel.removeParticipant(person.id) })
                 }
             }
         }
     }
 
-    if (showStartDatePicker) { /* ... Date picker dialogs ... */ }
-    if (showEndDatePicker) { /* ... Date picker dialogs ... */ }
-    if (showDeleteConfirmation) { /* ... Delete confirmation dialog ... */ }
+    if (showStartDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = uiState.startDate)
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.onStartDateChange(datePickerState.selectedDateMillis)
+                        showStartDatePicker = false
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showEndDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = uiState.endDate)
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.onEndDateChange(datePickerState.selectedDateMillis)
+                        showEndDatePicker = false
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Confirmar Exclusão") },
+            text = { Text("Você tem certeza que deseja excluir esta viagem? Esta ação não pode ser desfeita.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteTrip()
+                        showDeleteConfirmation = false
+                        navController.popBackStack()
+                    }
+                ) { Text("Excluir") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
     if (showAddParticipantDialog) {
-        AddParticipantDialog(
+        AddTripParticipantDialog(
+            allPeople = uiState.allPeople,
             onDismiss = { showAddParticipantDialog = false },
-            onConfirm = { name, email ->
-                viewModel.addParticipant(name, email)
+            onConfirm = { personId ->
+                viewModel.addParticipant(personId)
                 showAddParticipantDialog = false
             }
         )
@@ -179,17 +234,14 @@ fun CreateEditTripScreen(navController: NavController, viewModel: CreateEditTrip
 }
 
 @Composable
-fun ParticipantItem(participant: Participant, onDelete: () -> Unit) {
+fun PersonItem(person: Person, onDelete: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(participant.name, fontWeight = FontWeight.Bold)
-                Text(participant.email, style = MaterialTheme.typography.bodySmall)
-            }
+            Text(person.name, fontWeight = FontWeight.Bold)
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = "Remover Participante")
             }
@@ -197,31 +249,43 @@ fun ParticipantItem(participant: Participant, onDelete: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddParticipantDialog(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
+fun AddTripParticipantDialog(allPeople: List<Person>, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    var selectedPerson by remember { mutableStateOf<Person?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Adicionar Participante") },
         text = {
-            Column {
+            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Nome") }
+                    value = selectedPerson?.name ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Selecione uma pessoa") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("E-mail") }
-                )
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    allPeople.forEach { person ->
+                        DropdownMenuItem(
+                            text = { Text(person.name) },
+                            onClick = {
+                                selectedPerson = person
+                                expanded = false
+                            }
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(name, email) }) {
+            Button(
+                onClick = { selectedPerson?.let { onConfirm(it.id) } },
+                enabled = selectedPerson != null
+            ) {
                 Text("Adicionar")
             }
         },

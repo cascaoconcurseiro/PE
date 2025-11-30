@@ -10,7 +10,7 @@ class TripRepository @Inject constructor(
 ) {
     fun getAllTrips(): Flow<List<Trip>> = tripDao.getAll()
 
-    fun getTripById(tripId: Int): Flow<Trip?> = tripDao.getTripById(tripId)
+    fun getTripById(tripId: String): Flow<Trip?> = tripDao.getTripById(tripId)
 
     suspend fun insertTrip(trip: Trip) {
         tripDao.insert(trip)
@@ -20,7 +20,7 @@ class TripRepository @Inject constructor(
         tripDao.update(trip)
     }
 
-    suspend fun deleteTrip(tripId: Int) {
+    suspend fun deleteTrip(tripId: String) {
         tripDao.delete(tripId)
     }
 }

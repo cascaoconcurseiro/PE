@@ -15,10 +15,15 @@ import com.example.pe.data.local.MIGRATION_1_2
 import com.example.pe.data.local.MIGRATION_2_3
 import com.example.pe.data.local.MIGRATION_3_4
 import com.example.pe.data.local.MIGRATION_4_5
+import com.example.pe.data.local.MIGRATION_5_6
 import com.example.pe.data.local.Person
 import com.example.pe.data.local.PersonDao
 import com.example.pe.data.local.SharedDebtDao
 import com.example.pe.data.local.TransactionDao
+import com.example.pe.data.local.dao.ExpenseSplitDao
+import com.example.pe.data.local.dao.TripDao
+import com.example.pe.data.local.dao.TripExpenseDao
+import com.example.pe.data.local.dao.TripParticipantDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -39,7 +44,6 @@ object DatabaseModule {
     @Singleton
     fun provideAppDatabase(
         @ApplicationContext context: Context,
-        // Using Provider to avoid cyclic dependency
         categoryDaoProvider: Provider<CategoryDao>,
         accountDaoProvider: Provider<AccountDao>,
         personDaoProvider: Provider<PersonDao>
@@ -52,7 +56,6 @@ object DatabaseModule {
         .addCallback(object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
-                // Pre-populate database
                 CoroutineScope(Dispatchers.IO).launch {
                     categoryDaoProvider.get().insertAll(defaultCategories)
                     accountDaoProvider.get().insert(defaultAccount)
@@ -60,7 +63,7 @@ object DatabaseModule {
                 }
             }
         })
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
         .build()
     }
 
@@ -97,6 +100,26 @@ object DatabaseModule {
     @Provides
     fun provideDebtParticipantDao(appDatabase: AppDatabase): DebtParticipantDao {
         return appDatabase.debtParticipantDao()
+    }
+
+    @Provides
+    fun provideTripDao(appDatabase: AppDatabase): TripDao {
+        return appDatabase.tripDao()
+    }
+
+    @Provides
+    fun provideTripExpenseDao(appDatabase: AppDatabase): TripExpenseDao {
+        return appDatabase.tripExpenseDao()
+    }
+
+    @Provides
+    fun provideTripParticipantDao(appDatabase: AppDatabase): TripParticipantDao {
+        return appDatabase.tripParticipantDao()
+    }
+
+    @Provides
+    fun provideExpenseSplitDao(appDatabase: AppDatabase): ExpenseSplitDao {
+        return appDatabase.expenseSplitDao()
     }
 }
 

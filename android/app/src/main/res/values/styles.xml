@@ -7,4 +7,9 @@
     <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- We customize the theme in Kotlin using ui/theme/Theme.kt -->
     </style>
+
+    <style name="AppTheme.NoActionBarLaunch" parent="AppTheme">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+    </style>
 </resources>
