@@ -153,7 +153,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         {isRefund ? <Undo2 className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />} {isRefund ? 'Valor do Estorno' : 'Valor da Transação'}
                     </label>
                     <div className="relative flex items-center justify-center w-full px-4">
-                        <span className={`text-3xl font-bold mr-1.5 opacity-70 ${mainColor}`}>{activeCurrency === 'USD' ? '$' : activeCurrency === 'EUR' ? '€' : 'R$'}</span>
+                        <span className={`text-3xl font-bold mr-1.5 opacity-70 ${mainColor}`}>
+                            {activeCurrency === 'BRL' ? 'R$' :
+                                activeCurrency === 'USD' ? '$' :
+                                    activeCurrency === 'EUR' ? '€' :
+                                        activeCurrency === 'GBP' ? '£' :
+                                            activeCurrency}
+                        </span>
                         <input type="number" inputMode="decimal" value={amountStr} onChange={(e) => setAmountStr(e.target.value)} placeholder="0,00" className={`w-full max-w-[240px] text-center text-5xl font-black bg-transparent border-none outline-none placeholder-slate-400 ${mainColor}`} autoFocus={!initialData} />
                     </div>
                     {errors.amount && <p className="text-red-700 text-xs font-bold mt-2 bg-red-100 px-3 py-1 rounded-full border border-red-200">{errors.amount}</p>}
