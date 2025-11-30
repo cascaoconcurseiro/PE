@@ -4,6 +4,7 @@ import { Asset, AssetType } from '../../../types';
 import { formatCurrency } from '../../../utils';
 import { exportToCSV, prepareAssetsForExport } from '../../../services/exportUtils';
 import { calculateTaxReport } from '../../../services/taxEngine';
+import { printIRReport } from '../../../services/printUtils';
 import { Download, Printer, FileText, Calculator } from 'lucide-react';
 import { Button } from '../../ui/Button';
 
@@ -22,7 +23,7 @@ export const IRReportModal: React.FC<IRReportModalProps> = ({
     const taxReport = React.useMemo(() => calculateTaxReport(assets), [assets]);
 
     const handlePrint = () => {
-        window.print();
+        printIRReport(assets);
     };
 
     return (

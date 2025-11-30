@@ -186,3 +186,51 @@ export const printAssetsReport = (assets: Asset[]) => {
 
     openPrintWindow('Relatório de Investimentos', content);
 };
+
+export const printIRReport = (assets: Asset[]) => {
+    const rows = assets.map(a => {
+        const total = a.quantity * a.averagePrice; // IR uses ACQUISITION COST (Average Price), not current market value
+        return `
+            <tr>
+                <td>
+                    <strong>${a.ticker} - ${a.name}</strong><br/>
+                    <span style="font-size: 10px; color: #64748b">${a.type}</span>
+                </td>
+                <td>
+                    <div style="font-size: 11px; line-height: 1.4;">
+                        ${a.quantity} unidades de ${a.name} (${a.ticker}), ao custo médio de ${formatCurrency(a.averagePrice, a.currency)}.
+                    </div>
+                </td>
+                <td class="amount">
+                    ${formatCurrency(total, a.currency)}
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    const content = `
+        <div class="meta">
+            <div class="meta-item" style="width: 100%">
+                <h3>Declaração de Bens e Direitos</h3>
+                <p>Posição Consolidada (Custo de Aquisição)</p>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 25%">Bem</th>
+                    <th style="width: 55%">Discriminação</th>
+                    <th class="text-right" style="width: 20%">Situação em 31/12</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+            </tbody>
+        </table>
+        <div style="margin-top: 20px; font-size: 10px; color: #64748b; font-style: italic;">
+            Nota: Os valores apresentados referem-se ao Custo de Aquisição (Preço Médio), conforme exigido pela Receita Federal para a declaração de Bens e Direitos, e não ao valor de mercado atual.
+        </div>
+    `;
+
+    openPrintWindow('Relatório Auxiliar para Imposto de Renda', content);
+};

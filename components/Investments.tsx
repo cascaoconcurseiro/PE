@@ -6,6 +6,7 @@ import { InvestmentSummaryCards } from './investments/InvestmentSummaryCards';
 import { InvestmentOperations } from './investments/InvestmentOperations';
 import { InvestmentFilters } from './investments/InvestmentFilters';
 import { AllocationChart } from './investments/AllocationChart';
+import { BrokerageChart } from './investments/BrokerageChart';
 import { AssetList } from './investments/AssetList';
 import { AssetFormModal } from './investments/modals/AssetFormModal';
 import { SellAssetModal } from './investments/modals/SellAssetModal';
@@ -415,9 +416,11 @@ export const Investments: React.FC<InvestmentsProps> = ({
                     showValues={showValues}
                 />
                 {/* Placeholder for future chart or info */}
-                <div className="hidden lg:block bg-slate-100 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400 text-sm">
-                    Mais gráficos em breve...
-                </div>
+                <BrokerageChart
+                    assets={filteredAssets}
+                    accounts={accounts}
+                    showValues={showValues}
+                />
             </div>
 
             <AssetList

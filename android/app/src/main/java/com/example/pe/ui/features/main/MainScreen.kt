@@ -30,6 +30,7 @@ fun MainScreen(
     viewModel: MainViewModel = hiltViewModel()
 ) {
     val transactions by viewModel.transactions.collectAsState(initial = emptyList())
+    val totalBalance by viewModel.totalBalance.collectAsState()
 
     Scaffold(
         topBar = {
@@ -50,7 +51,7 @@ fun MainScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(text = "Saldo Total")
-                    Text(text = "R$ 1.234,56") // Placeholder
+                    Text(text = "R$ %.2f".format(totalBalance))
                 }
             }
 
@@ -62,8 +63,8 @@ fun MainScreen(
 
             // Transactions List
             LazyColumn {
-                items(transactions) { transaction ->
-                    TransactionItem(transaction = transaction)
+                items(transactions) { transactionWithCategory ->
+                    TransactionItem(transactionWithCategory = transactionWithCategory)
                 }
             }
         }

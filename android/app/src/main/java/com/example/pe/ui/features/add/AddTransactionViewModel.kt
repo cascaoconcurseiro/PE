@@ -2,19 +2,28 @@ package com.example.pe.ui.features.add
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pe.data.local.Category
+import com.example.pe.data.local.CategoryDao
 import com.example.pe.data.local.Transaction
 import com.example.pe.data.local.TransactionDao
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class AddTransactionViewModel @Inject constructor(
-    private val transactionDao: TransactionDao
+    private val transactionDao: TransactionDao,
+    categoryDao: CategoryDao
 ) : ViewModel() {
 
-    fun saveTransaction(description: String, amount: String) {
+    val categories: StateFlow<List<Category>> = categoryDao.getAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun saveTransaction(description: String, amount: String, categoryId: String) {
         viewModelScope.launch {
             val amountDouble = amount.toDoubleOrNull() ?: 0.0
             val newTransaction = Transaction(
@@ -23,7 +32,7 @@ class AddTransactionViewModel @Inject constructor(
                 amount = amountDouble,
                 currency = "BRL", // Placeholder
                 date = System.currentTimeMillis(),
-                categoryId = "1" // Placeholder
+                categoryId = categoryId
             )
             transactionDao.insert(newTransaction)
         }
