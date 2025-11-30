@@ -1,5 +1,59 @@
 # Correções Implementadas - Sistema FinTravel & Share
 
+### 3. ✅ Correção Completa de Contraste no Modo Escuro (30/11/2025)
+
+**Problemas Identificados:**
+- Elementos com fundo branco e texto cinza claro no modo escuro em diversos componentes
+- Navegação por abas na tela de Viagens com fundo claro no modo escuro
+- Relatório de "Média Diária" exibindo valor em BRL mesmo quando a viagem era em outra moeda
+- Cards, inputs, botões e labels sem variantes dark em Settings.tsx
+
+**Solução Implementada:**
+
+#### **Trips.tsx**:
+- ✅ Adicionado `dark:bg-slate-800` ao container das abas
+- ✅ Corrigido `formatCurrency` no card de Média Diária e no tooltip do gráfico para usar a moeda da viagem
+- ✅ **Card de Orçamento**: Ajustadas cores de texto (`dark:text-violet-300`, `dark:text-slate-200`) e fundo da barra de progresso (`dark:bg-slate-700`)
+
+#### **Settings.tsx** (Correção Completa):
+- ✅ Headers e títulos: `dark:text-white`
+- ✅ Subtítulos e descrições: `dark:text-slate-400`
+- ✅ Labels de formulário: `dark:text-slate-300`
+- ✅ Inputs e selects: `dark:bg-slate-800`, `dark:text-white`, `dark:border-slate-600`
+- ✅ Cards de seção: ícones com `dark:bg-{color}-900/30` e `dark:text-{color}-400`
+- ✅ Listas de contas e viagens: `dark:bg-slate-800/50`, `dark:border-slate-700`
+- ✅ Botões de ação: `dark:text-blue-400`, `dark:text-red-400`
+- ✅ Botões de backup: `dark:border-slate-700`, `dark:hover:bg-slate-800`
+- ✅ Zona de perigo: `dark:bg-red-900/10`, `dark:border-red-900/30`
+- ✅ Input de categorias: `dark:bg-slate-800`, `dark:border-slate-700`
+- ✅ Tags de categorias: `dark:bg-slate-800`, `dark:text-slate-300`
+
+#### **Componentes Já Otimizados** (verificados):
+- ✅ **Budgets.tsx**: Contraste perfeito no modo escuro
+- ✅ **Goals.tsx**: Todos os elementos com variantes dark
+- ✅ **Family.tsx**: Inputs e cards com suporte completo ao dark mode
+- ✅ **MainLayout.tsx**: Sidebar e navegação já otimizados
+- ✅ **Accounts.tsx**: Cards e tabs com dark mode
+- ✅ **Transactions.tsx**: Lista e busca com contraste adequado
+- ✅ **Dashboard.tsx**: Gráficos e cards com tema escuro
+- ✅ **Shared.tsx**: Modais e tabs adaptados
+
+**Padrão de Cores Aplicado:**
+- **Fundos principais:** `bg-white dark:bg-slate-900` ou `dark:bg-slate-800`
+- **Fundos secundários:** `bg-slate-50 dark:bg-slate-800` ou `dark:bg-slate-900`
+- **Textos principais:** `text-slate-900 dark:text-white`
+- **Textos secundários:** `text-slate-700 dark:text-slate-300`
+- **Textos terciários:** `text-slate-500 dark:text-slate-400`
+- **Bordas:** `border-slate-200 dark:border-slate-700`
+- **Inputs:** `bg-white dark:bg-slate-800` com `dark:border-slate-600`
+- **Hovers:** `hover:bg-slate-50 dark:hover:bg-slate-800`
+- **Cards coloridos:** Mantêm cores vibrantes com variantes escuras (ex: `bg-violet-50 dark:bg-violet-900/20`)
+
+**Arquivos Modificados:**
+- `components/Trips.tsx`
+- `components/Settings.tsx`
+
+
 ## Data: 29/11/2025
 
 ### 1. ✅ Correção do Sistema de Moedas em Viagens

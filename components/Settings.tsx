@@ -160,24 +160,24 @@ export const Settings: React.FC<SettingsProps> = ({
 
     return (
         <div className="space-y-8 pb-20">
-            <h2 className="text-2xl font-bold text-slate-800">Configurações e Sistema</h2>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Configurações e Sistema</h2>
 
             {/* Global Preferences */}
             <Card className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
+                    <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
                         <Tag className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg text-slate-800">Preferências Globais</h3>
-                        <p className="text-sm text-slate-500">Definições gerais do sistema.</p>
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Preferências Globais</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Definições gerais do sistema.</p>
                     </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Moeda Padrão</label>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Moeda Padrão</label>
                         <select
-                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white font-medium"
                             value={globalCurrency}
                             onChange={(e) => setGlobalCurrency(e.target.value)}
                         >
@@ -192,22 +192,22 @@ export const Settings: React.FC<SettingsProps> = ({
             {/* AI Integration (Security Fix #1) */}
             <Card className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-violet-100 text-violet-600 rounded-xl">
+                    <div className="p-3 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-xl">
                         <Key className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg text-slate-800">Integração com IA (Gemini)</h3>
-                        <p className="text-sm text-slate-500">Configure sua chave de API pessoal.</p>
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Integração com IA (Gemini)</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Configure sua chave de API pessoal.</p>
                     </div>
                 </div>
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Gemini API Key</label>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Gemini API Key</label>
                         <div className="flex gap-2">
                             <div className="relative flex-1">
                                 <input
                                     type={showApiKey ? "text" : "password"}
-                                    className="w-full pl-3 pr-10 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-slate-900 font-mono"
+                                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-slate-900 dark:text-white font-mono"
                                     value={apiKey}
                                     onChange={(e) => setApiKey(e.target.value)}
                                     placeholder="Cole sua chave aqui..."
@@ -222,7 +222,7 @@ export const Settings: React.FC<SettingsProps> = ({
                             </div>
                             <Button onClick={handleSaveApiKey} className="bg-violet-600 hover:bg-violet-700 text-white">Salvar</Button>
                         </div>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                             Sua chave é armazenada apenas no armazenamento local do seu navegador.
                             Nunca compartilhe sua chave API.
                         </p>
@@ -233,23 +233,23 @@ export const Settings: React.FC<SettingsProps> = ({
             {/* Data Management */}
             <Card className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-slate-100 text-slate-600 rounded-xl">
+                    <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
                         <Database className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg text-slate-800">Gerenciamento de Dados</h3>
-                        <p className="text-sm text-slate-500">Edite ou remova itens criados.</p>
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Gerenciamento de Dados</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Edite ou remova itens criados.</p>
                     </div>
                 </div>
 
                 <div className="space-y-6">
                     {/* Accounts List */}
                     <div>
-                        <h4 className="font-bold text-slate-700 mb-2">Contas e Cartões</h4>
+                        <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2">Contas e Cartões</h4>
                         <div className="space-y-2">
                             {accounts.map(acc => (
-                                <div key={acc.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-200">
-                                    <span className="font-medium text-slate-800">{acc.name} ({acc.type})</span>
+                                <div key={acc.id} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="font-medium text-slate-800 dark:text-white">{acc.name} ({acc.type})</span>
                                     <div className="flex gap-2">
                                         <button onClick={() => {
                                             setInputModal({
@@ -258,7 +258,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                                 value: acc.name,
                                                 onConfirm: (val) => onUpdateAccount({ ...acc, name: val })
                                             });
-                                        }} className="text-blue-600 text-xs font-bold hover:underline">Editar</button>
+                                        }} className="text-blue-600 dark:text-blue-400 text-xs font-bold hover:underline">Editar</button>
                                         <button onClick={() => {
                                             setConfirmModal({
                                                 isOpen: true,
@@ -266,7 +266,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                                 message: `Deseja excluir a conta ${acc.name}?`,
                                                 onConfirm: () => onDeleteAccount(acc.id)
                                             });
-                                        }} className="text-red-600 text-xs font-bold hover:underline">Excluir</button>
+                                        }} className="text-red-600 dark:text-red-400 text-xs font-bold hover:underline">Excluir</button>
                                     </div>
                                 </div>
                             ))}
@@ -275,11 +275,11 @@ export const Settings: React.FC<SettingsProps> = ({
 
                     {/* Trips List */}
                     <div>
-                        <h4 className="font-bold text-slate-700 mb-2">Viagens</h4>
+                        <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2">Viagens</h4>
                         <div className="space-y-2">
                             {trips.map(trip => (
-                                <div key={trip.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-200">
-                                    <span className="font-medium text-slate-800">{trip.name}</span>
+                                <div key={trip.id} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="font-medium text-slate-800 dark:text-white">{trip.name}</span>
                                     <div className="flex gap-2">
                                         <button onClick={() => {
                                             setInputModal({
@@ -288,7 +288,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                                 value: trip.name,
                                                 onConfirm: (val) => onUpdateTrip({ ...trip, name: val })
                                             });
-                                        }} className="text-blue-600 text-xs font-bold hover:underline">Editar</button>
+                                        }} className="text-blue-600 dark:text-blue-400 text-xs font-bold hover:underline">Editar</button>
                                         <button onClick={() => {
                                             setConfirmModal({
                                                 isOpen: true,
@@ -296,7 +296,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                                 message: `Deseja excluir a viagem ${trip.name}?`,
                                                 onConfirm: () => onDeleteTrip(trip.id)
                                             });
-                                        }} className="text-red-600 text-xs font-bold hover:underline">Excluir</button>
+                                        }} className="text-red-600 dark:text-red-400 text-xs font-bold hover:underline">Excluir</button>
                                     </div>
                                 </div>
                             ))}
@@ -308,21 +308,21 @@ export const Settings: React.FC<SettingsProps> = ({
             {/* Backup Section */}
             <Card className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
                         <Database className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg text-slate-800">Backup e Restauração</h3>
-                        <p className="text-sm text-slate-500">Salve seus dados ou restaure de um arquivo.</p>
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Backup e Restauração</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Salve seus dados ou restaure de um arquivo.</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button variant="secondary" onClick={handleExport} className="h-12 flex items-center justify-center gap-2 border-slate-200 hover:bg-slate-50 text-slate-700">
+                    <Button variant="secondary" onClick={handleExport} className="h-12 flex items-center justify-center gap-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">
                         <Download className="w-4 h-4" />
                         Exportar Backup (JSON)
                     </Button>
-                    <Button variant="secondary" onClick={handleImportClick} className="h-12 flex items-center justify-center gap-2 border-slate-200 hover:bg-slate-50 text-slate-700">
+                    <Button variant="secondary" onClick={handleImportClick} className="h-12 flex items-center justify-center gap-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">
                         <Upload className="w-4 h-4" />
                         Restaurar Backup
                     </Button>
@@ -339,12 +339,12 @@ export const Settings: React.FC<SettingsProps> = ({
             {/* Custom Categories Section */}
             <Card className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-amber-100 text-amber-600 rounded-xl">
+                    <div className="p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl">
                         <Tag className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg text-slate-800">Categorias Personalizadas</h3>
-                        <p className="text-sm text-slate-500">Adicione categorias extras para suas transações.</p>
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Categorias Personalizadas</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Adicione categorias extras para suas transações.</p>
                     </div>
                 </div>
 
@@ -354,7 +354,7 @@ export const Settings: React.FC<SettingsProps> = ({
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         placeholder="Nova categoria..."
-                        className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                     />
                     <Button type="submit" disabled={!newCategoryName.trim()} className="w-12 h-10 flex items-center justify-center">
                         <Plus className="w-5 h-5" />
@@ -366,7 +366,7 @@ export const Settings: React.FC<SettingsProps> = ({
                         <p className="text-sm text-slate-400 italic w-full text-center py-4">Nenhuma categoria personalizada.</p>
                     )}
                     {customCategories.map(cat => (
-                        <div key={cat.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium group">
+                        <div key={cat.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium group">
                             {cat.name}
                             <button
                                 onClick={() => onDeleteCategory(cat.id)}
@@ -380,21 +380,21 @@ export const Settings: React.FC<SettingsProps> = ({
             </Card>
 
             {/* Danger Zone */}
-            <Card className="p-6 border-red-100 bg-red-50/30">
+            <Card className="p-6 border-red-100 dark:border-red-900/30 bg-red-50/30 dark:bg-red-900/10">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-red-100 text-red-600 rounded-xl">
+                    <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl">
                         <AlertTriangle className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg text-red-700">Zona de Perigo</h3>
-                        <p className="text-sm text-red-500/80">Ações irreversíveis.</p>
+                        <h3 className="font-bold text-lg text-red-700 dark:text-red-300">Zona de Perigo</h3>
+                        <p className="text-sm text-red-500/80 dark:text-red-400/80">Ações irreversíveis.</p>
                     </div>
                 </div>
 
                 <Button
                     variant="danger"
                     onClick={handleClearData}
-                    className="w-full h-12 flex items-center justify-center gap-2 bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 shadow-sm"
+                    className="w-full h-12 flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-800 shadow-sm"
                 >
                     <Trash2 className="w-4 h-4" />
                     Apagar Todos os Dados e Reiniciar
@@ -429,7 +429,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 }}>
                     <input
                         autoFocus
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 outline-none font-bold mb-4"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-bold mb-4 text-slate-900 dark:text-white"
                         value={inputModal.value}
                         onChange={e => setInputModal(prev => ({ ...prev, value: e.target.value }))}
                     />
