@@ -1,11 +1,15 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { Account, Transaction, TransactionType, AccountType, Goal } from '../types';
-import { Card } from './ui/Card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { TrendingUp, TrendingDown, Bell, Clock, Wallet, PieChart as PieIcon, ChevronLeft, ChevronRight, BarChart3, LineChart, AlertCircle } from 'lucide-react';
-import { formatCurrency, isSameMonth } from '../utils';
+import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
 import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue } from '../services/financialLogic';
+
+// Sub-components
+import { FinancialProjectionCard } from './dashboard/FinancialProjectionCard';
+import { SummaryCards } from './dashboard/SummaryCards';
+import { CashFlowChart } from './dashboard/CashFlowChart';
+import { UpcomingBills } from './dashboard/UpcomingBills';
+import { CategorySpendingChart } from './dashboard/CategorySpendingChart';
 
 interface DashboardProps {
     accounts: Account[];
@@ -16,26 +20,8 @@ interface DashboardProps {
     onEditRequest?: (id: string) => void;
 }
 
-const PrivacyBlur = ({ children, showValues, darkBg = false }: { children?: React.ReactNode, showValues: boolean, darkBg?: boolean }) => {
-    if (showValues) return <>{children}</>;
-    return <span className={`blur-sm select-none ${darkBg ? 'opacity-80' : 'opacity-60'}`}>R$ ••••</span>;
-};
-
 export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, goals = [], currentDate = new Date(), showValues, onEditRequest }) => {
     const selectedYear = currentDate.getFullYear();
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-    // Scroll Handler for Mobile Cards
-    const scrollCards = (direction: 'left' | 'right') => {
-        if (scrollContainerRef.current) {
-            const container = scrollContainerRef.current;
-            const scrollAmount = container.clientWidth * 0.85; // Scroll ~85% of width
-            container.scrollBy({
-                left: direction === 'left' ? -scrollAmount : scrollAmount,
-                behavior: 'smooth'
-            });
-        }
-    };
 
     // --- FINANCIAL LOGIC INTEGRATION ---
     // 1. Calculate Projection
@@ -161,348 +147,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
         .sort((a, b) => b.value - a.value), // Sort by value desc
         [monthlyTransactions, accounts]);
 
-    const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e'];
-
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
+            <FinancialProjectionCard
+                projectedBalance={projectedBalance}
+                currentBalance={currentBalance}
+                pendingIncome={pendingIncome}
+                pendingExpenses={pendingExpenses}
+                healthStatus={healthStatus}
+                currentDate={currentDate}
+                showValues={showValues}
+            />
 
-            {/* --- NEW PROJECTION CARD (Financial Logic) --- */}
-            <div className="bg-indigo-900 dark:bg-indigo-950 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-6 opacity-10">
-                    <LineChart className="w-40 h-40 text-white" />
-                </div>
+            <SummaryCards
+                netWorth={netWorth}
+                monthlyIncome={monthlyIncome}
+                monthlyExpense={monthlyExpense}
+                currentDate={currentDate}
+                showValues={showValues}
+            />
 
-                <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2 text-indigo-300">
-                            <Wallet className="w-5 h-5" />
-                            <span className="text-xs font-bold uppercase tracking-widest">Fluxo de Caixa Previsto</span>
-                        </div>
-                        <div className="mb-1">
-                            <span className="text-4xl font-black tracking-tight">
-                                <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(projectedBalance)}</PrivacyBlur>
-                            </span>
-                        </div>
-                        <p className="text-sm text-indigo-200">
-                            Previsão para o final de {currentDate.toLocaleDateString('pt-BR', { month: 'long' })}
-                        </p>
-                    </div>
+            <CashFlowChart
+                data={cashFlowData}
+                hasData={hasCashFlowData}
+                year={selectedYear}
+                showValues={showValues}
+            />
 
-                    <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10">
-                        <div className="flex justify-between items-center mb-3 pb-3 border-b border-white/10">
-                            <span className="text-sm font-medium text-indigo-100">Saldo Hoje</span>
-                            <span className="font-bold text-white"><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(currentBalance)}</PrivacyBlur></span>
-                        </div>
-                        <div className="space-y-2 text-xs">
-                            <div className="flex justify-between items-center text-emerald-300">
-                                <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> A Receber</span>
-                                <span className="font-bold">+ {formatCurrency(pendingIncome)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-red-300">
-                                <span className="flex items-center gap-1"><TrendingDown className="w-3 h-3" /> A Pagar</span>
-                                <span className="font-bold">- {formatCurrency(pendingExpenses)}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <UpcomingBills
+                bills={upcomingBills}
+                accounts={accounts}
+                showValues={showValues}
+                onEditRequest={onEditRequest}
+            />
 
-                {healthStatus === 'CRITICAL' && (
-                    <div className="mt-4 bg-red-500/20 border border-red-500/30 rounded-xl p-3 flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 text-red-300 shrink-0" />
-                        <div>
-                            <p className="text-sm font-bold text-red-100">Atenção ao Orçamento</p>
-                            <p className="text-xs text-red-200">Suas despesas projetadas superam suas receitas este mês. Revise seus gastos.</p>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* SUMMARY CARDS SECTION */}
-            <div className="relative group">
-                {/* Mobile Navigation Arrows */}
-                <div className="md:hidden absolute left-0 top-1/2 -translate-y-1/2 z-20 pl-1">
-                    <button onClick={() => scrollCards('left')} className="p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-full shadow-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 active:scale-90 transition-transform">
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                </div>
-                <div className="md:hidden absolute right-0 top-1/2 -translate-y-1/2 z-20 pr-1">
-                    <button onClick={() => scrollCards('right')} className="p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-full shadow-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 active:scale-90 transition-transform">
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <div
-                    ref={scrollContainerRef}
-                    className="
-                        flex md:grid md:grid-cols-3 gap-4 
-                        overflow-x-auto md:overflow-visible 
-                        pb-4 md:pb-0 
-                        snap-x snap-mandatory 
-                        -mx-4 px-4 md:mx-0 md:px-0 
-                        scrollbar-hide scroll-smooth
-                    "
-                >
-                    {/* NET WORTH CARD */}
-                    <div className="snap-center shrink-0 w-[88vw] sm:w-[45vw] md:w-auto h-full">
-                        <Card className="bg-gradient-to-br from-slate-800 to-slate-950 text-white border-none shadow-xl shadow-slate-900/10 relative overflow-hidden h-full">
-                            <div className="absolute top-0 right-0 p-4 opacity-5">
-                                <Wallet className="w-24 h-24 text-white" />
-                            </div>
-                            <div className="flex justify-between items-start relative z-10">
-                                <div>
-                                    <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1">Patrimônio Líquido</p>
-                                    <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white">
-                                        <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(netWorth)}</PrivacyBlur>
-                                    </h3>
-                                </div>
-                                <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-md border border-white/5">
-                                    <Wallet className="w-6 h-6 text-white" />
-                                </div>
-                            </div>
-                            <div className="mt-6 inline-flex items-center gap-1.5 text-[10px] text-slate-300 bg-slate-800/80 border border-slate-700 px-2 py-1 rounded-lg font-bold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Total Real (Ativos - Dívidas)
-                            </div>
-                        </Card>
-                    </div>
-
-                    {/* INCOME CARD */}
-                    <div className="snap-center shrink-0 w-[88vw] sm:w-[45vw] md:w-auto h-full">
-                        <Card className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white border-none shadow-xl shadow-emerald-900/10 relative overflow-hidden h-full">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <TrendingUp className="w-24 h-24 text-white" />
-                            </div>
-                            <div className="flex justify-between items-start relative z-10">
-                                <div>
-                                    <p className="text-emerald-200/80 font-bold text-[10px] uppercase tracking-widest mb-1">
-                                        Entradas ({currentDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')})
-                                    </p>
-                                    <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white">
-                                        <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(monthlyIncome)}</PrivacyBlur>
-                                    </h3>
-                                </div>
-                                <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-md border border-white/5">
-                                    <TrendingUp className="w-6 h-6 text-white" />
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-
-                    {/* EXPENSE CARD */}
-                    <div className="snap-center shrink-0 w-[88vw] sm:w-[45vw] md:w-auto h-full">
-                        <Card className="bg-gradient-to-br from-red-600 to-rose-700 text-white border-none shadow-xl shadow-red-900/10 relative overflow-hidden h-full">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <TrendingDown className="w-24 h-24 text-white" />
-                            </div>
-                            <div className="flex justify-between items-start relative z-10">
-                                <div>
-                                    <p className="text-red-200/80 font-bold text-[10px] uppercase tracking-widest mb-1">
-                                        Saídas (Minha Parte)
-                                    </p>
-                                    <h3 className="text-3xl font-black mt-1 tracking-tight truncate text-white">
-                                        <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(monthlyExpense)}</PrivacyBlur>
-                                    </h3>
-                                </div>
-                                <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-md border border-white/5">
-                                    <TrendingDown className="w-6 h-6 text-white" />
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-                </div>
-            </div>
-
-            {/* ANNUAL CASH FLOW CHART */}
-            <Card className="border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800">
-                <div className="flex items-center gap-3 mb-6 px-2">
-                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
-                        <BarChart3 className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-slate-800 dark:text-white text-lg">Fluxo de Caixa</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Visão anual de {selectedYear}</p>
-                    </div>
-                </div>
-                <div className="h-60 md:h-72 w-full">
-                    {hasCashFlowData ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" className="stroke-slate-200 dark:stroke-slate-800" />
-                                <XAxis
-                                    dataKey="month"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 10, fill: 'currentColor' }}
-                                    className="text-slate-500 dark:text-slate-400 font-medium"
-                                    interval="preserveStartEnd"
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 10, fill: 'currentColor' }}
-                                    className="text-slate-400 dark:text-slate-400"
-                                    tickFormatter={(value) => {
-                                        if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
-                                        if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
-                                        return value.toFixed(0);
-                                    }}
-                                />
-                                <Tooltip
-                                    formatter={(value: number) => showValues ? formatCurrency(value) : '****'}
-                                    contentStyle={{
-                                        backgroundColor: 'var(--color-bg)',
-                                        borderColor: 'var(--color-border)',
-                                        borderRadius: '12px',
-                                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                                        color: 'var(--color-text)'
-                                    }}
-                                    itemStyle={{ color: 'inherit' }}
-                                    cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
-                                    wrapperClassName="dark:!bg-slate-800 dark:!border-slate-700 dark:!text-slate-200"
-                                />
-                                <Bar name="Receitas" dataKey="Receitas" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                                <Bar name="Despesas" dataKey="Despesas" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                            <BarChart3 className="w-8 h-8 mb-2 opacity-50" />
-                            <p className="text-sm font-medium">Sem dados para este ano</p>
-                        </div>
-                    )}
-                </div>
-            </Card>
-
-            {/* UPCOMING BILLS */}
-            {upcomingBills.length > 0 && (
-                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-5 shadow-sm">
-                    <div className="flex items-center gap-2 mb-4 text-amber-900 dark:text-amber-400">
-                        <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 rounded-lg border border-amber-200 dark:border-amber-800">
-                            <Bell className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-                        </div>
-                        <h3 className="font-bold text-sm uppercase tracking-wide">Próximos Vencimentos</h3>
-                    </div>
-                    <div className="space-y-3">
-                        {upcomingBills.map(bill => {
-                            const account = accounts.find(a => a.id === bill.accountId);
-                            const billDate = new Date(bill.notificationDate || bill.date);
-                            const today = new Date(); today.setHours(0, 0, 0, 0);
-                            const diffTime = billDate.getTime() - today.getTime();
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            let statusText = '';
-                            if (diffDays === 0) statusText = 'Vence Hoje';
-                            else if (diffDays < 0) statusText = `Venceu há ${Math.abs(diffDays)} dias`;
-                            else statusText = `Vence em ${diffDays} dias`;
-
-                            return (
-                                <div
-                                    key={bill.id}
-                                    onClick={() => onEditRequest && onEditRequest(bill.id)}
-                                    className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30 flex justify-between items-center shadow-sm active:scale-[0.99] transition-transform cursor-pointer"
-                                >
-                                    <div>
-                                        <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">{bill.description}</p>
-                                        <p className="text-xs text-amber-700 dark:text-amber-500 font-bold flex items-center gap-1 mt-0.5">
-                                            <Clock className="w-3 h-3" /> {statusText} ({billDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })})
-                                        </p>
-                                    </div>
-                                    <span className="font-bold text-slate-900 dark:text-white text-base">
-                                        <PrivacyBlur showValues={showValues}>{formatCurrency(bill.amount, account?.currency)}</PrivacyBlur>
-                                    </span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* CATEGORY SPENDING CHART */}
-            <Card className="border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-600 dark:text-emerald-400">
-                        <PieIcon className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-slate-800 dark:text-white text-lg">Distribuição de Gastos</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Top categorias do mês (Valor Efetivo)</p>
-                    </div>
-                </div>
-
-                {categoryData.length > 0 ? (
-                    <div className="flex flex-col md:flex-row items-center gap-6">
-                        {/* Donut Chart */}
-                        <div className="h-56 w-full md:w-1/2 relative">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={categoryData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={80}
-                                        paddingAngle={4}
-                                        dataKey="value"
-                                        stroke="none"
-                                    >
-                                        {categoryData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip
-                                        formatter={(value: number) => showValues ? formatCurrency(value) : 'R$ ****'}
-                                        contentStyle={{
-                                            borderRadius: '12px',
-                                            border: 'none',
-                                            backgroundColor: '#1e293b',
-                                            color: '#fff',
-                                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                                        }}
-                                        itemStyle={{ color: '#fff' }}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
-
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <div className="text-center">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Gasto</span>
-                                    <span className="text-xl font-bold text-slate-900 dark:text-white block tracking-tight">
-                                        <PrivacyBlur showValues={showValues}>{formatCurrency(monthlyExpense)}</PrivacyBlur>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Custom Legend */}
-                        <div className="w-full md:w-1/2 grid grid-cols-1 gap-2">
-                            {categoryData.slice(0, 5).map((entry, index) => (
-                                <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                                        <span className="font-semibold text-slate-700 dark:text-slate-300">{entry.name}</span>
-                                    </div>
-                                    <div className="text-right shrink-0">
-                                        <span className="text-slate-900 dark:text-white font-bold text-sm block">
-                                            <PrivacyBlur showValues={showValues}>{formatCurrency(entry.value)}</PrivacyBlur>
-                                        </span>
-                                        <span className="text-[10px] text-slate-400 font-medium">
-                                            {((entry.value / monthlyExpense) * 100).toFixed(1)}%
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                            {categoryData.length > 5 && (
-                                <div className="text-center mt-2">
-                                    <span className="text-xs text-slate-400 italic">+ {categoryData.length - 5} outras categorias</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="h-56 flex flex-col items-center justify-center text-slate-400 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                        <Wallet className="w-8 h-8 mb-2 opacity-50" />
-                        <p className="font-medium text-sm">Sem despesas registradas.</p>
-                    </div>
-                )}
-            </Card>
+            <CategorySpendingChart
+                data={categoryData}
+                totalExpense={monthlyExpense}
+                showValues={showValues}
+            />
         </div>
     );
 };

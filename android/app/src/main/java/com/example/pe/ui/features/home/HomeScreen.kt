@@ -19,15 +19,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import com.example.pe.domain.model.Transaction
+import com.example.pe.navigation.Screen
 
-// TODO: Move to its own file
-data class Transaction(val id: Int, val description: String, val amount: Double)
-
-// TODO: Move to its own file
 @Composable
 fun TransactionItem(transaction: Transaction) {
     Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
@@ -38,19 +34,9 @@ fun TransactionItem(transaction: Transaction) {
     }
 }
 
-// TODO: Move to its own file
-class HomeViewModel : ViewModel() {
-    private val _transactions = MutableStateFlow(listOf(
-        Transaction(1, "Salário", 5000.0),
-        Transaction(2, "Aluguel", -1500.0),
-        Transaction(3, "Supermercado", -450.0),
-    ))
-    val transactions: StateFlow<List<Transaction>> = _transactions
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
+fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltViewModel()) {
     val transactions by viewModel.transactions.collectAsState()
 
     Scaffold(
@@ -58,7 +44,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
             TopAppBar(title = { Text("Pé de Meia") })
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* TODO: Navigate to add transaction screen */ }) {
+            FloatingActionButton(onClick = { navController.navigate(Screen.AddTransaction.route) }) {
                 Icon(Icons.Filled.Add, contentDescription = "Adicionar Transação")
             }
         }
@@ -72,7 +58,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(text = "Saldo Total")
-                    Text(text = "R$ 3.050,00") // Placeholder
+                    Text(text = "R$ 0,00") // Placeholder
                 }
             }
 
