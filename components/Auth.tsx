@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { PiggyBank, ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, HardDrive } from 'lucide-react';
+import { PiggyBank, ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Cloud } from 'lucide-react';
 import { useToast } from './ui/Toast';
 
 interface AuthProps {
@@ -69,20 +69,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 text-center">
                             {isSignUp ? 'Criar Nova Conta' : 'Acesse sua Conta'}
                         </h2>
-
-                        {/* Security Disclaimer */}
-                        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-xl flex items-start gap-3">
-                            <div className="p-2 bg-amber-100 dark:bg-amber-900/20 rounded-full">
-                                <HardDrive className="w-5 h-5 text-amber-600 dark:text-amber-500" />
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase mb-1">Armazenamento Local</p>
-                                <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                                    Seus dados financeiros são salvos <strong>apenas neste dispositivo</strong>.
-                                    Não use computadores públicos, pois os dados não são criptografados no navegador.
-                                </p>
-                            </div>
-                        </div>
 
                         <form onSubmit={handleAuth} className="space-y-4">
                             <div>
@@ -186,8 +172,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 </Card>
 
                 <div className="flex items-center justify-center gap-2 mt-8 text-slate-400 dark:text-slate-500 text-xs">
-                    <ShieldCheck className="w-4 h-4" />
-                    <p>Ambiente Local Seguro</p>
+                    <Cloud className="w-4 h-4" />
+                    <p>Seus dados estão seguros na nuvem</p>
                 </div>
             </div>
         </div>

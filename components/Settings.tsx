@@ -1,18 +1,17 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Download, Upload, Trash2, ShieldCheck, Database, AlertTriangle, Tag, Plus, X, Key, Eye, EyeOff, CloudUpload } from 'lucide-react';
+import { Tag, Plus, X, Key, Eye, EyeOff } from 'lucide-react';
 import { Account, Budget, CustomCategory, FamilyMember, Transaction, Trip, Asset, Goal, Snapshot } from '../types';
 import { useToast } from './ui/Toast';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { Modal } from './ui/Modal';
 
 interface SettingsProps {
-    onImport: (data: any) => void; // Reused for "Sync to Cloud"
     customCategories: CustomCategory[];
     onAddCategory: (name: string) => void;
     onDeleteCategory: (id: string) => void;
-    // Props de dados para backup real
+    // Props de dados mantidos caso queiramos implementar export JSON no futuro
     accounts: Account[];
     transactions: Transaction[];
     trips: Trip[];
@@ -25,21 +24,16 @@ interface SettingsProps {
     onDeleteAccount: (id: string) => void;
     onUpdateTrip: (trip: Trip) => void;
     onDeleteTrip: (id: string) => void;
-    onResetSystem: () => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({
-    onImport, // This is actually handleImportData from useDataStore, which we modified to be Sync
     customCategories,
     onAddCategory,
     onDeleteCategory,
-    accounts,
-    trips,
     onUpdateAccount,
     onDeleteAccount,
     onUpdateTrip,
-    onDeleteTrip,
-    onResetSystem
+    onDeleteTrip
 }) => {
     const [newCategoryName, setNewCategoryName] = useState('');
     const [globalCurrency, setGlobalCurrency] = useState('BRL');
@@ -81,29 +75,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
     return (
         <div className="space-y-8 pb-20">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Configurações e Sistema</h2>
-
-            {/* Cloud Migration */}
-            <Card className="p-6 border-indigo-100 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-900/10">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
-                        <CloudUpload className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Migração para Nuvem</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Envie seus dados locais para o Supabase.</p>
-                    </div>
-                </div>
-                <div className="space-y-4">
-                    <p className="text-sm text-slate-600 dark:text-slate-300">
-                        Se você já usava o app antes da atualização para nuvem, clique abaixo para sincronizar seus dados antigos. 
-                        Isso garantirá que você não perca nada ao trocar de dispositivo.
-                    </p>
-                    <Button onClick={() => onImport(null)} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 dark:shadow-none">
-                        <CloudUpload className="w-4 h-4 mr-2" /> Sincronizar Dados Locais Agora
-                    </Button>
-                </div>
-            </Card>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Configurações</h2>
 
             {/* Global Preferences */}
             <Card className="p-6">

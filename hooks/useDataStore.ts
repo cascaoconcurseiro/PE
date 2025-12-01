@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabaseService } from '../services/supabaseService';
-import { db } from '../services/db'; // Keeping Dexie only for migration source
 import { 
     Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset, 
     CustomCategory, SyncStatus, UserProfile, Snapshot
@@ -221,49 +220,6 @@ export const useDataStore = () => {
 
     const handleAddSnapshot = async (s: any) => performOperation(async () => { await supabaseService.create('snapshots', { ...s, id: crypto.randomUUID() }); });
 
-    // --- MIGRATION TOOL ---
-    const handleImportData = async () => {
-        if (!confirm("Isso irá pegar todos os dados locais deste navegador e enviar para a nuvem Supabase. Deseja continuar?")) return;
-        
-        setIsLoading(true);
-        try {
-            const localAccounts = await db.accounts.toArray();
-            const localTxs = await db.transactions.toArray();
-            const localTrips = await db.trips.toArray();
-            const localFamily = await db.familyMembers.toArray();
-            const localGoals = await db.goals.toArray();
-            const localBudgets = await db.budgets.toArray();
-            const localAssets = await db.assets.toArray();
-            const localCats = await db.customCategories.toArray();
-            const localSnaps = await db.snapshots.toArray();
-
-            if (localAccounts.length) await supabaseService.bulkCreate('accounts', localAccounts);
-            if (localTxs.length) await supabaseService.bulkCreate('transactions', localTxs);
-            if (localTrips.length) await supabaseService.bulkCreate('trips', localTrips);
-            if (localFamily.length) await supabaseService.bulkCreate('family_members', localFamily);
-            if (localGoals.length) await supabaseService.bulkCreate('goals', localGoals);
-            if (localBudgets.length) await supabaseService.bulkCreate('budgets', localBudgets);
-            if (localAssets.length) await supabaseService.bulkCreate('assets', localAssets);
-            if (localCats.length) await supabaseService.bulkCreate('custom_categories', localCats);
-            if (localSnaps.length) await supabaseService.bulkCreate('snapshots', localSnaps);
-
-            addToast("Migração para nuvem concluída!", 'success');
-            refresh();
-        } catch (e: any) {
-            console.error(e);
-            addToast(`Erro na migração: ${e.message}`, 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleResetSystem = async () => {
-        if (confirm("Isso apagará os dados LOCAIS (Dexie). Continuar?")) {
-            await db.delete();
-            window.location.reload();
-        }
-    };
-
     return {
         user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading,
         handlers: {
@@ -276,8 +232,7 @@ export const useDataStore = () => {
             handleAddBudget, handleUpdateBudget, handleDeleteBudget,
             handleAddGoal, handleUpdateGoal, handleDeleteGoal,
             handleAddAsset, handleUpdateAsset, handleDeleteAsset,
-            handleAddSnapshot, // Exposed
-            handleImportData, handleResetSystem
+            handleAddSnapshot
         }
     };
 };
