@@ -1,6 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://mlqzeihukezlozooqhko.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1scXplaWh1a2V6bG96b29xaGtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDUzNTIsImV4cCI6MjA3ODUyMTM1Mn0.a5c7KqOcW3PVG8HpSoRXXkTX2x1ziHlTW0fmlatWGZg';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+if (!supabaseUrl || !supabaseKey) {
+    console.error('Supabase URL or Key is missing. Please check .env.local');
+}
+
+export const supabase = createClient(supabaseUrl || '', supabaseKey || '');

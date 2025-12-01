@@ -45,27 +45,15 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideAppDatabase(
-        @ApplicationContext context: Context,
-        categoryDaoProvider: Provider<CategoryDao>,
-        accountDaoProvider: Provider<AccountDao>,
-        personDaoProvider: Provider<PersonDao>
+        @ApplicationContext context: Context
     ): AppDatabase {
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "finance-app.db"
         )
-        .addCallback(object : RoomDatabase.Callback() {
-            override fun onCreate(db: SupportSQLiteDatabase) {
-                super.onCreate(db)
-                CoroutineScope(Dispatchers.IO).launch {
-                    categoryDaoProvider.get().insertAll(defaultCategories)
-                    accountDaoProvider.get().insert(defaultAccount)
-                    personDaoProvider.get().insert(defaultUser)
-                }
-            }
-        })
         .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+        .fallbackToDestructiveMigration() // Adicionado como uma salvaguarda
         .build()
     }
 
@@ -124,16 +112,3 @@ object DatabaseModule {
         return appDatabase.expenseSplitDao()
     }
 }
-
-private val defaultCategories = listOf(
-    Category(id = UUID.randomUUID().toString(), name = "Alimentação", icon = "", color = "#FF5733"),
-    Category(id = UUID.randomUUID().toString(), name = "Transporte", icon = "", color = "#33AFFF"),
-    Category(id = UUID.randomUUID().toString(), name = "Moradia", icon = "", color = "#FFC300"),
-    Category(id = UUID.randomUUID().toString(), name = "Lazer", icon = "", color = "#C70039"),
-    Category(id = UUID.randomUUID().toString(), name = "Saúde", icon = "", color = "#900C3F"),
-    Category(id = UUID.randomUUID().toString(), name = "Educação", icon = "", color = "#581845"),
-    Category(id = UUID.randomUUID().toString(), name = "Salário", icon = "", color = "#33FF57")
-)
-
-private val defaultAccount = Account(id = UUID.randomUUID().toString(), name = "Carteira", initialBalance = 0.0)
-private val defaultUser = Person(id = UUID.randomUUID().toString(), name = "Você")
