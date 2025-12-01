@@ -4,26 +4,27 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.pe.data.local.Account
-import com.example.pe.data.local.AccountDao
 import com.example.pe.data.local.AppDatabase
-import com.example.pe.data.local.CardDao
-import com.example.pe.data.local.Category
-import com.example.pe.data.local.CategoryDao
-import com.example.pe.data.local.DebtParticipantDao
 import com.example.pe.data.local.MIGRATION_1_2
 import com.example.pe.data.local.MIGRATION_2_3
 import com.example.pe.data.local.MIGRATION_3_4
 import com.example.pe.data.local.MIGRATION_4_5
 import com.example.pe.data.local.MIGRATION_5_6
-import com.example.pe.data.local.Person
-import com.example.pe.data.local.PersonDao
-import com.example.pe.data.local.SharedDebtDao
-import com.example.pe.data.local.TransactionDao
+import com.example.pe.data.local.MIGRATION_6_7
+import com.example.pe.data.local.dao.AccountDao
+import com.example.pe.data.local.dao.CardDao
+import com.example.pe.data.local.dao.CategoryDao
+import com.example.pe.data.local.dao.DebtParticipantDao
 import com.example.pe.data.local.dao.ExpenseSplitDao
+import com.example.pe.data.local.dao.PersonDao
+import com.example.pe.data.local.dao.SharedDebtDao
+import com.example.pe.data.local.dao.TransactionDao
 import com.example.pe.data.local.dao.TripDao
 import com.example.pe.data.local.dao.TripExpenseDao
 import com.example.pe.data.local.dao.TripParticipantDao
+import com.example.pe.data.local.model.Account
+import com.example.pe.data.local.model.Category
+import com.example.pe.data.local.model.Person
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -63,7 +64,7 @@ object DatabaseModule {
                 }
             }
         })
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
         .build()
     }
 
