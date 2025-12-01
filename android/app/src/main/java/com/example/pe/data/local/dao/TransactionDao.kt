@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.pe.data.local.CategorySpending
 import com.example.pe.data.local.TransactionWithCategory
@@ -12,11 +13,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TransactionDao {
-    @Query("""
-        SELECT * FROM transactions 
-        INNER JOIN categories ON transactions.categoryId = categories.id 
-        ORDER BY date DESC
-        """)
+    
+    @Transaction
+    @Query("SELECT * FROM transactions ORDER BY date DESC")
     fun getAllWithCategory(): Flow<List<TransactionWithCategory>>
 
     @Query("SELECT * FROM transactions WHERE id = :id")

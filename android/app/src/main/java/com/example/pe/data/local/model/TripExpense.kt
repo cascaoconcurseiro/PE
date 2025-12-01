@@ -2,6 +2,7 @@ package com.example.pe.data.local.model
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.UUID
 
@@ -14,7 +15,8 @@ import java.util.UUID
             childColumns = ["tripId"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    indices = [Index(value = ["tripId"])]
 )
 data class TripExpense(
     @PrimaryKey

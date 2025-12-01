@@ -2,6 +2,7 @@ package com.example.pe.data.local.model
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
@@ -13,7 +14,8 @@ import androidx.room.PrimaryKey
             childColumns = ["categoryId"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    indices = [Index(value = ["categoryId"])]
 )
 data class Transaction(
     @PrimaryKey(autoGenerate = true)
@@ -21,5 +23,5 @@ data class Transaction(
     val description: String,
     val amount: Double,
     val date: Long,
-    val categoryId: Int // Coluna adicionada
+    val categoryId: String // TIPO CORRIGIDO PARA STRING
 )
