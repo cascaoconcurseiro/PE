@@ -27,7 +27,7 @@ import com.example.pe.data.local.model.Trip
 import com.example.pe.data.local.model.TripExpense
 import com.example.pe.data.local.model.TripParticipant
 
-@Database(entities = [Transaction::class, Account::class, Card::class, Category::class, Person::class, SharedDebt::class, DebtParticipant::class, Trip::class, TripExpense::class, TripParticipant::class, ExpenseSplit::class], version = 6)
+@Database(entities = [Transaction::class, Account::class, Card::class, Category::class, Person::class, SharedDebt::class, DebtParticipant::class, Trip::class, TripExpense::class, TripParticipant::class, ExpenseSplit::class], version = 7)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun accountDao(): AccountDao
@@ -48,5 +48,11 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         database.execSQL("CREATE TABLE trip_expenses (id TEXT NOT NULL, tripId TEXT NOT NULL, name TEXT NOT NULL, category TEXT NOT NULL, amount REAL NOT NULL, date INTEGER NOT NULL, paymentMethod TEXT NOT NULL, attachmentUri TEXT, PRIMARY KEY(id), FOREIGN KEY(tripId) REFERENCES trips(id) ON DELETE CASCADE)")
         database.execSQL("CREATE TABLE trip_participants (tripId TEXT NOT NULL, personId TEXT NOT NULL, PRIMARY KEY(tripId, personId), FOREIGN KEY(tripId) REFERENCES trips(id) ON DELETE CASCADE, FOREIGN KEY(personId) REFERENCES people(id) ON DELETE CASCADE)")
         database.execSQL("CREATE TABLE expense_splits (tripExpenseId TEXT NOT NULL, participantId TEXT NOT NULL, amountOwed REAL NOT NULL, PRIMARY KEY(tripExpenseId, participantId), FOREIGN KEY(tripExpenseId) REFERENCES trip_expenses(id) ON DELETE CASCADE, FOREIGN KEY(participantId) REFERENCES people(id) ON DELETE CASCADE)")
+    }
+}
+
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE transactions ADD COLUMN categoryId INTEGER NOT NULL DEFAULT 0")
     }
 }

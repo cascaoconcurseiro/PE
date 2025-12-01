@@ -73,6 +73,8 @@ const mapToDB = (data: any, userId: string): any => {
         payerId: 'payer_id',
         isSettled: 'is_settled',
         isRefund: 'is_refund',
+        destinationAmount: 'destination_amount',
+        exchangeRate: 'exchange_rate',
         
         // Trips
         startDate: 'start_date',
@@ -111,7 +113,8 @@ const mapToDB = (data: any, userId: string): any => {
         // Meta
         createdAt: 'created_at',
         updatedAt: 'updated_at',
-        deleted: 'deleted'
+        deleted: 'deleted',
+        syncStatus: 'sync_status'
     };
 
     for (const [appKey, dbKey] of Object.entries(keys)) {
@@ -126,26 +129,38 @@ const mapToDB = (data: any, userId: string): any => {
 export const supabaseService = {
     // GENERIC CRUD
     async getAll(table: string) {
-        const userId = await getUserId();
-        let query = supabase.from(table).select('*').eq('user_id', userId).eq('deleted', false);
-        
-        if (table === 'transactions' || table === 'assets' || table === 'snapshots') {
-            query = query.order('date', { ascending: false });
-        } else {
-            query = query.order('created_at', { ascending: true });
+        try {
+            const userId = await getUserId();
+            let query = supabase.from(table).select('*').eq('user_id', userId).eq('deleted', false);
+            
+            if (table === 'transactions' || table === 'assets' || table === 'snapshots') {
+                query = query.order('date', { ascending: false });
+            } else {
+                query = query.order('created_at', { ascending: true });
+            }
+            
+            const { data, error } = await query;
+            
+            if (error) {
+                console.error(`Supabase fetch error on ${table}:`, error);
+                // If column doesn't exist error, we might be in migration state
+                if (error.code === '42703') { // Undefined column
+                     console.warn(`Column missing in ${table}. DB Schema might need update.`);
+                     return [];
+                }
+                throw error;
+            }
+            return mapToApp(data);
+        } catch (e) {
+            console.error(`Failed to fetch ${table}:`, e);
+            return [];
         }
-        
-        const { data, error } = await query;
-        if (error) throw error;
-        return mapToApp(data);
     },
 
     async create(table: string, item: any) {
         const userId = await getUserId();
         const dbItem = mapToDB(item, userId);
         
-        console.log(`Creating in ${table}:`, dbItem); // Debug log
-
         const { error } = await supabase.from(table).insert(dbItem);
         if (error) {
             console.error(`Error creating in ${table}:`, error);
@@ -156,21 +171,31 @@ export const supabaseService = {
     async update(table: string, item: any) {
         const userId = await getUserId();
         const dbItem = mapToDB(item, userId);
+        // Don't update ID or UserID
+        delete dbItem.id; 
+        delete dbItem.user_id;
+        
         const { error } = await supabase.from(table).update(dbItem).eq('id', item.id).eq('user_id', userId);
         if (error) throw error;
     },
 
     async delete(table: string, id: string) {
         const userId = await getUserId();
+        // Soft delete
         const { error } = await supabase.from(table).update({ deleted: true }).eq('id', id).eq('user_id', userId);
         if (error) throw error;
     },
 
     async bulkCreate(table: string, items: any[]) {
+        if (!items.length) return;
         const userId = await getUserId();
         const dbItems = items.map(i => mapToDB(i, userId));
+        
         const { error } = await supabase.from(table).upsert(dbItems);
-        if (error) throw error;
+        if (error) {
+            console.error(`Bulk create failed for ${table}:`, error);
+            throw error;
+        }
     },
     
     // SPECIFIC FETCHERS
