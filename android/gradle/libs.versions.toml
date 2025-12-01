@@ -1,7 +1,7 @@
 [versions]
 # Project versions
 minSdk = "23"
-compileSdk = "36"
+compileSdk = "34"
 targetSdk = "34"
 
 # Plugin versions

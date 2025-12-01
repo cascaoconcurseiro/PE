@@ -1,7 +1,7 @@
 import { supabase } from '../integrations/supabase/client';
 import { 
     Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset, 
-    CustomCategory, Snapshot, UserProfile 
+    CustomCategory, SyncStatus, UserProfile, Snapshot
 } from '../types';
 
 // Helper to get current user
@@ -133,8 +133,11 @@ export const supabaseService = {
             const userId = await getUserId();
             let query = supabase.from(table).select('*').eq('user_id', userId).eq('deleted', false);
             
-            if (table === 'transactions' || table === 'assets' || table === 'snapshots') {
+            if (table === 'transactions' || table === 'snapshots') {
                 query = query.order('date', { ascending: false });
+            } else if (table === 'assets') {
+                // Assets don't have a 'date' column, sort by ticker or creation
+                query = query.order('ticker', { ascending: true });
             } else {
                 query = query.order('created_at', { ascending: true });
             }
@@ -143,7 +146,6 @@ export const supabaseService = {
             
             if (error) {
                 console.error(`Supabase fetch error on ${table}:`, error);
-                // If column doesn't exist error, we might be in migration state
                 if (error.code === '42703') { // Undefined column
                      console.warn(`Column missing in ${table}. DB Schema might need update.`);
                      return [];
