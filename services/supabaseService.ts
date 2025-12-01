@@ -1,6 +1,6 @@
 import { supabase } from '../integrations/supabase/client';
-import { 
-    Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset, 
+import {
+    Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset,
     CustomCategory, SyncStatus, UserProfile, Snapshot
 } from '../types';
 
@@ -15,12 +15,12 @@ const getUserId = async () => {
 const mapToApp = (data: any): any => {
     if (Array.isArray(data)) return data.map(mapToApp);
     if (data === null || typeof data !== 'object') return data;
-    
+
     const newObj: any = {};
     for (const key in data) {
         if (key === 'user_id') continue;
         const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-        
+
         // Specific overrides if needed
         if (key === 'account_id') newObj['accountId'] = data[key];
         else if (key === 'destination_account_id') newObj['destinationAccountId'] = data[key];
@@ -32,7 +32,7 @@ const mapToApp = (data: any): any => {
 // Mapper for Saving (App camelCase -> DB snake_case)
 const mapToDB = (data: any, userId: string): any => {
     const newObj: any = { user_id: userId };
-    
+
     // Copia propriedades básicas e converte para snake_case
     const keys = {
         id: 'id',
@@ -43,15 +43,15 @@ const mapToDB = (data: any, userId: string): any => {
         category: 'category',
         description: 'description',
         currency: 'currency',
-        
+
         // Accounts
         initialBalance: 'initial_balance',
         balance: 'balance',
-        limit: 'limit',
+        limit: 'credit_limit',
         closingDay: 'closing_day',
         dueDay: 'due_day',
         isInternational: 'is_international',
-        
+
         // Transactions
         accountId: 'account_id',
         destinationAccountId: 'destination_account_id',
@@ -75,7 +75,7 @@ const mapToDB = (data: any, userId: string): any => {
         isRefund: 'is_refund',
         destinationAmount: 'destination_amount',
         exchangeRate: 'exchange_rate',
-        
+
         // Trips
         startDate: 'start_date',
         endDate: 'end_date',
@@ -86,7 +86,7 @@ const mapToDB = (data: any, userId: string): any => {
         checklist: 'checklist',
         shoppingList: 'shopping_list',
         exchangeEntries: 'exchange_entries',
-        
+
         // Others
         role: 'role',
         email: 'email',
@@ -109,7 +109,7 @@ const mapToDB = (data: any, userId: string): any => {
         totalInvested: 'total_invested',
         totalDebt: 'total_debt',
         netWorth: 'net_worth',
-        
+
         // Meta
         createdAt: 'created_at',
         updatedAt: 'updated_at',
@@ -132,7 +132,7 @@ export const supabaseService = {
         try {
             const userId = await getUserId();
             let query = supabase.from(table).select('*').eq('user_id', userId).eq('deleted', false);
-            
+
             if (table === 'transactions' || table === 'snapshots') {
                 query = query.order('date', { ascending: false });
             } else if (table === 'assets') {
@@ -141,14 +141,14 @@ export const supabaseService = {
             } else {
                 query = query.order('created_at', { ascending: true });
             }
-            
+
             const { data, error } = await query;
-            
+
             if (error) {
                 console.error(`Supabase fetch error on ${table}:`, error);
                 if (error.code === '42703') { // Undefined column
-                     console.warn(`Column missing in ${table}. DB Schema might need update.`);
-                     return [];
+                    console.warn(`Column missing in ${table}. DB Schema might need update.`);
+                    return [];
                 }
                 throw error;
             }
@@ -162,7 +162,7 @@ export const supabaseService = {
     async create(table: string, item: any) {
         const userId = await getUserId();
         const dbItem = mapToDB(item, userId);
-        
+
         const { error } = await supabase.from(table).insert(dbItem);
         if (error) {
             console.error(`Error creating in ${table}:`, error);
@@ -174,9 +174,9 @@ export const supabaseService = {
         const userId = await getUserId();
         const dbItem = mapToDB(item, userId);
         // Don't update ID or UserID
-        delete dbItem.id; 
+        delete dbItem.id;
         delete dbItem.user_id;
-        
+
         const { error } = await supabase.from(table).update(dbItem).eq('id', item.id).eq('user_id', userId);
         if (error) throw error;
     },
@@ -192,14 +192,14 @@ export const supabaseService = {
         if (!items.length) return;
         const userId = await getUserId();
         const dbItems = items.map(i => mapToDB(i, userId));
-        
+
         const { error } = await supabase.from(table).upsert(dbItems);
         if (error) {
             console.error(`Bulk create failed for ${table}:`, error);
             throw error;
         }
     },
-    
+
     // SPECIFIC FETCHERS
     async getTransactions() { return this.getAll('transactions'); },
     async getAccounts() { return this.getAll('accounts'); },
