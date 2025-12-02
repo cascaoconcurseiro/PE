@@ -119,7 +119,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     }
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-slate-900 relative">
+        <div className="flex flex-col h-screen max-h-[100dvh] bg-white dark:bg-slate-900 relative overflow-hidden">
             <div ref={topRef} />
 
             {/* Header Tabs */}
