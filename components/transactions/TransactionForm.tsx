@@ -136,22 +136,22 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
             <div className="flex-1 overflow-y-auto custom-scrollbar pb-32">
                 {initialData && (
-                    <div className="px-5 pt-4 animate-in slide-in-from-top-2">
-                        <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-amber-100 dark:border-amber-800">
-                            <Pencil className="w-3 h-3" /> Editando Transação
+                    <div className="px-3 sm:px-5 pt-2 sm:pt-3 animate-in slide-in-from-top-2">
+                        <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 border border-amber-100 dark:border-amber-800">
+                            <Pencil className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Editando
                         </div>
                     </div>
                 )}
 
                 {/* Amount Input */}
-                <div className={`flex flex-col items-center justify-center py-4 ${headerBg} transition-colors duration-300 shrink-0`}>
-                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                        {isRefund ? <Undo2 className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />}
-                        {isRefund ? 'Valor do Estorno' : 'Valor da Transação'}
+                <div className={`flex flex-col items-center justify-center py-2 sm:py-3 ${headerBg} transition-colors duration-300 shrink-0`}>
+                    <label className="text-[9px] sm:text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        {isRefund ? <Undo2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <DollarSign className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
+                        <span className="hidden xs:inline">{isRefund ? 'Valor do Estorno' : 'Valor'}</span>
                     </label>
 
-                    <div className="relative flex items-center justify-center w-full px-4">
-                        <span className={`text-4xl font-bold mr-2 opacity-80 ${mainColor}`}>
+                    <div className="relative flex items-center justify-center w-full px-2 sm:px-4">
+                        <span className={`text-2xl sm:text-3xl md:text-4xl font-bold mr-1 sm:mr-2 opacity-80 ${mainColor}`}>
                             {activeCurrency === 'BRL' ? 'R$' : activeCurrency}
                         </span>
                         <input
@@ -160,16 +160,16 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                             value={amountStr}
                             onChange={(e) => setAmountStr(e.target.value)}
                             placeholder="0,00"
-                            className={`w-full max-w-[240px] text-center text-3xl sm:text-4xl font-black bg-transparent border-none outline-none placeholder-slate-300 dark:placeholder-slate-700 ${mainColor}`}
+                            className={`w-full max-w-[180px] sm:max-w-[240px] text-center text-2xl sm:text-3xl md:text-4xl font-black bg-transparent border-none outline-none placeholder-slate-300 dark:placeholder-slate-700 ${mainColor}`}
                             autoFocus={!initialData}
                         />
                     </div>
-                    {errors.amount && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-2 bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full">{errors.amount}</p>}
+                    {errors.amount && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-1 bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full">{errors.amount}</p>}
 
                     {selectedTrip && !isTransfer && (
-                        <div className="mt-3 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-black/20 px-3 py-1 rounded-lg">
-                            <Plane className="w-3 h-3" />
-                            Moeda da Viagem: <strong>{selectedTrip.currency}</strong>
+                        <div className="mt-1.5 sm:mt-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-black/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg">
+                            <Plane className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                            Moeda: <strong>{selectedTrip.currency}</strong>
                         </div>
                     )}
 
