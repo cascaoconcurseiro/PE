@@ -1,4 +1,6 @@
 import { Transaction, TransactionType, Account, Category } from '../types';
+import { shouldShowTransaction } from '../utils/transactionFilters';
+
 
 export interface LedgerEntry {
     id: string;
@@ -26,7 +28,10 @@ export const generateLedger = (transactions: Transaction[], accounts: Account[])
 
     const ledger: LedgerEntry[] = [];
 
-    transactions.forEach(tx => {
+    // Filter out deleted transactions and unpaid debts
+    const activeTransactions = transactions.filter(shouldShowTransaction);
+
+    activeTransactions.forEach(tx => {
         if (!tx.amount || tx.amount <= 0) return;
 
         const date = tx.date;

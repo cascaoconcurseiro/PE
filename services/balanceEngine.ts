@@ -70,7 +70,17 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
                 // Otherwise, assume 1:1 (same currency).
                 let amountIncoming = amount;
 
-                if (tx.destinationAmount && tx.destinationAmount > 0) {
+                // VALIDATION: Multi-currency transfers MUST have destinationAmount
+                if (sourceAcc.currency !== destAcc.currency) {
+                    if (!tx.destinationAmount || tx.destinationAmount <= 0) {
+                        console.warn(`⚠️ Multi-currency transfer (${sourceAcc.currency} → ${destAcc.currency}) without destinationAmount. Transaction ID: ${tx.id}`);
+                        // Use 1:1 as fallback but log warning
+                        amountIncoming = amount;
+                    } else {
+                        amountIncoming = tx.destinationAmount;
+                    }
+                } else if (tx.destinationAmount && tx.destinationAmount > 0) {
+                    // Same currency but has destinationAmount (unusual but valid)
                     amountIncoming = tx.destinationAmount;
                 }
 

@@ -8,6 +8,8 @@ import { exportToCSV } from '../services/exportUtils';
 import { TravelReport } from './reports/TravelReport';
 import { SharedExpensesReport } from './reports/SharedExpensesReport';
 import { calculateMyExpense } from '../utils/expenseUtils';
+import { shouldShowTransaction } from '../utils/transactionFilters';
+
 
 interface ReportsProps {
     accounts: Account[];
@@ -27,7 +29,10 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, trips,
     const cashFlowReport = useMemo(() => {
         const report: Record<string, { accrual: number, cash: number }> = {};
 
-        transactions.forEach(t => {
+        // Filter out deleted transactions and unpaid debts
+        const activeTransactions = transactions.filter(shouldShowTransaction);
+
+        activeTransactions.forEach(t => {
             if (t.currency !== 'BRL') return; // Cash Flow Report usually focuses on main currency (BRL)
 
             const month = t.date.substring(0, 7); // YYYY-MM

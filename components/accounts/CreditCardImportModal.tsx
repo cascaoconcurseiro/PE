@@ -25,9 +25,10 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                 // Format label (e.g., "Novembro 2025")
                 const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-                // Use Closing Day to ensure it falls in the correct invoice cycle
-                const targetDay = account.closingDay || 1;
-                const targetDate = new Date(d.getFullYear(), d.getMonth(), targetDay);
+                // Use a date that falls WITHIN the invoice cycle
+                // For a card that closes on day 5, transactions from day 6 of previous month to day 5 of current month
+                // We'll use the 1st day of the month to ensure it's in the correct cycle
+                const targetDate = new Date(d.getFullYear(), d.getMonth(), 1);
 
                 nextMonths.push({
                     date: targetDate.toISOString().split('T')[0],

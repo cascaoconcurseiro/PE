@@ -1,4 +1,6 @@
 import { Account, Transaction, TransactionType } from '../types';
+import { shouldShowTransaction } from '../utils/transactionFilters';
+
 
 export const getInvoiceData = (account: Account, transactions: Transaction[], referenceDate: Date) => {
     // Default fallback
@@ -59,7 +61,10 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = closingDate.toISOString().split('T')[0];
 
-    const txs = transactions.filter(t => {
+    // Filter out deleted transactions and unpaid debts first
+    const activeTransactions = transactions.filter(shouldShowTransaction);
+
+    const txs = activeTransactions.filter(t => {
         if (t.accountId !== account.id) return false;
         // Simple string comparison works for ISO dates (YYYY-MM-DD)
         return t.date >= startStr && t.date <= endStr;
@@ -91,8 +96,11 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
 };
 
 export const getCommittedBalance = (account: Account, transactions: Transaction[]) => {
-    const accountTxs = transactions.filter(t => t.accountId === account.id);
-    const incomingTxs = transactions.filter(t => t.destinationAccountId === account.id);
+    // Filter out deleted transactions and unpaid debts
+    const activeTransactions = transactions.filter(shouldShowTransaction);
+
+    const accountTxs = activeTransactions.filter(t => t.accountId === account.id);
+    const incomingTxs = activeTransactions.filter(t => t.destinationAccountId === account.id);
 
     const totalDebt = accountTxs.reduce((acc, t) => {
         if (t.isRefund) return acc + t.amount;
@@ -108,7 +116,8 @@ export const getCommittedBalance = (account: Account, transactions: Transaction[
 };
 
 export const getBankExtract = (accountId: string, transactions: Transaction[]) => {
+    // Filter out deleted transactions and unpaid debts
     return transactions
-        .filter(t => t.accountId === accountId)
+        .filter(t => shouldShowTransaction(t) && t.accountId === accountId)
         .sort((a, b) => b.date.localeCompare(a.date));
 };

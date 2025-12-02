@@ -56,6 +56,14 @@ export const useDataStore = () => {
                 const seriesId = crypto.randomUUID();
                 const baseInstallmentValue = Math.floor((newTx.amount / totalInstallments) * 100) / 100;
                 let accumulatedAmount = 0;
+                let accumulatedSharedAmounts: { [memberId: string]: number } = {};
+
+                // Initialize accumulated amounts for each shared member
+                if (newTx.sharedWith) {
+                    newTx.sharedWith.forEach(s => {
+                        accumulatedSharedAmounts[s.memberId] = 0;
+                    });
+                }
 
                 for (let i = 0; i < totalInstallments; i++) {
                     const nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
@@ -67,14 +75,29 @@ export const useDataStore = () => {
 
                     let currentAmount = baseInstallmentValue;
                     if (i === totalInstallments - 1) {
+                        // Last installment: adjust to match exact total
                         currentAmount = Number((newTx.amount - accumulatedAmount).toFixed(2));
                     }
                     accumulatedAmount += currentAmount;
 
-                    const currentSharedWith = newTx.sharedWith?.map(s => ({
-                        ...s,
-                        assignedAmount: Number(((s.assignedAmount / newTx.amount) * currentAmount).toFixed(2))
-                    }));
+                    // Calculate shared amounts with rounding correction on last installment
+                    const currentSharedWith = newTx.sharedWith?.map(s => {
+                        let assignedAmount = Number(((s.assignedAmount / newTx.amount) * currentAmount).toFixed(2));
+
+                        if (i === totalInstallments - 1) {
+                            // Last installment: adjust to match exact total for this member
+                            const totalAssigned = accumulatedSharedAmounts[s.memberId] || 0;
+                            assignedAmount = Number((s.assignedAmount - totalAssigned).toFixed(2));
+                        } else {
+                            // Accumulate for correction on last installment
+                            accumulatedSharedAmounts[s.memberId] = (accumulatedSharedAmounts[s.memberId] || 0) + assignedAmount;
+                        }
+
+                        return {
+                            ...s,
+                            assignedAmount
+                        };
+                    });
 
                     txsToCreate.push({
                         ...newTx,
@@ -223,7 +246,15 @@ export const useDataStore = () => {
     // --- GENERIC HANDLERS ---
     const handleAddAccount = async (acc: any) => performOperation(async () => { await supabaseService.create('accounts', { ...acc, id: crypto.randomUUID() }); }, 'Conta criada!');
     const handleUpdateAccount = async (acc: any) => performOperation(async () => { await supabaseService.update('accounts', acc); }, 'Conta atualizada!');
-    const handleDeleteAccount = async (id: string) => performOperation(async () => { await supabaseService.delete('accounts', id); }, 'Conta excluída.');
+    const handleDeleteAccount = async (id: string) => performOperation(async () => {
+        // Cascade delete: Delete all transactions associated with this account
+        const accountTxs = transactions.filter(t => t.accountId === id || t.destinationAccountId === id);
+        for (const tx of accountTxs) {
+            await supabaseService.delete('transactions', tx.id);
+        }
+        // Then delete the account itself
+        await supabaseService.delete('accounts', id);
+    }, 'Conta e transações excluídas.');
 
     const handleAddTrip = async (trip: any) => performOperation(async () => { await supabaseService.create('trips', { ...trip, id: crypto.randomUUID() }); }, 'Viagem criada!');
     const handleUpdateTrip = async (trip: any) => performOperation(async () => { await supabaseService.update('trips', trip); }, 'Viagem atualizada!');
