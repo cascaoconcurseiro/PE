@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, CustomCategory } from '../types';
-import { Search, Clock } from 'lucide-react';
+import { Search, Clock, Trash2, AlertTriangle } from 'lucide-react';
 import { isSameMonth } from '../utils';
 import { TransactionList } from './transactions/TransactionList';
 import { TransactionSummary } from './transactions/TransactionSummary';
 import { TransactionForm } from './transactions/TransactionForm';
 import { ConfirmModal } from './ui/ConfirmModal';
+import { Modal } from './ui/Modal';
 import { InstallmentAnticipationModal } from './transactions/InstallmentAnticipationModal';
-import { Button } from './ui/Button'; // Assuming Button is already imported
+import { Button } from './ui/Button';
 import { calculateMyExpense } from '../utils/expenseUtils';
 
 // Export PrivacyBlur for reuse if needed, though mostly handled internally now
@@ -24,8 +25,8 @@ interface TransactionsProps {
     customCategories: CustomCategory[];
     onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
     onUpdateTransaction: (t: Transaction) => void;
-    onDeleteTransaction: (id: string) => void;
-    onAnticipate?: (ids: string[], date: string, accountId: string) => void; // Updated signature
+    onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
+    onAnticipate?: (ids: string[], date: string, accountId: string) => void;
     initialEditId?: string | null;
     onCancel?: () => void;
     modalMode?: boolean;
@@ -68,7 +69,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
 
     // Delete State
-    const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id: string | null }>({ isOpen: false, id: null });
+    const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id: string | null, isSeries: boolean }>({ isOpen: false, id: null, isSeries: false });
 
     // Anticipate Installments State
     const [anticipateModal, setAnticipateModal] = useState<{ isOpen: boolean, transaction: Transaction | null }>({ isOpen: false, transaction: null });
@@ -129,13 +130,15 @@ export const Transactions: React.FC<TransactionsProps> = ({
     };
 
     const handleDeleteRequest = (id: string) => {
-        setDeleteModal({ isOpen: true, id });
+        const tx = transactions.find(t => t.id === id);
+        const isSeries = !!tx?.seriesId;
+        setDeleteModal({ isOpen: true, id, isSeries });
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = (scope: 'SINGLE' | 'SERIES' = 'SINGLE') => {
         if (deleteModal.id) {
-            onDeleteTransaction(deleteModal.id);
-            setDeleteModal({ isOpen: false, id: null });
+            onDeleteTransaction(deleteModal.id, scope);
+            setDeleteModal({ isOpen: false, id: null, isSeries: false });
         }
     };
 
@@ -258,14 +261,66 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 onAddClick={() => setFormMode(TransactionType.EXPENSE)}
             />
 
-            <ConfirmModal
-                isOpen={deleteModal.isOpen}
-                title="Excluir Transação"
-                message="Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita."
-                onConfirm={confirmDelete}
-                onCancel={() => setDeleteModal({ isOpen: false, id: null })}
-                isDanger
-            />
+            {deleteModal.isOpen && (
+                deleteModal.isSeries ? (
+                    <Modal
+                        isOpen={true}
+                        onClose={() => setDeleteModal({ isOpen: false, id: null, isSeries: false })}
+                        title="Excluir Transação Recorrente"
+                    >
+                        <div className="space-y-6">
+                            <div className="flex items-start gap-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800">
+                                <div className="p-2 bg-amber-100 dark:bg-amber-800 rounded-lg text-amber-600 dark:text-amber-300">
+                                    <AlertTriangle className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-amber-900 dark:text-amber-300 mb-1">Atenção!</h4>
+                                    <p className="text-sm text-amber-800 dark:text-amber-400">
+                                        Esta transação faz parte de uma série (parcelada ou recorrente). Como deseja prosseguir?
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                <button
+                                    onClick={() => confirmDelete('SINGLE')}
+                                    className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group"
+                                >
+                                    <div className="text-left">
+                                        <span className="block font-bold text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">Apenas esta transação</span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">Exclui somente o registro atual.</span>
+                                    </div>
+                                    <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 group-hover:border-indigo-500" />
+                                </button>
+
+                                <button
+                                    onClick={() => confirmDelete('SERIES')}
+                                    className="flex items-center justify-between p-4 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 transition-all group"
+                                >
+                                    <div className="text-left">
+                                        <span className="block font-bold text-red-700 dark:text-red-400">Todas da série</span>
+                                        <span className="text-xs text-red-600/80 dark:text-red-400/80">Exclui esta e todas as outras relacionadas (parcelas/futuras).</span>
+                                    </div>
+                                    <Trash2 className="w-5 h-5 text-red-500" />
+                                </button>
+                            </div>
+
+                            <Button variant="secondary" onClick={() => setDeleteModal({ isOpen: false, id: null, isSeries: false })} className="w-full">
+                                Cancelar
+                            </Button>
+                        </div>
+                    </Modal>
+                ) : (
+                    <ConfirmModal
+                        isOpen={deleteModal.isOpen}
+                        title="Excluir Transação"
+                        message="Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita."
+                        onConfirm={() => confirmDelete('SINGLE')}
+                        onCancel={() => setDeleteModal({ isOpen: false, id: null, isSeries: false })}
+                        isDanger
+                    />
+                )
+            )}
 
             {anticipateModal.isOpen && anticipateModal.transaction && (
                 <InstallmentAnticipationModal

@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabaseService } from '../services/supabaseService';
-import { 
-    Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset, 
+import {
+    Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset,
     CustomCategory, SyncStatus, UserProfile, Snapshot
 } from '../types';
 import { parseDate } from '../utils';
 import { useToast } from '../components/ui/Toast';
 import { supabase } from '../integrations/supabase/client';
+import { processRecurringTransactions } from '../services/recurrenceEngine';
 
 export const useDataStore = () => {
     const { addToast } = useToast();
@@ -20,77 +21,17 @@ export const useDataStore = () => {
     const [assets, setAssets] = useState<Asset[]>([]);
     const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
     const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
-    
+
     const [isLoading, setIsLoading] = useState(true);
     const isInitialized = useRef(false);
 
-    // --- FETCH DATA FROM SUPABASE ---
-    const fetchData = useCallback(async (forceLoading = false) => {
-        // Check auth first
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            setIsLoading(false);
-            return;
-        }
-
-        if (!isInitialized.current || forceLoading) {
-            setIsLoading(true);
-        }
-
-        try {
-            const [
-                accs, txs, trps, bdgts, gls, fam, assts, snaps, cats
-            ] = await Promise.all([
-                supabaseService.getAccounts(),
-                supabaseService.getTransactions(),
-                supabaseService.getTrips(),
-                supabaseService.getBudgets(),
-                supabaseService.getGoals(),
-                supabaseService.getFamilyMembers(),
-                supabaseService.getAssets(),
-                supabaseService.getSnapshots(),
-                supabaseService.getCustomCategories()
-            ]);
-
-            setAccounts(accs);
-            setTransactions(txs);
-            setTrips(trps);
-            setBudgets(bdgts);
-            setGoals(gls);
-            setFamilyMembers(fam);
-            setAssets(assts);
-            setSnapshots(snaps);
-            setCustomCategories(cats);
-            
-            isInitialized.current = true;
-        } catch (error) {
-            console.error("Error fetching data from Supabase:", error);
-            addToast("Erro ao carregar dados da nuvem.", 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    // Initial Load
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
-
-    // --- ACTIONS ---
-
-    const handleLogin = async (userProfile: UserProfile) => {
-        setUser(userProfile);
-        fetchData(true); 
-    };
-
-    const handleLogout = async () => {
-        setUser(null);
-        setAccounts([]);
-        setTransactions([]);
-        isInitialized.current = false;
-    };
-
-    const refresh = () => fetchData(false);
+    // --- ACTIONS DEFINED EARLY FOR USAGE IN FETCH ---
+    // We need to define these before fetchData so we can pass them to recurrence engine,
+    // BUT fetchData is called by these. Circular dependency?
+    // Solution: Define internal handlers that don't call fetchData, or just let the cycle happen (it breaks naturally).
+    // Actually, processRecurringTransactions calls onAdd/onUpdate.
+    // If we pass the public handlers, they call refresh() -> fetchData().
+    // This is safe as long as recurrence engine doesn't generate infinitely.
 
     // Wrapper for async operations to handle errors
     const performOperation = async (operation: () => Promise<void>, successMessage?: string) => {
@@ -169,25 +110,113 @@ export const useDataStore = () => {
         }, 'Transação atualizada!');
     };
 
-    const handleDeleteTransaction = async (id: string) => {
+    // --- FETCH DATA FROM SUPABASE ---
+    const fetchData = useCallback(async (forceLoading = false) => {
+        // Check auth first
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            setIsLoading(false);
+            return;
+        }
+
+        if (!isInitialized.current || forceLoading) {
+            setIsLoading(true);
+        }
+
+        try {
+            const [
+                accs, txs, trps, bdgts, gls, fam, assts, snaps, cats
+            ] = await Promise.all([
+                supabaseService.getAccounts(),
+                supabaseService.getTransactions(),
+                supabaseService.getTrips(),
+                supabaseService.getBudgets(),
+                supabaseService.getGoals(),
+                supabaseService.getFamilyMembers(),
+                supabaseService.getAssets(),
+                supabaseService.getSnapshots(),
+                supabaseService.getCustomCategories()
+            ]);
+
+            setAccounts(accs);
+            setTransactions(txs);
+            setTrips(trps);
+            setBudgets(bdgts);
+            setGoals(gls);
+            setFamilyMembers(fam);
+            setAssets(assts);
+            setSnapshots(snaps);
+            setCustomCategories(cats);
+
+            // Run Recurrence Engine
+            // We pass the handlers directly. Since they are defined in the component scope, 
+            // we need to be careful about closure staleness, but 'performOperation' uses the latest state?
+            // Actually, handleAddTransaction doesn't use state, it just writes to DB. Safe.
+            processRecurringTransactions(txs, handleAddTransaction, handleUpdateTransaction);
+
+            isInitialized.current = true;
+        } catch (error) {
+            console.error("Error fetching data from Supabase:", error);
+            addToast("Erro ao carregar dados da nuvem.", 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Initial Load
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    // --- ACTIONS ---
+
+    const handleLogin = async (userProfile: UserProfile) => {
+        setUser(userProfile);
+        fetchData(true);
+    };
+
+    const handleLogout = async () => {
+        setUser(null);
+        setAccounts([]);
+        setTransactions([]);
+        isInitialized.current = false;
+    };
+
+    const refresh = () => fetchData(false);
+
+    const handleDeleteTransaction = async (id: string, deleteScope: 'SINGLE' | 'SERIES' = 'SINGLE') => {
         await performOperation(async () => {
-            await supabaseService.delete('transactions', id);
+            if (deleteScope === 'SERIES') {
+                const tx = transactions.find(t => t.id === id);
+                if (tx && tx.seriesId) {
+                    // Find all transactions in this series
+                    const seriesTxs = transactions.filter(t => t.seriesId === tx.seriesId);
+                    for (const t of seriesTxs) {
+                        await supabaseService.delete('transactions', t.id);
+                    }
+                } else {
+                    // Fallback if no seriesId found
+                    await supabaseService.delete('transactions', id);
+                }
+            } else {
+                await supabaseService.delete('transactions', id);
+            }
         }, 'Transação excluída.');
     };
 
     const handleAnticipateInstallments = async (ids: string[], targetDate: string, targetAccountId?: string) => {
         await performOperation(async () => {
-             const txsToUpdate = transactions.filter(t => ids.includes(t.id)).map(t => ({
-                 ...t,
-                 date: targetDate,
-                 accountId: targetAccountId || t.accountId,
-                 description: t.description.includes('(Antecipado)') ? t.description : `${t.description} (Antecipado)`,
-                 updatedAt: new Date().toISOString()
-             }));
-             
-             for (const tx of txsToUpdate) {
-                 await supabaseService.update('transactions', tx);
-             }
+            const txsToUpdate = transactions.filter(t => ids.includes(t.id)).map(t => ({
+                ...t,
+                date: targetDate,
+                accountId: targetAccountId || t.accountId,
+                description: t.description.includes('(Antecipado)') ? t.description : `${t.description} (Antecipado)`,
+                updatedAt: new Date().toISOString()
+            }));
+
+            for (const tx of txsToUpdate) {
+                await supabaseService.update('transactions', tx);
+            }
         }, 'Parcelas antecipadas!');
     };
 

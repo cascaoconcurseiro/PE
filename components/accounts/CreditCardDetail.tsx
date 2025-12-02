@@ -61,7 +61,7 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                                     value={currentDate.toISOString().slice(0, 7)}
                                     onChange={(e) => {
                                         const [y, m] = e.target.value.split('-').map(Number);
-                                        const newDate = new Date(y, m - 1, 15);
+                                        const newDate = new Date(y, m - 1, 1);
                                         onInvoiceDateChange(newDate);
                                     }}
                                 >

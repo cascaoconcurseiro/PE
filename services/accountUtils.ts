@@ -104,7 +104,7 @@ export const getCommittedBalance = (account: Account, transactions: Transaction[
 
     const totalPayments = incomingTxs.reduce((acc, t) => acc + (t.destinationAmount || t.amount), 0);
 
-    return Math.abs(totalDebt + totalPayments + (account.initialBalance || 0));
+    return totalDebt + totalPayments + (account.initialBalance || 0);
 };
 
 export const getBankExtract = (accountId: string, transactions: Transaction[]) => {

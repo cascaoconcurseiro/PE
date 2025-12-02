@@ -23,6 +23,7 @@ import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useDataStore } from './hooks/useDataStore';
 import { useAppLogic } from './hooks/useAppLogic';
 import { MainLayout } from './components/MainLayout';
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import './index.css';
 
 const App = () => {
@@ -79,11 +80,11 @@ const App = () => {
     }, [sessionUser, storedUser]);
 
     // Inject Handlers into Logic so it writes to Cloud, not Local DB
-    useAppLogic({ 
-        accounts, 
-        transactions, 
-        assets, 
-        isMigrating: isDataLoading, 
+    useAppLogic({
+        accounts,
+        transactions,
+        assets,
+        isMigrating: isDataLoading,
         handlers: {
             handleAddTransaction: handlers.handleAddTransaction,
             handleUpdateTransaction: handlers.handleUpdateTransaction,
@@ -251,6 +252,7 @@ const App = () => {
                     </div>
                 </div>
             )}
+            <SpeedInsights />
         </MainLayout>
     );
 };

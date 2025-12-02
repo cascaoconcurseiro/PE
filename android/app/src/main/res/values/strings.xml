@@ -2,6 +2,4 @@
 <resources>
     <string name="app_name">PE</string>
     <string name="title_activity_main">PE</string>
-    <string name="package_name">com.example.pe</string>
-    <string name="custom_url_scheme">com.example.pe</string>
 </resources>

@@ -2,16 +2,6 @@ package com.example.pe.di
 
 import android.content.Context
 import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.pe.data.local.AppDatabase
-import com.example.pe.data.local.MIGRATION_1_2
-import com.example.pe.data.local.MIGRATION_2_3
-import com.example.pe.data.local.MIGRATION_3_4
-import com.example.pe.data.local.MIGRATION_4_5
-import com.example.pe.data.local.MIGRATION_5_6
-import com.example.pe.data.local.MIGRATION_6_7
-import com.example.pe.data.local.MIGRATION_7_8
 import com.example.pe.data.local.dao.AccountDao
 import com.example.pe.data.local.dao.CardDao
 import com.example.pe.data.local.dao.CategoryDao
@@ -23,19 +13,19 @@ import com.example.pe.data.local.dao.TransactionDao
 import com.example.pe.data.local.dao.TripDao
 import com.example.pe.data.local.dao.TripExpenseDao
 import com.example.pe.data.local.dao.TripParticipantDao
-import com.example.pe.data.local.model.Account
-import com.example.pe.data.local.model.Category
-import com.example.pe.data.local.model.Person
+import com.example.pe.data.local.model.AppDatabase
+import com.example.pe.data.local.model.MIGRATION_1_2
+import com.example.pe.data.local.model.MIGRATION_2_3
+import com.example.pe.data.local.model.MIGRATION_3_4
+import com.example.pe.data.local.model.MIGRATION_4_5
+import com.example.pe.data.local.model.MIGRATION_5_6
+import com.example.pe.data.local.model.MIGRATION_6_7
+import com.example.pe.data.local.model.MIGRATION_7_8
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import java.util.UUID
-import javax.inject.Provider
 import javax.inject.Singleton
 
 @InstallIn(SingletonComponent::class)
@@ -53,7 +43,7 @@ object DatabaseModule {
             "finance-app.db"
         )
         .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
-        .fallbackToDestructiveMigration() // Adicionado como uma salvaguarda
+        .fallbackToDestructiveMigration()
         .build()
     }
 

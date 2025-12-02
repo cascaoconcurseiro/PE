@@ -25,15 +25,12 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                 // Format label (e.g., "Novembro 2025")
                 const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-                // Calculate due date based on account.dueDay
-                // If dueDay is not set, default to 10th
-                const dueDay = account.dueDay || 10;
-
-                // Create the actual due date object
-                const dueDate = new Date(d.getFullYear(), d.getMonth(), dueDay);
+                // Use Closing Day to ensure it falls in the correct invoice cycle
+                const targetDay = account.closingDay || 1;
+                const targetDate = new Date(d.getFullYear(), d.getMonth(), targetDay);
 
                 nextMonths.push({
-                    date: dueDate.toISOString().split('T')[0],
+                    date: targetDate.toISOString().split('T')[0],
                     label: label.charAt(0).toUpperCase() + label.slice(1),
                     amount: ''
                 });

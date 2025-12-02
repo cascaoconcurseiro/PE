@@ -6,9 +6,9 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.example.pe.data.local.CategorySpending
-import com.example.pe.data.local.TransactionWithCategory
+import com.example.pe.data.local.model.CategorySpending
 import com.example.pe.data.local.model.Transaction
+import com.example.pe.data.local.model.TransactionWithCategory
 import kotlinx.coroutines.flow.Flow
 
 @Dao

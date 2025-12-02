@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Tag, Plus, X, Key, Eye, EyeOff } from 'lucide-react';
+import { Tag, Plus, X, Key, Eye, EyeOff, Settings as SettingsIcon, Database, Download, Save, Globe, Moon, Sun, Monitor } from 'lucide-react';
 import { Account, Budget, CustomCategory, FamilyMember, Transaction, Trip, Asset, Goal, Snapshot } from '../types';
 import { useToast } from './ui/Toast';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { Modal } from './ui/Modal';
+import { useTheme } from './ui/ThemeContext';
 
 interface SettingsProps {
     customCategories: CustomCategory[];
     onAddCategory: (name: string) => void;
     onDeleteCategory: (id: string) => void;
-    // Props de dados mantidos caso queiramos implementar export JSON no futuro
     accounts: Account[];
     transactions: Transaction[];
     trips: Trip[];
@@ -30,14 +30,20 @@ export const Settings: React.FC<SettingsProps> = ({
     customCategories,
     onAddCategory,
     onDeleteCategory,
-    onUpdateAccount,
-    onDeleteAccount,
-    onUpdateTrip,
-    onDeleteTrip
+    accounts,
+    transactions,
+    trips,
+    budgets,
+    goals,
+    familyMembers,
+    assets,
+    snapshots
 }) => {
+    const [activeTab, setActiveTab] = useState<'GENERAL' | 'CATEGORIES' | 'DATA' | 'SYSTEM'>('GENERAL');
     const [newCategoryName, setNewCategoryName] = useState('');
     const [globalCurrency, setGlobalCurrency] = useState('BRL');
     const { addToast } = useToast();
+    const { theme, toggleTheme } = useTheme();
 
     // Modal States
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void }>({
@@ -70,119 +76,261 @@ export const Settings: React.FC<SettingsProps> = ({
             }
             onAddCategory(trimmed);
             setNewCategoryName('');
+            addToast('Categoria adicionada!', 'success');
         }
     };
 
+    const handleExportJSON = () => {
+        const data = {
+            version: '1.0',
+            exportedAt: new Date().toISOString(),
+            accounts,
+            transactions,
+            trips,
+            budgets,
+            goals,
+            familyMembers,
+            assets,
+            snapshots,
+            customCategories
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `backup_pe_de_meia_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        addToast('Backup exportado com sucesso!', 'success');
+    };
+
     return (
-        <div className="space-y-8 pb-20">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Configurações</h2>
+        <div className="space-y-6 pb-24 animate-in fade-in duration-500">
+            <div>
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Configurações</h2>
+                <p className="text-slate-500 dark:text-slate-400">Gerencie suas preferências e dados do sistema.</p>
+            </div>
 
-            {/* Global Preferences */}
-            <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
-                        <Tag className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Preferências Globais</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Definições gerais do sistema.</p>
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Moeda Padrão</label>
-                        <select
-                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white font-medium"
-                            value={globalCurrency}
-                            onChange={(e) => setGlobalCurrency(e.target.value)}
-                        >
-                            <option value="BRL">Real Brasileiro (BRL)</option>
-                            <option value="USD">Dólar Americano (USD)</option>
-                            <option value="EUR">Euro (EUR)</option>
-                        </select>
-                    </div>
-                </div>
-            </Card>
+            {/* Tabs */}
+            <div className="flex gap-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-full overflow-x-auto no-scrollbar">
+                <button
+                    onClick={() => setActiveTab('GENERAL')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'GENERAL' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <SettingsIcon className="w-4 h-4" /> Geral
+                </button>
+                <button
+                    onClick={() => setActiveTab('CATEGORIES')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'CATEGORIES' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Tag className="w-4 h-4" /> Categorias
+                </button>
+                <button
+                    onClick={() => setActiveTab('DATA')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'DATA' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Database className="w-4 h-4" /> Dados
+                </button>
+                <button
+                    onClick={() => setActiveTab('SYSTEM')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'SYSTEM' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Monitor className="w-4 h-4" /> Sistema
+                </button>
+            </div>
 
-            {/* AI Integration */}
-            <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-xl">
-                        <Key className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Integração com IA (Gemini)</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Configure sua chave de API pessoal.</p>
-                    </div>
-                </div>
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Gemini API Key</label>
-                        <div className="flex gap-2">
-                            <div className="relative flex-1">
-                                <input
-                                    type={showApiKey ? "text" : "password"}
-                                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-slate-900 dark:text-white font-mono"
-                                    value={apiKey}
-                                    onChange={(e) => setApiKey(e.target.value)}
-                                    placeholder="Cole sua chave aqui..."
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowApiKey(!showApiKey)}
-                                    className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600"
+            {/* Content */}
+            <div className="space-y-6">
+                {activeTab === 'GENERAL' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-right-4 duration-300">
+                        <Card className="p-6">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
+                                    <Globe className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">Regionalização</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Moeda e formato de data.</p>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Moeda Padrão</label>
+                                <select
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white font-medium transition-all"
+                                    value={globalCurrency}
+                                    onChange={(e) => setGlobalCurrency(e.target.value)}
                                 >
-                                    {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    <option value="BRL">Real Brasileiro (BRL)</option>
+                                    <option value="USD">Dólar Americano (USD)</option>
+                                    <option value="EUR">Euro (EUR)</option>
+                                </select>
+                            </div>
+                        </Card>
+
+                        <Card className="p-6">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
+                                    {theme === 'dark' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">Aparência</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Personalize o tema do aplicativo.</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                                <span className="font-bold text-slate-700 dark:text-slate-300">Modo Escuro</span>
+                                <button
+                                    onClick={toggleTheme}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${theme === 'dark' ? 'bg-indigo-600' : 'bg-slate-200'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
                             </div>
-                            <Button onClick={handleSaveApiKey} className="bg-violet-600 hover:bg-violet-700 text-white">Salvar</Button>
+                        </Card>
+                    </div>
+                )}
+
+                {activeTab === 'CATEGORIES' && (
+                    <Card className="p-6 animate-in slide-in-from-right-4 duration-300">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl">
+                                <Tag className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg text-slate-800 dark:text-white">Categorias Personalizadas</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie categorias adicionais para suas transações.</p>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </Card>
 
-            {/* Custom Categories Section */}
-            <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl">
-                        <Tag className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Categorias Personalizadas</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Adicione categorias extras para suas transações.</p>
-                    </div>
-                </div>
+                        <form onSubmit={handleAddCat} className="flex gap-2 mb-6">
+                            <input
+                                type="text"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                placeholder="Nova categoria..."
+                                className="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
+                            />
+                            <Button type="submit" disabled={!newCategoryName.trim()} className="w-12 h-12 flex items-center justify-center rounded-xl">
+                                <Plus className="w-5 h-5" />
+                            </Button>
+                        </form>
 
-                <form onSubmit={handleAddCat} className="flex gap-2 mb-6">
-                    <input
-                        type="text"
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        placeholder="Nova categoria..."
-                        className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                    />
-                    <Button type="submit" disabled={!newCategoryName.trim()} className="w-12 h-10 flex items-center justify-center">
-                        <Plus className="w-5 h-5" />
-                    </Button>
-                </form>
-
-                <div className="flex flex-wrap gap-2">
-                    {customCategories.length === 0 && (
-                        <p className="text-sm text-slate-400 italic w-full text-center py-4">Nenhuma categoria personalizada.</p>
-                    )}
-                    {customCategories.map(cat => (
-                        <div key={cat.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium group">
-                            {cat.name}
-                            <button
-                                onClick={() => onDeleteCategory(cat.id)}
-                                className="text-slate-400 hover:text-red-500 transition-colors"
-                            >
-                                <X className="w-3.5 h-3.5" />
-                            </button>
+                        <div className="flex flex-wrap gap-2">
+                            {customCategories.length === 0 && (
+                                <div className="w-full text-center py-8 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                                    <p className="text-sm text-slate-400 italic">Nenhuma categoria personalizada.</p>
+                                </div>
+                            )}
+                            {customCategories.map(cat => (
+                                <div key={cat.id} className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold group shadow-sm hover:shadow-md transition-all">
+                                    {cat.name}
+                                    <button
+                                        onClick={() => onDeleteCategory(cat.id)}
+                                        className="text-slate-400 hover:text-red-500 transition-colors p-0.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
-            </Card>
+                    </Card>
+                )}
+
+                {activeTab === 'DATA' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-right-4 duration-300">
+                        <Card className="p-6">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                                    <Database className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">Backup de Dados</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Exporte todos os seus dados para segurança.</p>
+                                </div>
+                            </div>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                                Gere um arquivo JSON contendo todas as suas contas, transações, viagens e configurações. Útil para backup manual ou migração.
+                            </p>
+                            <Button onClick={handleExportJSON} className="w-full gap-2">
+                                <Download className="w-4 h-4" /> Exportar Backup (JSON)
+                            </Button>
+                        </Card>
+                    </div>
+                )}
+
+                {activeTab === 'SYSTEM' && (
+                    <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                        <Card className="p-6">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-3 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-xl">
+                                    <Key className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">Integração com IA</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Configure sua chave de API do Google Gemini.</p>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Gemini API Key</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type={showApiKey ? "text" : "password"}
+                                                className="w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none text-slate-900 dark:text-white font-mono text-sm"
+                                                value={apiKey}
+                                                onChange={(e) => setApiKey(e.target.value)}
+                                                placeholder="Cole sua chave aqui..."
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowApiKey(!showApiKey)}
+                                                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                            >
+                                                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                        <Button onClick={handleSaveApiKey} className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
+                                            <Save className="w-4 h-4" /> Salvar
+                                        </Button>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-2">
+                                        Sua chave é armazenada localmente no navegador e usada apenas para comunicar com a IA.
+                                    </p>
+                                </div>
+                            </div>
+                        </Card>
+
+                        <Card className="p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
+                                    <Monitor className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">Sobre o Sistema</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Informações da versão.</p>
+                                </div>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                                <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800">
+                                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Versão</span>
+                                    <span className="text-sm font-bold text-slate-900 dark:text-white">2.0.0 (Enterprise)</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800">
+                                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Ambiente</span>
+                                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">Produção</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2">
+                                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Banco de Dados</span>
+                                    <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">Supabase (Cloud)</span>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+                )}
+            </div>
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}

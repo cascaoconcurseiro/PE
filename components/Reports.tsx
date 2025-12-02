@@ -120,34 +120,34 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, trips,
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-fit overflow-x-auto no-scrollbar">
+            <div className="grid grid-cols-2 sm:flex sm:flex-nowrap gap-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-full sm:overflow-x-auto no-scrollbar">
                 <button
                     onClick={() => setActiveTab('TRIAL')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'TRIAL' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                    className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center sm:justify-start gap-2 transition-all whitespace-nowrap ${activeTab === 'TRIAL' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                 >
                     <FileText className="w-4 h-4" /> Balancete
                 </button>
                 <button
                     onClick={() => setActiveTab('LEDGER')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'LEDGER' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                    className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center sm:justify-start gap-2 transition-all whitespace-nowrap ${activeTab === 'LEDGER' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                 >
                     <BookOpen className="w-4 h-4" /> Razão
                 </button>
                 <button
                     onClick={() => setActiveTab('CASH_FLOW')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'CASH_FLOW' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                    className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center sm:justify-start gap-2 transition-all whitespace-nowrap ${activeTab === 'CASH_FLOW' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                 >
                     <TrendingUp className="w-4 h-4" /> Fluxo de Caixa
                 </button>
                 <button
                     onClick={() => setActiveTab('TRAVEL')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'TRAVEL' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                    className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center sm:justify-start gap-2 transition-all whitespace-nowrap ${activeTab === 'TRAVEL' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                 >
                     <Plane className="w-4 h-4" /> Viagens
                 </button>
                 <button
                     onClick={() => setActiveTab('SHARED')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'SHARED' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                    className={`col-span-2 sm:col-span-auto flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center sm:justify-start gap-2 transition-all whitespace-nowrap ${activeTab === 'SHARED' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                 >
                     <Users className="w-4 h-4" /> Compartilhado
                 </button>
