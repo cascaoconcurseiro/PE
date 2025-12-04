@@ -208,22 +208,44 @@ export const Shared: React.FC<SharedProps> = ({
         const finalAmount = settleModal.total * rate;
 
         // 1. Transaction Record (Money Movement)
+        // ✅ CORREÇÃO: Usar TRANSFER ao invés de EXPENSE para evitar duplicação
         if (settleModal.type !== 'OFFSET') {
-            onAddTransaction({
-                amount: finalAmount,
-                description: `${settleModal.type === 'RECEIVE' ? 'Recebimento' : 'Pagamento'} Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`,
-                date: now.split('T')[0],
-                type: settleModal.type === 'RECEIVE' ? TransactionType.INCOME : TransactionType.EXPENSE,
-                category: settleModal.type === 'RECEIVE' ? Category.INCOME : Category.TRANSFER,
-                accountId: selectedAccountId,
-                isShared: false,
-                relatedMemberId: settleModal.memberId!,
-                exchangeRate: isConverting ? rate : undefined,
-                currency: isConverting ? 'BRL' : settleModal.currency, // If converting, it enters as BRL
-                createdAt: now,
-                updatedAt: now,
-                syncStatus: SyncStatus.PENDING
-            });
+            if (settleModal.type === 'PAY') {
+                // Quando EU pago uma dívida, é uma TRANSFERÊNCIA (não uma despesa)
+                onAddTransaction({
+                    amount: finalAmount,
+                    description: `Pagamento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`,
+                    date: now.split('T')[0],
+                    type: TransactionType.TRANSFER, // ✅ CORRETO: TRANSFER ao invés de EXPENSE
+                    category: Category.TRANSFER,
+                    accountId: selectedAccountId,
+                    destinationAccountId: 'EXTERNAL', // ✅ Transferência externa (para a pessoa)
+                    isShared: false,
+                    relatedMemberId: settleModal.memberId!,
+                    exchangeRate: isConverting ? rate : undefined,
+                    currency: isConverting ? 'BRL' : settleModal.currency,
+                    createdAt: now,
+                    updatedAt: now,
+                    syncStatus: SyncStatus.PENDING
+                });
+            } else {
+                // Quando EU recebo, é uma RECEITA
+                onAddTransaction({
+                    amount: finalAmount,
+                    description: `Recebimento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`,
+                    date: now.split('T')[0],
+                    type: TransactionType.INCOME,
+                    category: Category.INCOME,
+                    accountId: selectedAccountId,
+                    isShared: false,
+                    relatedMemberId: settleModal.memberId!,
+                    exchangeRate: isConverting ? rate : undefined,
+                    currency: isConverting ? 'BRL' : settleModal.currency,
+                    createdAt: now,
+                    updatedAt: now,
+                    syncStatus: SyncStatus.PENDING
+                });
+            }
         }
 
         // 2. Settle Original Items

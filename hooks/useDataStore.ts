@@ -23,6 +23,7 @@ export const useDataStore = () => {
     const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
 
     const [isLoading, setIsLoading] = useState(true);
+    const [dataInconsistencies, setDataInconsistencies] = useState<string[]>([]);
     const isInitialized = useRef(false);
 
     // --- ACTIONS DEFINED EARLY FOR USAGE IN FETCH ---
@@ -183,10 +184,16 @@ export const useDataStore = () => {
             // ✅ VALIDAÇÃO: Verificar consistência de dados
             const { checkDataConsistency } = await import('../services/financialLogic');
             const issues = checkDataConsistency(accs, txs);
+            setDataInconsistencies(issues); // Armazenar para exibição posterior
+
             if (issues.length > 0) {
                 console.warn('⚠️ PROBLEMAS DE CONSISTÊNCIA DETECTADOS:');
                 issues.forEach(issue => console.warn(`  - ${issue}`));
-                addToast(`⚠️ ${issues.length} problema(s) de consistência detectado(s). Verifique o console.`, 'warning');
+
+                // Mostrar detalhes da primeira inconsistência
+                const firstIssue = issues[0];
+                const moreIssues = issues.length > 1 ? ` (+${issues.length - 1} mais)` : '';
+                addToast(`⚠️ Inconsistência: ${firstIssue}${moreIssues}`, 'warning');
             }
 
             // Run Recurrence Engine
@@ -227,20 +234,44 @@ export const useDataStore = () => {
 
     const handleDeleteTransaction = async (id: string, deleteScope: 'SINGLE' | 'SERIES' = 'SINGLE') => {
         await performOperation(async () => {
+            // ✅ SOFT DELETE: Marcar transações como deletadas ao invés de excluir fisicamente
+            // Isso mantém histórico e permite auditoria
             if (deleteScope === 'SERIES') {
                 const tx = transactions.find(t => t.id === id);
                 if (tx && tx.seriesId) {
                     // Find all transactions in this series
                     const seriesTxs = transactions.filter(t => t.seriesId === tx.seriesId);
+                    console.log(`🗑️ Marcando ${seriesTxs.length} transações da série como deletadas...`);
                     for (const t of seriesTxs) {
-                        await supabaseService.delete('transactions', t.id);
+                        await supabaseService.update('transactions', {
+                            ...t,
+                            deleted: true,
+                            updatedAt: new Date().toISOString()
+                        });
+                        console.log(`  ✅ Transação marcada como deletada: ${t.description}`);
                     }
                 } else {
                     // Fallback if no seriesId found
-                    await supabaseService.delete('transactions', id);
+                    const tx = transactions.find(t => t.id === id);
+                    if (tx) {
+                        await supabaseService.update('transactions', {
+                            ...tx,
+                            deleted: true,
+                            updatedAt: new Date().toISOString()
+                        });
+                        console.log(`✅ Transação marcada como deletada: ${tx.description}`);
+                    }
                 }
             } else {
-                await supabaseService.delete('transactions', id);
+                const tx = transactions.find(t => t.id === id);
+                if (tx) {
+                    await supabaseService.update('transactions', {
+                        ...tx,
+                        deleted: true,
+                        updatedAt: new Date().toISOString()
+                    });
+                    console.log(`✅ Transação marcada como deletada: ${tx.description}`);
+                }
             }
         }, 'Transação excluída.');
     };
@@ -311,7 +342,7 @@ export const useDataStore = () => {
     const handleAddSnapshot = async (s: any) => performOperation(async () => { await supabaseService.create('snapshots', { ...s, id: crypto.randomUUID() }); });
 
     return {
-        user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading,
+        user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading, dataInconsistencies,
         handlers: {
             handleLogin, handleLogout,
             handleAddTransaction, handleUpdateTransaction, handleDeleteTransaction, handleAnticipateInstallments,

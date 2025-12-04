@@ -54,7 +54,10 @@ export const checkDataConsistency = (accounts: Account[], transactions: Transact
     const issues: string[] = [];
     const accountIds = new Set(accounts.map(a => a.id));
 
-    transactions.forEach(t => {
+    // ✅ FILTRAR TRANSAÇÕES DELETADAS: Não validar transações que foram excluídas
+    const activeTransactions = transactions.filter(t => !t.deleted);
+
+    activeTransactions.forEach(t => {
         // Regra 1: Toda transação deve ter uma conta de origem válida
         if (!accountIds.has(t.accountId)) {
             issues.push(`Transação órfã encontrada: ${t.description} (ID da conta inválido)`);

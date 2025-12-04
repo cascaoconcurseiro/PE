@@ -22,6 +22,8 @@ interface MainLayoutProps {
     onNotificationClick: (id: string) => void;
     onNotificationDismiss: (id: string) => void;
     onOpenTxModal: () => void;
+    dataInconsistencies: string[];
+    onOpenInconsistenciesModal: () => void;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
@@ -38,7 +40,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     notifications,
     onNotificationClick,
     onNotificationDismiss,
-    onOpenTxModal
+    onOpenTxModal,
+    dataInconsistencies,
+    onOpenInconsistenciesModal
 }) => {
     const { theme, toggleTheme } = useTheme();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -197,6 +201,18 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                         </div>
 
                         <div className="flex items-center gap-1 sm:gap-2">
+                            {dataInconsistencies.length > 0 && (
+                                <button
+                                    onClick={onOpenInconsistenciesModal}
+                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors relative shadow-sm active:scale-95"
+                                    title={`${dataInconsistencies.length} inconsistência${dataInconsistencies.length !== 1 ? 's' : ''} detectada${dataInconsistencies.length !== 1 ? 's' : ''}`}
+                                >
+                                    <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+                                        {dataInconsistencies.length}
+                                    </span>
+                                </button>
+                            )}
                             <div className="relative">
                                 <button
                                     onClick={() => setIsNotifOpen(!isNotifOpen)}
@@ -238,8 +254,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                                                             return (
                                                                 <div key={n.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors flex gap-3">
                                                                     <div className={`mt-1 p-1.5 rounded-lg h-fit ${isOverdue
-                                                                            ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                                                                            : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
+                                                                        ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                                                                        : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
                                                                         }`}>
                                                                         <AlertTriangle className="w-3 h-3" />
                                                                     </div>
@@ -260,8 +276,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                                                                             <button
                                                                                 onClick={() => { onNotificationClick(n.id); setIsNotifOpen(false); }}
                                                                                 className={`text-[10px] font-bold px-2 py-1 rounded transition-colors ${isOverdue
-                                                                                        ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40'
-                                                                                        : 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'
+                                                                                    ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40'
+                                                                                    : 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'
                                                                                     }`}
                                                                             >
                                                                                 {isOverdue ? 'Pagar Agora' : 'Ver Detalhes'}

@@ -23,6 +23,7 @@ import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useDataStore } from './hooks/useDataStore';
 import { useAppLogic } from './hooks/useAppLogic';
 import { MainLayout } from './components/MainLayout';
+import { InconsistenciesModal } from './components/ui/InconsistenciesModal';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import './index.css';
 
@@ -62,7 +63,7 @@ const App = () => {
     }, []);
 
     const {
-        user: storedUser, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading: isDataLoading, handlers
+        user: storedUser, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading: isDataLoading, dataInconsistencies, handlers
     } = useDataStore();
 
     // Sync Auth State with Data Store
@@ -94,6 +95,7 @@ const App = () => {
 
     const [activeView, setActiveView] = useState<View>(View.DASHBOARD);
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+    const [isInconsistenciesModalOpen, setIsInconsistenciesModalOpen] = useState(false);
     const [editTxId, setEditTxId] = useState<string | null>(null);
     const [showValues, setShowValues] = useState<boolean>(() => {
         try { return JSON.parse(localStorage.getItem('pdm_privacy') || 'true'); } catch { return true; }
@@ -143,9 +145,23 @@ const App = () => {
             .slice(0, 20);  // ✅ Limitar a 20 notificações
     }, [transactions, dismissedNotifications]);
 
-    const handleRequestEdit = useCallback((id: string) => {
-        setIsTxModalOpen(true);
+    const handleNotificationClick = useCallback((id: string) => {
+        // Navegar para a view de transações e destacar a transação
+        setActiveView(View.TRANSACTIONS);
         setEditTxId(id);
+
+        // Scroll suave até a transação após um pequeno delay
+        setTimeout(() => {
+            const element = document.getElementById(`transaction-${id}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Adicionar efeito visual temporário
+                element.classList.add('ring-2', 'ring-amber-500', 'ring-offset-2');
+                setTimeout(() => {
+                    element.classList.remove('ring-2', 'ring-amber-500', 'ring-offset-2');
+                }, 3000);
+            }
+        }, 300);
     }, []);
 
     const handleDismissNotification = useCallback((id: string) => {
@@ -217,7 +233,7 @@ const App = () => {
     const renderContent = () => {
         switch (activeView) {
             case View.DASHBOARD:
-                return <Dashboard accounts={calculatedAccounts} transactions={transactions} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={handleRequestEdit} />;
+                return <Dashboard accounts={calculatedAccounts} transactions={transactions} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={handleNotificationClick} />;
             case View.ACCOUNTS:
                 return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} />;
             case View.TRANSACTIONS:
@@ -255,9 +271,11 @@ const App = () => {
             onDateChange={handleDateChange}
             onMonthChange={changeMonth}
             notifications={activeNotifications}
-            onNotificationClick={handleRequestEdit}
+            onNotificationClick={handleNotificationClick}
             onNotificationDismiss={handleDismissNotification}
             onOpenTxModal={() => setIsTxModalOpen(true)}
+            dataInconsistencies={dataInconsistencies}
+            onOpenInconsistenciesModal={() => setIsInconsistenciesModalOpen(true)}
         >
             {renderContent()}
 
@@ -286,6 +304,14 @@ const App = () => {
                     </div>
                 </div>
             )}
+
+            <InconsistenciesModal
+                isOpen={isInconsistenciesModalOpen}
+                onClose={() => setIsInconsistenciesModalOpen(false)}
+                issues={dataInconsistencies}
+                onNavigateToTransaction={handleNotificationClick}
+            />
+
             <SpeedInsights />
         </MainLayout>
     );
