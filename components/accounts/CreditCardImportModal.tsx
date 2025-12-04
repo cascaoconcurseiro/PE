@@ -18,17 +18,25 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
             const nextMonths = [];
             const today = new Date();
 
+            // FIX: Usar o dia de vencimento como referência para garantir que
+            // a fatura caia no ciclo correto
+            const dueDay = account.dueDay || 10;
+
             for (let i = 0; i < 12; i++) {
-                // Create date for the 1st of each month
-                const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+                // Calcular o mês/ano correto
+                const targetMonth = today.getMonth() + i;
+                const targetYear = today.getFullYear() + Math.floor(targetMonth / 12);
+                const finalMonth = targetMonth % 12;
+
+                // Criar data com dia 1 primeiro
+                const d = new Date(targetYear, finalMonth, 1);
 
                 // Format label (e.g., "Novembro 2025")
                 const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-                // Use a date that falls WITHIN the invoice cycle
-                // For a card that closes on day 5, transactions from day 6 of previous month to day 5 of current month
-                // We'll use the 1st day of the month to ensure it's in the correct cycle
-                const targetDate = new Date(d.getFullYear(), d.getMonth(), 1);
+                // Usar o dia de vencimento como data da transação
+                const daysInMonth = new Date(targetYear, finalMonth + 1, 0).getDate();
+                const targetDate = new Date(targetYear, finalMonth, Math.min(dueDay, daysInMonth));
 
                 nextMonths.push({
                     date: targetDate.toISOString().split('T')[0],

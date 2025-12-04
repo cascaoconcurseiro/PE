@@ -66,11 +66,20 @@ export const useDataStore = () => {
                 }
 
                 for (let i = 0; i < totalInstallments; i++) {
-                    const nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-                    nextDate.setMonth(nextDate.getMonth() + i);
+                    // FIX: Calcular mês/ano corretamente para evitar problemas com dias 29, 30, 31
+                    const targetMonth = baseDate.getMonth() + i;
+                    const targetYear = baseDate.getFullYear() + Math.floor(targetMonth / 12);
+                    const finalMonth = targetMonth % 12;
+
+                    // Criar data sempre com dia 1 primeiro para evitar overflow de mês
+                    const nextDate = new Date(targetYear, finalMonth, 1);
+
+                    // Ajustar para o dia correto (ou último dia do mês se não existir)
                     const targetDay = baseDate.getDate();
-                    const daysInTargetMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+                    const daysInTargetMonth = new Date(targetYear, finalMonth + 1, 0).getDate();
                     nextDate.setDate(Math.min(targetDay, daysInTargetMonth));
+
+                    // Preservar hora original
                     nextDate.setHours(baseDate.getHours(), baseDate.getMinutes(), baseDate.getSeconds());
 
                     let currentAmount = baseInstallmentValue;

@@ -27,8 +27,9 @@ export const calculateEffectiveTransactionValue = (t: Transaction): number => {
     // Cenário 2: Outro pagou
     else {
         // Custo Efetivo = O que eu devo (Minha parte)
-        // Assumindo que o valor da transação original é o TOTAL da compra:
-        return Math.max(0, t.amount - splitsTotal);
+        // Se o total é 100 e os splits somam 60 (outras pessoas), minha parte é 40
+        const myShare = t.amount - splitsTotal;
+        return Math.max(0, myShare);
     }
 };
 

@@ -60,17 +60,32 @@ export const processRecurringTransactions = (
             let lastGeneratedDate = t.lastGenerated;
 
             while (currentDateToGenerate <= today && safetyCounter < 12) {
-                const newTx: Omit<Transaction, 'id'> = {
-                    ...t,
-                    date: currentDateToGenerate.toISOString().split('T')[0],
-                    isRecurring: false,
-                    isInstallment: false,
-                    lastGenerated: undefined,
-                    description: `${t.description} (Recorrente)`
-                };
+                const dateStr = currentDateToGenerate.toISOString().split('T')[0];
 
-                onAddTransaction(newTx);
-                lastGeneratedDate = newTx.date;
+                // FIX: Verificar se já existe uma transação com mesma data, descrição e valor
+                // para evitar duplicação se o app for aberto múltiplas vezes no mesmo dia
+                const alreadyExists = transactions.some(tx =>
+                    tx.date === dateStr &&
+                    tx.accountId === t.accountId &&
+                    tx.amount === t.amount &&
+                    tx.type === t.type &&
+                    (tx.description === `${t.description} (Recorrente)` || tx.description === t.description) &&
+                    !tx.deleted
+                );
+
+                if (!alreadyExists) {
+                    const newTx: Omit<Transaction, 'id'> = {
+                        ...t,
+                        date: dateStr,
+                        isRecurring: false,
+                        isInstallment: false,
+                        lastGenerated: undefined,
+                        description: `${t.description} (Recorrente)`
+                    };
+
+                    onAddTransaction(newTx);
+                    lastGeneratedDate = newTx.date;
+                }
 
                 currentDateToGenerate = advanceDate(currentDateToGenerate);
                 safetyCounter++;

@@ -10,6 +10,7 @@ import { Modal } from './ui/Modal';
 import { InstallmentAnticipationModal } from './transactions/InstallmentAnticipationModal';
 import { Button } from './ui/Button';
 import { calculateMyExpense } from '../utils/expenseUtils';
+import { shouldShowTransaction } from '../utils/transactionFilters';
 
 // Export PrivacyBlur for reuse if needed, though mostly handled internally now
 export const PrivacyBlur = ({ children, showValues }: { children: React.ReactNode, showValues: boolean }) => {
@@ -156,6 +157,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
     // Filter Logic
     const filteredTxs = useMemo(() => {
         return transactions
+            .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
             .filter(t => {
                 const matchesDate = isSameMonth(t.date, currentDate);
                 const matchesSearch = searchTerm ? t.description.toLowerCase().includes(searchTerm.toLowerCase()) : true;

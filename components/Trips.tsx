@@ -151,7 +151,23 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
 
     const handleSaveExchangeEntry = () => {
         if (!selectedTrip || !onUpdateTrip || !exchangeBRL || !exchangeForeign) return;
-        const brl = parseFloat(exchangeBRL); const foreign = parseFloat(exchangeForeign); const rate = foreign > 0 ? brl / foreign : 0;
+
+        const brl = parseFloat(exchangeBRL);
+        const foreign = parseFloat(exchangeForeign);
+
+        // FIX: Validar valores antes de calcular taxa
+        if (isNaN(brl) || brl <= 0) {
+            alert('Valor em BRL deve ser maior que zero');
+            return;
+        }
+
+        if (isNaN(foreign) || foreign <= 0) {
+            alert(`Valor em ${selectedTrip.currency} deve ser maior que zero`);
+            return;
+        }
+
+        const rate = brl / foreign;  // Agora é seguro dividir
+
         let updatedEntries = [...(selectedTrip.exchangeEntries || [])];
         if (editingExchangeId) { updatedEntries = updatedEntries.map(entry => entry.id === editingExchangeId ? { ...entry, date: exchangeDate, amountBRL: brl, amountForeign: foreign, exchangeRate: rate } : entry); } else { updatedEntries.push({ id: Math.random().toString(36).substr(2, 9), date: exchangeDate, amountBRL: brl, amountForeign: foreign, exchangeRate: rate, currency: selectedTrip.currency }); }
         onUpdateTrip({ ...selectedTrip, exchangeEntries: updatedEntries }); setExchangeBRL(''); setExchangeForeign(''); setEditingExchangeId(null);

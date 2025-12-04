@@ -73,8 +73,12 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
                 // VALIDATION: Multi-currency transfers MUST have destinationAmount
                 if (sourceAcc.currency !== destAcc.currency) {
                     if (!tx.destinationAmount || tx.destinationAmount <= 0) {
-                        console.warn(`⚠️ Multi-currency transfer (${sourceAcc.currency} → ${destAcc.currency}) without destinationAmount. Transaction ID: ${tx.id}`);
-                        // Use 1:1 as fallback but log warning
+                        console.error(`❌ ERRO CRÍTICO: Transferência multi-moeda (${sourceAcc.currency} → ${destAcc.currency}) sem destinationAmount válido!`);
+                        console.error(`   Transaction ID: ${tx.id}`);
+                        console.error(`   Description: ${tx.description}`);
+                        console.error(`   Amount: ${tx.amount} ${sourceAcc.currency}`);
+                        console.error(`   ⚠️ Usando taxa 1:1 como FALLBACK - SALDO PODE ESTAR INCORRETO!`);
+                        // Use 1:1 as fallback but log critical warning
                         amountIncoming = amount;
                     } else {
                         amountIncoming = tx.destinationAmount;
