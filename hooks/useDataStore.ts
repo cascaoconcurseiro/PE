@@ -265,13 +265,25 @@ export const useDataStore = () => {
     const handleAddAccount = async (acc: any) => performOperation(async () => { await supabaseService.create('accounts', { ...acc, id: crypto.randomUUID() }); }, 'Conta criada!');
     const handleUpdateAccount = async (acc: any) => performOperation(async () => { await supabaseService.update('accounts', acc); }, 'Conta atualizada!');
     const handleDeleteAccount = async (id: string) => performOperation(async () => {
-        // Cascade delete: Delete all transactions associated with this account
+        // ✅ SOFT DELETE: Marcar transações como deletadas ao invés de excluir fisicamente
+        // Isso mantém histórico e permite auditoria
         const accountTxs = transactions.filter(t => t.accountId === id || t.destinationAccountId === id);
+
+        console.log(`🗑️ Excluindo conta ${id} e marcando ${accountTxs.length} transações como deletadas...`);
+
         for (const tx of accountTxs) {
-            await supabaseService.delete('transactions', tx.id);
+            await supabaseService.update('transactions', {
+                ...tx,
+                deleted: true,
+                updatedAt: new Date().toISOString()
+            });
+            console.log(`  ✅ Transação marcada como deletada: ${tx.description}`);
         }
+
         // Then delete the account itself
         await supabaseService.delete('accounts', id);
+
+        console.log(`✅ Conta ${id} excluída com sucesso!`);
     }, 'Conta e transações excluídas.');
 
     const handleAddTrip = async (trip: any) => performOperation(async () => { await supabaseService.create('trips', { ...trip, id: crypto.randomUUID() }); }, 'Viagem criada!');

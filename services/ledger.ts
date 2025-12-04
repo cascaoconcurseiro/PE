@@ -24,6 +24,7 @@ export interface TrialBalanceItem {
  */
 export const generateLedger = (transactions: Transaction[], accounts: Account[]): LedgerEntry[] => {
     const accountMap = new Map(accounts.map(a => [a.id, a.name]));
+    const accountIds = new Set(accounts.map(a => a.id));
     const getAccountName = (id: string) => accountMap.get(id) || 'Conta Desconhecida';
 
     const ledger: LedgerEntry[] = [];
@@ -33,6 +34,20 @@ export const generateLedger = (transactions: Transaction[], accounts: Account[])
 
     activeTransactions.forEach(tx => {
         if (!tx.amount || tx.amount <= 0) return;
+
+        // ✅ VALIDAÇÃO CRÍTICA: Ignorar transações órfãs (conta deletada)
+        if (!accountIds.has(tx.accountId)) {
+            console.warn(`⚠️ Transação órfã ignorada no ledger: ${tx.description} (conta: ${tx.accountId})`);
+            return;
+        }
+
+        // ✅ VALIDAÇÃO CRÍTICA: Para transferências, verificar se destino existe
+        if (tx.type === TransactionType.TRANSFER && tx.destinationAccountId) {
+            if (!accountIds.has(tx.destinationAccountId)) {
+                console.warn(`⚠️ Transação órfã ignorada no ledger: ${tx.description} (destino: ${tx.destinationAccountId})`);
+                return;
+            }
+        }
 
         const date = tx.date;
         const description = tx.description;
