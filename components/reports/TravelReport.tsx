@@ -3,6 +3,7 @@ import { Trip, Transaction, TransactionType } from '../../types';
 import { formatCurrency } from '../../utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Plane, Calendar } from 'lucide-react';
+import { shouldShowTransaction } from '../../utils/transactionFilters';
 
 interface TravelReportProps {
     trips: Trip[];
@@ -16,7 +17,9 @@ export const TravelReport: React.FC<TravelReportProps> = ({ trips, transactions 
 
     const tripTransactions = useMemo(() => {
         if (!selectedTripId) return [];
-        return transactions.filter(t => t.tripId === selectedTripId && t.type === TransactionType.EXPENSE);
+        return transactions
+            .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
+            .filter(t => t.tripId === selectedTripId && t.type === TransactionType.EXPENSE);
     }, [selectedTripId, transactions]);
 
     const stats = useMemo(() => {

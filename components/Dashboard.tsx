@@ -3,6 +3,7 @@ import { Account, Transaction, TransactionType, AccountType, Goal } from '../typ
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
 import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue } from '../services/financialLogic';
+import { shouldShowTransaction } from '../utils/transactionFilters';
 
 // Sub-components
 import { FinancialProjectionCard } from './dashboard/FinancialProjectionCard';
@@ -31,7 +32,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
 
     // 2. Filter Transactions for Charts
     const monthlyTransactions = useMemo(() =>
-        transactions.filter(t => isSameMonth(t.date, currentDate)),
+        transactions
+            .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
+            .filter(t => isSameMonth(t.date, currentDate)),
         [transactions, currentDate]);
 
     // 3. Realized Totals (Using Effective Values to Reflect Splits)
@@ -83,26 +86,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
             };
         });
 
-        transactions.forEach(t => {
-            const tDate = new Date(t.date);
-            if (tDate.getFullYear() !== selectedYear) return;
-            if (t.type === TransactionType.TRANSFER) return;
+        transactions
+            .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
+            .forEach(t => {
+                const tDate = new Date(t.date);
+                if (tDate.getFullYear() !== selectedYear) return;
+                if (t.type === TransactionType.TRANSFER) return;
 
-            const monthIndex = tDate.getMonth();
-            const account = accounts.find(a => a.id === t.accountId);
+                const monthIndex = tDate.getMonth();
+                const account = accounts.find(a => a.id === t.accountId);
 
-            // Calculate Effective Amount in BRL
-            const effectiveAmount = calculateEffectiveTransactionValue(t);
-            const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
+                // Calculate Effective Amount in BRL
+                const effectiveAmount = calculateEffectiveTransactionValue(t);
+                const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
 
-            if (t.type === TransactionType.EXPENSE) {
-                const value = t.isRefund ? -amountBRL : amountBRL;
-                data[monthIndex].Despesas += value;
-            } else if (t.type === TransactionType.INCOME) {
-                const value = t.isRefund ? -amountBRL : amountBRL;
-                data[monthIndex].Receitas += value;
-            }
-        });
+                if (t.type === TransactionType.EXPENSE) {
+                    const value = t.isRefund ? -amountBRL : amountBRL;
+                    data[monthIndex].Despesas += value;
+                } else if (t.type === TransactionType.INCOME) {
+                    const value = t.isRefund ? -amountBRL : amountBRL;
+                    data[monthIndex].Receitas += value;
+                }
+            });
 
         return data;
     }, [transactions, selectedYear, accounts]);
@@ -115,6 +120,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
         today.setHours(0, 0, 0, 0);
 
         return transactions
+            .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
             .filter(t => t.enableNotification && t.type === TransactionType.EXPENSE && !t.isRefund)
             .filter(t => {
                 const targetDateStr = t.notificationDate || t.date;

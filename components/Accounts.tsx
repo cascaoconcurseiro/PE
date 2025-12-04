@@ -7,6 +7,7 @@ import { useToast } from './ui/Toast';
 import { exportToCSV, prepareTransactionsForExport } from '../services/exportUtils';
 import { printAccountStatement } from '../services/printUtils';
 import { getInvoiceData } from '../services/accountUtils';
+import { shouldShowTransaction } from '../utils/transactionFilters';
 
 import { AccountForm } from './accounts/AccountForm';
 import { ActionModal, ActionType } from './accounts/ActionModal';
@@ -88,7 +89,9 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
 
     const handleExport = (format: 'CSV' | 'PDF') => {
         if (!selectedAccount) return;
-        const txs = transactions.filter(t => t.accountId === selectedAccount.id);
+        const txs = transactions
+            .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
+            .filter(t => t.accountId === selectedAccount.id);
         if (format === 'CSV') {
             const data = prepareTransactionsForExport(txs, accounts);
             exportToCSV(data, ['Data', 'Descrição', 'Categoria', 'Tipo', 'Conta', 'Destino', 'Valor'], `Extrato_${selectedAccount.name}`);

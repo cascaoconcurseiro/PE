@@ -4,6 +4,7 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Plus, Edit2, Trash2, AlertTriangle, PieChart } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../utils';
+import { shouldShowTransaction } from '../utils/transactionFilters';
 
 interface BudgetsProps {
     transactions: Transaction[];
@@ -30,20 +31,22 @@ export const Budgets: React.FC<BudgetsProps> = ({ transactions, budgets, onAddBu
         const spendingMap = new Map<string, number>();
         const currentMonthSpending: Record<string, number> = {};
 
-        transactions.forEach(t => {
-            if (t.type === TransactionType.EXPENSE && !t.isRefund) {
-                const tDate = new Date(t.date);
-                const tYear = tDate.getFullYear();
-                if (tYear === currentYear) {
-                    const tMonth = tDate.getMonth();
-                    const key = `${t.category}|${tYear}|${tMonth}`;
-                    spendingMap.set(key, (spendingMap.get(key) || 0) + t.amount);
-                    if (tMonth === currentMonth) {
-                        currentMonthSpending[t.category] = (currentMonthSpending[t.category] || 0) + t.amount;
+        transactions
+            .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
+            .forEach(t => {
+                if (t.type === TransactionType.EXPENSE && !t.isRefund) {
+                    const tDate = new Date(t.date);
+                    const tYear = tDate.getFullYear();
+                    if (tYear === currentYear) {
+                        const tMonth = tDate.getMonth();
+                        const key = `${t.category}|${tYear}|${tMonth}`;
+                        spendingMap.set(key, (spendingMap.get(key) || 0) + t.amount);
+                        if (tMonth === currentMonth) {
+                            currentMonthSpending[t.category] = (currentMonthSpending[t.category] || 0) + t.amount;
+                        }
                     }
                 }
-            }
-        });
+            });
 
         const rollovers: Record<string, number> = {};
         budgets.filter(b => b.rollover).forEach(budget => {
@@ -122,7 +125,7 @@ export const Budgets: React.FC<BudgetsProps> = ({ transactions, budgets, onAddBu
                                 <div className="flex gap-2"><button onClick={() => { setEditingBudget(budget); setNewBudget(budget); setIsFormOpen(true); }} className="p-2 text-slate-400 hover:text-indigo-600"><Edit2 className="w-4 h-4" /></button><button onClick={() => onDeleteBudget(budget.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button></div>
                             </div>
                             <div className="mb-1 flex justify-between items-center text-xs font-bold"><span className={`${isOver ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>{formatCurrency(spent)} de {formatCurrency(effectiveLimit)}</span><span className={`${isOver ? 'text-red-600' : 'text-emerald-600'}`}>{percentage.toFixed(0)}%</span></div>
-                            
+
                             {/* Progress Bar Fix: Better dark mode contrast */}
                             <div className="h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden border border-slate-200 dark:border-slate-600">
                                 <div className={`h-full rounded-full transition-all duration-500 ${isOver ? 'bg-red-500' : percentage > 80 ? 'bg-amber-400' : 'bg-emerald-500'}`} style={{ width: `${Math.min(percentage, 100)}%` }} />
