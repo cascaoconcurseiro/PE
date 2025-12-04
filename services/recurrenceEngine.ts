@@ -74,6 +74,16 @@ export const processRecurringTransactions = (
                 );
 
                 if (!alreadyExists) {
+                    // Validação: Conta obrigatória para transações recorrentes
+                    if (!t.accountId || t.accountId.trim() === '' || t.accountId === 'EXTERNAL') {
+                        console.error(`❌ ERRO: Transação recorrente sem conta válida!`);
+                        console.error(`   Transaction ID: ${t.id}`);
+                        console.error(`   Description: ${t.description}`);
+                        console.error(`   AccountId: ${t.accountId}`);
+                        // Não criar transação inválida
+                        return;
+                    }
+
                     const newTx: Omit<Transaction, 'id'> = {
                         ...t,
                         date: dateStr,

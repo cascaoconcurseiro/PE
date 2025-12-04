@@ -196,6 +196,12 @@ export const Shared: React.FC<SharedProps> = ({
     const handleConfirmSettlement = () => {
         if (!settleModal.memberId || (!selectedAccountId && settleModal.type !== 'OFFSET')) return;
 
+        // Validação: Conta obrigatória para pagamento/recebimento
+        if (settleModal.type !== 'OFFSET' && (!selectedAccountId || selectedAccountId.trim() === '')) {
+            alert('Erro: Selecione uma conta para regularizar');
+            return;
+        }
+
         const now = new Date().toISOString();
         const isConverting = settlementMethod === 'CONVERT';
         const rate = isConverting ? parseFloat(exchangeRate) : 1;

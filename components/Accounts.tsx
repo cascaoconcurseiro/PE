@@ -102,24 +102,67 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
 
     const handleActionSubmit = (amount: number, description: string, sourceId: string) => {
         if (!selectedAccount) return;
+
+        // Validação: Conta selecionada deve ter ID válido
+        if (!selectedAccount.id || selectedAccount.id.trim() === '') {
+            addToast('Erro: Conta não identificada', 'error');
+            return;
+        }
+
         const date = new Date().toISOString();
         const commonProps = { amount, date, accountId: selectedAccount.id, isRecurring: false };
 
         switch (actionModal.type) {
             case 'DEPOSIT':
+                // Validação: Conta de destino obrigatória
+                if (!commonProps.accountId) {
+                    addToast('Erro: Conta de destino obrigatória', 'error');
+                    return;
+                }
                 onAddTransaction({ ...commonProps, description: description || 'Depósito', type: TransactionType.INCOME, category: Category.INCOME });
                 addToast('Depósito realizado!', 'success');
                 break;
             case 'WITHDRAW':
-                if (sourceId) onAddTransaction({ ...commonProps, description: description || 'Saque para Carteira', type: TransactionType.TRANSFER, category: Category.TRANSFER, destinationAccountId: sourceId });
-                else onAddTransaction({ ...commonProps, description: description || 'Saque em Espécie', type: TransactionType.EXPENSE, category: Category.OTHER });
+                // Validação: Conta de origem obrigatória
+                if (!commonProps.accountId) {
+                    addToast('Erro: Conta de origem obrigatória', 'error');
+                    return;
+                }
+                if (sourceId) {
+                    // Validação: Destino obrigatório para transferência
+                    if (!sourceId || sourceId.trim() === '') {
+                        addToast('Erro: Conta de destino obrigatória', 'error');
+                        return;
+                    }
+                    onAddTransaction({ ...commonProps, description: description || 'Saque para Carteira', type: TransactionType.TRANSFER, category: Category.TRANSFER, destinationAccountId: sourceId });
+                } else {
+                    onAddTransaction({ ...commonProps, description: description || 'Saque em Espécie', type: TransactionType.EXPENSE, category: Category.OTHER });
+                }
                 addToast('Saque registrado!', 'success');
                 break;
             case 'TRANSFER':
+                // Validação: Origem e destino obrigatórios
+                if (!commonProps.accountId || !sourceId || sourceId.trim() === '') {
+                    addToast('Erro: Contas de origem e destino obrigatórias', 'error');
+                    return;
+                }
+                if (commonProps.accountId === sourceId) {
+                    addToast('Erro: Origem e destino não podem ser iguais', 'error');
+                    return;
+                }
                 onAddTransaction({ ...commonProps, description: description || 'Transferência', type: TransactionType.TRANSFER, category: Category.TRANSFER, destinationAccountId: sourceId });
                 addToast('Transferência realizada!', 'success');
                 break;
             case 'PAY_INVOICE':
+                // Validação: Origem e destino obrigatórios
+                if (!sourceId || sourceId.trim() === '' || !selectedAccount.id) {
+                    addToast('Erro: Contas de origem e destino obrigatórias para pagamento de fatura', 'error');
+                    return;
+                }
+                if (sourceId === selectedAccount.id) {
+                    addToast('Erro: Origem e destino não podem ser iguais', 'error');
+                    return;
+                }
                 onAddTransaction({ amount, description: `Pagamento Fatura - ${selectedAccount.name}`, date, type: TransactionType.TRANSFER, category: Category.TRANSFER, accountId: sourceId, destinationAccountId: selectedAccount.id, isRecurring: false });
                 addToast('Pagamento de fatura registrado!', 'success');
                 break;
