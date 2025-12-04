@@ -18,10 +18,23 @@ export const calculateEffectiveTransactionValue = (t: Transaction): number => {
 
     const splitsTotal = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
 
+    // ✅ VALIDAÇÃO CRÍTICA: Splits não podem ser maiores que o total
+    if (splitsTotal > t.amount) {
+        console.error(`❌ ERRO: Divisão maior que o total da transação!`);
+        console.error(`   Transaction ID: ${t.id}`);
+        console.error(`   Description: ${t.description}`);
+        console.error(`   Total: ${t.amount}`);
+        console.error(`   Soma das divisões: ${splitsTotal}`);
+        console.error(`   Diferença: ${splitsTotal - t.amount}`);
+        console.error(`   ⚠️ RETORNANDO TOTAL COMO FALLBACK!`);
+        // Retornar total como fallback para evitar valores negativos
+        return t.amount;
+    }
+
     // Cenário 1: Eu paguei (payerId vazio ou 'me')
     if (!t.payerId || t.payerId === 'me') {
         // Custo Efetivo = O que saiu da conta - O que vou receber de volta
-        return Math.max(0, t.amount - splitsTotal);
+        return t.amount - splitsTotal;
     }
 
     // Cenário 2: Outro pagou
@@ -104,13 +117,15 @@ export const calculateProjectedBalance = (
             // Ignorar transferências internas
             if (t.type === TransactionType.TRANSFER) return;
 
-            // Usa o valor total para fluxo de caixa bancário (o dinheiro sai todo, o reembolso vem depois)
-            // AQUI MANTEMOS O VALOR TOTAL POIS É FLUXO DE CAIXA
-            const amountBRL = convertToBRL(t.amount, 'BRL');
-
             if (t.type === TransactionType.INCOME) {
+                // Receitas: usar valor total
+                const amountBRL = convertToBRL(t.amount, 'BRL');
                 pendingIncome += amountBRL;
             } else if (t.type === TransactionType.EXPENSE) {
+                // ✅ CORREÇÃO CRÍTICA: Usar valor efetivo para despesas
+                // Isso considera despesas compartilhadas corretamente
+                const effectiveAmount = calculateEffectiveTransactionValue(t);
+                const amountBRL = convertToBRL(effectiveAmount, 'BRL');
                 pendingExpenses += amountBRL;
             }
         }

@@ -180,6 +180,15 @@ export const useDataStore = () => {
             setSnapshots(snaps);
             setCustomCategories(cats);
 
+            // ✅ VALIDAÇÃO: Verificar consistência de dados
+            const { checkDataConsistency } = await import('../services/financialLogic');
+            const issues = checkDataConsistency(accs, txs);
+            if (issues.length > 0) {
+                console.warn('⚠️ PROBLEMAS DE CONSISTÊNCIA DETECTADOS:');
+                issues.forEach(issue => console.warn(`  - ${issue}`));
+                addToast(`⚠️ ${issues.length} problema(s) de consistência detectado(s). Verifique o console.`, 'warning');
+            }
+
             // Run Recurrence Engine
             // We pass the handlers directly. Since they are defined in the component scope, 
             // we need to be careful about closure staleness, but 'performOperation' uses the latest state?

@@ -23,8 +23,26 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
     transactions.forEach(tx => {
         const amount = tx.amount; // Amount is ALWAYS in the currency of the Source Account (accountId)
 
-        // Skip invalid transactions
-        if (!amount || amount <= 0) return;
+        // ✅ VALIDAÇÃO CRÍTICA 1: Valor deve ser válido
+        if (!amount || amount <= 0) {
+            console.error(`❌ ERRO CRÍTICO: Transação com valor inválido!`);
+            console.error(`   Transaction ID: ${tx.id}`);
+            console.error(`   Amount: ${amount}`);
+            return;
+        }
+
+        // ✅ VALIDAÇÃO CRÍTICA 2: Conta de origem deve existir (exceto se outra pessoa pagou)
+        const someoneElsePaid = tx.payerId && tx.payerId !== 'me';
+        if (!someoneElsePaid) {
+            if (!tx.accountId || tx.accountId.trim() === '' || tx.accountId === 'EXTERNAL') {
+                console.error(`❌ ERRO CRÍTICO: Transação sem conta de origem válida!`);
+                console.error(`   Transaction ID: ${tx.id}`);
+                console.error(`   Description: ${tx.description}`);
+                console.error(`   AccountId: ${tx.accountId}`);
+                console.error(`   ⚠️ TRANSAÇÃO IGNORADA - SALDO PODE ESTAR INCORRETO!`);
+                return;
+            }
+        }
 
         // TIME TRAVEL LOGIC:
         if (cutOffDate) {
@@ -39,11 +57,19 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
 
         // Logic for Source Account (The account spending/sending money)
         const sourceAcc = accountMap.get(tx.accountId);
+
+        // ✅ VALIDAÇÃO CRÍTICA 3: Conta deve existir no mapa (exceto se outra pessoa pagou)
+        if (!someoneElsePaid && !sourceAcc) {
+            console.error(`❌ ERRO CRÍTICO: Conta de origem não encontrada!`);
+            console.error(`   Transaction ID: ${tx.id}`);
+            console.error(`   Description: ${tx.description}`);
+            console.error(`   AccountId: ${tx.accountId}`);
+            console.error(`   ⚠️ TRANSAÇÃO IGNORADA - SALDO PODE ESTAR INCORRETO!`);
+            return;
+        }
+
         if (sourceAcc) {
             if (tx.type === TransactionType.EXPENSE) {
-                // Check if someone else paid (Debt logic)
-                const someoneElsePaid = tx.payerId && tx.payerId !== 'me';
-
                 if (!someoneElsePaid) {
                     // Expense subtracts from source
                     const change = tx.isRefund ? amount : -amount;
@@ -62,35 +88,57 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
         }
 
         // Logic for Destination Account (Transfer Only)
-        if (tx.type === TransactionType.TRANSFER && tx.destinationAccountId) {
-            const destAcc = accountMap.get(tx.destinationAccountId);
-            if (destAcc) {
-                // Determine the amount arriving at destination
-                // If explicit destinationAmount exists (multi-currency), use it.
-                // Otherwise, assume 1:1 (same currency).
-                let amountIncoming = amount;
-
-                // VALIDATION: Multi-currency transfers MUST have destinationAmount
-                if (sourceAcc.currency !== destAcc.currency) {
-                    if (!tx.destinationAmount || tx.destinationAmount <= 0) {
-                        console.error(`❌ ERRO CRÍTICO: Transferência multi-moeda (${sourceAcc.currency} → ${destAcc.currency}) sem destinationAmount válido!`);
-                        console.error(`   Transaction ID: ${tx.id}`);
-                        console.error(`   Description: ${tx.description}`);
-                        console.error(`   Amount: ${tx.amount} ${sourceAcc.currency}`);
-                        console.error(`   ⚠️ Usando taxa 1:1 como FALLBACK - SALDO PODE ESTAR INCORRETO!`);
-                        // Use 1:1 as fallback but log critical warning
-                        amountIncoming = amount;
-                    } else {
-                        amountIncoming = tx.destinationAmount;
-                    }
-                } else if (tx.destinationAmount && tx.destinationAmount > 0) {
-                    // Same currency but has destinationAmount (unusual but valid)
-                    amountIncoming = tx.destinationAmount;
-                }
-
-                // Transfer In always adds to Destination
-                destAcc.balance = round2dec(destAcc.balance + amountIncoming);
+        if (tx.type === TransactionType.TRANSFER) {
+            // ✅ VALIDAÇÃO CRÍTICA 4: Transferência DEVE ter destino
+            if (!tx.destinationAccountId || tx.destinationAccountId.trim() === '') {
+                console.error(`❌ ERRO CRÍTICO: Transferência sem conta de destino!`);
+                console.error(`   Transaction ID: ${tx.id}`);
+                console.error(`   Description: ${tx.description}`);
+                console.error(`   Source: ${tx.accountId}`);
+                console.error(`   ⚠️ DINHEIRO DEBITADO DA ORIGEM MAS NÃO CREDITADO NO DESTINO!`);
+                console.error(`   ⚠️ PARTIDAS DOBRADAS VIOLADAS - SALDO INCORRETO!`);
+                return;
             }
+
+            const destAcc = accountMap.get(tx.destinationAccountId);
+
+            // ✅ VALIDAÇÃO CRÍTICA 5: Conta de destino deve existir
+            if (!destAcc) {
+                console.error(`❌ ERRO CRÍTICO: Conta de destino não encontrada!`);
+                console.error(`   Transaction ID: ${tx.id}`);
+                console.error(`   Description: ${tx.description}`);
+                console.error(`   Source: ${tx.accountId}`);
+                console.error(`   Destination: ${tx.destinationAccountId}`);
+                console.error(`   ⚠️ DINHEIRO DEBITADO DA ORIGEM MAS NÃO CREDITADO NO DESTINO!`);
+                console.error(`   ⚠️ PARTIDAS DOBRADAS VIOLADAS - SALDO INCORRETO!`);
+                return;
+            }
+
+            // Determine the amount arriving at destination
+            // If explicit destinationAmount exists (multi-currency), use it.
+            // Otherwise, assume 1:1 (same currency).
+            let amountIncoming = amount;
+
+            // ✅ VALIDAÇÃO CRÍTICA 6: Multi-currency transfers MUST have destinationAmount
+            if (sourceAcc && sourceAcc.currency !== destAcc.currency) {
+                if (!tx.destinationAmount || tx.destinationAmount <= 0) {
+                    console.error(`❌ ERRO CRÍTICO: Transferência multi-moeda (${sourceAcc.currency} → ${destAcc.currency}) sem destinationAmount válido!`);
+                    console.error(`   Transaction ID: ${tx.id}`);
+                    console.error(`   Description: ${tx.description}`);
+                    console.error(`   Amount: ${tx.amount} ${sourceAcc.currency}`);
+                    console.error(`   ⚠️ TRANSAÇÃO BLOQUEADA - NÃO SERÁ PROCESSADA!`);
+                    // ✅ BLOQUEAR ao invés de usar fallback
+                    return;
+                } else {
+                    amountIncoming = round2dec(tx.destinationAmount);
+                }
+            } else if (tx.destinationAmount && tx.destinationAmount > 0) {
+                // Same currency but has destinationAmount (unusual but valid)
+                amountIncoming = round2dec(tx.destinationAmount);
+            }
+
+            // Transfer In always adds to Destination
+            destAcc.balance = round2dec(destAcc.balance + amountIncoming);
         }
     });
 
