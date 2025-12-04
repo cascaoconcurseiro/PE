@@ -33,7 +33,7 @@ export const useTransactionForm = ({
     const [category, setCategory] = useState<string>(Category.FOOD);
     const [accountId, setAccountId] = useState('');
     const [destinationAccountId, setDestinationAccountId] = useState('');
-    
+
     // Multi-currency fields
     const [destinationAmountStr, setDestinationAmountStr] = useState('');
     const [manualExchangeRate, setManualExchangeRate] = useState('');
@@ -73,10 +73,10 @@ export const useTransactionForm = ({
     const availableAccounts = accounts;
 
     // Multi-currency Check
-    const isMultiCurrencyTransfer = formMode === TransactionType.TRANSFER && 
-                                    selectedAccountObj && 
-                                    selectedDestAccountObj && 
-                                    selectedAccountObj.currency !== selectedDestAccountObj.currency;
+    const isMultiCurrencyTransfer = formMode === TransactionType.TRANSFER &&
+        selectedAccountObj &&
+        selectedDestAccountObj &&
+        selectedAccountObj.currency !== selectedDestAccountObj.currency;
 
     // Calculate implied rate if both amounts exist
     useEffect(() => {
@@ -88,7 +88,7 @@ export const useTransactionForm = ({
 
     // Logic for Currency: If trip selected, assume transaction is in Trip Currency (for Expense)
     const activeCurrency = selectedTrip ? selectedTrip.currency : (selectedAccountObj?.currency || 'BRL');
-    
+
     const isCreditCard = selectedAccountObj?.type === AccountType.CREDIT_CARD;
     const isExpense = formMode === TransactionType.EXPENSE;
     const isIncome = formMode === TransactionType.INCOME;
@@ -109,7 +109,7 @@ export const useTransactionForm = ({
             setIsShared(!!t.isShared || (!!t.payerId && t.payerId !== 'me'));
             setSplits(t.sharedWith || []);
             setEnableNotification(!!t.enableNotification);
-            
+
             if (t.destinationAmount) {
                 setDestinationAmountStr(t.destinationAmount.toString());
             }
@@ -147,26 +147,38 @@ export const useTransactionForm = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const newErrors: { [key: string]: string } = {};
-        
+
         if (!activeAmount || activeAmount <= 0) newErrors.amount = 'Valor inválido';
         if (!description.trim()) newErrors.description = 'Descrição obrigatória';
         if (!date) newErrors.date = 'Data obrigatória';
         if (!accountId && payerId === 'me') newErrors.account = 'Conta obrigatória';
-        
+
         if (isTransfer) {
             if (!destinationAccountId) newErrors.destination = 'Conta destino obrigatória';
-            if (destinationAccountId === accountId) newErrors.destination = 'Origem e destino iguais';
-            
+            // ✅ VALIDAÇÃO CRÍTICA: Bloquear transferências circulares
+            if (destinationAccountId === accountId) {
+                newErrors.destination = 'Não é possível transferir para a mesma conta';
+            }
+
             if (isMultiCurrencyTransfer) {
                 const destAmt = parseFloat(destinationAmountStr);
                 if (!destAmt || destAmt <= 0) {
                     newErrors.destinationAmount = 'Informe o valor final na moeda de destino';
                 }
+                // ✅ VALIDAÇÃO CRÍTICA: Exchange rate obrigatório para multi-moeda
+                const rate = parseFloat(manualExchangeRate);
+                if (!rate || rate <= 0) {
+                    newErrors.exchangeRate = 'Taxa de câmbio obrigatória para transferências entre moedas';
+                }
             }
         }
-        
+
+        // ✅ Verificar se há erros antes de prosseguir
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
+            // Scroll para o primeiro erro
+            const firstErrorKey = Object.keys(newErrors)[0];
+            console.error('❌ Erro de validação:', firstErrorKey, newErrors[firstErrorKey]);
             return;
         }
 
@@ -176,6 +188,14 @@ export const useTransactionForm = ({
                 ...s,
                 assignedAmount: (activeAmount * s.percentage) / 100
             }));
+
+        // ✅ VALIDAÇÃO CRÍTICA: Splits não podem somar mais que o total
+        if (finalSplits.length > 0) {
+            const splitsTotal = finalSplits.reduce((sum, s) => sum + s.assignedAmount, 0);
+            if (splitsTotal > activeAmount) {
+                newErrors.splits = `Divisão inválida: soma dos valores (${splitsTotal.toFixed(2)}) é maior que o total (${activeAmount.toFixed(2)})`;
+            }
+        }
 
         const isExternalPayer = payerId && payerId !== 'me';
         const shouldBeShared = formMode === TransactionType.EXPENSE && (isShared || finalSplits.length > 0 || isExternalPayer);
