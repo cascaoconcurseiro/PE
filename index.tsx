@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PiggyBank, Loader2 } from 'lucide-react';
 import { migrateFromLocalStorage } from './services/db'; // Only for migration
@@ -143,12 +143,12 @@ const App = () => {
             .slice(0, 20);  // ✅ Limitar a 20 notificações
     }, [transactions, dismissedNotifications]);
 
-    const handleRequestEdit = (id: string) => {
+    const handleRequestEdit = useCallback((id: string) => {
         setIsTxModalOpen(true);
         setEditTxId(id);
-    };
+    }, []);
 
-    const handleDismissNotification = (id: string) => {
+    const handleDismissNotification = useCallback((id: string) => {
         if (!transactions) return;
         const tx = transactions.find(t => t.id === id);
         if (!tx) return;
@@ -165,20 +165,24 @@ const App = () => {
         else {
             setDismissedNotifications(prev => [...prev, id]);
         }
-    };
+    }, [transactions, handlers]);
 
-    const handleLogout = async () => {
+    const handleLogout = useCallback(async () => {
         await supabase.auth.signOut();
         await handlers.handleLogout();
-    };
+    }, [handlers]);
 
-    const togglePrivacy = () => setShowValues(!showValues);
+    const togglePrivacy = useCallback(() => {
+        setShowValues(prev => !prev);
+    }, []);
 
-    const changeMonth = (direction: 'prev' | 'next') => {
-        const newDate = new Date(currentDate);
-        newDate.setMonth(currentDate.getMonth() + (direction === 'next' ? 1 : -1));
-        setCurrentDate(newDate);
-    };
+    const changeMonth = useCallback((direction: 'prev' | 'next') => {
+        setCurrentDate(prev => {
+            const newDate = new Date(prev);
+            newDate.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
+            return newDate;
+        });
+    }, []);
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.value) {
