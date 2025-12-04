@@ -99,6 +99,7 @@ const App = () => {
         try { return JSON.parse(localStorage.getItem('pdm_privacy') || 'true'); } catch { return true; }
     });
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
 
     useEffect(() => { localStorage.setItem('pdm_privacy', JSON.stringify(showValues)); }, [showValues]);
 
@@ -110,21 +111,37 @@ const App = () => {
 
     const activeNotifications = useMemo(() => {
         if (!transactions) return [];
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = today.toISOString().split('T')[0];
 
         // 1. Configured Reminders (Explicit)
-        const reminders = transactions.filter(t => t.enableNotification && t.notificationDate && t.notificationDate <= today);
-
-        // 2. Critical: Overdue or Due Today Expenses (Unpaid & No Explicit Reminder)
-        const critical = transactions.filter(t =>
-            t.type === TransactionType.EXPENSE &&
-            !t.isSettled &&
-            t.date <= today &&
-            !t.enableNotification
+        const reminders = transactions.filter(t =>
+            t.enableNotification &&
+            t.notificationDate &&
+            t.notificationDate <= todayStr &&
+            !t.deleted  // ✅ Ignorar deletadas
         );
 
-        return [...reminders, ...critical].sort((a, b) => a.date.localeCompare(b.date));
-    }, [transactions]);
+        // 2. Critical: Overdue or Due Today Expenses (Unpaid)
+        // ✅ CORREÇÃO: Usar lógica correta sem isSettled
+        const critical = transactions.filter(t => {
+            if (t.deleted) return false;
+            if (t.type !== TransactionType.EXPENSE) return false;
+            if (t.enableNotification) return false;  // Já está em reminders
+
+            // Verificar se está vencida (data <= hoje)
+            const txDate = new Date(t.date);
+            txDate.setHours(0, 0, 0, 0);
+
+            return txDate <= today;
+        });
+
+        return [...reminders, ...critical]
+            .filter(t => !dismissedNotifications.includes(t.id))  // ✅ Filtrar dispensadas
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .slice(0, 20);  // ✅ Limitar a 20 notificações
+    }, [transactions, dismissedNotifications]);
 
     const handleRequestEdit = (id: string) => {
         setIsTxModalOpen(true);
@@ -134,7 +151,20 @@ const App = () => {
     const handleDismissNotification = (id: string) => {
         if (!transactions) return;
         const tx = transactions.find(t => t.id === id);
-        if (tx) handlers.handleUpdateTransaction({ ...tx, enableNotification: false });
+        if (!tx) return;
+
+        // Para notificações configuradas: desativar permanentemente
+        if (tx.enableNotification) {
+            handlers.handleUpdateTransaction({
+                ...tx,
+                enableNotification: false,
+                updatedAt: new Date().toISOString()
+            });
+        }
+        // Para notificações críticas (vencidas): dispensar temporariamente
+        else {
+            setDismissedNotifications(prev => [...prev, id]);
+        }
     };
 
     const handleLogout = async () => {

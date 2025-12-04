@@ -82,15 +82,18 @@ export const Transactions: React.FC<TransactionsProps> = ({
     }, [modalMode, editingTransaction]);
 
     useEffect(() => {
-        if (initialEditId && !editingTransaction && transactions.length > 0) {
+        if (initialEditId && transactions.length > 0) {
             const txToEdit = transactions.find(t => t.id === initialEditId);
             if (txToEdit) {
+                console.log('✅ Carregando transação para edição:', txToEdit.description);
                 setEditingTransaction(txToEdit);
                 setFormMode(txToEdit.type);
                 if (onClearEditId) onClearEditId();
+            } else {
+                console.warn('⚠️ Transação não encontrada:', initialEditId);
             }
         }
-    }, [initialEditId, transactions]);
+    }, [initialEditId, transactions, onClearEditId]);
 
     const handleEditRequest = (t: Transaction) => {
         setEditingTransaction(t);
