@@ -8,6 +8,7 @@ import { parseDate } from '../utils';
 import { useToast } from '../components/ui/Toast';
 import { supabase } from '../integrations/supabase/client';
 import { processRecurringTransactions } from '../services/recurrenceEngine';
+import { checkDataConsistency } from '../services/financialLogic';
 
 export const useDataStore = () => {
     const { addToast } = useToast();
@@ -182,7 +183,6 @@ export const useDataStore = () => {
             setCustomCategories(cats);
 
             // ✅ VALIDAÇÃO: Verificar consistência de dados
-            const { checkDataConsistency } = await import('../services/financialLogic');
             const issues = checkDataConsistency(accs, txs);
             setDataInconsistencies(issues); // Armazenar para exibição posterior
 
