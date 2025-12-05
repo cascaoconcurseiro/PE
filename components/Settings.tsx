@@ -59,19 +59,6 @@ export const Settings: React.FC<SettingsProps> = ({
         isOpen: false, title: '', value: '', onConfirm: () => { }
     });
 
-    const [apiKey, setApiKey] = useState('');
-    const [showApiKey, setShowApiKey] = useState(false);
-
-    useEffect(() => {
-        const storedKey = localStorage.getItem('pdm_api_key');
-        if (storedKey) setApiKey(storedKey);
-    }, []);
-
-    const handleSaveApiKey = () => {
-        localStorage.setItem('pdm_api_key', apiKey);
-        addToast('Chave API salva com segurança no navegador!', 'success');
-    };
-
     const handleAddCat = (e: React.FormEvent) => {
         e.preventDefault();
         const trimmed = newCategoryName.trim();
@@ -347,47 +334,6 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 {activeTab === 'SYSTEM' && (
                     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                        <Card className="p-6">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-3 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-xl">
-                                    <Key className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">Integração com IA</h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Configure sua chave de API do Google Gemini.</p>
-                                </div>
-                            </div>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Gemini API Key</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <input
-                                                type={showApiKey ? "text" : "password"}
-                                                className="w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none text-slate-900 dark:text-white font-mono text-sm"
-                                                value={apiKey}
-                                                onChange={(e) => setApiKey(e.target.value)}
-                                                placeholder="Cole sua chave aqui..."
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowApiKey(!showApiKey)}
-                                                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                            >
-                                                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                            </button>
-                                        </div>
-                                        <Button onClick={handleSaveApiKey} className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
-                                            <Save className="w-4 h-4" /> Salvar
-                                        </Button>
-                                    </div>
-                                    <p className="text-xs text-slate-500 mt-2">
-                                        Sua chave é armazenada localmente no navegador e usada apenas para comunicar com a IA.
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-
                         <Card className="p-6">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">

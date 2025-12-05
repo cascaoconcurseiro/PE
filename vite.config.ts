@@ -77,10 +77,6 @@ export default defineConfig(({ mode }) => {
         'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
       }
     },
-    // Security Note:
-    // DO NOT use the 'define' plugin to inject sensitive API keys (like GEMINI_API_KEY) here.
-    // Doing so would bundle the key into the client-side code, exposing it to anyone.
-    // Keys should be handled via user input in the UI (saved to localStorage) or via a secure backend proxy.
     optimizeDeps: {
       include: ['react', 'react-dom', '@supabase/auth-ui-react', '@supabase/auth-ui-shared'],
       // Performance: Force pre-bundling of large dependencies

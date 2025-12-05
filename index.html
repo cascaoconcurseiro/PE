@@ -1,48 +1,69 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    
-    <!-- Performance: Preconnect to external domains -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://mlqzeihukezlozooqhko.supabase.co" crossorigin>
-    
-    <!-- Performance: DNS Prefetch -->
-    <link rel="dns-prefetch" href="https://generativelanguage.googleapis.com">
-    
-    <!-- Security: Content Security Policy to restrict sources, allowing Vercel Live -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; frame-src 'self' https://vercel.live https://*.vercel.live; script-src 'self' 'unsafe-inline' https://vercel.live https://*.vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://picsum.photos https://fastly.picsum.photos; connect-src 'self' https://generativelanguage.googleapis.com https://mlqzeihukezlozooqhko.supabase.co wss://mlqzeihukezlozooqhko.supabase.co https://vercel.live https://*.vercel.live;">
-    
-    <title>Pé de Meia - Gestão Financeira Inteligente</title>
-    
-    <!-- Performance: Optimized font loading with display=swap to prevent FOIT -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
-    
-    <!-- Performance: Preload critical CSS -->
-    <link rel="preload" href="/index.css" as="style">
-    <link rel="stylesheet" href="/index.css">
-    
-    <!-- Performance: Prevent render blocking -->
-    <style>
-      /* Critical CSS - Inline for instant render */
-      body { margin: 0; font-family: Inter, system-ui, -apple-system, sans-serif; }
-      #root { min-height: 100vh; }
-      .loader { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0f172a; }
-    </style>
-  </head>
-  <body>
-    <div id="root">
-      <!-- Performance: Show instant loading state -->
-      <div class="loader">
-        <svg class="animate-spin h-10 w-10 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-      </div>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+  <!-- Performance: Preconnect to external domains -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://mlqzeihukezlozooqhko.supabase.co" crossorigin>
+
+  <!-- Security: Content Security Policy to restrict sources, allowing Vercel Live -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; frame-src 'self' https://vercel.live https://*.vercel.live; script-src 'self' 'unsafe-inline' https://vercel.live https://*.vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://picsum.photos https://fastly.picsum.photos; connect-src 'self' https://mlqzeihukezlozooqhko.supabase.co wss://mlqzeihukezlozooqhko.supabase.co https://vercel.live https://*.vercel.live;">
+
+  <title>Pé de Meia - Gestão Financeira Inteligente</title>
+
+  <!-- Performance: Optimized font loading with display=swap to prevent FOIT -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"
+    media="print" onload="this.media='all'">
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet">
+  </noscript>
+
+  <!-- Performance: Preload critical CSS -->
+  <link rel="preload" href="/index.css" as="style">
+  <link rel="stylesheet" href="/index.css">
+
+  <!-- Performance: Prevent render blocking -->
+  <style>
+    /* Critical CSS - Inline for instant render */
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+    }
+
+    #root {
+      min-height: 100vh;
+    }
+
+    .loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #0f172a;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root">
+    <!-- Performance: Show instant loading state -->
+    <div class="loader">
+      <svg class="animate-spin h-10 w-10 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none"
+        viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+        </path>
+      </svg>
     </div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+  </div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>
