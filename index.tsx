@@ -302,24 +302,26 @@ const App = () => {
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsTxModalOpen(false)} />
                     <div className="bg-white dark:bg-slate-900 w-full sm:max-w-2xl h-[90vh] sm:h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 flex flex-col animate-in slide-in-from-bottom-full duration-300 overflow-hidden border dark:border-slate-800">
-                        <Transactions
-                            transactions={transactions}
-                            accounts={calculatedAccounts}
-                            trips={trips}
-                            familyMembers={familyMembers}
-                            customCategories={customCategories}
-                            onAddTransaction={handlers.handleAddTransaction}
-                            onUpdateTransaction={handlers.handleUpdateTransaction}
-                            onDeleteTransaction={handlers.handleDeleteTransaction}
-                            onAnticipate={handlers.handleAnticipateInstallments}
-                            modalMode={true}
-                            onCancel={() => setIsTxModalOpen(false)}
-                            currentDate={currentDate}
-                            showValues={showValues}
-                            onNavigateToAccounts={() => { setIsTxModalOpen(false); setActiveView(View.ACCOUNTS); }}
-                            onNavigateToTrips={() => { setIsTxModalOpen(false); setActiveView(View.TRIPS); }}
-                            onNavigateToFamily={() => { setIsTxModalOpen(false); setActiveView(View.FAMILY); }}
-                        />
+                        <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>}>
+                            <Transactions
+                                transactions={transactions}
+                                accounts={calculatedAccounts}
+                                trips={trips}
+                                familyMembers={familyMembers}
+                                customCategories={customCategories}
+                                onAddTransaction={handlers.handleAddTransaction}
+                                onUpdateTransaction={handlers.handleUpdateTransaction}
+                                onDeleteTransaction={handlers.handleDeleteTransaction}
+                                onAnticipate={handlers.handleAnticipateInstallments}
+                                modalMode={true}
+                                onCancel={() => setIsTxModalOpen(false)}
+                                currentDate={currentDate}
+                                showValues={showValues}
+                                onNavigateToAccounts={() => { setIsTxModalOpen(false); handleViewChange(View.ACCOUNTS); }}
+                                onNavigateToTrips={() => { setIsTxModalOpen(false); handleViewChange(View.TRIPS); }}
+                                onNavigateToFamily={() => { setIsTxModalOpen(false); handleViewChange(View.FAMILY); }}
+                            />
+                        </Suspense>
                     </div>
                 </div>
             )}
@@ -336,14 +338,18 @@ const App = () => {
     );
 };
 
+import { ErrorBoundary } from './components/ErrorBoundary';
+
 const container = document.getElementById('root');
 const root = createRoot(container!);
 root.render(
-    <ThemeProvider>
-        <ToastProvider>
-            <SettingsProvider>
-                <App />
-            </SettingsProvider>
-        </ToastProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+        <ThemeProvider>
+            <ToastProvider>
+                <SettingsProvider>
+                    <App />
+                </SettingsProvider>
+            </ToastProvider>
+        </ThemeProvider>
+    </ErrorBoundary>
 );
