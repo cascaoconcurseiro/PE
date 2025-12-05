@@ -202,6 +202,15 @@ export const Shared: React.FC<SharedProps> = ({
             return;
         }
 
+        // ✅ VALIDAÇÃO ADICIONAL: Verificar se a conta existe
+        if (settleModal.type !== 'OFFSET') {
+            const account = accounts.find(a => a.id === selectedAccountId);
+            if (!account) {
+                alert('Erro: Conta não encontrada. Por favor, selecione outra conta.');
+                return;
+            }
+        }
+
         const now = new Date().toISOString();
         const isConverting = settlementMethod === 'CONVERT';
         const rate = isConverting ? parseFloat(exchangeRate) : 1;
