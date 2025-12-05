@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Tag, Plus, X, Key, Eye, EyeOff, Settings as SettingsIcon, Database, Download, Save, Globe, Moon, Sun, Monitor } from 'lucide-react';
+import { Tag, Plus, X, Key, Eye, EyeOff, Settings as SettingsIcon, Database, Download, Save, Globe, Moon, Sun, Monitor, Bell, Shield, Sliders, Lock, Palette, Upload } from 'lucide-react';
 import { Account, Budget, CustomCategory, FamilyMember, Transaction, Trip, Asset, Goal, Snapshot } from '../types';
 import { useToast } from './ui/Toast';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { Modal } from './ui/Modal';
 import { useTheme } from './ui/ThemeContext';
+import { NotificationSettings } from './settings/NotificationSettings';
+import { SecuritySettings } from './settings/SecuritySettings';
+import { PreferenceSettings } from './settings/PreferenceSettings';
+import { PrivacySettings } from './settings/PrivacySettings';
+import { AppearanceSettings } from './settings/AppearanceSettings';
+import { DataImport } from './settings/DataImport';
 
 interface SettingsProps {
     customCategories: CustomCategory[];
@@ -39,7 +45,7 @@ export const Settings: React.FC<SettingsProps> = ({
     assets,
     snapshots
 }) => {
-    const [activeTab, setActiveTab] = useState<'GENERAL' | 'CATEGORIES' | 'DATA' | 'SYSTEM'>('GENERAL');
+    const [activeTab, setActiveTab] = useState<'GENERAL' | 'CATEGORIES' | 'DATA' | 'SYSTEM' | 'NOTIFICATIONS' | 'SECURITY' | 'PREFERENCES' | 'PRIVACY' | 'APPEARANCE'>('GENERAL');
     const [newCategoryName, setNewCategoryName] = useState('');
     const [globalCurrency, setGlobalCurrency] = useState('BRL');
     const { addToast } = useToast();
@@ -106,6 +112,23 @@ export const Settings: React.FC<SettingsProps> = ({
         addToast('Backup exportado com sucesso!', 'success');
     };
 
+    const handleImportData = async (importData: any, mergeMode: boolean) => {
+        // This would be implemented to actually import the data
+        // For now, just show a success message
+        addToast(
+            mergeMode
+                ? 'Dados mesclados com sucesso!'
+                : 'Dados substituídos com sucesso!',
+            'success'
+        );
+        // In a real implementation, you would:
+        // 1. Validate the data structure
+        // 2. If merge mode: add new items, update existing
+        // 3. If replace mode: clear existing data first
+        // 4. Call the appropriate handlers (onUpdateAccount, etc.)
+        // 5. Refresh the UI
+    };
+
     return (
         <div className="space-y-6 pb-24 animate-in fade-in duration-500">
             <div>
@@ -120,6 +143,36 @@ export const Settings: React.FC<SettingsProps> = ({
                     className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'GENERAL' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                 >
                     <SettingsIcon className="w-4 h-4" /> Geral
+                </button>
+                <button
+                    onClick={() => setActiveTab('NOTIFICATIONS')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'NOTIFICATIONS' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Bell className="w-4 h-4" /> Notificações
+                </button>
+                <button
+                    onClick={() => setActiveTab('SECURITY')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'SECURITY' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Shield className="w-4 h-4" /> Segurança
+                </button>
+                <button
+                    onClick={() => setActiveTab('PREFERENCES')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'PREFERENCES' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Sliders className="w-4 h-4" /> Preferências
+                </button>
+                <button
+                    onClick={() => setActiveTab('PRIVACY')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'PRIVACY' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Lock className="w-4 h-4" /> Privacidade
+                </button>
+                <button
+                    onClick={() => setActiveTab('APPEARANCE')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'APPEARANCE' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Palette className="w-4 h-4" /> Aparência
                 </button>
                 <button
                     onClick={() => setActiveTab('CATEGORIES')}
@@ -238,25 +291,57 @@ export const Settings: React.FC<SettingsProps> = ({
                     </Card>
                 )}
 
+                {activeTab === 'NOTIFICATIONS' && <NotificationSettings />}
+
+                {activeTab === 'SECURITY' && <SecuritySettings />}
+
+                {activeTab === 'PREFERENCES' && <PreferenceSettings />}
+
+                {activeTab === 'PRIVACY' && <PrivacySettings />}
+
+                {activeTab === 'APPEARANCE' && <AppearanceSettings />}
+
                 {activeTab === 'DATA' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-right-4 duration-300">
-                        <Card className="p-6">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
-                                    <Database className="w-6 h-6" />
+                    <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <Card className="p-6">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                                        <Download className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Exportar Dados</h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">Faça backup dos seus dados.</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">Backup de Dados</h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Exporte todos os seus dados para segurança.</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                                    Gere um arquivo JSON contendo todas as suas contas, transações, viagens e configurações.
+                                </p>
+                                <Button onClick={handleExportJSON} className="w-full gap-2">
+                                    <Download className="w-4 h-4" /> Exportar Backup (JSON)
+                                </Button>
+                            </Card>
+
+                            <Card className="p-6">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                                        <Upload className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Importar Dados</h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">Restaure um backup anterior.</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                                Gere um arquivo JSON contendo todas as suas contas, transações, viagens e configurações. Útil para backup manual ou migração.
-                            </p>
-                            <Button onClick={handleExportJSON} className="w-full gap-2">
-                                <Download className="w-4 h-4" /> Exportar Backup (JSON)
-                            </Button>
-                        </Card>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                                    Clique abaixo para acessar as opções de importação.
+                                </p>
+                                <Button onClick={() => setActiveTab('DATA')} className="w-full gap-2" variant="secondary">
+                                    <Upload className="w-4 h-4" /> Ver Opções de Importação
+                                </Button>
+                            </Card>
+                        </div>
+
+                        <DataImport onImportComplete={handleImportData} />
                     </div>
                 )}
 

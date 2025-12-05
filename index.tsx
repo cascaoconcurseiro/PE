@@ -19,6 +19,7 @@ import { View, SyncStatus, TransactionType } from './types';
 import { calculateBalances } from './services/balanceEngine';
 import { ThemeProvider } from './components/ui/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
+import { SettingsProvider } from './hooks/useSettings';
 import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useDataStore } from './hooks/useDataStore';
 import { useAppLogic } from './hooks/useAppLogic';
@@ -322,7 +323,9 @@ const root = createRoot(container!);
 root.render(
     <ThemeProvider>
         <ToastProvider>
-            <App />
+            <SettingsProvider>
+                <App />
+            </SettingsProvider>
         </ToastProvider>
     </ThemeProvider>
 );
