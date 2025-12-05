@@ -89,8 +89,7 @@ export default defineConfig(({ mode }) => {
             ],
             'components-reports': [
               './components/Reports.tsx',
-              './components/reports/CashFlowReport.tsx',
-              './components/reports/CategoryReport.tsx',
+              './components/reports/SharedExpensesReport.tsx',
               './components/reports/TravelReport.tsx',
             ],
           },
