@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense, useTransition } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Loader2 } from 'lucide-react';
 // import { migrateFromLocalStorage } from './services/db'; // Removed: Dexie migration no longer needed
@@ -34,33 +34,38 @@ const Reports = lazy(() => import('./components/Reports').then(m => ({ default: 
 const App = () => {
     const [sessionUser, setSessionUser] = useState<any>(null);
     const [isSessionLoading, setIsSessionLoading] = useState(true);
+    const [isPending, startTransition] = useTransition();
 
     // Initial Setup & Session Check
     useEffect(() => {
         const init = async () => {
             // Check active session
             const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                setSessionUser({
-                    id: session.user.id,
-                    name: session.user.user_metadata.name || session.user.email?.split('@')[0],
-                    email: session.user.email
-                });
-            }
-            setIsSessionLoading(false);
+            startTransition(() => {
+                if (session) {
+                    setSessionUser({
+                        id: session.user.id,
+                        name: session.user.user_metadata.name || session.user.email?.split('@')[0],
+                        email: session.user.email
+                    });
+                }
+                setIsSessionLoading(false);
+            });
         };
         init();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (session) {
-                setSessionUser({
-                    id: session.user.id,
-                    name: session.user.user_metadata.name || session.user.email?.split('@')[0],
-                    email: session.user.email
-                });
-            } else {
-                setSessionUser(null);
-            }
+            startTransition(() => {
+                if (session) {
+                    setSessionUser({
+                        id: session.user.id,
+                        name: session.user.user_metadata.name || session.user.email?.split('@')[0],
+                        email: session.user.email
+                    });
+                } else {
+                    setSessionUser(null);
+                }
+            });
         });
 
         return () => subscription.unsubscribe();
@@ -109,6 +114,12 @@ const App = () => {
 
     useEffect(() => { localStorage.setItem('pdm_privacy', JSON.stringify(showValues)); }, [showValues]);
 
+    const handleViewChange = (view: View) => {
+        startTransition(() => {
+            setActiveView(view);
+        });
+    };
+
     const calculatedAccounts = useMemo(() => {
         if (!accounts || !transactions) return [];
         const cutOffDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -151,8 +162,10 @@ const App = () => {
 
     const handleNotificationClick = useCallback((id: string) => {
         // Navegar para a view de transações e destacar a transação
-        setActiveView(View.TRANSACTIONS);
-        setEditTxId(id);
+        startTransition(() => {
+            setActiveView(View.TRANSACTIONS);
+            setEditTxId(id);
+        });
 
         // Scroll suave até a transação após um pequeno delay
         setTimeout(() => {
@@ -241,15 +254,15 @@ const App = () => {
             case View.ACCOUNTS:
                 return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} />;
             case View.TRANSACTIONS:
-                return <Transactions transactions={transactions} accounts={calculatedAccounts} trips={trips} familyMembers={familyMembers} customCategories={customCategories} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAnticipate={handlers.handleAnticipateInstallments} currentDate={currentDate} showValues={showValues} initialEditId={editTxId} onClearEditId={() => setEditTxId(null)} onNavigateToAccounts={() => setActiveView(View.ACCOUNTS)} onNavigateToTrips={() => setActiveView(View.TRIPS)} onNavigateToFamily={() => setActiveView(View.FAMILY)} />;
+                return <Transactions transactions={transactions} accounts={calculatedAccounts} trips={trips} familyMembers={familyMembers} customCategories={customCategories} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAnticipate={handlers.handleAnticipateInstallments} currentDate={currentDate} showValues={showValues} initialEditId={editTxId} onClearEditId={() => setEditTxId(null)} onNavigateToAccounts={() => handleViewChange(View.ACCOUNTS)} onNavigateToTrips={() => handleViewChange(View.TRIPS)} onNavigateToFamily={() => handleViewChange(View.FAMILY)} />;
             case View.BUDGETS:
                 return <Budgets budgets={budgets} transactions={transactions} onAddBudget={handlers.handleAddBudget} onUpdateBudget={handlers.handleUpdateBudget} onDeleteBudget={handlers.handleDeleteBudget} currentDate={currentDate} />;
             case View.GOALS:
                 return <Goals goals={goals} accounts={calculatedAccounts} onAddGoal={handlers.handleAddGoal} onUpdateGoal={handlers.handleUpdateGoal} onDeleteGoal={handlers.handleDeleteGoal} onAddTransaction={handlers.handleAddTransaction} />;
             case View.TRIPS:
-                return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onNavigateToShared={() => setActiveView(View.SHARED)} />;
+                return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onNavigateToShared={() => handleViewChange(View.SHARED)} />;
             case View.SHARED:
-                return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onNavigateToTrips={() => setActiveView(View.TRIPS)} />;
+                return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} />;
             case View.FAMILY:
                 return <Family members={familyMembers} onAddMember={handlers.handleAddMember} onDeleteMember={handlers.handleDeleteMember} />;
             case View.INVESTMENTS:
@@ -266,7 +279,7 @@ const App = () => {
     return (
         <MainLayout
             activeView={activeView}
-            setActiveView={setActiveView}
+            setActiveView={handleViewChange}
             user={storedUser || { id: 'loading', name: 'Carregando...', email: '' }}
             onLogout={handleLogout}
             showValues={showValues}
