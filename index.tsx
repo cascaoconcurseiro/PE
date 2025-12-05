@@ -1,20 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PiggyBank, Loader2 } from 'lucide-react';
 import { migrateFromLocalStorage } from './services/db'; // Only for migration
 import { supabase } from './integrations/supabase/client';
-import { Dashboard } from './components/Dashboard';
-import { Accounts } from './components/Accounts';
 import { Auth } from './components/Auth';
-import { Transactions } from './components/Transactions';
-import { Budgets } from './components/Budgets';
-import { Goals } from './components/Goals';
-import { Trips } from './components/Trips';
-import { Shared } from './components/Shared';
-import { Family } from './components/Family';
-import { Settings } from './components/Settings';
-import { Investments } from './components/Investments';
-import { Reports } from './components/Reports';
 import { View, SyncStatus, TransactionType } from './types';
 import { calculateBalances } from './services/balanceEngine';
 import { ThemeProvider } from './components/ui/ThemeContext';
@@ -25,8 +14,22 @@ import { useDataStore } from './hooks/useDataStore';
 import { useAppLogic } from './hooks/useAppLogic';
 import { MainLayout } from './components/MainLayout';
 import { InconsistenciesModal } from './components/ui/InconsistenciesModal';
+import { LoadingScreen } from './components/ui/LoadingScreen';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import './index.css';
+
+// Lazy load heavy components
+const Dashboard = lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const Accounts = lazy(() => import('./components/Accounts').then(m => ({ default: m.Accounts })));
+const Transactions = lazy(() => import('./components/Transactions').then(m => ({ default: m.Transactions })));
+const Budgets = lazy(() => import('./components/Budgets').then(m => ({ default: m.Budgets })));
+const Goals = lazy(() => import('./components/Goals').then(m => ({ default: m.Goals })));
+const Trips = lazy(() => import('./components/Trips').then(m => ({ default: m.Trips })));
+const Shared = lazy(() => import('./components/Shared').then(m => ({ default: m.Shared })));
+const Family = lazy(() => import('./components/Family').then(m => ({ default: m.Family })));
+const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const Investments = lazy(() => import('./components/Investments').then(m => ({ default: m.Investments })));
+const Reports = lazy(() => import('./components/Reports').then(m => ({ default: m.Reports })));
 
 const App = () => {
     const [sessionUser, setSessionUser] = useState<any>(null);
@@ -278,7 +281,9 @@ const App = () => {
             dataInconsistencies={dataInconsistencies}
             onOpenInconsistenciesModal={() => setIsInconsistenciesModalOpen(true)}
         >
-            {renderContent()}
+            <Suspense fallback={<LoadingScreen />}>
+                {renderContent()}
+            </Suspense>
 
             {isTxModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">

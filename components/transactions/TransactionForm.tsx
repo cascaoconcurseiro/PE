@@ -112,7 +112,20 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     if (accounts.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                <p className="text-slate-500 dark:text-slate-400 mb-4">Nenhuma conta encontrada.</p>
+                <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
+                    <CreditCard className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                </div>
+                <p className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-2">Nenhuma conta encontrada</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Crie uma conta para começar a registrar transações</p>
+                {onNavigateToAccounts && (
+                    <button
+                        onClick={onNavigateToAccounts}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors mb-3"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Criar Conta
+                    </button>
+                )}
                 <Button variant="secondary" onClick={onCancel}>Voltar</Button>
             </div>
         );
@@ -282,12 +295,38 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                         <div className="fixed inset-0 z-10" onClick={() => setIsTripSelectorOpen(false)} />
                                         <div className="absolute inset-x-0 top-full mt-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-20 overflow-hidden max-h-60 overflow-y-auto custom-scrollbar">
                                             <div onClick={() => { setTripId(''); setIsTripSelectorOpen(false); }} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-slate-600 dark:text-slate-300 font-medium text-sm border-b border-slate-50 dark:border-slate-700">Nenhuma</div>
-                                            {trips.map(t => (
-                                                <div key={t.id} onClick={() => { setTripId(t.id); setIsTripSelectorOpen(false); }} className="p-3 hover:bg-violet-50 dark:hover:bg-violet-900/20 cursor-pointer flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center text-violet-600 dark:text-violet-400 font-bold text-xs"><Plane className="w-4 h-4" /></div>
-                                                    <div><span className="text-slate-800 dark:text-slate-200 font-bold text-sm block">{t.name}</span><span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">{t.currency}</span></div>
+                                            {trips.length === 0 ? (
+                                                <div className="p-4 text-center">
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className="w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                                                            <Plane className="w-6 h-6 text-violet-600 dark:text-violet-400" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Nenhuma viagem cadastrada</p>
+                                                            <p className="text-xs text-slate-500 dark:text-slate-400">Crie uma viagem para vincular despesas</p>
+                                                        </div>
+                                                        {onNavigateToTrips && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setIsTripSelectorOpen(false);
+                                                                    onNavigateToTrips();
+                                                                }}
+                                                                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-bold transition-colors"
+                                                            >
+                                                                <Plus className="w-4 h-4" />
+                                                                Criar Viagem
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            ))}
+                                            ) : (
+                                                trips.map(t => (
+                                                    <div key={t.id} onClick={() => { setTripId(t.id); setIsTripSelectorOpen(false); }} className="p-3 hover:bg-violet-50 dark:hover:bg-violet-900/20 cursor-pointer flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center text-violet-600 dark:text-violet-400 font-bold text-xs"><Plane className="w-4 h-4" /></div>
+                                                        <div><span className="text-slate-800 dark:text-slate-200 font-bold text-sm block">{t.name}</span><span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">{t.currency}</span></div>
+                                                    </div>
+                                                ))
+                                            )}
                                         </div>
                                     </>
                                 )}

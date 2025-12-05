@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Users, ChevronDown, Check } from 'lucide-react';
+import { X, User, Users, ChevronDown, Check, Plus } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { FamilyMember, TransactionSplit } from '../../types';
 
@@ -48,18 +48,18 @@ export const SplitModal: React.FC<SplitModalProps> = ({
                     <button onClick={onClose} className="p-2 bg-white rounded-full border border-slate-200"><X className="w-5 h-5 text-slate-600" /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-                    
+
                     {/* 1. QUEM PAGOU? */}
                     <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Quem pagou?</label>
                         <div className="flex gap-2 p-1 bg-slate-100 rounded-xl mb-3">
-                            <button 
+                            <button
                                 onClick={() => setPayerId('me')}
                                 className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-colors ${payerId === 'me' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 Eu Paguei
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setPayerId(familyMembers.length > 0 ? familyMembers[0].id : 'other')}
                                 className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-colors ${payerId !== 'me' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
@@ -83,8 +83,8 @@ export const SplitModal: React.FC<SplitModalProps> = ({
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <User className="h-5 w-5 text-indigo-500" />
                                         </div>
-                                        <select 
-                                            value={payerId} onChange={e => setPayerId(e.target.value)} 
+                                        <select
+                                            value={payerId} onChange={e => setPayerId(e.target.value)}
                                             className="w-full pl-10 pr-4 py-3 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-900 font-bold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
                                         >
                                             {familyMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
