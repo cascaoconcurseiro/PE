@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from '../ui/Card';
 import { PieChart as PieIcon, Wallet } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { SimplePieChart } from '../ui/SimpleCharts';
 import { formatCurrency } from '../../utils';
 import { PrivacyBlur } from '../ui/PrivacyBlur';
 
@@ -13,6 +13,13 @@ interface CategorySpendingChartProps {
 
 export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({ data, totalExpense, showValues }) => {
     const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e'];
+
+    // Transform data for SimplePieChart
+    const chartData = data.map((item, index) => ({
+        name: item.name,
+        value: item.value,
+        color: COLORS[index % COLORS.length]
+    }));
 
     return (
         <Card className="border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800">
@@ -27,56 +34,25 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({ da
             </div>
 
             {data.length > 0 ? (
-                <div className="flex flex-col md:flex-row items-center gap-6">
-                    {/* Donut Chart */}
-                    <div className="h-56 w-full md:w-1/2 relative">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={data}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={4}
-                                    dataKey="value"
-                                    stroke="none"
-                                >
-                                    {data.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    formatter={(value: number) => showValues ? formatCurrency(value) : 'R$ ****'}
-                                    contentStyle={{
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        backgroundColor: '#1e293b',
-                                        color: '#fff',
-                                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                                    }}
-                                    itemStyle={{ color: '#fff' }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
-
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="text-center">
-                                <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Gasto</span>
-                                <span className="text-xl font-bold text-slate-900 dark:text-white block tracking-tight">
-                                    <PrivacyBlur showValues={showValues}>{formatCurrency(totalExpense)}</PrivacyBlur>
-                                </span>
-                            </div>
-                        </div>
+                <div className="flex flex-col items-center gap-6">
+                    {/* Total in center */}
+                    <div className="text-center mb-4">
+                        <span className="text-xs text-slate-400 uppercase font-bold block mb-1">Total Gasto</span>
+                        <span className="text-2xl font-bold text-slate-900 dark:text-white block">
+                            <PrivacyBlur showValues={showValues}>{formatCurrency(totalExpense)}</PrivacyBlur>
+                        </span>
                     </div>
 
-                    {/* Custom Legend */}
-                    <div className="w-full md:w-1/2 grid grid-cols-1 gap-2">
+                    {/* Pie Chart */}
+                    <SimplePieChart data={chartData.slice(0, 5)} size={200} />
+
+                    {/* Legend */}
+                    <div className="w-full grid grid-cols-1 gap-2 mt-4">
                         {data.slice(0, 5).map((entry, index) => (
                             <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                                    <span className="font-semibold text-slate-700 dark:text-slate-300">{entry.name}</span>
+                                    <span className="font-semibold text-slate-700 dark:text-slate-300 text-sm">{entry.name}</span>
                                 </div>
                                 <div className="text-right shrink-0">
                                     <span className="text-slate-900 dark:text-white font-bold text-sm block">
