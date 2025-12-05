@@ -60,34 +60,56 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
                 return;
             }
 
-            // Load from Supabase
-            const { data, error } = await supabase
-                .from('user_settings')
-                .select('*')
-                .eq('user_id', user.id)
-                .single();
+            // Load from Supabase with robust error handling for missing table
+            try {
+                const { data, error } = await supabase
+                    .from('user_settings')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .single();
 
-            if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-                console.error('Error loading settings:', error);
-                // Fallback to localStorage
+                if (error) {
+                    // Check if it's a "relation does not exist" error (table missing) or just no rows
+                    if (error.code === '42P01' || (error.message && error.message.includes('relation "public.user_settings" does not exist'))) {
+                        console.warn('User settings table missing, using defaults');
+                        // Fallback to defaults/local
+                        const localSettings = localStorage.getItem('pdm_user_settings');
+                        if (localSettings) {
+                            setSettings(JSON.parse(localSettings));
+                        } else {
+                            setSettings(defaultUserSettings);
+                            localStorage.setItem('pdm_user_settings', JSON.stringify(defaultUserSettings));
+                        }
+                    } else if (error.code !== 'PGRST116') { // PGRST116 = no rows returned
+                        console.error('Error loading settings:', error);
+                        // Fallback to localStorage
+                        const localSettings = localStorage.getItem('pdm_user_settings');
+                        if (localSettings) {
+                            setSettings(JSON.parse(localSettings));
+                        }
+                    } else { // No rows returned, creating defaults
+                        await createDefaultSettings(user.id);
+                    }
+                } else if (data) {
+                    const loadedSettings: UserSettings = {
+                        notifications: data.notifications || defaultUserSettings.notifications,
+                        security: data.security || defaultUserSettings.security,
+                        preferences: data.preferences || defaultUserSettings.preferences,
+                        privacy: data.privacy || defaultUserSettings.privacy,
+                        appearance: data.appearance || defaultUserSettings.appearance
+                    };
+                    setSettings(loadedSettings);
+                    // Also save to localStorage for offline access
+                    localStorage.setItem('pdm_user_settings', JSON.stringify(loadedSettings));
+                }
+            } catch (innerError) {
+                console.warn('Exception loading settings (likely missing table):', innerError);
                 const localSettings = localStorage.getItem('pdm_user_settings');
                 if (localSettings) {
                     setSettings(JSON.parse(localSettings));
+                } else {
+                    setSettings(defaultUserSettings);
                 }
-            } else if (data) {
-                const loadedSettings: UserSettings = {
-                    notifications: data.notifications || defaultUserSettings.notifications,
-                    security: data.security || defaultUserSettings.security,
-                    preferences: data.preferences || defaultUserSettings.preferences,
-                    privacy: data.privacy || defaultUserSettings.privacy,
-                    appearance: data.appearance || defaultUserSettings.appearance
-                };
-                setSettings(loadedSettings);
-                // Also save to localStorage for offline access
-                localStorage.setItem('pdm_user_settings', JSON.stringify(loadedSettings));
-            } else {
-                // No settings found, create default
-                await createDefaultSettings(user.id);
             }
         } catch (error) {
             console.error('Error in loadSettings:', error);

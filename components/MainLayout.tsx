@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import {
     LayoutDashboard, List, Wallet, TrendingUp, Target, Trophy, Plane, Users, UserCircle,
-    Eye, EyeOff, Settings as SettingsIcon, Sun, Moon, LogOut,
+    Eye, EyeOff, Settings as SettingsIcon, Sun, Moon, LogOut, PiggyBank,
     ChevronLeft, ChevronRight, Bell, BellRing, AlertTriangle, Sparkles, Menu, Home, FileText, Plus, X
 } from 'lucide-react';
-import { SockLogo } from './ui/SockLogo';
 import { View, UserProfile, Transaction } from '../types';
 import { useTheme } from './ui/ThemeContext';
 
@@ -161,8 +160,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             <aside className="hidden md:flex flex-col w-72 h-full border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm z-20 shrink-0">
                 <div className="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
                     <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setActiveView(View.DASHBOARD)}>
-                        <div className="w-8 h-8 bg-emerald-500 dark:bg-emerald-400 rounded-lg flex items-center justify-center shadow-lg shrink-0">
-                            <SockLogo className="w-6 h-6" />
+                        <div className="w-8 h-8 bg-slate-900 dark:bg-white rounded-lg flex items-center justify-center shadow-lg shrink-0 text-white dark:text-slate-900">
+                            <PiggyBank className="w-5 h-5" />
                         </div>
                         <div>
                             <span className="font-bold text-slate-800 dark:text-white text-lg leading-tight block">Pé de Meia</span>
@@ -176,8 +175,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800/60 sticky top-0 z-30 shrink-0 transition-all">
                     <div className="w-full px-4 md:px-8 h-16 flex items-center justify-between">
                         <div className="flex md:hidden items-center space-x-2 cursor-pointer active:opacity-70 transition-opacity" onClick={() => setActiveView(View.DASHBOARD)}>
-                            <div className="w-9 h-9 bg-emerald-500 dark:bg-emerald-400 rounded-xl flex items-center justify-center shadow-lg shrink-0">
-                                <SockLogo className="w-6 h-6" />
+                            <div className="w-9 h-9 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center shadow-lg shrink-0 text-white dark:text-slate-900">
+                                <PiggyBank className="w-5 h-5" />
                             </div>
                         </div>
 

@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Cloud } from 'lucide-react';
-import { SockLogo } from './ui/SockLogo';
+import { PiggyBank, ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Cloud } from 'lucide-react';
 import { useToast } from './ui/Toast';
 
 interface AuthProps {
@@ -59,7 +58,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <div className="w-full max-w-md relative z-10">
                 <div className="text-center mb-8 animate-in slide-in-from-top-10 duration-500">
                     <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-tr from-emerald-400 to-teal-500 rounded-3xl shadow-xl shadow-emerald-500/20 mb-4 transform rotate-3">
-                        <SockLogo className="w-12 h-12" />
+                        <PiggyBank className="w-10 h-10 text-white" />
                     </div>
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">Pé de Meia</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Gestão Financeira Inteligente</p>
