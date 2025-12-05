@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { PiggyBank, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 // import { migrateFromLocalStorage } from './services/db'; // Removed: Dexie migration no longer needed
 import { supabase } from './integrations/supabase/client';
 import { Auth } from './components/Auth';

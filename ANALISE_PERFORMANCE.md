@@ -1,343 +1,174 @@
-# 🚀 ANÁLISE DE PERFORMANCE E OTIMIZAÇÕES
+# 🐌 Análise de Performance - Pé de Meia
 
-**Data:** 2025-12-04 14:35 BRT  
-**Status:** 🔍 ANÁLISE COMPLETA
+**Data:** 2025-12-05  
+**URL Analisada:** https://pemeia.vercel.app/
 
 ---
 
-## 📋 GARGALOS IDENTIFICADOS
+## 🔍 Problemas Identificados
 
-### 1. 🔴 **CRÍTICO: Re-renderizações Desnecessárias**
+### **1. ✅ CORRIGIDO - React Error #426 (CRÍTICO)**
 
-**Problema:**
-- `calculatedAccounts` recalcula SEMPRE que `currentDate` muda
-- `activeNotifications` recalcula SEMPRE que `transactions` muda
-- Componentes filhos re-renderizam mesmo sem mudanças
+**Sintoma:**
+```
+Uncaught Error: Minified React error #426
+```
+
+**Causa Raiz:**
+- Dynamic import (`await import()`) dentro do `useDataStore.ts` causando suspensão durante atualização síncrona
+- Linha 185: `const { checkDataConsistency } = await import('../services/financialLogic');`
 
 **Impacto:**
-- ⚠️ Cálculo de saldo para TODAS as contas a cada mudança de mês
-- ⚠️ Filtro de notificações a cada nova transação
-- ⚠️ Re-render de todos os componentes
+- Aplicação quebrava completamente após login
+- Formulário de transação não abria
+- Experiência do usuário completamente quebrada
+
+**Solução Aplicada:**
+```typescript
+// ❌ ANTES (causava erro)
+const { checkDataConsistency } = await import('../services/financialLogic');
+
+// ✅ DEPOIS (corrigido)
+import { checkDataConsistency } from '../services/financialLogic'; // No topo do arquivo
+```
+
+**Arquivo:** `hooks/useDataStore.ts`  
+**Commit:** `5f1b9dd`
 
 ---
 
-### 2. 🟠 **ALTO: Cálculos Pesados em Loops**
+### **2. ✅ CORRIGIDO - Recursos Faltando (404 Errors)**
 
-**Arquivo:** `services/balanceEngine.ts`
+**Sintomas:**
+```
+/favicon.ico:1  Failed to load resource: 404
+/icon-192.png:1  Failed to load resource: 404
+```
+
+**Causa:**
+- Diretório `public/` não existia
+- Ícones do PWA não foram criados
+
+**Solução:**
+- Criado diretório `public/`
+- Adicionados `favicon.ico` e `icon-192.png` com tema de "meia" (Pé de Meia)
+- Aguardando referência visual do usuário para design final
+
+---
+
+### **3. ⚠️ PARCIALMENTE CORRIGIDO - Dependências Pesadas**
 
 **Problema:**
-```typescript
-// ❌ Itera sobre TODAS as transações para CADA conta
-transactions.forEach(tx => {
-    const sourceAcc = accountMap.get(tx.accountId);
-    // ... cálculos complexos
-});
-```
+- `recharts` foi removido mas ainda usado em 5 componentes
+- Build quebrou no Vercel
 
-**Impacto:**
-- ⚠️ O(n * m) onde n = transações, m = contas
-- ⚠️ Para 1000 transações e 10 contas = 10.000 iterações
+**Componentes Afetados:**
+1. `components/Trips.tsx`
+2. `components/reports/TravelReport.tsx`
+3. `components/reports/SharedExpensesReport.tsx`
+4. `components/investments/BrokerageChart.tsx`
+5. `components/investments/AllocationChart.tsx`
 
----
+**Solução Temporária:**
+- Re-adicionado `recharts` para não quebrar o build
+- **TODO:** Substituir por biblioteca mais leve (Chart.js, Lightweight Charts)
 
-### 3. 🟠 **ALTO: Filtros Repetidos**
-
-**Problema:**
-```typescript
-// Dashboard.tsx
-const filteredTxs = transactions.filter(shouldShowTransaction);
-
-// Transactions.tsx
-const filteredTxs = transactions.filter(shouldShowTransaction);
-
-// Accounts.tsx
-const filteredTxs = transactions.filter(shouldShowTransaction);
-```
-
-**Impacto:**
-- ⚠️ Mesmo filtro executado 3+ vezes
-- ⚠️ Cada componente filtra independentemente
+**Impacto no Bundle:**
+- `recharts` adiciona ~100KB ao bundle comprimido
+- Afeta negativamente LCP e FCP
 
 ---
 
-### 4. 🟡 **MÉDIO: Conversões de Data Repetidas**
+## 📊 Métricas de Performance (Pré-Correção)
 
-**Problema:**
-```typescript
-// Converte a mesma data múltiplas vezes
-new Date(t.date)
-new Date(t.date)
-new Date(t.date)
-```
+### **Desktop:**
+- ❌ **LCP:** 12.74s (Meta: <2.5s) - **410% ACIMA**
+- ❌ **Real Experience Score:** 55/100
 
-**Impacto:**
-- ⚠️ Parsing de string para Date é custoso
-- ⚠️ Feito centenas de vezes
+### **Mobile:**
+- ❌ **FCP:** 4.5s (Meta: <1.8s) - **150% ACIMA**
+- ❌ **Real Experience Score:** 0/100 (CRÍTICO!)
 
 ---
 
-### 5. 🟡 **MÉDIO: Handlers Não Memoizados**
+## 🎯 Próximos Passos para Otimização
 
-**Problema:**
-```typescript
-// index.tsx
-const handleRequestEdit = (id: string) => {
-    setIsTxModalOpen(true);
-    setEditTxId(id);
-};
-```
+### **Prioridade ALTA (Fazer Hoje)**
 
-**Impacto:**
-- ⚠️ Nova função criada a cada render
-- ⚠️ Causa re-render de componentes filhos
+1. **Testar Aplicação Pós-Correção**
+   - Verificar se formulário de transação abre
+   - Confirmar que não há mais erro React #426
+   - Medir tempo de carregamento pós-login
 
----
+2. **Lazy Loading Agressivo**
+   - Já implementado para componentes principais
+   - Verificar se está funcionando corretamente
 
-## 🛠️ OTIMIZAÇÕES PROPOSTAS
+3. **Code Splitting**
+   - Separar vendors em chunks menores
+   - Carregar charts apenas quando necessário
 
-### Otimização 1: Memoizar Transações Filtradas
+### **Prioridade MÉDIA (Esta Semana)**
 
-**Criar hook customizado:**
-```typescript
-// hooks/useFilteredTransactions.ts
-export const useFilteredTransactions = (transactions: Transaction[]) => {
-    return useMemo(() => {
-        return transactions.filter(shouldShowTransaction);
-    }, [transactions]);
-};
-```
+4. **Substituir Recharts**
+   - Avaliar Chart.js ou Lightweight Charts
+   - Migrar os 5 componentes
+   - Remover recharts definitivamente
 
-**Usar em index.tsx:**
-```typescript
-const filteredTransactions = useFilteredTransactions(transactions);
+5. **Otimizar Carregamento de Dados**
+   - Implementar paginação/virtualização
+   - Carregar dados críticos primeiro
+   - Dados secundários em background
 
-// Passar para componentes
-<Dashboard transactions={filteredTransactions} />
-<Transactions transactions={filteredTransactions} />
-```
+6. **Service Worker & Cache**
+   - Já configurado no vite.config.ts
+   - Testar se está funcionando
+   - Ajustar estratégias de cache
 
-**Ganho:** ~30% menos processamento
+### **Prioridade BAIXA (Próxima Sprint)**
 
----
+7. **Imagens & Assets**
+   - Converter para WebP
+   - Implementar lazy loading de imagens
+   - Adicionar blur placeholder
 
-### Otimização 2: Memoizar Handlers
-
-**index.tsx:**
-```typescript
-const handleRequestEdit = useCallback((id: string) => {
-    setIsTxModalOpen(true);
-    setEditTxId(id);
-}, []);
-
-const handleDismissNotification = useCallback((id: string) => {
-    // ...
-}, [transactions, handlers]);
-
-const togglePrivacy = useCallback(() => {
-    setShowValues(prev => !prev);
-}, []);
-```
-
-**Ganho:** ~20% menos re-renders
+8. **Bundle Analysis**
+   - Rodar `pnpm run build -- --analyze`
+   - Identificar outros pacotes pesados
+   - Tree-shaking agressivo
 
 ---
 
-### Otimização 3: Otimizar calculateBalances
+## 🚀 Melhorias Esperadas
 
-**Antes:**
-```typescript
-transactions.forEach(tx => {
-    const sourceAcc = accountMap.get(tx.accountId);
-    // ... cálculos
-});
-```
+### **Após Correções Atuais:**
+- Desktop LCP: 12.74s → **~8s** (-37%)
+- Mobile FCP: 4.5s → **~3s** (-33%)
+- **Aplicação funcional** (sem crashes)
 
-**Depois:**
-```typescript
-// Agrupar transações por conta primeiro
-const txsByAccount = new Map<string, Transaction[]>();
-transactions.forEach(tx => {
-    if (!txsByAccount.has(tx.accountId)) {
-        txsByAccount.set(tx.accountId, []);
-    }
-    txsByAccount.get(tx.accountId)!.push(tx);
-});
-
-// Processar apenas transações de cada conta
-accounts.forEach(acc => {
-    const accountTxs = txsByAccount.get(acc.id) || [];
-    accountTxs.forEach(tx => {
-        // ... cálculos
-    });
-});
-```
-
-**Ganho:** ~40% mais rápido para muitas transações
+### **Após Otimizações Completas:**
+- Desktop LCP: **<2.5s** ✅
+- Mobile FCP: **<1.8s** ✅
+- Real Experience Score: **>90** ✅
 
 ---
 
-### Otimização 4: Cache de Datas
+## 📝 Notas Técnicas
 
-**Criar utilitário:**
-```typescript
-// utils/dateCache.ts
-const dateCache = new Map<string, Date>();
+### **Arquitetura Atual:**
+- **Framework:** Vite + React
+- **Lazy Loading:** ✅ Implementado
+- **PWA:** ✅ Configurado
+- **Database:** Supabase (cloud-first)
+- **Charts:** Recharts (pesado, precisa substituir)
 
-export const getCachedDate = (dateStr: string): Date => {
-    if (!dateCache.has(dateStr)) {
-        dateCache.set(dateStr, new Date(dateStr));
-    }
-    return dateCache.get(dateStr)!;
-};
-```
-
-**Ganho:** ~15% menos parsing
+### **Gargalos Identificados:**
+1. ✅ Dynamic imports causando Suspense issues
+2. ⚠️ Recharts muito pesado
+3. ⏳ Carregamento de todos os dados de uma vez
+4. ⏳ Sem paginação/virtualização
 
 ---
 
-### Otimização 5: React.memo para Componentes
-
-**Componentes que devem ser memoizados:**
-```typescript
-// Dashboard.tsx
-export const Dashboard = React.memo(({ ... }) => {
-    // ...
-}, (prevProps, nextProps) => {
-    return prevProps.transactions === nextProps.transactions &&
-           prevProps.accounts === nextProps.accounts;
-});
-
-// TransactionList.tsx
-export const TransactionList = React.memo(({ ... }) => {
-    // ...
-});
-```
-
-**Ganho:** ~25% menos re-renders
-
----
-
-### Otimização 6: Lazy Loading de Componentes
-
-**index.tsx:**
-```typescript
-const Dashboard = lazy(() => import('./components/Dashboard'));
-const Transactions = lazy(() => import('./components/Transactions'));
-const Accounts = lazy(() => import('./components/Accounts'));
-// ...
-
-// Render com Suspense
-<Suspense fallback={<DashboardSkeleton />}>
-    {renderContent()}
-</Suspense>
-```
-
-**Ganho:** ~50% bundle inicial menor
-
----
-
-### Otimização 7: Virtualização de Listas
-
-**Para listas longas de transações:**
-```typescript
-import { FixedSizeList } from 'react-window';
-
-<FixedSizeList
-    height={600}
-    itemCount={transactions.length}
-    itemSize={80}
->
-    {({ index, style }) => (
-        <div style={style}>
-            <TransactionItem transaction={transactions[index]} />
-        </div>
-    )}
-</FixedSizeList>
-```
-
-**Ganho:** ~70% mais rápido para 1000+ transações
-
----
-
-### Otimização 8: Debounce de Buscas
-
-**Transactions.tsx:**
-```typescript
-const [searchTerm, setSearchTerm] = useState('');
-const [debouncedSearch, setDebouncedSearch] = useState('');
-
-useEffect(() => {
-    const timer = setTimeout(() => {
-        setDebouncedSearch(searchTerm);
-    }, 300);
-    return () => clearTimeout(timer);
-}, [searchTerm]);
-
-// Usar debouncedSearch no filtro
-```
-
-**Ganho:** ~60% menos filtros durante digitação
-
----
-
-## 📊 GANHOS ESTIMADOS
-
-### Por Otimização
-1. Transações filtradas memoizadas: **30%**
-2. Handlers memoizados: **20%**
-3. calculateBalances otimizado: **40%**
-4. Cache de datas: **15%**
-5. React.memo: **25%**
-6. Lazy loading: **50% bundle**
-7. Virtualização: **70% listas**
-8. Debounce: **60% busca**
-
-### Ganho Total Estimado
-- **Tempo de carregamento inicial:** -50%
-- **Tempo de cálculo de saldos:** -40%
-- **Re-renders:** -45%
-- **Responsividade geral:** +60%
-
----
-
-## 🎯 PRIORIDADES
-
-### Prioridade 1 (CRÍTICA) - Fazer AGORA
-1. ✅ Memoizar handlers (useCallback)
-2. ✅ Memoizar transações filtradas
-3. ✅ Otimizar calculateBalances
-
-### Prioridade 2 (ALTA) - Fazer HOJE
-4. ✅ React.memo em componentes principais
-5. ✅ Debounce de buscas
-
-### Prioridade 3 (MÉDIA) - Fazer ESTA SEMANA
-6. ✅ Lazy loading de componentes
-7. ✅ Cache de datas
-
-### Prioridade 4 (BAIXA) - Fazer QUANDO POSSÍVEL
-8. ✅ Virtualização de listas (se necessário)
-
----
-
-## 📝 REFATORAÇÕES NECESSÁRIAS
-
-### 1. Criar Hooks Customizados
-- `useFilteredTransactions`
-- `useCalculatedAccounts`
-- `useActiveNotifications`
-
-### 2. Extrair Lógica de Negócio
-- Mover cálculos para services
-- Criar utilitários reutilizáveis
-
-### 3. Melhorar Estrutura de Componentes
-- Separar lógica de apresentação
-- Criar componentes menores e focados
-
----
-
-**Análise Realizada Por:** Antigravity AI  
-**Data:** 2025-12-04 14:35 BRT  
-**Otimizações Identificadas:** 8  
-**Ganho Estimado:** 40-60% mais rápido
+**Última Atualização:** 2025-12-05 15:02  
+**Status:** 🟡 Em Progresso (2/8 itens corrigidos)
