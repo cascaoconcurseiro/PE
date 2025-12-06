@@ -188,6 +188,15 @@ export const supabaseService = {
         if (error) throw error;
     },
 
+    async softDeleteAccount(accountId: string) {
+        const userId = await getUserId();
+        const { error } = await supabase.rpc('soft_delete_account', {
+            p_account_id: accountId,
+            p_user_id: userId
+        });
+        if (error) throw error;
+    },
+
     async bulkCreate(table: string, items: any[]) {
         if (!items.length) return;
         const userId = await getUserId();

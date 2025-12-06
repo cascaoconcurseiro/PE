@@ -183,12 +183,15 @@ export const useDataStore = () => {
             ]);
 
             // --- VIRTUAL BALANCE RECONCILIATION ---
-            // The client Balance Engine calculates balance by summing transactions from Initial Balance.
-            // Since we only fetched recent transactions, we need to calculate a "Virtual Initial Balance"
-            // such that: Virtual + Sum(Recent) = Real Current Balance (from DB RPC)
+            // If the RPC fails or returns no data, we should gracefully fallback to standard initialBalance logic
+            const safeServerBalances = Array.isArray(serverBalances) ? serverBalances : [];
+
+            if (safeServerBalances.length === 0 && accs.length > 0) {
+                console.warn("⚠️ Aviso: Balanço do servidor retornou vazio. Usando saldos locais.");
+            }
 
             const reconciledAccounts = accs.map(account => {
-                const rpcBalanceObj = serverBalances.find((b: any) => b.account_id === account.id);
+                const rpcBalanceObj = safeServerBalances.find((b: any) => b.account_id === account.id);
                 // If we have a server-side calculated balance, use it as the source of truth for the END state
                 const targetCurrentBalance = rpcBalanceObj ? Number(rpcBalanceObj.calculated_balance) : (account.initialBalance || 0);
 
@@ -343,26 +346,14 @@ export const useDataStore = () => {
     const handleAddAccount = async (acc: any) => performOperation(async () => { await supabaseService.create('accounts', { ...acc, id: crypto.randomUUID() }); }, 'Conta criada!');
     const handleUpdateAccount = async (acc: any) => performOperation(async () => { await supabaseService.update('accounts', acc); }, 'Conta atualizada!');
     const handleDeleteAccount = async (id: string) => performOperation(async () => {
-        // ✅ SOFT DELETE: Marcar transações como deletadas ao invés de excluir fisicamente
-        // Isso mantém histórico e permite auditoria
-        const accountTxs = transactions.filter(t => t.accountId === id || t.destinationAccountId === id);
+        // ✅ SOFT DELETE ATÔMICO via RPC
+        // Substitui o loop sequencial lento por uma única chamada de banco
+        console.log(`🗑️ Excluindo conta ${id} via RPC...`);
 
-        console.log(`🗑️ Excluindo conta ${id} e marcando ${accountTxs.length} transações como deletadas...`);
+        await supabaseService.softDeleteAccount(id);
 
-        for (const tx of accountTxs) {
-            await supabaseService.update('transactions', {
-                ...tx,
-                deleted: true,
-                updatedAt: new Date().toISOString()
-            });
-            console.log(`  ✅ Transação marcada como deletada: ${tx.description}`);
-        }
-
-        // Then delete the account itself
-        await supabaseService.delete('accounts', id);
-
-        console.log(`✅ Conta ${id} excluída com sucesso!`);
-    }, 'Conta e transações excluídas.');
+        console.log(`✅ Conta ${id} e suas transações excluídas com sucesso!`);
+    }, 'Conta excluída com sucesso.');
 
     const handleAddTrip = async (trip: any) => performOperation(async () => { await supabaseService.create('trips', { ...trip, id: crypto.randomUUID() }); }, 'Viagem criada!');
     const handleUpdateTrip = async (trip: any) => performOperation(async () => { await supabaseService.update('trips', trip); }, 'Viagem atualizada!');
