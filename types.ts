@@ -122,7 +122,7 @@ export interface Transaction extends BaseEntity {
   type: TransactionType;
   category: Category | string;
   description: string;
-  accountId: string;
+  accountId?: string;
   destinationAccountId?: string;
   tripId?: string;
   currency?: string;

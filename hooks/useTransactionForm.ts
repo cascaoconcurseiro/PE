@@ -151,7 +151,7 @@ export const useTransactionForm = ({
         if (!activeAmount || activeAmount <= 0) newErrors.amount = 'Valor inválido';
         if (!description.trim()) newErrors.description = 'Descrição obrigatória';
         if (!date) newErrors.date = 'Data obrigatória';
-        if (!accountId && payerId === 'me') newErrors.account = 'Conta obrigatória';
+        if (!accountId && payerId === 'me' && !isShared) newErrors.account = 'Conta obrigatória';
 
         if (isTransfer) {
             if (!destinationAccountId) newErrors.destination = 'Conta destino obrigatória';
@@ -213,7 +213,7 @@ export const useTransactionForm = ({
             date,
             type: formMode!,
             category: formMode === TransactionType.TRANSFER ? Category.TRANSFER : category,
-            accountId: (payerId && payerId !== 'me') ? 'EXTERNAL' : (accountId || (accounts[0] ? accounts[0].id : '')),
+            accountId: (payerId && payerId !== 'me') ? 'EXTERNAL' : (accountId || undefined),
             destinationAccountId: isTransfer ? destinationAccountId : undefined,
             destinationAmount: (isTransfer && isMultiCurrencyTransfer) ? parseFloat(destinationAmountStr) : undefined,
             tripId: tripId || undefined,

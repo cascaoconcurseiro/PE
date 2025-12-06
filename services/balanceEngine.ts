@@ -31,10 +31,14 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
             return;
         }
 
-        // ✅ VALIDAÇÃO CRÍTICA 2: Conta de origem deve existir (exceto se outra pessoa pagou)
         const someoneElsePaid = tx.payerId && tx.payerId !== 'me';
         if (!someoneElsePaid) {
             if (!tx.accountId || tx.accountId.trim() === '' || tx.accountId === 'EXTERNAL') {
+                // ✅ Allow "Floating" Transactions (Shared Installments pending payment)
+                if (tx.isShared || tx.isInstallment) {
+                    return; // Just skip balance calculation for these
+                }
+
                 console.error(`❌ ERRO CRÍTICO: Transação sem conta de origem válida!`);
                 console.error(`   Transaction ID: ${tx.id}`);
                 console.error(`   Description: ${tx.description}`);

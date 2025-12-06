@@ -111,7 +111,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 type: TransactionType.EXPENSE,
                 category: category,
                 date: dateStr,
-                accountId: accountId || 'EXTERNAL', // Default to avoiding orphan check errors if possible
+                accountId: accountId || undefined, // Allow undefined for pending shared transactions
                 payerId: payerId === 'me' ? undefined : payerId,
                 isShared: true,
                 sharedWith: sharedWith,
@@ -125,17 +125,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             });
         }
 
-        // Validate Account if Payer is Me
-        if (payerId === 'me' && !accountId) {
-            // Try to find a default account?
-            const defaultAcc = accounts.find(a => a.type === 'CONTA CORRENTE' || a.type === 'CARTÃO DE CRÉDITO');
-            if (defaultAcc) {
-                generatedTransactions.forEach(t => t.accountId = defaultAcc.id);
-            } else {
-                alert('Se você pagou, selecione uma conta de origem.');
-                return;
-            }
-        }
+        // Optional Account if Payer is Me (Pending Debt)
+        // if (payerId === 'me' && !accountId) { ... } -> Removed Validation
+
 
         onImport(generatedTransactions);
     };
@@ -213,7 +205,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     {/* Account (Only if I paid) */}
                     {payerId === 'me' && (
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">Conta (Origem dos pagamentos)</label>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Conta (Opcional - definir ao pagar fatura)</label>
                             <div className="relative">
                                 <CreditCard className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
                                 <select className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white" value={accountId} onChange={e => setAccountId(e.target.value)}>
