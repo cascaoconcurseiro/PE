@@ -119,9 +119,7 @@ export default defineConfig(({ mode }) => {
               './components/Dashboard.tsx',
               './components/dashboard/FinancialProjectionCard.tsx',
               './components/dashboard/SummaryCards.tsx',
-              './components/dashboard/CashFlowChart.tsx',
               './components/dashboard/UpcomingBills.tsx',
-              './components/dashboard/CategorySpendingChart.tsx',
             ],
             'components-transactions': [
               './components/Transactions.tsx',

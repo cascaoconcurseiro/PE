@@ -1,18 +1,21 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, Suspense, lazy } from 'react';
 import { Account, Transaction, TransactionType, AccountType, Goal } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
 import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue } from '../services/financialLogic';
 import { shouldShowTransaction } from '../utils/transactionFilters';
+import { Loader2 } from 'lucide-react';
 
-// Sub-components
+// Sub-components (Critical: Loaded immediately)
 import { FinancialProjectionCard } from './dashboard/FinancialProjectionCard';
 import { SummaryCards } from './dashboard/SummaryCards';
-import { CashFlowChart } from './dashboard/CashFlowChart';
 import { UpcomingBills } from './dashboard/UpcomingBills';
-import { CategorySpendingChart } from './dashboard/CategorySpendingChart';
 
 import { DashboardSkeleton } from '../components/ui/Skeleton';
+
+// Performance: Lazy Load Charts to improve LCP
+const CashFlowChart = lazy(() => import('./dashboard/CashFlowChart').then(m => ({ default: m.CashFlowChart })));
+const CategorySpendingChart = lazy(() => import('./dashboard/CategorySpendingChart').then(m => ({ default: m.CategorySpendingChart })));
 
 interface DashboardProps {
     accounts: Account[];
@@ -23,6 +26,12 @@ interface DashboardProps {
     onEditRequest?: (id: string) => void;
     isLoading?: boolean;
 }
+
+const ChartSkeleton = () => (
+    <div className="w-full h-64 bg-slate-100 dark:bg-slate-800/50 rounded-2xl animate-pulse flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+    </div>
+);
 
 export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, goals = [], currentDate = new Date(), showValues, onEditRequest, isLoading = false }) => {
     if (isLoading) {
@@ -177,12 +186,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                 showValues={showValues}
             />
 
-            <CashFlowChart
-                data={cashFlowData}
-                hasData={hasCashFlowData}
-                year={selectedYear}
-                showValues={showValues}
-            />
+            <Suspense fallback={<ChartSkeleton />}>
+                <CashFlowChart
+                    data={cashFlowData}
+                    hasData={hasCashFlowData}
+                    year={selectedYear}
+                    showValues={showValues}
+                />
+            </Suspense>
 
             <UpcomingBills
                 bills={upcomingBills}
@@ -191,11 +202,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                 onEditRequest={onEditRequest}
             />
 
-            <CategorySpendingChart
-                data={categoryData}
-                totalExpense={monthlyExpense}
-                showValues={showValues}
-            />
+            <Suspense fallback={<ChartSkeleton />}>
+                <CategorySpendingChart
+                    data={categoryData}
+                    totalExpense={monthlyExpense}
+                    showValues={showValues}
+                />
+            </Suspense>
         </div>
     );
 };
