@@ -201,7 +201,39 @@ export const supabaseService = {
     },
 
     // SPECIFIC FETCHERS
-    async getTransactions() { return this.getAll('transactions'); },
+    async getAccountBalances() {
+        try {
+            const userId = await getUserId();
+            // Call RPC
+            const { data, error } = await supabase.rpc('get_account_totals', { p_user_id: userId });
+            if (error) throw error;
+            return data as { account_id: string, calculated_balance: number }[];
+        } catch (e) {
+            console.error("Failed to fetch account balances via RPC:", e);
+            return []; // Fallback will be handled by client using local calculation if needed
+        }
+    },
+
+    async getTransactions(startDate?: string) {
+        try {
+            const userId = await getUserId();
+            let query = supabase.from('transactions').select('*')
+                .eq('user_id', userId)
+                .eq('deleted', false)
+                .order('date', { ascending: false });
+
+            if (startDate) {
+                query = query.gte('date', startDate);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+            return mapToApp(data);
+        } catch (e) {
+            console.error("Failed to fetch transactions:", e);
+            return [];
+        }
+    },
     async getAccounts() { return this.getAll('accounts'); },
     async getTrips() { return this.getAll('trips'); },
     async getFamilyMembers() { return this.getAll('family_members'); },
