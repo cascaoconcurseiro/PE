@@ -202,19 +202,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         </div>
                     </div>
 
-                    {/* Account (Only if I paid) */}
-                    {payerId === 'me' && (
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">Conta (Opcional - definir ao pagar fatura)</label>
-                            <div className="relative">
-                                <CreditCard className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                                <select className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white" value={accountId} onChange={e => setAccountId(e.target.value)}>
-                                    <option value="">Selecione...</option>
-                                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                    )}
+
 
                     {/* Shared With */}
                     <div>
