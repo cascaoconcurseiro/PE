@@ -209,5 +209,33 @@ export const supabaseService = {
     async getBudgets() { return this.getAll('budgets'); },
     async getAssets() { return this.getAll('assets'); },
     async getCustomCategories() { return this.getAll('custom_categories'); },
-    async getSnapshots() { return this.getAll('snapshots'); }
+    async getSnapshots() { return this.getAll('snapshots'); },
+
+    // DANGER: WIPE ALL DATA
+    async dangerouslyWipeAllData() {
+        const userId = await getUserId();
+        console.warn(`🚨 INICIANDO WIPE DE DADOS PARA USUÁRIO: ${userId}`);
+
+        // Delete in order of dependencies (Child -> Parent)
+        const tables = [
+            'transactions',
+            'snapshots',
+            'assets',
+            'budgets',
+            'goals',
+            'trips',
+            'family_members',
+            'custom_categories',
+            'accounts'
+        ];
+
+        for (const table of tables) {
+            const { error }: any = await supabase.from(table).delete().eq('user_id', userId);
+            if (error) {
+                console.error(`Falha ao limpar tabela ${table}:`, error);
+                throw error;
+            }
+        }
+        console.log('✅ WIPE COMPLETO COM SUCESSO via Supabase Service.');
+    }
 };

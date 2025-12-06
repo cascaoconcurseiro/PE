@@ -353,7 +353,19 @@ export const useDataStore = () => {
             handleAddBudget, handleUpdateBudget, handleDeleteBudget,
             handleAddGoal, handleUpdateGoal, handleDeleteGoal,
             handleAddAsset, handleUpdateAsset, handleDeleteAsset,
-            handleAddSnapshot
+            handleAddSnapshot,
+            handleFactoryReset: async () => performOperation(async () => {
+                await supabaseService.dangerouslyWipeAllData();
+                setAccounts([]);
+                setTransactions([]);
+                setTrips([]);
+                setBudgets([]);
+                setGoals([]);
+                setFamilyMembers([]);
+                setAssets([]);
+                setSnapshots([]);
+                setCustomCategories([]);
+            }, 'Sistema restaurado para o padrão de fábrica.')
         }
     };
 };

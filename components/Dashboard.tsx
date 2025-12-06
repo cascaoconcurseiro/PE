@@ -12,6 +12,8 @@ import { CashFlowChart } from './dashboard/CashFlowChart';
 import { UpcomingBills } from './dashboard/UpcomingBills';
 import { CategorySpendingChart } from './dashboard/CategorySpendingChart';
 
+import { DashboardSkeleton } from '../components/ui/Skeleton';
+
 interface DashboardProps {
     accounts: Account[];
     transactions: Transaction[];
@@ -19,9 +21,13 @@ interface DashboardProps {
     currentDate?: Date;
     showValues: boolean;
     onEditRequest?: (id: string) => void;
+    isLoading?: boolean;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, goals = [], currentDate = new Date(), showValues, onEditRequest }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, goals = [], currentDate = new Date(), showValues, onEditRequest, isLoading = false }) => {
+    if (isLoading) {
+        return <DashboardSkeleton />;
+    }
     const selectedYear = currentDate.getFullYear();
 
     // --- FINANCIAL LOGIC INTEGRATION ---
@@ -59,7 +65,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
     // 4. Financial Health Check
     const healthStatus = analyzeFinancialHealth(monthlyIncome + pendingIncome, monthlyExpense + pendingExpenses);
 
-    // 5. Total Net Worth (All Accounts + Goals - Credit Card Debt)
+    // 5. Total Net Worth (All Accounts - Credit Card Debt)
     const netWorth = useMemo(() => {
         const accountsTotal = accounts.reduce((acc, curr) => {
             // Subtract Credit Card Debt from Net Worth
@@ -69,10 +75,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
             return acc + convertToBRL(curr.balance, curr.currency || 'BRL');
         }, 0);
 
-        const goalsTotal = goals.reduce((acc, goal) => acc + goal.currentAmount, 0);
-
-        return accountsTotal + goalsTotal;
-    }, [accounts, goals]);
+        return accountsTotal;
+    }, [accounts]);
 
     // Annual Cash Flow Data (Using Effective Values)
     const cashFlowData = useMemo(() => {

@@ -237,20 +237,12 @@ const App = () => {
         return <Auth onLogin={() => { }} />;
     }
 
-    if (isDataLoading && !accounts.length) {
-        return (
-            <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
-                <div className="flex-1 p-8">
-                    <DashboardSkeleton />
-                </div>
-            </div>
-        );
-    }
+
 
     const renderContent = () => {
         switch (activeView) {
             case View.DASHBOARD:
-                return <Dashboard accounts={calculatedAccounts} transactions={transactions} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={handleNotificationClick} />;
+                return <Dashboard accounts={calculatedAccounts} transactions={transactions} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={handleNotificationClick} isLoading={isDataLoading} />;
             case View.ACCOUNTS:
                 return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} />;
             case View.TRANSACTIONS:
@@ -270,7 +262,7 @@ const App = () => {
             case View.REPORTS:
                 return <Reports accounts={calculatedAccounts} transactions={transactions} showValues={showValues} trips={trips} familyMembers={familyMembers} />;
             case View.SETTINGS:
-                return <Settings customCategories={customCategories} onAddCategory={handlers.handleAddCategory} onDeleteCategory={handlers.handleDeleteCategory} accounts={accounts} transactions={transactions} trips={trips} budgets={budgets} goals={goals} familyMembers={familyMembers} assets={assets} snapshots={snapshots} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} />;
+                return <Settings customCategories={customCategories} onAddCategory={handlers.handleAddCategory} onDeleteCategory={handlers.handleDeleteCategory} accounts={accounts} transactions={transactions} trips={trips} budgets={budgets} goals={goals} familyMembers={familyMembers} assets={assets} snapshots={snapshots} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onFactoryReset={handlers.handleFactoryReset} />;
             default:
                 return <Dashboard accounts={calculatedAccounts} transactions={transactions} goals={goals} currentDate={currentDate} showValues={showValues} />;
         }
@@ -294,7 +286,7 @@ const App = () => {
             dataInconsistencies={dataInconsistencies}
             onOpenInconsistenciesModal={() => setIsInconsistenciesModalOpen(true)}
         >
-            <Suspense fallback={<LoadingScreen />}>
+            <Suspense fallback={activeView === View.DASHBOARD ? <div className="p-8"><DashboardSkeleton /></div> : <LoadingScreen />}>
                 {renderContent()}
             </Suspense>
 

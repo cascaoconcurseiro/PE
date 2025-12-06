@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Tag, Plus, X, Key, Eye, EyeOff, Settings as SettingsIcon, Database, Download, Save, Globe, Moon, Sun, Monitor, Bell, Shield, Sliders, Lock, Palette, Upload } from 'lucide-react';
+import { Tag, Plus, X, Key, Eye, EyeOff, Settings as SettingsIcon, Database, Download, Save, Globe, Moon, Sun, Monitor, Bell, Shield, Sliders, Lock, Palette, Upload, AlertTriangle } from 'lucide-react';
 import { Account, Budget, CustomCategory, FamilyMember, Transaction, Trip, Asset, Goal, Snapshot } from '../types';
 import { useToast } from './ui/Toast';
 import { ConfirmModal } from './ui/ConfirmModal';
@@ -30,6 +30,7 @@ interface SettingsProps {
     onDeleteAccount: (id: string) => void;
     onUpdateTrip: (trip: Trip) => void;
     onDeleteTrip: (id: string) => void;
+    onFactoryReset: () => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({
@@ -43,8 +44,14 @@ export const Settings: React.FC<SettingsProps> = ({
     goals,
     familyMembers,
     assets,
-    snapshots
+    snapshots,
+    onFactoryReset
 }) => {
+    // ... existing state ...
+
+    // ... inside render ...
+    // ... SYSTEM TAB ...
+
     const [activeTab, setActiveTab] = useState<'GENERAL' | 'CATEGORIES' | 'DATA' | 'SYSTEM' | 'NOTIFICATIONS' | 'SECURITY' | 'PREFERENCES' | 'PRIVACY' | 'APPEARANCE'>('GENERAL');
     const [newCategoryName, setNewCategoryName] = useState('');
     const [globalCurrency, setGlobalCurrency] = useState('BRL');
@@ -358,6 +365,38 @@ export const Settings: React.FC<SettingsProps> = ({
                                     <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">Supabase (Cloud)</span>
                                 </div>
                             </div>
+                        </Card>
+
+                        <Card className="p-6 border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl">
+                                    <AlertTriangle className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-red-700 dark:text-red-400">Zona de Perigo</h3>
+                                    <p className="text-sm text-red-600/80 dark:text-red-400/80">Ações irreversíveis.</p>
+                                </div>
+                            </div>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                                O reset de fábrica irá apagar permanentemente todas as suas transações, contas, metas e configurações. Esta ação não pode ser desfeita.
+                            </p>
+                            <Button
+                                onClick={() => setInputModal({
+                                    isOpen: true,
+                                    title: 'Digite "CONFIRMAR" para apagar tudo',
+                                    value: '',
+                                    onConfirm: (val) => {
+                                        if (val === 'CONFIRMAR') {
+                                            onFactoryReset();
+                                        } else {
+                                            addToast('Código incorreto. Ação cancelada.', 'error');
+                                        }
+                                    }
+                                })}
+                                className="w-full bg-red-600 hover:bg-red-700 text-white shadow-red-200"
+                            >
+                                Restaurar Padrão de Fábrica
+                            </Button>
                         </Card>
                     </div>
                 )}
