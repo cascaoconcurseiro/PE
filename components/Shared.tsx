@@ -4,6 +4,7 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Users, Home, Plane, ArrowRight, AlertCircle, Calendar, Wallet, Sparkles, ChevronDown, RefreshCcw } from 'lucide-react';
 import { formatCurrency, parseDate, isSameMonth } from '../utils';
+import { SharedInstallmentImport } from './SharedInstallmentImport';
 
 interface SharedProps {
     transactions: Transaction[];
@@ -41,6 +42,7 @@ export const Shared: React.FC<SharedProps> = ({
     onNavigateToTrips
 }) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     // Settlement State
     const [settleModal, setSettleModal] = useState<{
@@ -284,6 +286,12 @@ export const Shared: React.FC<SharedProps> = ({
                     <button onClick={() => setActiveTab('REGULAR')} className={`px-6 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'REGULAR' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Home className="w-4 h-4" /> Mensal</button>
                     <button onClick={() => setActiveTab('TRAVEL')} className={`px-6 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'TRAVEL' ? 'bg-white dark:bg-slate-800 text-violet-700 dark:text-violet-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Plane className="w-4 h-4" /> Viagens</button>
                 </div>
+                <button
+                    onClick={() => setIsImportModalOpen(true)}
+                    className="ml-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20 font-bold flex items-center gap-2 transition-all active:scale-95"
+                >
+                    <RefreshCcw className="w-4 h-4" /> Importar Parcelas
+                </button>
             </div>
 
             <div className="space-y-6">
@@ -439,6 +447,18 @@ export const Shared: React.FC<SharedProps> = ({
                     </div>
                 </div>
             )}
-        </div>
+
+            <SharedInstallmentImport
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImport={(txs) => {
+                    txs.forEach(t => onAddTransaction(t));
+                    setIsImportModalOpen(false);
+                }}
+                members={members}
+                accounts={accounts}
+                currentUserId="me"
+            />
+        </div >
     );
 };

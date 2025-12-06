@@ -95,6 +95,7 @@ export const calculateProjectedBalance = (
         a.type === AccountType.CASH
     );
 
+    const liquidityAccountIds = new Set(liquidityAccounts.map(a => a.id));
     const currentBalance = liquidityAccounts.reduce((acc, a) => acc + convertToBRL(a.balance, a.currency), 0);
 
     // Definir intervalo de tempo (Hoje até Fim do Mês)
@@ -117,8 +118,31 @@ export const calculateProjectedBalance = (
         // Considerar apenas transações ESTRITAMENTE FUTURAS (Amanhã em diante)
         // Transações de HOJE já foram deduzidas do saldo atual pelo sistema
         if (tDate.getTime() > today.getTime()) {
-            // Ignorar transferências internas
-            if (t.type === TransactionType.TRANSFER) return;
+
+            // Tratamento refinado de Transferências: Afetam a projeção se cruzarem a fronteira da liquidez
+            if (t.type === TransactionType.TRANSFER) {
+                const isSourceLiquid = liquidityAccountIds.has(t.accountId);
+                // Se não tem destino (saque/externo), assumimos que não é líquido (saiu do sistema)
+                const isDestLiquid = t.destinationAccountId ? liquidityAccountIds.has(t.destinationAccountId) : false;
+
+                // Cenário 1: Saiu da liquidez para não-liquidez (ex: Investimento ou Pagamento Fatura)
+                // Deve contar como "Despesa" na projeção de fluxo de caixa líquido
+                if (isSourceLiquid && !isDestLiquid) {
+                    const amountBRL = convertToBRL(t.amount, 'BRL');
+                    pendingExpenses += amountBRL;
+                }
+                // Cenário 2: Entrou na liquidez vindo de não-liquidez (ex: Resgate)
+                // Deve contar como "Receita" na projeção
+                else if (!isSourceLiquid && isDestLiquid) {
+                    let amountIncoming = t.amount;
+                    if (t.destinationAmount && t.destinationAmount > 0) {
+                        amountIncoming = t.destinationAmount;
+                    }
+                    const amountBRL = convertToBRL(amountIncoming, 'BRL');
+                    pendingIncome += amountBRL;
+                }
+                return;
+            }
 
             if (t.type === TransactionType.INCOME) {
                 // Receitas: usar valor total
