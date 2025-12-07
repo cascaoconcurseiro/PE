@@ -71,65 +71,44 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             return;
         }
 
-        // Generate Transactions
-        const generatedTransactions: Omit<Transaction, 'id'>[] = [];
-        const baseDate = new Date(date);
         // Fix timezone offset for date input
+        const baseDate = new Date(date);
         const userDate = new Date(baseDate.valueOf() + baseDate.getTimezoneOffset() * 60 * 1000);
+        const dateStr = userDate.toISOString().split('T')[0];
 
-        const installmentValue = round2dec(totalAmount / numInstallments);
-        // Adjust last installment (or first) to match total exactly?
-        // Let's add remainder to the first installment.
-        const totalCalculated = installmentValue * numInstallments;
-        const remainder = round2dec(totalAmount - totalCalculated);
+        // Build SharedWith for the TOTAL amount (service will split per installment)
+        const sharePerPerson = round2dec(totalAmount / participantIds.length);
 
-        for (let i = 0; i < numInstallments; i++) {
-            const currentInstallmentAmount = i === 0 ? round2dec(installmentValue + remainder) : installmentValue;
+        const sharedWith: TransactionSplit[] = participantIds
+            .filter(pid => pid !== 'me')
+            .map(pid => ({
+                memberId: pid,
+                assignedAmount: sharePerPerson,
+                percentage: round2dec((1 / participantIds.length) * 100)
+            }));
 
-            // Calculate Date: Add 'i' months
-            const txDate = new Date(userDate);
-            txDate.setMonth(userDate.getMonth() + i);
-            const dateStr = txDate.toISOString().split('T')[0];
+        // Generate SINGLE Transaction
+        // The service (useDataStore -> handleAddTransaction) will handle splitting this into installments
+        const singleTransaction: Omit<Transaction, 'id'> = {
+            description: description,
+            amount: totalAmount,
+            type: TransactionType.EXPENSE,
+            category: category,
+            date: dateStr,
+            accountId: accountId || undefined,
+            payerId: payerId === 'me' ? undefined : payerId,
+            isShared: true,
+            sharedWith: sharedWith,
+            isInstallment: numInstallments > 1,
+            currentInstallment: 1, // Start at 1
+            totalInstallments: numInstallments,
+            originalAmount: totalAmount,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            syncStatus: SyncStatus.PENDING
+        };
 
-            // Build SharedWith
-            // Logic: sharedWith includes everyone in participantIds EXCEPT 'me'.
-            // Their share is (currentInstallmentAmount / participantIds.length).
-
-            const sharePerPerson = round2dec(currentInstallmentAmount / participantIds.length);
-
-            const sharedWith: TransactionSplit[] = participantIds
-                .filter(pid => pid !== 'me')
-                .map(pid => ({
-                    memberId: pid,
-                    assignedAmount: sharePerPerson,
-                    percentage: round2dec((1 / participantIds.length) * 100)
-                }));
-
-            generatedTransactions.push({
-                description: `${description} (${i + 1}/${numInstallments})`,
-                amount: currentInstallmentAmount,
-                type: TransactionType.EXPENSE,
-                category: category,
-                date: dateStr,
-                accountId: accountId || undefined, // Allow undefined for pending shared transactions
-                payerId: payerId === 'me' ? undefined : payerId,
-                isShared: true,
-                sharedWith: sharedWith,
-                isInstallment: numInstallments > 1,
-                currentInstallment: i + 1,
-                totalInstallments: numInstallments,
-                originalAmount: totalAmount,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                syncStatus: SyncStatus.PENDING
-            });
-        }
-
-        // Optional Account if Payer is Me (Pending Debt)
-        // if (payerId === 'me' && !accountId) { ... } -> Removed Validation
-
-
-        onImport(generatedTransactions);
+        onImport([singleTransaction]);
     };
 
     return (

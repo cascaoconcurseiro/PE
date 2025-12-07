@@ -223,7 +223,7 @@ export const supabaseService = {
         }
     },
 
-    async getTransactions(startDate?: string) {
+    async getTransactions(startDate?: string, endDate?: string) {
         try {
             const userId = await getUserId();
             let query = supabase.from('transactions').select('*')
@@ -233,6 +233,9 @@ export const supabaseService = {
 
             if (startDate) {
                 query = query.gte('date', startDate);
+            }
+            if (endDate) {
+                query = query.lte('date', endDate);
             }
 
             const { data, error } = await query;

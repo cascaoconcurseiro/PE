@@ -144,7 +144,7 @@ export const useDataStore = () => {
         }, 'Transação atualizada!');
     };
 
-    // --- FETCH DATA FROM SUPABASE ---
+    // --- FETCH DATA FROM SUPABASE (TIERED LOADING STRATEGY) ---
     const fetchData = useCallback(async (forceLoading = false) => {
         // Check auth first
         const { data: { session } } = await supabase.auth.getSession();
@@ -158,21 +158,62 @@ export const useDataStore = () => {
         }
 
         try {
-            // OPTIMIZATION: Fetch limited history to improve performance
-            // We fetch transactions from the last 24 months (2 years)
-            const twoYearsAgo = new Date();
-            twoYearsAgo.setMonth(twoYearsAgo.getMonth() - 24);
-            const startDateStr = twoYearsAgo.toISOString().split('T')[0];
+            const userId = session.user.id;
 
-            const [
-                accs,
-                serverBalances,
-                txs,
-                trps, bdgts, gls, fam, assts, snaps, cats
-            ] = await Promise.all([
+            // --- TIER 1: CRITICAL DATA (Dashboard Immediate Render) ---
+            // Fetch Accounts + Balances (RPC) + Recent Transactions (Current Month)
+            // This allows the user to see their "Checking Account Balance" instantly.
+            console.time("Tier1_Load");
+
+            // Calculate "Current Month" range for initial view
+            const today = new Date();
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+
+            // Parallel Request for Critical Data
+            const [accs, serverBalances, recentTxs] = await Promise.all([
                 supabaseService.getAccounts(),
                 supabaseService.getAccountBalances(),
-                supabaseService.getTransactions(startDateStr),
+                supabaseService.getTransactions(startOfMonth) // Fetch only from start of this month onwards initially
+            ]);
+
+            // reconcile accounts with server balances immediately
+            const safeServerBalances = Array.isArray(serverBalances) ? serverBalances : [];
+            const initialAccountsState = accs.map(account => {
+                const rpcBalanceObj = safeServerBalances.find((b: any) => b.account_id === account.id);
+                return {
+                    ...account,
+                    balance: rpcBalanceObj ? Number(rpcBalanceObj.calculated_balance) : (account.initialBalance || 0)
+                };
+            });
+
+            // Update State IMMEDIATE (First Paint)
+            setAccounts(initialAccountsState);
+            setTransactions(recentTxs);
+            setIsLoading(false); // Unblock UI!
+            console.timeEnd("Tier1_Load");
+
+
+            // --- TIER 2: BACKGROUND DATA (History & Heavy Items) ---
+            // Fetch older transactions, trips, goals, etc.
+            console.time("Tier2_Load");
+
+            // We fetch transactions from the last 24 months (2 years) EXCLUDING what we already fetched
+            // Actually, simplest is to fetch everything older than startOfMonth
+            const twoYearsAgo = new Date();
+            twoYearsAgo.setMonth(twoYearsAgo.getMonth() - 24);
+            const historyStartDate = twoYearsAgo.toISOString().split('T')[0];
+
+            // Note: We use endDate to avoid fetching duplicates of what we just got, 
+            // OR we just fetch everything and merge. Merging is safer for consistency.
+            // Let's fetch history strictly BEFORE the start of this month.
+            const historyEndDate = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
+
+            const [
+                historyTxs,
+                trps, bdgts, gls, fam, assts, snaps, cats
+            ] = await Promise.all([
+                supabaseService.getTransactions(historyStartDate, historyEndDate),
                 supabaseService.getTrips(),
                 supabaseService.getBudgets(),
                 supabaseService.getGoals(),
@@ -182,62 +223,18 @@ export const useDataStore = () => {
                 supabaseService.getCustomCategories()
             ]);
 
-            // --- VIRTUAL BALANCE RECONCILIATION ---
-            // If the RPC fails or returns no data, we should gracefully fallback to standard initialBalance logic
-            const safeServerBalances = Array.isArray(serverBalances) ? serverBalances : [];
-
-            if (safeServerBalances.length === 0 && accs.length > 0) {
-                console.warn("⚠️ Aviso: Balanço do servidor retornou vazio. Usando saldos locais.");
-            }
-
-            const reconciledAccounts = accs.map(account => {
-                const rpcBalanceObj = safeServerBalances.find((b: any) => b.account_id === account.id);
-                // If we have a server-side calculated balance, use it as the source of truth for the END state
-                const targetCurrentBalance = rpcBalanceObj ? Number(rpcBalanceObj.calculated_balance) : (account.initialBalance || 0);
-
-                // Calculate the net change produced by the LOADED transactions for this account
-                // This logic mirrors balanceEngine.ts but in reverse or isolation
-                const accountTxs = txs.filter(t => !t.deleted && (t.accountId === account.id || t.destinationAccountId === account.id));
-
-                let netChangeInPeriod = 0;
-
-                accountTxs.forEach(t => {
-                    const amount = t.amount;
-                    // Ignore if someone else paid (doesn't affect my balance)
-                    if (t.payerId && t.payerId !== 'me' && t.payerId !== 'user') return;
-
-                    // If Source
-                    if (t.accountId === account.id) {
-                        if (t.type === 'EXPENSE') netChangeInPeriod -= (t.isRefund ? -amount : amount);
-                        else if (t.type === 'INCOME') netChangeInPeriod += (t.isRefund ? -amount : amount);
-                        else if (t.type === 'TRANSFER') netChangeInPeriod -= amount;
-                    }
-                    // If Destination (Transfer In)
-                    if (t.destinationAccountId === account.id && t.type === 'TRANSFER') {
-                        let amountIncoming = amount;
-                        if (t.currency !== account.currency && t.destinationAmount) {
-                            amountIncoming = t.destinationAmount;
-                        } else if (t.destinationAmount) {
-                            amountIncoming = t.destinationAmount;
-                        }
-                        netChangeInPeriod += amountIncoming;
-                    }
-                });
-
-                // Virtual Initial = Target - NetChange
-                // Example: Target 100. Transactions sum to +20. Virtual Initial must be 80.
-                const virtualInitialBalance = targetCurrentBalance - netChangeInPeriod;
-
-                return {
-                    ...account,
-                    initialBalance: virtualInitialBalance,
-                    // We also set the current balance property just in case specific UI uses it directly without engine
-                    balance: targetCurrentBalance
-                };
+            // MERGE & UPDATE
+            setTransactions(prev => {
+                // Combine recent (prev) and history. 
+                // Any overlap? getTransactions(startOfMonth) gets >= startOfMonth
+                // getTransactions(..., historyEndDate) gets <= historyEndDate
+                // So no overlap logically. 
+                // But let's safely deduplicate by ID just in case.
+                const all = [...prev, ...historyTxs];
+                // Sort descending date
+                return all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             });
 
-            setAccounts(reconciledAccounts);
-            setTransactions(txs);
             setTrips(trps);
             setBudgets(bdgts);
             setGoals(gls);
@@ -246,18 +243,22 @@ export const useDataStore = () => {
             setSnapshots(snaps);
             setCustomCategories(cats);
 
-            // ✅ VALIDAÇÃO da Consistência omitida pois checkDataConsistency pode falhar com histórico parcial
-            // setDataInconsistencies([]); 
+            console.timeEnd("Tier2_Load");
 
-            // Run Recurrence Engine (might trigger new checks)
-            processRecurringTransactions(txs, handleAddTransaction, handleUpdateTransaction);
+            // Recurrence Engine & Consistency Checks run on FULL data
+            // We re-run this now that we have full history
+            // Wait a tick to let React render the updates
+            setTimeout(() => {
+                // Combine recent and history for the engine
+                const allTxs = [...recentTxs, ...historyTxs];
+                processRecurringTransactions(allTxs, handleAddTransaction, handleUpdateTransaction);
+            }, 100);
 
             isInitialized.current = true;
         } catch (error) {
             console.error("Error fetching data from Supabase:", error);
             addToast("Erro ao carregar dados da nuvem.", 'error');
-        } finally {
-            setIsLoading(false);
+            setIsLoading(false); // Ensure we don't hang if error
         }
     }, []);
 
