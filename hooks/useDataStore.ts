@@ -178,12 +178,29 @@ export const useDataStore = () => {
             ]);
 
             // reconcile accounts with server balances immediately
+            // Note: If RPC returns empty (function doesn't exist), we use account.balance from DB
+            // The balance engine will recalculate correctly once full history loads
             const safeServerBalances = Array.isArray(serverBalances) ? serverBalances : [];
+            const hasRpcData = safeServerBalances.length > 0;
+
+            if (!hasRpcData && accs.length > 0) {
+                console.warn("⚠️ RPC get_account_totals não disponível. Usando saldos do banco de dados.");
+            }
+
             const initialAccountsState = accs.map(account => {
-                const rpcBalanceObj = safeServerBalances.find((b: any) => b.account_id === account.id);
+                if (hasRpcData) {
+                    const rpcBalanceObj = safeServerBalances.find((b: any) => b.account_id === account.id);
+                    if (rpcBalanceObj) {
+                        return {
+                            ...account,
+                            balance: Number(rpcBalanceObj.calculated_balance)
+                        };
+                    }
+                }
+                // Fallback: Use stored balance or initialBalance (will be recalculated by balance engine later)
                 return {
                     ...account,
-                    balance: rpcBalanceObj ? Number(rpcBalanceObj.calculated_balance) : (account.initialBalance || 0)
+                    balance: account.balance ?? account.initialBalance ?? 0
                 };
             });
 

@@ -5,6 +5,7 @@ import { useSharedFinances } from '../hooks/useSharedFinances';
 import { MemberSummaryCard } from './shared/MemberSummaryCard';
 import { SettlementModal } from './shared/SettlementModal';
 import { SharedFilters } from './shared/SharedFilters';
+import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal';
 
 interface SharedProps {
     transactions: Transaction[];
@@ -31,6 +32,10 @@ export const Shared: React.FC<SharedProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+    // Edit Modal State
+    const [editModalTxId, setEditModalTxId] = useState<string | null>(null);
+    const editTransaction = editModalTxId ? transactions.find(t => t.id === editModalTxId) : null;
 
     // Use Custom Hook for Calculation Logic
     const { getFilteredInvoice, getTotals } = useSharedFinances({
@@ -142,6 +147,10 @@ export const Shared: React.FC<SharedProps> = ({
         setSettleModal({ isOpen: false, memberId: null, type: 'PAY', items: [], total: 0, currency: 'BRL' });
     };
 
+    const handleEditTransaction = (txId: string) => {
+        setEditModalTxId(txId);
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
             <SharedFilters
@@ -164,6 +173,7 @@ export const Shared: React.FC<SharedProps> = ({
                             trips={trips}
                             onOpenSettleModal={handleOpenSettleModal}
                             onDeleteTransaction={onDeleteTransaction}
+                            onEditTransaction={handleEditTransaction}
                         />
                     );
                 })}
@@ -188,6 +198,20 @@ export const Shared: React.FC<SharedProps> = ({
                 accounts={accounts}
                 currentUserId="me"
             />
+
+            {/* Edit Installment Modal */}
+            {editTransaction && (
+                <SharedInstallmentEditModal
+                    isOpen={!!editModalTxId}
+                    onClose={() => setEditModalTxId(null)}
+                    transaction={editTransaction}
+                    allTransactions={transactions}
+                    accounts={accounts}
+                    members={members}
+                    onUpdateTransaction={onUpdateTransaction}
+                    onDeleteTransaction={onDeleteTransaction}
+                />
+            )}
         </div >
     );
 };

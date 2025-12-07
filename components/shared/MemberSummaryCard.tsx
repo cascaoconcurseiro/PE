@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FamilyMember, Trip, InvoiceItem } from '../../types';
 import { Button } from '../ui/Button';
-import { ArrowRight, Plane, Calendar, Trash2 } from 'lucide-react';
+import { ArrowRight, Plane, Calendar, Trash2, Pencil } from 'lucide-react';
 import { formatCurrency } from '../../utils';
 
 interface MemberSummaryCardProps {
@@ -11,9 +11,10 @@ interface MemberSummaryCardProps {
     trips: Trip[];
     onOpenSettleModal: (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET', currency: string) => void;
     onDeleteTransaction?: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
+    onEditTransaction?: (txId: string) => void;
 }
 
-export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, items, totalsMap, trips, onOpenSettleModal, onDeleteTransaction }) => {
+export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, items, totalsMap, trips, onOpenSettleModal, onDeleteTransaction, onEditTransaction }) => {
     const currencies = Object.keys(totalsMap).filter(c => Math.abs(totalsMap[c].net) > 0.01);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -67,6 +68,7 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                 {items.filter(i => !i.isPaid).map(item => {
                     const trip = item.tripId ? trips.find(t => t.id === item.tripId) : null;
                     const isConfirming = deleteConfirmId === item.originalTxId;
+                    const hasSeriesId = !!item.seriesId;
                     return (
                         <div key={item.id} className="px-6 py-4 flex justify-between items-center group">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -78,16 +80,28 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                                     <div className="flex flex-wrap gap-2 mt-0.5">
                                         {trip && <span className="text-[10px] bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><Plane className="w-3 h-3" /> {trip.name}</span>}
                                         <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(item.date).toLocaleDateString()}</span>
+                                        {hasSeriesId && <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-bold">Parcelado</span>}
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                                <span className={`font-bold text-sm ${item.type === 'CREDIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                            <div className="flex items-center gap-1 shrink-0">
+                                <span className={`font-bold text-sm mr-2 ${item.type === 'CREDIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
                                     {formatCurrency(item.amount, item.currency || 'BRL')}
                                 </span>
+                                {/* Edit Button - Only show for installments (series) */}
+                                {onEditTransaction && hasSeriesId && (
+                                    <button
+                                        onClick={() => onEditTransaction(item.originalTxId)}
+                                        className="p-1.5 rounded-lg transition-all text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 opacity-0 group-hover:opacity-100"
+                                        title="Editar Parcelas"
+                                    >
+                                        <Pencil className="w-4 h-4" />
+                                    </button>
+                                )}
+                                {/* Delete Button */}
                                 {onDeleteTransaction && (
                                     <button
-                                        onClick={() => handleDelete(item.originalTxId, !!item.seriesId)}
+                                        onClick={() => handleDelete(item.originalTxId, hasSeriesId)}
                                         className={`p-1.5 rounded-lg transition-all ${isConfirming ? 'bg-red-500 text-white' : 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100'}`}
                                         title={isConfirming ? 'Confirmar Exclusão' : 'Excluir'}
                                     >
