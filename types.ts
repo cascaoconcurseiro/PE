@@ -281,3 +281,17 @@ export interface Snapshot extends BaseEntity {
   totalDebt: number;
   netWorth: number;
 }
+
+export interface InvoiceItem {
+  id: string;
+  originalTxId: string;
+  description: string;
+  date: string;
+  category: string;
+  amount: number;
+  type: 'CREDIT' | 'DEBIT';
+  isPaid: boolean;
+  tripId?: string;
+  memberId: string;
+  currency?: string;
+}

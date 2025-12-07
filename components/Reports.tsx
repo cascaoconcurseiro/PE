@@ -1,15 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { Account, Transaction, TransactionType, AccountType, Trip, FamilyMember } from '../types';
 import { generateLedger, getTrialBalance } from '../services/ledger';
-import { formatCurrency } from '../utils';
+import { calculateMyExpense } from '../utils/expenseUtils';
+import { shouldShowTransaction } from '../utils/transactionFilters';
 import { FileText, BookOpen, Download, TrendingUp, Plane, Users } from 'lucide-react';
 import { Button } from './ui/Button';
 import { exportToCSV } from '../services/exportUtils';
 import { TravelReport } from './reports/TravelReport';
 import { SharedExpensesReport } from './reports/SharedExpensesReport';
-import { calculateMyExpense } from '../utils/expenseUtils';
-import { shouldShowTransaction } from '../utils/transactionFilters';
-
+import { CashFlowReport } from './reports/CashFlowReport';
+import { AccountingReports } from './reports/AccountingReports';
 
 interface ReportsProps {
     accounts: Account[];
@@ -22,23 +22,26 @@ interface ReportsProps {
 export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, trips, familyMembers, showValues }) => {
     const [activeTab, setActiveTab] = useState<'TRIAL' | 'LEDGER' | 'CASH_FLOW' | 'TRAVEL' | 'SHARED'>('TRIAL');
 
+    // Memoized data needed for export
     const ledger = useMemo(() => generateLedger(transactions, accounts), [transactions, accounts]);
     const trialBalance = useMemo(() => getTrialBalance(ledger), [ledger]);
 
-    // Cash Flow Logic (Competência vs Caixa)
     const cashFlowReport = useMemo(() => {
-        const report: Record<string, { accrual: number, cash: number }> = {};
+        // Re-implement simplified logic just for export (or move export logic to component and use ref? keeping simple here)
+        // For accurate export, we should probably extract this logic to a shared helper or hook. 
+        // Given time constraints, I will duplicate the lightweight export preparation logic or accept that export button is here.
+        // Actually, to avoid duplication, I will leave the Export logic here, but for now I'll just use the same logic as in the component.
+        // OR better: Move `useCashFlow` to a hook. 
+        // For now, let's keep it simple. The code below is required for the "handleExport" function to work without access to the child component state.
 
-        // Filter out deleted transactions and unpaid debts
+        const report: Record<string, { accrual: number, cash: number }> = {};
         const activeTransactions = transactions.filter(shouldShowTransaction);
 
         activeTransactions.forEach(t => {
-            if (t.currency !== 'BRL') return; // Cash Flow Report usually focuses on main currency (BRL)
-
-            const month = t.date.substring(0, 7); // YYYY-MM
+            if (t.currency !== 'BRL') return;
+            const month = t.date.substring(0, 7);
             if (!report[month]) report[month] = { accrual: 0, cash: 0 };
 
-            // Accrual (Competência): Based on transaction date
             if (t.type === TransactionType.EXPENSE) {
                 const myVal = calculateMyExpense(t);
                 report[month].accrual += myVal;
@@ -47,53 +50,31 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, trips,
 
             if (t.type === TransactionType.EXPENSE) {
                 const myVal = calculateMyExpense(t);
-                // Determine if it's Credit Card
                 const account = accounts.find(a => a.id === t.accountId);
                 if (account && account.type === AccountType.CREDIT_CARD) {
-                    // Find due date. We don't have it explicitly on transaction.
-                    // We have 'closingDay' and 'dueDay' on account.
-                    // Simple logic: If date > closingDay, it goes to next month's due day.
                     const txDate = new Date(t.date);
                     const closingDay = account.closingDay || 1;
                     const dueDay = account.dueDay || 10;
-
                     let targetMonth = txDate.getMonth();
                     let targetYear = txDate.getFullYear();
-
                     if (txDate.getDate() > closingDay) {
-                        targetMonth++; // Next month
-                        if (targetMonth > 11) {
-                            targetMonth = 0;
-                            targetYear++;
-                        }
+                        targetMonth++;
+                        if (targetMonth > 11) { targetMonth = 0; targetYear++; }
                     }
-
-                    // The cash outflow happens on the Due Day of that target month
                     const cashDate = new Date(targetYear, targetMonth, dueDay);
                     const cashMonthStr = cashDate.toISOString().substring(0, 7);
-
                     if (!report[cashMonthStr]) report[cashMonthStr] = { accrual: 0, cash: 0 };
-
-                    // For Cash Flow, strictly speaking, if I paid, full amount left my account.
-                    // But user wants to see "My Debt/Expense".
-                    // If I paid 100 and split 50, 100 left my account.
-                    // If I use myVal (50), I'm hiding the 50 I lent.
-                    // However, user complained "some places consider 100 as my expense".
-                    // Let's use myVal to satisfy "only my debt enters".
                     report[cashMonthStr].cash += myVal;
-
                 } else {
-                    // Bank/Cash: Cash happens same day
                     report[month].cash += myVal;
                 }
             }
         });
-
-        // Convert to array and sort
         return Object.entries(report)
             .map(([month, data]) => ({ month, ...data }))
             .sort((a, b) => a.month.localeCompare(b.month));
     }, [transactions, accounts]);
+
 
     const handleExport = () => {
         if (activeTab === 'TRIAL') {
@@ -103,11 +84,6 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, trips,
         } else if (activeTab === 'CASH_FLOW') {
             exportToCSV(cashFlowReport, ['Mês', 'Competência (Consumo)', 'Caixa (Pagamento)'], 'Fluxo_Caixa');
         }
-    };
-
-    const PrivacyBlur = ({ children }: { children: React.ReactNode }) => {
-        if (showValues) return <>{children}</>;
-        return <span className="blur-sm select-none opacity-60">••••</span>;
     };
 
     return (
@@ -169,113 +145,12 @@ export const Reports: React.FC<ReportsProps> = ({ accounts, transactions, trips,
                         <SharedExpensesReport transactions={transactions} familyMembers={familyMembers} />
                     </div>
                 ) : activeTab === 'CASH_FLOW' ? (
-                    <div className="p-6">
-                        <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl text-amber-800 dark:text-amber-300 text-sm mb-6">
-                            <p><strong>Competência (Consumo):</strong> Quando a compra foi feita.</p>
-                            <p><strong>Caixa (Pagamento):</strong> Quando o dinheiro efetivamente sai da conta (ex: vencimento da fatura).</p>
-                        </div>
-                        <div className="overflow-x-auto pb-4">
-                            <table className="w-full text-sm text-left min-w-[600px]">
-                                <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
-                                    <tr>
-                                        <th className="px-6 py-4 whitespace-nowrap">Mês</th>
-                                        <th className="px-6 py-4 text-right whitespace-nowrap">Competência (Consumo)</th>
-                                        <th className="px-6 py-4 text-right whitespace-nowrap">Caixa (Pagamento)</th>
-                                        <th className="px-6 py-4 text-right whitespace-nowrap">Diferença</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                    {cashFlowReport.map((item) => (
-                                        <tr key={item.month} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                            <td className="px-6 py-4 font-bold text-slate-800 dark:text-white capitalize whitespace-nowrap">
-                                                {new Date(item.month + '-02').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                                            </td>
-                                            <td className="px-6 py-4 text-right font-mono text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                                                <PrivacyBlur>{formatCurrency(item.accrual)}</PrivacyBlur>
-                                            </td>
-                                            <td className="px-6 py-4 text-right font-mono text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                                                <PrivacyBlur>{formatCurrency(item.cash)}</PrivacyBlur>
-                                            </td>
-                                            <td className={`px-6 py-4 text-right font-bold font-mono whitespace-nowrap ${item.cash > item.accrual ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                                <PrivacyBlur>{formatCurrency(item.accrual - item.cash)}</PrivacyBlur>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                ) : activeTab === 'TRIAL' ? (
-                    <div className="overflow-x-auto pb-4">
-                        <table className="w-full text-sm text-left min-w-[600px]">
-                            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
-                                <tr>
-                                    <th className="px-6 py-4 whitespace-nowrap">Conta / Categoria</th>
-                                    <th className="px-6 py-4 text-right text-red-600 dark:text-red-400 whitespace-nowrap">Débito Total</th>
-                                    <th className="px-6 py-4 text-right text-emerald-600 dark:text-emerald-400 whitespace-nowrap">Crédito Total</th>
-                                    <th className="px-6 py-4 text-right whitespace-nowrap">Saldo Líquido</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {trialBalance.map((item) => (
-                                    <tr key={item.accountName} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-slate-800 dark:text-white whitespace-nowrap">{item.accountName}</td>
-                                        <td className="px-6 py-4 text-right text-red-600 dark:text-red-400 font-mono whitespace-nowrap">
-                                            <PrivacyBlur>{formatCurrency(item.debit)}</PrivacyBlur>
-                                        </td>
-                                        <td className="px-6 py-4 text-right text-emerald-600 dark:text-emerald-400 font-mono whitespace-nowrap">
-                                            <PrivacyBlur>{formatCurrency(item.credit)}</PrivacyBlur>
-                                        </td>
-                                        <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white font-mono whitespace-nowrap">
-                                            <PrivacyBlur>{formatCurrency(item.balance)}</PrivacyBlur>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {trialBalance.length === 0 && (
-                                    <tr>
-                                        <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
-                                            Nenhum dado contábil encontrado.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                    <CashFlowReport transactions={transactions} accounts={accounts} showValues={showValues} />
                 ) : (
-                    <div className="overflow-x-auto pb-4">
-                        <table className="w-full text-sm text-left min-w-[800px]">
-                            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
-                                <tr>
-                                    <th className="px-6 py-4 whitespace-nowrap">Data</th>
-                                    <th className="px-6 py-4 whitespace-nowrap">Descrição</th>
-                                    <th className="px-6 py-4 text-red-600 dark:text-red-400 whitespace-nowrap">Débito (Destino)</th>
-                                    <th className="px-6 py-4 text-emerald-600 dark:text-emerald-400 whitespace-nowrap">Crédito (Origem)</th>
-                                    <th className="px-6 py-4 text-right whitespace-nowrap">Valor</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {ledger.map((entry) => (
-                                    <tr key={entry.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4 text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                                            {new Date(entry.date).toLocaleDateString('pt-BR')}
-                                        </td>
-                                        <td className="px-6 py-4 font-medium text-slate-800 dark:text-white max-w-xs truncate" title={entry.description}>{entry.description}</td>
-                                        <td className="px-6 py-4 text-red-600 dark:text-red-400 whitespace-nowrap">{entry.debit}</td>
-                                        <td className="px-6 py-4 text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{entry.credit}</td>
-                                        <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white font-mono whitespace-nowrap">
-                                            <PrivacyBlur>{formatCurrency(entry.amount)}</PrivacyBlur>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {ledger.length === 0 && (
-                                    <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
-                                            Nenhum lançamento encontrado.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                    <div className="p-0">
+                        {/* Accounting reports (trial balance and ledger) share similar table style so they are grouped in the component, 
+                            but we could split them. Passing activeTab to let component decide what to render */}
+                        <AccountingReports transactions={transactions} accounts={accounts} showValues={showValues} activeTab={activeTab} />
                     </div>
                 )}
             </div>

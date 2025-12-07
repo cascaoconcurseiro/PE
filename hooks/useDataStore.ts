@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabaseService } from '../services/supabaseService';
 import {
     Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset,
-    CustomCategory, SyncStatus, UserProfile, Snapshot
+    CustomCategory, SyncStatus, UserProfile, Snapshot, TransactionType, Category
 } from '../types';
 import { parseDate } from '../utils';
 import { useToast } from '../components/ui/Toast';
@@ -342,42 +342,76 @@ export const useDataStore = () => {
         }, 'Parcelas antecipadas!');
     };
 
-    // --- GENERIC HANDLERS ---
-    const handleAddAccount = async (acc: any) => performOperation(async () => { await supabaseService.create('accounts', { ...acc, id: crypto.randomUUID() }); }, 'Conta criada!');
+    // --- GENERIC CRUD FACTORY ---
+    const createCrudHandlers = (table: string, labels: { create: string, update: string, delete: string }) => {
+        return {
+            add: (item: any) => performOperation(async () => { await supabaseService.create(table, { ...item, id: crypto.randomUUID() }); }, labels.create),
+            update: (item: any) => performOperation(async () => { await supabaseService.update(table, item); }, labels.update),
+            delete: (id: string) => performOperation(async () => { await supabaseService.delete(table, id); }, labels.delete),
+        };
+    };
+
+    // --- HANDLERS ---
+
+    // Custom Handlers (Complex Logic)
+    // handleAddAccount defined above... 
+    const handleAddAccount = async (acc: any) => performOperation(async () => {
+        const accountId = crypto.randomUUID();
+        const initialAmount = acc.initialBalance || 0;
+
+        // Create account with 0 initial balance to avoid double counting
+        // The value is now represented by the transaction below
+        const accountToCreate = {
+            ...acc,
+            id: accountId,
+            initialBalance: 0,
+            balance: 0
+        };
+
+        await supabaseService.create('accounts', accountToCreate);
+
+        // Create transaction for initial balance if non-zero
+        if (Math.abs(initialAmount) > 0) {
+            const now = new Date().toISOString();
+            const isPositive = initialAmount >= 0;
+
+            const transaction = {
+                id: crypto.randomUUID(),
+                accountId: accountId,
+                amount: Math.abs(initialAmount),
+                date: now.split('T')[0], // YYYY-MM-DD
+                description: 'Saldo Inicial',
+                type: isPositive ? TransactionType.INCOME : TransactionType.EXPENSE,
+                category: Category.OPENING_BALANCE || Category.INCOME,
+                isSettled: true,
+                createdAt: now,
+                updatedAt: now
+            };
+
+            await supabaseService.create('transactions', transaction);
+        }
+    }, 'Conta criada!');
+
     const handleUpdateAccount = async (acc: any) => performOperation(async () => { await supabaseService.update('accounts', acc); }, 'Conta atualizada!');
+
+    // Custom Delete Account (Soft Delete RPC)
     const handleDeleteAccount = async (id: string) => performOperation(async () => {
-        // ✅ SOFT DELETE ATÔMICO via RPC
-        // Substitui o loop sequencial lento por uma única chamada de banco
         console.log(`🗑️ Excluindo conta ${id} via RPC...`);
-
         await supabaseService.softDeleteAccount(id);
-
         console.log(`✅ Conta ${id} e suas transações excluídas com sucesso!`);
     }, 'Conta excluída com sucesso.');
 
-    const handleAddTrip = async (trip: any) => performOperation(async () => { await supabaseService.create('trips', { ...trip, id: crypto.randomUUID() }); }, 'Viagem criada!');
-    const handleUpdateTrip = async (trip: any) => performOperation(async () => { await supabaseService.update('trips', trip); }, 'Viagem atualizada!');
-    const handleDeleteTrip = async (id: string) => performOperation(async () => { await supabaseService.delete('trips', id); }, 'Viagem excluída.');
+    // Generated Handlers (Simple CRUD)
+    const tripsHandler = createCrudHandlers('trips', { create: 'Viagem criada!', update: 'Viagem atualizada!', delete: 'Viagem excluída.' });
+    const membersHandler = createCrudHandlers('family_members', { create: 'Membro adicionado!', update: 'Membro atualizado!', delete: 'Membro removido.' });
+    const categoriesHandler = createCrudHandlers('custom_categories', { create: 'Categoria adicionada!', update: 'Categoria atualizada!', delete: 'Categoria removida.' });
+    const budgetsHandler = createCrudHandlers('budgets', { create: 'Orçamento salvo!', update: 'Orçamento atualizado!', delete: 'Orçamento removido.' });
+    const goalsHandler = createCrudHandlers('goals', { create: 'Meta criada!', update: 'Meta atualizada!', delete: 'Meta excluída.' });
+    const assetsHandler = createCrudHandlers('assets', { create: 'Ativo adicionado!', update: 'Ativo atualizado!', delete: 'Ativo removido.' });
+    const snapshotsHandler = createCrudHandlers('snapshots', { create: 'Snapshot salvo!', update: 'Snapshot atualizado!', delete: 'Snapshot removido.' });
 
-    const handleAddMember = async (m: any) => performOperation(async () => { await supabaseService.create('family_members', { ...m, id: crypto.randomUUID() }); }, 'Membro adicionado!');
-    const handleDeleteMember = async (id: string) => performOperation(async () => { await supabaseService.delete('family_members', id); }, 'Membro removido.');
-
-    const handleAddCategory = async (name: string) => performOperation(async () => { await supabaseService.create('custom_categories', { id: crypto.randomUUID(), name }); }, 'Categoria adicionada!');
-    const handleDeleteCategory = async (id: string) => performOperation(async () => { await supabaseService.delete('custom_categories', id); }, 'Categoria removida.');
-
-    const handleAddBudget = async (b: any) => performOperation(async () => { await supabaseService.create('budgets', { ...b, id: crypto.randomUUID() }); }, 'Orçamento salvo!');
-    const handleUpdateBudget = async (b: any) => performOperation(async () => { await supabaseService.update('budgets', b); }, 'Orçamento atualizado!');
-    const handleDeleteBudget = async (id: string) => performOperation(async () => { await supabaseService.delete('budgets', id); }, 'Orçamento removido.');
-
-    const handleAddGoal = async (g: any) => performOperation(async () => { await supabaseService.create('goals', { ...g, id: crypto.randomUUID() }); }, 'Meta criada!');
-    const handleUpdateGoal = async (g: any) => performOperation(async () => { await supabaseService.update('goals', g); }, 'Meta atualizada!');
-    const handleDeleteGoal = async (id: string) => performOperation(async () => { await supabaseService.delete('goals', id); }, 'Meta excluída.');
-
-    const handleAddAsset = async (a: any) => performOperation(async () => { await supabaseService.create('assets', { ...a, id: crypto.randomUUID() }); }, 'Ativo adicionado!');
-    const handleUpdateAsset = async (a: any) => performOperation(async () => { await supabaseService.update('assets', a); }, 'Ativo atualizado!');
-    const handleDeleteAsset = async (id: string) => performOperation(async () => { await supabaseService.delete('assets', id); }, 'Ativo removido.');
-
-    const handleAddSnapshot = async (s: any) => performOperation(async () => { await supabaseService.create('snapshots', { ...s, id: crypto.randomUUID() }); });
+    // Helper for adding simple category (name only)
+    const handleAddCategory = async (name: string) => categoriesHandler.add({ name });
 
     return {
         user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading, dataInconsistencies,
@@ -385,13 +419,15 @@ export const useDataStore = () => {
             handleLogin, handleLogout,
             handleAddTransaction, handleUpdateTransaction, handleDeleteTransaction, handleAnticipateInstallments,
             handleAddAccount, handleUpdateAccount, handleDeleteAccount,
-            handleAddTrip, handleUpdateTrip, handleDeleteTrip,
-            handleAddMember, handleDeleteMember,
-            handleAddCategory, handleDeleteCategory,
-            handleAddBudget, handleUpdateBudget, handleDeleteBudget,
-            handleAddGoal, handleUpdateGoal, handleDeleteGoal,
-            handleAddAsset, handleUpdateAsset, handleDeleteAsset,
-            handleAddSnapshot,
+
+            handleAddTrip: tripsHandler.add, handleUpdateTrip: tripsHandler.update, handleDeleteTrip: tripsHandler.delete,
+            handleAddMember: membersHandler.add, handleDeleteMember: membersHandler.delete,
+            handleAddCategory, handleDeleteCategory: categoriesHandler.delete,
+            handleAddBudget: budgetsHandler.add, handleUpdateBudget: budgetsHandler.update, handleDeleteBudget: budgetsHandler.delete,
+            handleAddGoal: goalsHandler.add, handleUpdateGoal: goalsHandler.update, handleDeleteGoal: goalsHandler.delete,
+            handleAddAsset: assetsHandler.add, handleUpdateAsset: assetsHandler.update, handleDeleteAsset: assetsHandler.delete,
+            handleAddSnapshot: snapshotsHandler.add,
+
             handleFactoryReset: async () => performOperation(async () => {
                 await supabaseService.dangerouslyWipeAllData();
                 setAccounts([]);

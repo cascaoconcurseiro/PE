@@ -1,22 +1,25 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Account, AccountType, Transaction, TransactionType, Category } from '../types';
+import { Account, AccountType, Transaction, Category } from '../types';
 import { Button } from './ui/Button';
-import { Wallet, CreditCard, Plus, ArrowLeft, Download, Printer, FileUp, MoreHorizontal, Landmark, Banknote, Edit2, Trash2, Globe } from 'lucide-react';
-import { formatCurrency } from '../utils';
+import { ArrowLeft, Download, Printer, FileUp, Edit2, Trash2 } from 'lucide-react';
 import { useToast } from './ui/Toast';
 import { exportToCSV, prepareTransactionsForExport } from '../services/exportUtils';
 import { printAccountStatement } from '../services/printUtils';
-import { getInvoiceData } from '../services/accountUtils';
 import { shouldShowTransaction } from '../utils/transactionFilters';
 
 import { AccountForm } from './accounts/AccountForm';
-import { ActionModal, ActionType } from './accounts/ActionModal';
+import { ActionModal } from './accounts/ActionModal';
 import { CreditCardDetail } from './accounts/CreditCardDetail';
 import { BankingDetail } from './accounts/BankingDetail';
 import { parseOFX, OFXTransaction } from '../services/ofxParser';
 import { ImportModal } from './accounts/ImportModal';
 import { InstallmentAnticipationModal } from './transactions/InstallmentAnticipationModal';
 import { CreditCardImportModal } from './accounts/CreditCardImportModal';
+
+// New Refactored Components
+import { AccountSummaryCards } from './accounts/AccountSummaryCards';
+import { AccountList } from './accounts/AccountList';
+import { useAccountActions } from '../hooks/useAccountActions';
 
 interface AccountsProps {
     accounts: Account[];
@@ -30,11 +33,6 @@ interface AccountsProps {
     onAnticipate: (ids: string[], date: string, accountId: string) => void;
 }
 
-const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
-    if (showValues) return <>{children}</>;
-    return <span className="blur-sm select-none opacity-60">••••</span>;
-};
-
 export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, showValues, currentDate = new Date(), onAnticipate }) => {
     const [viewState, setViewState] = useState<'LIST' | 'DETAIL'>('LIST');
     const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS' | 'INTERNATIONAL'>('BANKING');
@@ -43,6 +41,13 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
     const [isEditing, setIsEditing] = useState(false);
     const { addToast } = useToast();
 
+    // Account Actions Hook
+    const { actionModal, openActionModal, closeActionModal, handleActionSubmit } = useAccountActions({
+        selectedAccount,
+        onAddTransaction,
+        currentDate
+    });
+
     const [invoiceDate, setInvoiceDate] = useState(currentDate);
 
     useEffect(() => {
@@ -50,7 +55,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
     }, [currentDate, selectedAccount]);
 
     const ofxInputRef = useRef<HTMLInputElement>(null);
-    const [actionModal, setActionModal] = useState<{ isOpen: boolean, type: ActionType, amount?: string }>({ isOpen: false, type: 'PAY_INVOICE' });
     const [importModal, setImportModal] = useState<{ isOpen: boolean, transactions: OFXTransaction[] }>({ isOpen: false, transactions: [] });
     const [anticipateModal, setAnticipateModal] = useState<{ isOpen: boolean, transaction: Transaction | null }>({ isOpen: false, transaction: null });
     const [importBillModal, setImportBillModal] = useState<{ isOpen: boolean, account: Account | null }>({ isOpen: false, account: null });
@@ -65,7 +69,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
         setViewState('LIST');
         setSelectedAccount(null);
         setIsEditing(false);
-        setActionModal({ isOpen: false, type: 'PAY_INVOICE' });
+        closeActionModal();
     };
 
     const handleDelete = () => {
@@ -98,76 +102,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
         } else {
             printAccountStatement(selectedAccount, txs);
         }
-    };
-
-    const handleActionSubmit = (amount: number, description: string, sourceId: string) => {
-        if (!selectedAccount) return;
-
-        // Validação: Conta selecionada deve ter ID válido
-        if (!selectedAccount.id || selectedAccount.id.trim() === '') {
-            addToast('Erro: Conta não identificada', 'error');
-            return;
-        }
-
-        const date = new Date().toISOString();
-        const commonProps = { amount, date, accountId: selectedAccount.id, isRecurring: false };
-
-        switch (actionModal.type) {
-            case 'DEPOSIT':
-                // Validação: Conta de destino obrigatória
-                if (!commonProps.accountId) {
-                    addToast('Erro: Conta de destino obrigatória', 'error');
-                    return;
-                }
-                onAddTransaction({ ...commonProps, description: description || 'Depósito', type: TransactionType.INCOME, category: Category.INCOME });
-                addToast('Depósito realizado!', 'success');
-                break;
-            case 'WITHDRAW':
-                // Validação: Conta de origem obrigatória
-                if (!commonProps.accountId) {
-                    addToast('Erro: Conta de origem obrigatória', 'error');
-                    return;
-                }
-                if (sourceId) {
-                    // Validação: Destino obrigatório para transferência
-                    if (!sourceId || sourceId.trim() === '') {
-                        addToast('Erro: Conta de destino obrigatória', 'error');
-                        return;
-                    }
-                    onAddTransaction({ ...commonProps, description: description || 'Saque para Carteira', type: TransactionType.TRANSFER, category: Category.TRANSFER, destinationAccountId: sourceId });
-                } else {
-                    onAddTransaction({ ...commonProps, description: description || 'Saque em Espécie', type: TransactionType.EXPENSE, category: Category.OTHER });
-                }
-                addToast('Saque registrado!', 'success');
-                break;
-            case 'TRANSFER':
-                // Validação: Origem e destino obrigatórios
-                if (!commonProps.accountId || !sourceId || sourceId.trim() === '') {
-                    addToast('Erro: Contas de origem e destino obrigatórias', 'error');
-                    return;
-                }
-                if (commonProps.accountId === sourceId) {
-                    addToast('Erro: Origem e destino não podem ser iguais', 'error');
-                    return;
-                }
-                onAddTransaction({ ...commonProps, description: description || 'Transferência', type: TransactionType.TRANSFER, category: Category.TRANSFER, destinationAccountId: sourceId });
-                addToast('Transferência realizada!', 'success');
-                break;
-            case 'PAY_INVOICE':
-                // Validação: Origem e destino obrigatórios
-                if (!sourceId || sourceId.trim() === '' || !selectedAccount.id) {
-                    addToast('Erro: Contas de origem e destino obrigatórias para pagamento de fatura', 'error');
-                    return;
-                }
-                if (sourceId === selectedAccount.id) {
-                    addToast('Erro: Origem e destino não podem ser iguais', 'error');
-                    return;
-                }
-                onAddTransaction({ amount, description: `Pagamento Fatura - ${selectedAccount.name}`, date, type: TransactionType.TRANSFER, category: Category.TRANSFER, accountId: sourceId, destinationAccountId: selectedAccount.id, isRecurring: false });
-                addToast('Pagamento de fatura registrado!', 'success');
-                break;
-        }
-        setActionModal({ ...actionModal, isOpen: false });
     };
 
     const handleOFXUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,19 +145,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
     const totalBalance = useMemo(() => accounts.filter(a => a.type !== AccountType.CREDIT_CARD && a.currency === 'BRL').reduce((acc, curr) => acc + curr.balance, 0), [accounts]);
     const totalCreditUsed = useMemo(() => accounts.filter(a => a.type === AccountType.CREDIT_CARD).reduce((acc, curr) => acc + Math.abs(curr.balance), 0), [accounts]);
 
-    const getIcon = (type: AccountType) => {
-        switch (type) {
-            case AccountType.CREDIT_CARD: return <CreditCard className="w-6 h-6" />;
-            case AccountType.SAVINGS: return <Banknote className="w-6 h-6" />;
-            case AccountType.INVESTMENT: return <Landmark className="w-6 h-6" />;
-            case AccountType.CASH: return <Wallet className="w-6 h-6" />;
-            default: return <Wallet className="w-6 h-6" />;
-        }
-    };
-
-    const bankingAccounts = accounts.filter(a => a.type !== AccountType.CREDIT_CARD && a.currency === 'BRL');
-    const creditCards = accounts.filter(a => a.type === AccountType.CREDIT_CARD);
-    const internationalAccounts = accounts.filter(a => a.type !== AccountType.CREDIT_CARD && a.currency !== 'BRL');
 
     if (viewState === 'DETAIL' && selectedAccount) {
         if (isEditing) {
@@ -256,12 +177,12 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                 </div>
 
                 {selectedAccount.type === AccountType.CREDIT_CARD ? (
-                    <CreditCardDetail account={selectedAccount} transactions={transactions} currentDate={invoiceDate} showValues={showValues} onInvoiceDateChange={setInvoiceDate} onAction={(type, amount) => setActionModal({ isOpen: true, type, amount })} onAnticipateInstallments={handleAnticipateRequest} onImportBills={() => setImportBillModal({ isOpen: true, account: selectedAccount })} />
+                    <CreditCardDetail account={selectedAccount} transactions={transactions} currentDate={invoiceDate} showValues={showValues} onInvoiceDateChange={setInvoiceDate} onAction={(type, amount) => openActionModal(type, amount)} onAnticipateInstallments={handleAnticipateRequest} onImportBills={() => setImportBillModal({ isOpen: true, account: selectedAccount })} />
                 ) : (
-                    <BankingDetail account={selectedAccount} transactions={transactions} showValues={showValues} onAction={(type) => setActionModal({ isOpen: true, type })} />
+                    <BankingDetail account={selectedAccount} transactions={transactions} showValues={showValues} onAction={(type) => openActionModal(type)} />
                 )}
 
-                <ActionModal isOpen={actionModal.isOpen} type={actionModal.type} account={selectedAccount} accounts={accounts} initialAmount={actionModal.amount} onClose={() => setActionModal({ ...actionModal, isOpen: false })} onConfirm={handleActionSubmit} />
+                <ActionModal isOpen={actionModal.isOpen} type={actionModal.type} account={selectedAccount} accounts={accounts} initialAmount={actionModal.amount} onClose={closeActionModal} onConfirm={handleActionSubmit} />
                 <ImportModal isOpen={importModal.isOpen} onClose={() => setImportModal({ ...importModal, isOpen: false })} onImport={handleImportConfirm} importedTransactions={importModal.transactions} />
                 {anticipateModal.isOpen && anticipateModal.transaction && (<InstallmentAnticipationModal isOpen={anticipateModal.isOpen} onClose={() => setAnticipateModal({ isOpen: false, transaction: null })} transaction={anticipateModal.transaction} allInstallments={transactions} accounts={accounts} onConfirm={handleConfirmAnticipation} />)}
                 {importBillModal.isOpen && importBillModal.account && (<CreditCardImportModal isOpen={importBillModal.isOpen} onClose={() => setImportBillModal({ isOpen: false, account: null })} account={importBillModal.account} onImport={handleImportBills} />)}
@@ -271,18 +192,12 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-24">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><Wallet className="w-32 h-32" /></div>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Saldo Bancário (BRL)</p>
-                    <h2 className="text-3xl font-black tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(totalBalance)}</PrivacyBlur></h2>
-                </div>
-                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5"><CreditCard className="w-32 h-32" /></div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Fatura Total Cartões</p>
-                    <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white"><PrivacyBlur showValues={showValues}>{formatCurrency(totalCreditUsed)}</PrivacyBlur></h2>
-                </div>
-            </div>
+
+            <AccountSummaryCards
+                totalBalance={totalBalance}
+                totalCreditUsed={totalCreditUsed}
+                showValues={showValues}
+            />
 
             <div className="flex justify-start items-center overflow-x-auto no-scrollbar">
                 <div className="bg-slate-100 dark:bg-slate-900 p-1 rounded-xl flex gap-1">
@@ -296,61 +211,16 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                 <AccountForm type={activeTab === 'CARDS' ? 'CARDS' : activeTab === 'INTERNATIONAL' ? 'INTERNATIONAL' : 'BANKING'} onSave={(acc) => { onAddAccount(acc as any); setIsFormOpen(false); }} onCancel={() => setIsFormOpen(false)} />
             )}
 
-            {activeTab === 'BANKING' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {bankingAccounts.map(account => (
-                        <div key={account.id} onClick={() => handleAccountClick(account)} className="group bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 dark:bg-slate-700 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
-                            <div className="relative z-10 flex justify-between items-start mb-8"><div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-2xl text-slate-700 dark:text-slate-300 group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">{getIcon(account.type)}</div><button className="text-slate-300 dark:text-slate-500 hover:text-slate-600 transition-colors"><MoreHorizontal className="w-5 h-5" /></button></div>
-                            <div className="relative z-10"><h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{account.name}</h3><p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-4">{account.type}</p><p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(account.balance, account.currency)}</PrivacyBlur></p></div>
-                        </div>
-                    ))}
-                    <button onClick={() => setIsFormOpen(true)} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 text-slate-400 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all group min-h-[200px]"><div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:bg-emerald-100 transition-colors"><Plus className="w-6 h-6" /></div><span className="font-bold text-sm">Adicionar Conta</span></button>
-                </div>
-            )}
-
-            {activeTab === 'CARDS' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {creditCards.map(account => {
-                        const { invoiceTotal } = getInvoiceData(account, transactions, currentDate);
-                        const limit = account.limit || 0;
-                        const committedBalance = Math.abs(account.balance);
-                        const percentageUsed = limit > 0 ? Math.min((committedBalance / limit) * 100, 100) : 0;
-                        return (
-                            <div key={account.id} onClick={() => handleAccountClick(account)} className="group relative w-full aspect-[1.586/1] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden text-white p-6 flex flex-col justify-between">
-                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                                <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
-                                <div className="relative z-10 flex justify-between items-start"><h3 className="font-bold text-lg tracking-wider uppercase opacity-90">{account.name}</h3><CreditCard className="w-6 h-6 opacity-60" /></div>
-                                <div className="relative z-10 flex justify-between items-end"><div><p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Fatura Atual</p><p className="font-mono font-bold text-lg tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(invoiceTotal, account.currency)}</PrivacyBlur></p></div><div className="flex flex-col items-end"><span className="text-[10px] font-bold opacity-60">{percentageUsed.toFixed(0)}% Limite</span></div></div>
-                                <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-700/50"><div className={`h-full transition-all duration-1000 ${percentageUsed > 90 ? 'bg-red-500' : 'bg-emerald-400'}`} style={{ width: `${percentageUsed}%` }}></div></div>
-                            </div>
-                        );
-                    })}
-                    <button onClick={() => setIsFormOpen(true)} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 text-slate-400 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all group min-h-[200px]"><div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:bg-emerald-100 transition-colors"><Plus className="w-6 h-6" /></div><span className="font-bold text-sm">Adicionar Cartão</span></button>
-                </div>
-            )}
-
-            {activeTab === 'INTERNATIONAL' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {internationalAccounts.length === 0 && !isFormOpen && (
-                        <div className="col-span-full text-center py-12 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 border border-dashed rounded-xl border-slate-300 dark:border-slate-700">
-                            <Globe className="w-12 h-12 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
-                            <p>Nenhuma conta internacional (Nomad, Wise, etc.) cadastrada.</p>
-                            <Button variant="ghost" onClick={() => setIsFormOpen(true)} className="mt-2">Criar Conta Global</Button>
-                        </div>
-                    )}
-                    {internationalAccounts.map(account => (
-                        <div key={account.id} onClick={() => handleAccountClick(account)} className="group bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 dark:bg-blue-900/20 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
-                            <div className="relative z-10 flex justify-between items-start mb-8"><div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl text-blue-700 dark:text-blue-400 group-hover:bg-blue-200 transition-colors">{getIcon(account.type)}</div><button className="text-slate-300 dark:text-slate-500 hover:text-slate-600 transition-colors"><MoreHorizontal className="w-5 h-5" /></button></div>
-                            <div className="relative z-10"><h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{account.name}</h3><p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-4">{account.type === AccountType.CHECKING ? 'Conta Global' : account.type}</p><p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(account.balance, account.currency)}</PrivacyBlur></p></div>
-                        </div>
-                    ))}
-                    {internationalAccounts.length > 0 && (
-                        <button onClick={() => setIsFormOpen(true)} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 text-slate-400 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50/50 transition-all group min-h-[200px]"><div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:bg-blue-100 transition-colors"><Plus className="w-6 h-6" /></div><span className="font-bold text-sm">Adicionar Conta Global</span></button>
-                    )}
-                </div>
-            )}
+            <AccountList
+                activeTab={activeTab}
+                accounts={accounts}
+                transactions={transactions}
+                currentDate={currentDate}
+                showValues={showValues}
+                onAccountClick={handleAccountClick}
+                onAddClick={() => setIsFormOpen(true)}
+                isFormOpen={isFormOpen}
+            />
         </div>
     );
 };
