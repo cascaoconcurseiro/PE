@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FamilyMember, Trip, InvoiceItem } from '../../types';
 import { Button } from '../ui/Button';
-import { ArrowRight, Plane, Calendar } from 'lucide-react';
+import { ArrowRight, Plane, Calendar, Trash2 } from 'lucide-react';
 import { formatCurrency } from '../../utils';
 
 interface MemberSummaryCardProps {
@@ -10,12 +10,29 @@ interface MemberSummaryCardProps {
     totalsMap: Record<string, { credits: number; debits: number; net: number }>;
     trips: Trip[];
     onOpenSettleModal: (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET', currency: string) => void;
+    onDeleteTransaction?: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
 }
 
-export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, items, totalsMap, trips, onOpenSettleModal }) => {
+export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, items, totalsMap, trips, onOpenSettleModal, onDeleteTransaction }) => {
     const currencies = Object.keys(totalsMap).filter(c => Math.abs(totalsMap[c].net) > 0.01);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     if (currencies.length === 0) return null;
+
+    const handleDelete = (id: string, hasSeriesId: boolean) => {
+        if (deleteConfirmId === id) {
+            // Second click: Confirm delete
+            if (onDeleteTransaction) {
+                onDeleteTransaction(id, hasSeriesId ? 'SERIES' : 'SINGLE');
+            }
+            setDeleteConfirmId(null);
+        } else {
+            // First click: Show confirm state
+            setDeleteConfirmId(id);
+            // Auto-reset after 3 seconds
+            setTimeout(() => setDeleteConfirmId(null), 3000);
+        }
+    };
 
     return (
         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -49,23 +66,35 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
             <div className="bg-slate-50/50 dark:bg-slate-900/30 divide-y divide-slate-100 dark:divide-slate-700 max-h-60 overflow-y-auto">
                 {items.filter(i => !i.isPaid).map(item => {
                     const trip = item.tripId ? trips.find(t => t.id === item.tripId) : null;
+                    const isConfirming = deleteConfirmId === item.originalTxId;
                     return (
-                        <div key={item.id} className="px-6 py-4 flex justify-between items-center">
-                            <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-lg ${item.type === 'CREDIT' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
+                        <div key={item.id} className="px-6 py-4 flex justify-between items-center group">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className={`p-2 rounded-lg shrink-0 ${item.type === 'CREDIT' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
                                     {item.type === 'CREDIT' ? <ArrowRight className="w-4 h-4" /> : <ArrowRight className="w-4 h-4 transform rotate-180" />}
                                 </div>
-                                <div>
-                                    <p className="text-sm font-bold text-slate-800 dark:text-white">{item.description}</p>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{item.description}</p>
                                     <div className="flex flex-wrap gap-2 mt-0.5">
                                         {trip && <span className="text-[10px] bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><Plane className="w-3 h-3" /> {trip.name}</span>}
                                         <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(item.date).toLocaleDateString()}</span>
                                     </div>
                                 </div>
                             </div>
-                            <span className={`font-bold text-sm ${item.type === 'CREDIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
-                                {formatCurrency(item.amount, item.currency || 'BRL')}
-                            </span>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <span className={`font-bold text-sm ${item.type === 'CREDIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                                    {formatCurrency(item.amount, item.currency || 'BRL')}
+                                </span>
+                                {onDeleteTransaction && (
+                                    <button
+                                        onClick={() => handleDelete(item.originalTxId, !!item.seriesId)}
+                                        className={`p-1.5 rounded-lg transition-all ${isConfirming ? 'bg-red-500 text-white' : 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100'}`}
+                                        title={isConfirming ? 'Confirmar Exclusão' : 'Excluir'}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     );
                 })}

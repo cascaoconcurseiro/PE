@@ -294,4 +294,5 @@ export interface InvoiceItem {
   tripId?: string;
   memberId: string;
   currency?: string;
+  seriesId?: string;
 }

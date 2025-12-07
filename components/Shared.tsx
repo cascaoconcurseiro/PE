@@ -14,6 +14,7 @@ interface SharedProps {
     currentDate: Date;
     onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
     onUpdateTransaction: (t: Transaction) => void;
+    onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
     onNavigateToTrips: () => void;
 }
 
@@ -25,6 +26,7 @@ export const Shared: React.FC<SharedProps> = ({
     currentDate,
     onAddTransaction,
     onUpdateTransaction,
+    onDeleteTransaction,
     onNavigateToTrips
 }) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
@@ -161,6 +163,7 @@ export const Shared: React.FC<SharedProps> = ({
                             totalsMap={totalsMap}
                             trips={trips}
                             onOpenSettleModal={handleOpenSettleModal}
+                            onDeleteTransaction={onDeleteTransaction}
                         />
                     );
                 })}
