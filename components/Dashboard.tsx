@@ -87,43 +87,59 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
         return accountsTotal;
     }, [accounts]);
 
-    // Annual Cash Flow Data (Using Effective Values)
+    // Annual Cash Flow Data (Rolling 12 Months starting from selected date)
     const cashFlowData = useMemo(() => {
+        const startMonth = currentDate.getMonth();
+        const startYear = currentDate.getFullYear();
+
         const data = Array.from({ length: 12 }, (_, i) => {
-            const date = new Date(selectedYear, i, 1);
+            const date = new Date(startYear, startMonth + i, 1);
             return {
+                date: date, // Store full date for comparison
                 month: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
-                monthIndex: i,
+                year: date.getFullYear(),
+                monthIndex: date.getMonth(),
                 Receitas: 0,
                 Despesas: 0
             };
         });
 
+        const endDate = new Date(startYear, startMonth + 12, 0); // End of the 12th month
+
         transactions
             .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
             .forEach(t => {
                 const tDate = new Date(t.date);
-                if (tDate.getFullYear() !== selectedYear) return;
+                // Filter by range [currentDate start, currentDate + 12 months]
+                const rangeStart = new Date(startYear, startMonth, 1);
+
+                if (tDate < rangeStart || tDate > endDate) return;
                 if (t.type === TransactionType.TRANSFER) return;
 
-                const monthIndex = tDate.getMonth();
                 const account = accounts.find(a => a.id === t.accountId);
 
                 // Calculate Effective Amount in BRL
                 const effectiveAmount = calculateEffectiveTransactionValue(t);
                 const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
 
-                if (t.type === TransactionType.EXPENSE) {
-                    const value = t.isRefund ? -amountBRL : amountBRL;
-                    data[monthIndex].Despesas += value;
-                } else if (t.type === TransactionType.INCOME) {
-                    const value = t.isRefund ? -amountBRL : amountBRL;
-                    data[monthIndex].Receitas += value;
+                // Find correctly matching month bucket
+                const bucket = data.find(d =>
+                    d.monthIndex === tDate.getMonth() && d.year === tDate.getFullYear()
+                );
+
+                if (bucket) {
+                    if (t.type === TransactionType.EXPENSE) {
+                        const value = t.isRefund ? -amountBRL : amountBRL;
+                        bucket.Despesas += value;
+                    } else if (t.type === TransactionType.INCOME) {
+                        const value = t.isRefund ? -amountBRL : amountBRL;
+                        bucket.Receitas += value;
+                    }
                 }
             });
 
         return data;
-    }, [transactions, selectedYear, accounts]);
+    }, [transactions, currentDate, accounts]);
 
     const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0), [cashFlowData]);
 
@@ -190,7 +206,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                 <CashFlowChart
                     data={cashFlowData}
                     hasData={hasCashFlowData}
-                    year={selectedYear}
+                    periodLabel={`${currentDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })} - ${new Date(currentDate.getFullYear(), currentDate.getMonth() + 11, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`}
                     showValues={showValues}
                 />
             </Suspense>

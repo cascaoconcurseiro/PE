@@ -7,11 +7,12 @@ import { formatCurrency } from '../../utils';
 interface CashFlowChartProps {
     data: any[];
     hasData: boolean;
-    year: number;
+    year?: number;
+    periodLabel?: string;
     showValues: boolean;
 }
 
-export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, year, showValues }) => {
+export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, year, periodLabel, showValues }) => {
     // Transform data for SimpleBarChart
     const chartData = data.flatMap(item => [
         { name: `${item.month} R`, value: item.Receitas, color: '#10b981' },
@@ -26,7 +27,9 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
                 </div>
                 <div>
                     <h3 className="font-bold text-slate-800 dark:text-white text-lg">Fluxo de Caixa</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Visão anual de {year}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {periodLabel || `Visão anual de ${year}`}
+                    </p>
                 </div>
             </div>
             <div className="h-60 md:h-72 w-full px-2">
@@ -35,7 +38,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
                         <BarChart3 className="w-8 h-8 mb-2 opacity-50" />
-                        <p className="text-sm font-medium">Sem dados para este ano</p>
+                        <p className="text-sm font-medium">Sem dados para este período</p>
                     </div>
                 )}
             </div>
