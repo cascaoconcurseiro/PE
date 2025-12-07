@@ -22,15 +22,12 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
 
     const handleDelete = (id: string, hasSeriesId: boolean) => {
         if (deleteConfirmId === id) {
-            // Second click: Confirm delete
             if (onDeleteTransaction) {
                 onDeleteTransaction(id, hasSeriesId ? 'SERIES' : 'SINGLE');
             }
             setDeleteConfirmId(null);
         } else {
-            // First click: Show confirm state
             setDeleteConfirmId(id);
-            // Auto-reset after 3 seconds
             setTimeout(() => setDeleteConfirmId(null), 3000);
         }
     };
@@ -70,7 +67,7 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                     const isConfirming = deleteConfirmId === item.originalTxId;
                     const hasSeriesId = !!item.seriesId;
                     return (
-                        <div key={item.id} className="px-6 py-4 flex justify-between items-center group">
+                        <div key={item.id} className="px-6 py-4 flex justify-between items-center">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div className={`p-2 rounded-lg shrink-0 ${item.type === 'CREDIT' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
                                     {item.type === 'CREDIT' ? <ArrowRight className="w-4 h-4" /> : <ArrowRight className="w-4 h-4 transform rotate-180" />}
@@ -88,21 +85,19 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                                 <span className={`font-bold text-sm mr-2 ${item.type === 'CREDIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
                                     {formatCurrency(item.amount, item.currency || 'BRL')}
                                 </span>
-                                {/* Edit Button - Only show for installments (series) */}
                                 {onEditTransaction && hasSeriesId && (
                                     <button
                                         onClick={() => onEditTransaction(item.originalTxId)}
-                                        className="p-1.5 rounded-lg transition-all text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 opacity-0 group-hover:opacity-100"
+                                        className="p-1.5 rounded-lg transition-all text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                                         title="Editar Parcelas"
                                     >
                                         <Pencil className="w-4 h-4" />
                                     </button>
                                 )}
-                                {/* Delete Button */}
                                 {onDeleteTransaction && (
                                     <button
                                         onClick={() => handleDelete(item.originalTxId, hasSeriesId)}
-                                        className={`p-1.5 rounded-lg transition-all ${isConfirming ? 'bg-red-500 text-white' : 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100'}`}
+                                        className={`p-1.5 rounded-lg transition-all ${isConfirming ? 'bg-red-500 text-white' : 'text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'}`}
                                         title={isConfirming ? 'Confirmar Exclusão' : 'Excluir'}
                                     >
                                         <Trash2 className="w-4 h-4" />
