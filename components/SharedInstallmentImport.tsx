@@ -43,9 +43,14 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             setCategory(Category.OTHER);
             setPayerId('me');
             setParticipantIds(['me']);
-            setAccountId('');
+            // Default to first account if available
+            if (accounts.length > 0) {
+                setAccountId(accounts[0].id);
+            } else {
+                setAccountId('');
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, accounts]);
 
     const handleToggleParticipant = (id: string) => {
         setParticipantIds(prev =>
@@ -56,6 +61,11 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
     const handleConfirm = () => {
         if (!description || !amount || !date || participantIds.length === 0) {
             alert('Preencha todos os campos obrigatórios e selecione pelo menos um participante.');
+            return;
+        }
+
+        if (!accountId) {
+            alert('Selecione uma conta para cobrar.');
             return;
         }
 
@@ -157,69 +167,88 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         <select className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white" value={category} onChange={e => setCategory(e.target.value as Category)}>
                             {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
-                    </div>
-
-                    {/* Who Paid */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">Quem Pagou?</label>
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                onClick={() => setPayerId('me')}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${payerId === 'me' ? 'bg-indigo-100 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
-                            >
-                                Eu
-                            </button>
-                            {members.map(m => (
-                                <button
-                                    key={m.id}
-                                    onClick={() => setPayerId(m.id)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${payerId === m.id ? 'bg-indigo-100 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
-                                >
-                                    {m.name}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-
-
-                    {/* Shared With */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">Compartilhado com (Participantes)</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            <button
-                                onClick={() => handleToggleParticipant('me')}
-                                className={`px-4 py-3 rounded-xl text-sm font-bold border flex items-center justify-between transition-all ${participantIds.includes('me') ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
-                            >
-                                <span>Eu</span>
-                                {participantIds.includes('me') && <Check className="w-4 h-4" />}
-                            </button>
-                            {members.map(m => (
-                                <button
-                                    key={m.id}
-                                    onClick={() => handleToggleParticipant(m.id)}
-                                    className={`px-4 py-3 rounded-xl text-sm font-bold border flex items-center justify-between transition-all ${participantIds.includes(m.id) ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
-                                >
-                                    <span>{m.name}</span>
-                                    {participantIds.includes(m.id) && <Check className="w-4 h-4" />}
-                                </button>
-                            ))}
-                        </div>
-                        {participantIds.length > 0 && amount && (
-                            <p className="text-xs text-right mt-1 text-slate-400">
-                                {formatCurrency(parseFloat(amount) / participantIds.length)} por pessoa/total
-                            </p>
-                        )}
-                    </div>
-
+                    </select>
                 </div>
 
-                <div className="p-6 pt-0">
-                    <Button onClick={handleConfirm} className="w-full h-12 text-lg">
-                        Gerar {installments} Lançamentos
-                    </Button>
+                {/* Account Selector - CRITICAL FIX */}
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Conta de Pagamento</label>
+                    <div className="relative">
+                        <CreditCard className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
+                        <select
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white appearance-none"
+                            value={accountId}
+                            onChange={e => setAccountId(e.target.value)}
+                        >
+                            <option value="" disabled>Selecione uma conta...</option>
+                            {accounts.map(acc => (
+                                <option key={acc.id} value={acc.id}>{acc.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
+
+                {/* Who Paid */}
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Quem Pagou?</label>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => setPayerId('me')}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${payerId === 'me' ? 'bg-indigo-100 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
+                        >
+                            Eu
+                        </button>
+                        {members.map(m => (
+                            <button
+                                key={m.id}
+                                onClick={() => setPayerId(m.id)}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${payerId === m.id ? 'bg-indigo-100 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
+                            >
+                                {m.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+
+
+                {/* Shared With */}
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Compartilhado com (Participantes)</label>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            onClick={() => handleToggleParticipant('me')}
+                            className={`px-4 py-3 rounded-xl text-sm font-bold border flex items-center justify-between transition-all ${participantIds.includes('me') ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
+                        >
+                            <span>Eu</span>
+                            {participantIds.includes('me') && <Check className="w-4 h-4" />}
+                        </button>
+                        {members.map(m => (
+                            <button
+                                key={m.id}
+                                onClick={() => handleToggleParticipant(m.id)}
+                                className={`px-4 py-3 rounded-xl text-sm font-bold border flex items-center justify-between transition-all ${participantIds.includes(m.id) ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
+                            >
+                                <span>{m.name}</span>
+                                {participantIds.includes(m.id) && <Check className="w-4 h-4" />}
+                            </button>
+                        ))}
+                    </div>
+                    {participantIds.length > 0 && amount && (
+                        <p className="text-xs text-right mt-1 text-slate-400">
+                            {formatCurrency(parseFloat(amount) / participantIds.length)} por pessoa/total
+                        </p>
+                    )}
+                </div>
+
+            </div>
+
+            <div className="p-6 pt-0">
+                <Button onClick={handleConfirm} className="w-full h-12 text-lg">
+                    Gerar {installments} Lançamentos
+                </Button>
             </div>
         </div>
+        </div >
     );
 };

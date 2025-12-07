@@ -1,15 +1,15 @@
 import { Category } from './types';
-import { 
-  Home, 
-  ShoppingCart, 
-  Car, 
-  Plane, 
-  ShoppingBag, 
-  Coffee, 
-  HeartPulse, 
-  GraduationCap, 
-  DollarSign, 
-  HelpCircle, 
+import {
+  Home,
+  ShoppingCart,
+  Car,
+  Plane,
+  ShoppingBag,
+  Coffee,
+  HeartPulse,
+  GraduationCap,
+  DollarSign,
+  HelpCircle,
   ArrowRightLeft,
   LucideIcon,
   Tag,
@@ -27,7 +27,7 @@ import {
  * Rounds to 2 decimal places.
  */
 export const round2dec = (num: number): number => {
-    return Math.round((num + Number.EPSILON) * 100) / 100;
+  return Math.round((num + Number.EPSILON) * 100) / 100;
 };
 
 export const formatCurrency = (value: number, currency: string = 'BRL') => {
@@ -44,6 +44,7 @@ export const formatCurrency = (value: number, currency: string = 'BRL') => {
 export const getCategoryIcon = (category: Category | string): LucideIcon => {
   switch (category) {
     case Category.HOUSING: return Home;
+    case Category.OPENING_BALANCE: return FileText;
     case Category.FOOD: return ShoppingCart;
     case Category.TRANSPORTATION: return Car;
     case Category.UTILITIES: return Lightbulb;
@@ -66,16 +67,16 @@ export const getCategoryIcon = (category: Category | string): LucideIcon => {
 
 // Fix Timezone issues by parsing YYYY-MM-DD explicitly as local time noon
 export const parseDate = (dateString: string): Date => {
-    if (!dateString) return new Date();
-    // Handle ISO strings with time
-    if (dateString.includes('T')) return new Date(dateString);
-    
-    // Handle YYYY-MM-DD
-    const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day, 12, 0, 0);
+  if (!dateString) return new Date();
+  // Handle ISO strings with time
+  if (dateString.includes('T')) return new Date(dateString);
+
+  // Handle YYYY-MM-DD
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0);
 };
 
 export const isSameMonth = (date1: string | Date, date2: Date) => {
-    const d1 = typeof date1 === 'string' ? parseDate(date1) : date1;
-    return d1.getMonth() === date2.getMonth() && d1.getFullYear() === date2.getFullYear();
+  const d1 = typeof date1 === 'string' ? parseDate(date1) : date1;
+  return d1.getMonth() === date2.getMonth() && d1.getFullYear() === date2.getFullYear();
 };

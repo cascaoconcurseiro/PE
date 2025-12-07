@@ -46,7 +46,7 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                 <div className={`h-2 w-full ${status === 'CLOSED' ? 'bg-red-600' : 'bg-blue-600'}`}></div>
 
                 <div className="p-8">
-                    <div className="flex justify-between items-start mb-8">
+                    <div className="flex flex-col sm:flex-row justify-between items-start mb-8 gap-4 sm:gap-0">
                         <div>
                             <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-2 ${status === 'CLOSED' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'}`}>
                                 {status === 'CLOSED' ? 'Fatura Fechada' : 'Fatura Aberta'}
