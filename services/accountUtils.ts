@@ -68,34 +68,36 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
 
     const txs = activeTransactions.filter(t => {
         if (t.accountId !== account.id) return false;
-        // Simple string comparison works for ISO dates (YYYY-MM-DD)
-        return t.date >= startStr && t.date <= endStr;
+
+        // 1. Strict Date Range Check (Standard)
+        const inRange = t.date >= startStr && t.date <= endStr;
+        if (inRange) return true;
+
+        // 2. Fallback for Installments & Imports (Force Show if Month Matches)
+        // This fixes issues where an installment or imported bill falls exactly on a boundary
+        // or shift logic hides it.
+        const isSpecialType = t.isInstallment || t.category === Category.OPENING_BALANCE;
+
+        if (isSpecialType) {
+            const tDate = new Date(t.date);
+            // Use UTC parts to avoid timezone shifts affecting month check
+            const tMonth = parseInt(t.date.split('-')[1]) - 1; // 0-indexed
+            const tYear = parseInt(t.date.split('-')[0]);
+
+            // Match with Closing Date Month/Year
+            if (tMonth === closingDate.getMonth() && tYear === closingDate.getFullYear()) {
+                return true;
+            }
+        }
+
+        return false;
     });
 
-    // Add Opening Balance transactions that might have fallen outside the exact date range but belong to this month
-    // This fixes manual imports "disappearing" because of closing day logic
-    const monthTarget = closingDate.getMonth();
-    const yearTarget = closingDate.getFullYear();
+    // Opening Balances Logic merged above, but let's keep specific Opening Balance check 
+    // just in case 'isSpecialType' logic missed something (redundancy is fine here if unique)
+    // Actually, the above logic covers it better. Let's simplify.
 
-    const openingBalances = activeTransactions.filter(t => {
-        if (t.accountId !== account.id || t.category !== Category.OPENING_BALANCE) return false;
-
-        // Check if already included
-        if (txs.some(included => included.id === t.id)) return false;
-
-        // Check if Month/Year matches the Closing Date Month/Year
-        const tDate = new Date(t.date);
-        // Note: t.date is YYYY-MM-DD. Using new Date() uses local time, which is fine for Month checking usually
-        // But let's be safe and use UTC parts or split
-        const [y, m] = t.date.split('-').map(Number);
-        // m is 1-indexed. monthTarget is 0-indexed.
-        // If Closing Date is Jan 05. Month is Jan (0).
-        // Opening Balance for "Jan" should be match.
-        return (m - 1) === monthTarget && y === yearTarget;
-    });
-
-    // Merge and sort
-    const finalTxs = [...txs, ...openingBalances].sort((a, b) => b.date.localeCompare(a.date));
+    const finalTxs = txs.sort((a, b) => b.date.localeCompare(a.date));
 
     const total = finalTxs.reduce((acc, t) => {
         if (t.isRefund) return acc - t.amount;
