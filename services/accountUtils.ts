@@ -15,77 +15,55 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
         };
     }
 
-    // Create Date objects relative to the reference date (avoiding time shifts)
     const year = referenceDate.getFullYear();
     const month = referenceDate.getMonth();
-    const currentDay = referenceDate.getDate();
     const closingDay = account.closingDay;
 
-    // Determine the closing date for the CURRENT view's cycle
-    // Logic: If we are viewing 'May 10th' and closing is '5th', we are in the cycle that ends 'June 5th'.
+    // DEFINIÇÃO DE FATURA:
+    // A fatura de "Maio" é aquela que FECHA em Maio.
+    // Ex: Fecha dia 5. Fatura de Maio fecha 05/05. Período: 06/04 a 05/05.
+    // Ex: Fecha dia 25. Fatura de Maio fecha 25/05. Período: 26/04 a 25/05.
 
-    // UX FIX: If Closing Day is early (e.g. 1st-5th), selecting "May 1st" usually implies wanting to see May's spending.
-    // Standard logic would give "May 1st" closing (which is April's spending).
-    // We force a shift forward if both days are small to show the "Spending Month" (May 2 - Jun 1)
+    // Calcular Data de Fechamento desta fatura de referência
+    const closingDate = new Date(year, month, closingDay);
 
-    // If the reference day is before/on closing day, this cycle ends in the current month
-    let closingDate: Date;
-    if (currentDay <= closingDay) {
-        closingDate = new Date(year, month, closingDay);
-    } else {
-        // If reference day is after closing day, this cycle ends in the next month
-        closingDate = new Date(year, month + 1, closingDay);
-    }
+    // Calcular Data de Início (Fechamento do mês anterior + 1 dia)
+    const startDate = new Date(year, month - 1, closingDay + 1);
 
-    // Calculate Start Date (Closing Date of previous month + 1 day)
-    const startDate = new Date(closingDate);
-    startDate.setMonth(startDate.getMonth() - 1);
-    startDate.setDate(closingDay + 1);
-
-    // Calculate Due Date
+    // Calcular Data de Vencimento
     const dueDate = new Date(closingDate);
     dueDate.setDate(account.dueDay || 10);
-    // If due day is smaller than closing day, it usually means next month (e.g. Close 25, Due 5)
+
+    // Ajuste de Vencimento: Se dia vcto < dia fechamento, pula pro próximo mês
     if (account.dueDay && account.dueDay < closingDay) {
-        // FIX: Set to day 1 first to prevent month skipping
-        dueDate.setDate(1);
         dueDate.setMonth(dueDate.getMonth() + 1);
-        dueDate.setDate(account.dueDay);
-    } else if (dueDate < closingDate) {
-        // Safety check: Due date can't be before closing date
-        dueDate.setDate(1);
+    }
+    // Safety: Se por algum motivo vcto ficou antes do fechamento
+    else if (dueDate < closingDate) {
         dueDate.setMonth(dueDate.getMonth() + 1);
-        dueDate.setDate(account.dueDay || 10);
     }
 
-    // Filter Transactions using String Comparison (YYYY-MM-DD) to avoid Timezone issues
-    // We convert boundaries to YYYY-MM-DD strings for reliable comparison
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = closingDate.toISOString().split('T')[0];
 
-    // Filter out deleted transactions and unpaid debts first
     const activeTransactions = transactions.filter(shouldShowTransaction);
 
+    // FILTRAGEM ROBUSTA
     const txs = activeTransactions.filter(t => {
         if (t.accountId !== account.id) return false;
 
-        // 1. Strict Date Range Check (Standard)
-        const inRange = t.date >= startStr && t.date <= endStr;
-        if (inRange) return true;
+        // 1. Verificar Intervalo de Datas (Padrão)
+        // Se a transação estiver entre Start e End, ela entra.
+        if (t.date >= startStr && t.date <= endStr) return true;
 
-        // 2. Fallback for Installments & Imports (Force Show if Month Matches)
-        // This fixes issues where an installment or imported bill falls exactly on a boundary
-        // or shift logic hides it.
-        const isSpecialType = t.isInstallment || t.category === Category.OPENING_BALANCE;
-
-        if (isSpecialType) {
-            const tDate = new Date(t.date);
-            // Use UTC parts to avoid timezone shifts affecting month check
-            const tMonth = parseInt(t.date.split('-')[1]) - 1; // 0-indexed
-            const tYear = parseInt(t.date.split('-')[0]);
-
-            // Match with Closing Date Month/Year
-            if (tMonth === closingDate.getMonth() && tYear === closingDate.getFullYear()) {
+        // 2. Verificar Parcelas e Importações (Filtro por Mês de Referência)
+        // Se for parcela ou saldo inicial, forçamos a entrada se bater com o Mês/Ano da Fatura (Closing Date)
+        // Isso resolve problemas de faturas importadas com data exata do fechamento ou parcelas em dias limítrofes.
+        const isSpecial = t.isInstallment || t.category === Category.OPENING_BALANCE;
+        if (isSpecial) {
+            const [tY, tM] = t.date.split('-').map(Number);
+            // Comparar com o mês/ano do fechamento desta fatura
+            if (tY === closingDate.getFullYear() && (tM - 1) === closingDate.getMonth()) {
                 return true;
             }
         }
@@ -93,26 +71,22 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
         return false;
     });
 
-    // Opening Balances Logic merged above, but let's keep specific Opening Balance check 
-    // just in case 'isSpecialType' logic missed something (redundancy is fine here if unique)
-    // Actually, the above logic covers it better. Let's simplify.
-
     const finalTxs = txs.sort((a, b) => b.date.localeCompare(a.date));
 
     const total = finalTxs.reduce((acc, t) => {
         if (t.isRefund) return acc - t.amount;
         if (t.type === TransactionType.EXPENSE) return acc + t.amount;
-        if (t.type === TransactionType.INCOME) return acc - t.amount; // Payment/Credit
+        if (t.type === TransactionType.INCOME) return acc - t.amount;
         return acc;
     }, 0);
 
     const now = new Date();
-    // Reset hours for fair comparison
     const nowZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const closingZero = new Date(closingDate.getFullYear(), closingDate.getMonth(), closingDate.getDate());
 
-    const daysToClose = Math.ceil((closingZero.getTime() - nowZero.getTime()) / (1000 * 3600 * 24));
+    // Status simples: Se a data de fechamento já passou, está FECHADA. Se não, ABERTA.
     const status = closingZero < nowZero ? 'CLOSED' : 'OPEN';
+    const daysToClose = Math.ceil((closingZero.getTime() - nowZero.getTime()) / (1000 * 3600 * 24));
 
     return {
         invoiceTotal: total,

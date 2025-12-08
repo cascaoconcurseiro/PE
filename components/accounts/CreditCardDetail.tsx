@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Account, Transaction, TransactionType } from '../../types';
 import { Button } from '../ui/Button';
-import { ArrowLeft, ArrowRight, ArrowDownLeft, Calendar, Lock, Smartphone, ShoppingBag, Clock, FileUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowDownLeft, Calendar, Lock, Smartphone, ShoppingBag, Clock, FileUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../../utils';
 import { getInvoiceData, getCommittedBalance } from '../../services/accountUtils';
 import { ActionType } from './ActionModal';
@@ -26,16 +26,47 @@ interface CreditCardDetailProps {
 export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     account, transactions, currentDate, showValues, onAction, onAnticipateInstallments, onImportBills
 }) => {
-    const { invoiceTotal, transactions: invoiceTxs, status, daysToClose, closingDate, dueDate } = getInvoiceData(account, transactions, currentDate);
+    // Local state for invoice navigation (independent of global dashboard date if needed)
+    const [selectedDate, setSelectedDate] = useState(currentDate);
+
+    // Sync when prop changes
+    useEffect(() => {
+        setSelectedDate(currentDate);
+    }, [currentDate]);
+
+    const changeMonth = (offset: number) => {
+        const newDate = new Date(selectedDate);
+        newDate.setMonth(newDate.getMonth() + offset);
+        setSelectedDate(newDate);
+    };
+
+    const { invoiceTotal, transactions: invoiceTxs, status, daysToClose, closingDate, dueDate } = getInvoiceData(account, transactions, selectedDate);
+
+    // Calculate start date for display (Closing Date - 1 month + 1 day)
+    const startDate = new Date(closingDate);
+    startDate.setMonth(startDate.getMonth() - 1);
+    startDate.setDate(startDate.getDate() + 1);
+
     const limit = account.limit || 0;
     const committedBalance = getCommittedBalance(account, transactions);
     const available = limit - committedBalance;
     const percentageUsed = limit > 0 ? Math.min((committedBalance / limit) * 100, 100) : 0;
 
-
+    const monthName = closingDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    const rangeStr = `${startDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} a ${closingDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Invoice Navigation Header */}
+            <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                <Button variant="ghost" size="sm" onClick={() => changeMonth(-1)}><ChevronLeft className="w-5 h-5" /></Button>
+                <div className="text-center">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white capitalize">Fatura de {monthName}</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Ciclo: {rangeStr}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => changeMonth(1)}><ChevronRight className="w-5 h-5" /></Button>
+            </div>
+
             <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative print:shadow-none print:border">
                 <div className={`h-2 w-full ${status === 'CLOSED' ? 'bg-red-600' : 'bg-blue-600'}`}></div>
 
@@ -48,7 +79,7 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                             <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-2">
                                 {status === 'OPEN'
                                     ? `Fecha em ${daysToClose} dias (Dia ${account.closingDay})`
-                                    : `Fechada em ${closingDate.toLocaleDateString('pt-BR')}`
+                                    : `Fechou dia ${closingDate.toLocaleDateString('pt-BR')}`
                                 }
                             </p>
                         </div>
@@ -84,7 +115,7 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                 </div>
 
                 <div>
-                    <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3 px-2">Lançamentos na Fatura</h3>
+                    <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3 px-6 mt-6">Lançamentos ({invoiceTxs.length})</h3>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">
                         {invoiceTxs.length === 0 ? <div className="p-8 text-center text-slate-500 dark:text-slate-400"><ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-50" /><p className="text-sm">Nenhuma compra nesta fatura.</p></div> :
                             invoiceTxs.map(t => {
