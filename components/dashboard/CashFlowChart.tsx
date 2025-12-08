@@ -47,8 +47,8 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
             </div>
 
             {/* Annual Summary Footer */}
-            {
-                hasData && (
+            {hasData && (
+                <>
                     <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-between gap-4 text-xs sm:text-sm">
                         <div className="text-emerald-600 dark:text-emerald-400">
                             <span className="block text-[10px] uppercase font-bold text-slate-400">Entradas</span>
@@ -67,8 +67,56 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
                             </span>
                         </div>
                     </div>
-                )
-            }
+
+                    {/* Detailed Data Table */}
+                    <div className="overflow-x-auto border-t border-slate-100 dark:border-slate-800">
+                        <table className="w-full text-xs text-center whitespace-nowrap">
+                            <thead>
+                                <tr className="bg-slate-50/50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800">
+                                    <th className="px-3 py-2 text-left sticky left-0 bg-slate-50 dark:bg-slate-900 z-10 w-32 border-r border-slate-100 dark:border-slate-800">Mês</th>
+                                    {data.map((item, idx) => (
+                                        <th key={idx} className="px-3 py-2 min-w-[80px]">{item.month}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {/* Monthly Result Row */}
+                                <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
+                                    <td className="px-3 py-2 font-bold text-slate-700 dark:text-slate-300 text-left sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-slate-100 dark:border-slate-800">
+                                        Resumo Mensal
+                                    </td>
+                                    {data.map((item, idx) => {
+                                        const result = (item.Receitas || 0) + (item.Despesas || 0);
+                                        return (
+                                            <td key={idx} className={`px-3 py-2 font-bold ${result >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                {formatCurrency(result)}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                                {/* Accumulated Row */}
+                                <tr className="bg-slate-50/30 dark:bg-slate-900/30 hover:bg-slate-50 dark:hover:bg-slate-800/20">
+                                    <td className="px-3 py-2 font-bold text-slate-700 dark:text-slate-300 text-left sticky left-0 bg-slate-50 dark:bg-slate-900 z-10 border-r border-slate-100 dark:border-slate-800">
+                                        Acumulado
+                                    </td>
+                                    {data.map((item, idx) => {
+                                        // Calculate accumulated up to this index
+                                        let acc = 0;
+                                        for (let i = 0; i <= idx; i++) {
+                                            acc += (data[i].Receitas || 0) + (data[i].Despesas || 0);
+                                        }
+                                        return (
+                                            <td key={idx} className={`px-3 py-2 font-bold ${acc >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                {formatCurrency(acc)}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            )}
         </Card >
     );
 };
