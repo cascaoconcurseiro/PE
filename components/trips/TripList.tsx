@@ -52,7 +52,7 @@ export const TripList: React.FC<TripListProps> = ({ trips, onTripClick, onCreate
                                     {trip.name.charAt(0).toUpperCase()}
                                 </div>
                             )}
-                            />
+
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-80" />
                             <span className="absolute top-3 right-3 bg-white/20 backdrop-blur-md px-2 py-1 rounded-md text-xs font-bold text-white shadow-sm border border-white/20">
                                 {trip.currency}
