@@ -73,6 +73,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
         }, 0), [monthlyTransactions, accounts]);
 
     // 4. Financial Health Check
+    const monthlyResult = monthlyIncome - monthlyExpense;
     const healthStatus = analyzeFinancialHealth(monthlyIncome + pendingIncome, monthlyExpense + pendingExpenses);
 
     // 5. Total Net Worth (All Accounts - Credit Card Debt)
@@ -203,12 +204,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                         else sourceLabel = account.type; // Fallback
                     }
 
-                    // Check if it's Shared (overrides account type in visual priority?)
-                    // Maybe better to keep Account Type as primary source, and Shared as a separate concept.
-                    // User asked for "Source of expenses: Money, Card, Shared"
-                    // If shared, it's still paid via Card or Money. 
-                    // Let's stick to Account Type for now as it's cleaner.
-
                     acc[sourceLabel] = (acc[sourceLabel] || 0) + (amount as number);
                     return acc;
                 }, {} as Record<string, number>)
@@ -226,7 +221,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
             <FinancialProjectionCard
-                projectedBalance={projectedBalance}
+                projectedBalance={monthlyResult}
                 currentBalance={currentBalance}
                 pendingIncome={pendingIncome}
                 pendingExpenses={pendingExpenses}

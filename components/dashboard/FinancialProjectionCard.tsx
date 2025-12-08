@@ -32,31 +32,27 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                 <div>
                     <div className="flex items-center gap-2 mb-2 text-indigo-300">
                         <Wallet className="w-5 h-5" />
-                        <span className="text-xs font-bold uppercase tracking-widest">Fluxo de Caixa Previsto</span>
+                        <span className="text-xs font-bold uppercase tracking-widest">Resultado do Mês</span>
                     </div>
                     <div className="mb-1">
-                        <span className="text-4xl font-black tracking-tight">
+                        <span className={`text-4xl font-black tracking-tight ${projectedBalance < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
                             <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(projectedBalance)}</PrivacyBlur>
                         </span>
                     </div>
                     <p className="text-sm text-indigo-200">
-                        Previsão para o final de {currentDate.toLocaleDateString('pt-BR', { month: 'long' })}
+                        Receitas - Despesas em {currentDate.toLocaleDateString('pt-BR', { month: 'long' })}
                     </p>
                 </div>
 
                 <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10">
-                    <div className="flex justify-between items-center mb-3 pb-3 border-b border-white/10">
-                        <span className="text-sm font-medium text-indigo-100">Saldo Hoje</span>
-                        <span className="font-bold text-white"><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(currentBalance)}</PrivacyBlur></span>
-                    </div>
-                    <div className="space-y-2 text-xs">
+                    <div className="space-y-4 text-xs">
                         <div className="flex justify-between items-center text-emerald-300">
                             <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> A Receber</span>
-                            <span className="font-bold">+ {formatCurrency(pendingIncome)}</span>
+                            <span className="font-bold text-sm">+ {formatCurrency(pendingIncome)}</span>
                         </div>
                         <div className="flex justify-between items-center text-red-300">
                             <span className="flex items-center gap-1"><TrendingDown className="w-3 h-3" /> A Pagar</span>
-                            <span className="font-bold">- {formatCurrency(pendingExpenses)}</span>
+                            <span className="font-bold text-sm">- {formatCurrency(pendingExpenses)}</span>
                         </div>
                     </div>
                 </div>
