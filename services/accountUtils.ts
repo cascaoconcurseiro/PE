@@ -69,9 +69,6 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
     const activeTransactions = transactions.filter(shouldShowTransaction);
 
     // Debug: Log para entender o que está sendo filtrado
-    console.log(`📊 Fatura ${account.name} - Ciclo: ${startStr} a ${endStr}`);
-    console.log(`   Total de transações ativas: ${activeTransactions.length}`);
-    console.log(`   Transações desta conta: ${activeTransactions.filter(t => t.accountId === account.id).length}`);
 
     // FILTRAGEM ROBUSTA - Apenas por intervalo de datas
     const txs = activeTransactions.filter(t => {
@@ -79,16 +76,14 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
 
         // Verificar Intervalo de Datas do Ciclo da Fatura
         const inRange = t.date >= startStr && t.date <= endStr;
-        
+
         // Debug: Log transações que não passam no filtro
         if (!inRange && (t.isInstallment || t.category === Category.OPENING_BALANCE)) {
-            console.log(`   ⚠️ Transação fora do ciclo: ${t.description} (${t.date}) - Parcela: ${t.isInstallment}, Importada: ${t.category === Category.OPENING_BALANCE}`);
         }
-        
+
         return inRange;
     });
 
-    console.log(`   ✅ Transações na fatura: ${txs.length}`);
 
     const finalTxs = txs.sort((a, b) => b.date.localeCompare(a.date));
 

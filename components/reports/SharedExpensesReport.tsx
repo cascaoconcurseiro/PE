@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Transaction, TransactionType, FamilyMember } from '../../types';
-import { formatCurrency } from '../../utils';
+import { formatCurrency, parseDate } from '../../utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Users } from 'lucide-react';
 import { shouldShowTransaction } from '../../utils/transactionFilters';
@@ -44,7 +44,8 @@ export const SharedExpensesReport: React.FC<SharedExpensesReportProps> = ({ tran
         transactions
             .filter(shouldShowTransaction) // ✅ FIX: Filtrar transações deletadas e dívidas não pagas
             .forEach(t => {
-                if (t.type === TransactionType.EXPENSE && t.currency === 'BRL' && new Date(t.date) > today) {
+                const tDate = parseDate(t.date);
+                if (t.type === TransactionType.EXPENSE && t.currency === 'BRL' && tDate > today) {
                     if (t.sharedWith && t.sharedWith.length > 0 && t.isShared) {
                         totalFutureShared += t.amount;
                     }

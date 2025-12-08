@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, Account, AccountType } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { formatCurrency } from '../../utils';
+import { formatCurrency, parseDate } from '../../utils';
 import { Calendar, CreditCard, Wallet, ChevronDown, Check, AlertCircle } from 'lucide-react';
 
 interface InstallmentAnticipationModalProps {
@@ -44,9 +44,9 @@ export const InstallmentAnticipationModal: React.FC<InstallmentAnticipationModal
         return allInstallments
             .filter(t =>
                 t.seriesId === transaction.seriesId &&
-                new Date(t.date) >= new Date(transaction.date)
+                parseDate(t.date) >= parseDate(transaction.date)
             )
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            .sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime());
     }, [transaction, allInstallments]);
 
     const maxInstallments = futureInstallments.length;

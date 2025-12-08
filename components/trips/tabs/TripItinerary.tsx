@@ -3,6 +3,7 @@ import { Trip, TripItineraryItem } from '../../../types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Calendar, Plus, Save, X, MapPin, Pencil, Trash2, Map } from 'lucide-react';
+import { parseDate } from '../../../utils';
 
 interface TripItineraryProps {
     trip: Trip;
@@ -123,7 +124,7 @@ export const TripItinerary: React.FC<TripItineraryProps> = ({ trip, onUpdateTrip
                         <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex justify-between items-start">
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{new Date(item.date).toLocaleDateString('pt-BR')} {item.time ? `• ${item.time}` : ''}</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{parseDate(item.date).toLocaleDateString('pt-BR')} {item.time ? `• ${item.time}` : ''}</span>
                                     <span className={`text-[9px] px-1.5 py-0.5 rounded text-white font-bold ${item.type === 'FLIGHT' ? 'bg-blue-500' : item.type === 'LODGING' ? 'bg-indigo-500' : item.type === 'FOOD' ? 'bg-orange-500' : 'bg-emerald-500'}`}>{item.type}</span>
                                 </div>
                                 <p className="font-bold text-slate-800 dark:text-white text-sm">{item.description}</p>

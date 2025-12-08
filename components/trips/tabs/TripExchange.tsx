@@ -3,7 +3,7 @@ import { Trip, TripExchangeEntry } from '../../../types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Save, Plus, Trash2, Pencil } from 'lucide-react';
-import { formatCurrency } from '../../../utils';
+import { formatCurrency, parseDate } from '../../../utils';
 
 interface TripExchangeProps {
     trip: Trip;
@@ -134,7 +134,7 @@ export const TripExchange: React.FC<TripExchangeProps> = ({ trip, onUpdateTrip }
                     {trip.exchangeEntries?.map(entry => (
                         <div key={entry.id} className={`flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-sm ${editingExchangeId === entry.id ? 'ring-2 ring-violet-200 dark:ring-violet-800' : ''}`}>
                             <div>
-                                <p className="font-bold text-slate-800 dark:text-white">{new Date(entry.date).toLocaleDateString('pt-BR')}</p>
+                                <p className="font-bold text-slate-800 dark:text-white">{parseDate(entry.date).toLocaleDateString('pt-BR')}</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">Taxa: R$ {entry.exchangeRate.toFixed(4)}</p>
                             </div>
                             <div className="text-right">

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Trip, Transaction, TransactionType } from '../../types';
-import { formatCurrency } from '../../utils';
+import { formatCurrency, parseDate } from '../../utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Plane, Calendar } from 'lucide-react';
 import { shouldShowTransaction } from '../../utils/transactionFilters';
@@ -112,7 +112,7 @@ export const TravelReport: React.FC<TravelReportProps> = ({ trips, transactions 
                                     <div key={t.id} className="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-700 last:border-0">
                                         <div>
                                             <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{t.description}</p>
-                                            <p className="text-xs text-slate-500">{new Date(t.date).toLocaleDateString()} • {t.category}</p>
+                                            <p className="text-xs text-slate-500">{parseDate(t.date).toLocaleDateString()} • {t.category}</p>
                                         </div>
                                         <span className="font-bold text-slate-900 dark:text-white text-sm">
                                             {formatCurrency(t.amount, selectedTrip.currency)}

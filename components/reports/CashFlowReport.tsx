@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Transaction, Account, TransactionType, AccountType } from '../../types';
 import { calculateMyExpense } from '../../utils/expenseUtils';
 import { shouldShowTransaction } from '../../utils/transactionFilters';
-import { formatCurrency } from '../../utils';
+import { formatCurrency, parseDate } from '../../utils';
 import { PrivacyBlur } from '../ui/PrivacyBlur';
 
 interface CashFlowReportProps {
@@ -40,7 +40,7 @@ export const CashFlowReport: React.FC<CashFlowReportProps> = ({ transactions, ac
                     // Find due date. We don't have it explicitly on transaction.
                     // We have 'closingDay' and 'dueDay' on account.
                     // Simple logic: If date > closingDay, it goes to next month's due day.
-                    const txDate = new Date(t.date);
+                    const txDate = parseDate(t.date);
                     const closingDay = account.closingDay || 1;
                     const dueDay = account.dueDay || 10;
 
@@ -102,7 +102,7 @@ export const CashFlowReport: React.FC<CashFlowReportProps> = ({ transactions, ac
                         {cashFlowReport.map((item) => (
                             <tr key={item.month} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <td className="px-6 py-4 font-bold text-slate-800 dark:text-white capitalize whitespace-nowrap">
-                                    {new Date(item.month + '-02').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                                    {parseDate(item.month + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                                 </td>
                                 <td className="px-6 py-4 text-right font-mono text-slate-600 dark:text-slate-300 whitespace-nowrap">
                                     <PrivacyBlur showValues={showValues}>{formatCurrency(item.accrual)}</PrivacyBlur>

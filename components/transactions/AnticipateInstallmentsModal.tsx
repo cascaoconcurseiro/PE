@@ -3,7 +3,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { X, Clock, Check, Wallet, AlertCircle, ChevronDown } from 'lucide-react';
 import { Transaction, Account, AccountType } from '../../types';
-import { formatCurrency } from '../../utils';
+import { formatCurrency, parseDate } from '../../utils';
 
 interface AnticipateInstallmentsModalProps {
     isOpen: boolean;
@@ -37,10 +37,10 @@ export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalPr
             .filter(tx =>
                 tx.seriesId === initialTransaction.seriesId &&
                 tx.id !== initialTransaction.id &&
-                new Date(tx.date) > new Date(initialTransaction.date) &&
+                parseDate(tx.date) > parseDate(initialTransaction.date) &&
                 !tx.isSettled // Only show unsettled installments
             )
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            .sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime());
     }, [transactions, initialTransaction]);
 
     const toggleInstallment = (id: string) => {
@@ -114,7 +114,7 @@ export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalPr
                                             Parcela {tx.currentInstallment}/{tx.totalInstallments}
                                         </p>
                                         <p className={`text-xs ${isSelected ? 'text-purple-200' : 'text-slate-500 dark:text-slate-400'}`}>
-                                            Vencimento Original: {new Date(tx.date).toLocaleDateString('pt-BR')}
+                                            Vencimento Original: {parseDate(tx.date).toLocaleDateString('pt-BR')}
                                         </p>
                                     </div>
                                     <div className="text-right">

@@ -174,7 +174,7 @@ export const useDataStore = () => {
             // FIX: Format dates locally to avoid timezone issues
             const startOfMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
             const startOfMonth = `${startOfMonthDate.getFullYear()}-${String(startOfMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
-            
+
             const endOfMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
             const endOfMonth = `${endOfMonthDate.getFullYear()}-${String(endOfMonthDate.getMonth() + 1).padStart(2, '0')}-${String(endOfMonthDate.getDate()).padStart(2, '0')}`;
 
@@ -298,14 +298,12 @@ export const useDataStore = () => {
                 if (tx && tx.seriesId) {
                     // Find all transactions in this series
                     const seriesTxs = transactions.filter(t => t.seriesId === tx.seriesId);
-                    console.log(`🗑️ Marcando ${seriesTxs.length} transações da série como deletadas...`);
                     for (const t of seriesTxs) {
                         await supabaseService.update('transactions', {
                             ...t,
                             deleted: true,
                             updatedAt: new Date().toISOString()
                         });
-                        console.log(`  ✅ Transação marcada como deletada: ${t.description}`);
                     }
                 } else {
                     // Fallback if no seriesId found
@@ -316,7 +314,6 @@ export const useDataStore = () => {
                             deleted: true,
                             updatedAt: new Date().toISOString()
                         });
-                        console.log(`✅ Transação marcada como deletada: ${tx.description}`);
                     }
                 }
             } else {
@@ -327,7 +324,6 @@ export const useDataStore = () => {
                         deleted: true,
                         updatedAt: new Date().toISOString()
                     });
-                    console.log(`✅ Transação marcada como deletada: ${tx.description}`);
                 }
             }
         }, 'Transação excluída.');
@@ -337,7 +333,7 @@ export const useDataStore = () => {
         await performOperation(async () => {
             // ✅ VALIDAÇÃO: Verificar se as parcelas existem
             const txsToUpdate = transactions.filter(t => ids.includes(t.id));
-            
+
             if (txsToUpdate.length === 0) {
                 throw new Error('Nenhuma parcela encontrada para antecipar');
             }
@@ -428,9 +424,7 @@ export const useDataStore = () => {
 
     // Custom Delete Account (Soft Delete RPC)
     const handleDeleteAccount = async (id: string) => performOperation(async () => {
-        console.log(`🗑️ Excluindo conta ${id} via RPC...`);
         await supabaseService.softDeleteAccount(id);
-        console.log(`✅ Conta ${id} e suas transações excluídas com sucesso!`);
     }, 'Conta excluída com sucesso.');
 
     // Generated Handlers (Simple CRUD)

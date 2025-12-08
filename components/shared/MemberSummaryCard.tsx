@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FamilyMember, Trip, InvoiceItem } from '../../types';
 import { Button } from '../ui/Button';
 import { ArrowRight, Plane, Calendar, Trash2, Pencil } from 'lucide-react';
-import { formatCurrency } from '../../utils';
+import { formatCurrency, parseDate } from '../../utils';
 
 interface MemberSummaryCardProps {
     member: FamilyMember;
@@ -76,7 +76,7 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                                     <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{item.description}</p>
                                     <div className="flex flex-wrap gap-2 mt-0.5">
                                         {trip && <span className="text-[10px] bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><Plane className="w-3 h-3" /> {trip.name}</span>}
-                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(item.date).toLocaleDateString()}</span>
+                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3 h-3" /> {parseDate(item.date).toLocaleDateString()}</span>
                                         {hasSeriesId && <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-bold">Parcelado</span>}
                                     </div>
                                 </div>

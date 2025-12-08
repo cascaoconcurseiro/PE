@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Trip, Transaction, Account, FamilyMember } from '../types';
+import { parseDate } from '../utils';
 
 import { TripList } from './trips/TripList';
 import { TripForm } from './trips/TripForm';
@@ -23,7 +24,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
     const [editingTripId, setEditingTripId] = useState<string | null>(null);
 
     const selectedTrip = trips.find(t => String(t.id) === String(selectedTripId));
-    const tripTransactions = transactions.filter(t => t.tripId && String(t.tripId) === String(selectedTripId)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const tripTransactions = transactions.filter(t => t.tripId && String(t.tripId) === String(selectedTripId)).sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime());
 
     const handleCreateOrUpdateTrip = (tripData: any) => {
         if (editingTripId && onUpdateTrip) {

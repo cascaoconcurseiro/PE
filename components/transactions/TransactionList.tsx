@@ -1,6 +1,6 @@
 import React from 'react';
 import { Transaction, TransactionType, Account, FamilyMember, AccountType } from '../../types';
-import { formatCurrency, getCategoryIcon } from '../../utils';
+import { formatCurrency, getCategoryIcon, parseDate } from '../../utils';
 import { RefreshCcw, ScanLine, Plus, Plane, Users, Trash2, ArrowRight, User, CreditCard, Wallet, ArrowDownLeft, ArrowUpRight, Clock } from 'lucide-react';
 import { Button } from '../ui/Button';
 
@@ -55,10 +55,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 <div key={dateStr}>
                     <div className="flex items-center gap-3 mb-3 px-2">
                         <div className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase px-2 py-1 rounded-md tracking-wider">
-                            {new Date(dateStr).getDate()}
+                            {parseDate(dateStr).getDate()}
                         </div>
                         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex-1">
-                            {new Date(dateStr).toLocaleDateString('pt-BR', { weekday: 'long', month: 'long' })}
+                            {parseDate(dateStr).toLocaleDateString('pt-BR', { weekday: 'long', month: 'long' })}
                         </span>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">

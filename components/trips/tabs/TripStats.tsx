@@ -2,7 +2,7 @@ import React from 'react';
 import { Trip, Transaction, TransactionType } from '../../../types';
 import { Card } from '../../ui/Card';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
-import { formatCurrency } from '../../../utils';
+import { formatCurrency, parseDate } from '../../../utils';
 
 interface TripStatsProps {
     trip: Trip;
@@ -11,7 +11,7 @@ interface TripStatsProps {
 
 export const TripStats: React.FC<TripStatsProps> = ({ trip, transactions }) => {
     const totalSpent = transactions.reduce((acc, t) => acc + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0);
-    const duration = Math.max(1, (new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 3600 * 24));
+    const duration = Math.max(1, (parseDate(trip.endDate).getTime() - parseDate(trip.startDate).getTime()) / (1000 * 3600 * 24));
 
     const expensesByCategory = transactions.reduce((acc, t) => {
         if (t.type === TransactionType.EXPENSE) {

@@ -3,7 +3,7 @@ import { Trip, Transaction, TransactionType } from '../../../types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Target, Pencil, X, Save, Sparkles, Calculator, ArrowRight } from 'lucide-react';
-import { formatCurrency, getCategoryIcon } from '../../../utils';
+import { formatCurrency, getCategoryIcon, parseDate } from '../../../utils';
 import { calculateTripDebts } from '../../../services/balanceEngine';
 
 interface TripOverviewProps {
@@ -133,7 +133,7 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
                                         <div>
                                             <p className="text-sm font-bold text-slate-900 dark:text-white">{t.description}</p>
                                             <div className="flex gap-2 text-xs text-slate-500 dark:text-slate-400">
-                                                <span>{new Date(t.date).toLocaleDateString('pt-BR')}</span>
+                                                <span>{parseDate(t.date).toLocaleDateString('pt-BR')}</span>
                                                 <span>•</span>
                                                 <span>{t.category}</span>
                                             </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Trip } from '../../types';
 import { Button } from '../ui/Button';
 import { Plane, Plus, Calendar } from 'lucide-react';
+import { parseDate } from '../../utils';
 
 interface TripListProps {
     trips: Trip[];
@@ -61,7 +62,7 @@ export const TripList: React.FC<TripListProps> = ({ trips, onTripClick, onCreate
                                 <h3 className="font-bold text-lg drop-shadow-md">{trip.name}</h3>
                                 <p className="text-xs text-slate-300 flex items-center mt-1">
                                     <Calendar className="w-3 h-3 mr-1" />
-                                    {new Date(trip.startDate).toLocaleDateString('pt-BR')}
+                                    {parseDate(trip.startDate).toLocaleDateString('pt-BR')}
                                 </p>
                             </div>
                         </div>

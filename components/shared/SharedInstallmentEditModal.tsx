@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, Account, FamilyMember } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { formatCurrency, round2dec } from '../../utils';
+import { formatCurrency, parseDate, round2dec } from '../../utils';
 import { Calendar, Edit3, FastForward, Check, AlertCircle, DollarSign, Hash } from 'lucide-react';
 
 interface SharedInstallmentEditModalProps {
@@ -36,14 +36,14 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
         if (!transaction.seriesId) return [transaction];
         return allTransactions
             .filter(t => t.seriesId === transaction.seriesId && !t.deleted)
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            .sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime());
     }, [transaction, allTransactions]);
 
     // Future installments (for anticipation)
     const futureInstallments = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        return seriesInstallments.filter(t => new Date(t.date) > today);
+        return seriesInstallments.filter(t => parseDate(t.date) > today);
     }, [seriesInstallments]);
 
     const totalOriginalValue = transaction.originalAmount || (transaction.amount * (transaction.totalInstallments || 1));
@@ -250,7 +250,7 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
                                                 Parcela {t.currentInstallment}/{t.totalInstallments}
                                             </p>
                                             <p className={`text-xs ${isSelected ? 'text-purple-200' : 'text-slate-500'}`}>
-                                                {new Date(t.date).toLocaleDateString('pt-BR')}
+                                                {parseDate(t.date).toLocaleDateString('pt-BR')}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -298,7 +298,7 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
                                             {t.currentInstallment}/{t.totalInstallments}
                                         </span>
                                         <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">
-                                            {new Date(t.date).toLocaleDateString('pt-BR')}
+                                            {parseDate(t.date).toLocaleDateString('pt-BR')}
                                         </span>
                                     </div>
                                     <span className="text-sm font-bold text-slate-900 dark:text-white">{formatCurrency(t.amount)}</span>

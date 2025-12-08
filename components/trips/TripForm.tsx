@@ -4,6 +4,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { ArrowLeft, Calendar, Users, X, Clock, Globe, ChevronDown, Check, AlertCircle } from 'lucide-react';
 import { AVAILABLE_CURRENCIES } from '../../services/currencyService';
+import { parseDate } from '../../utils';
 
 interface TripFormProps {
     initialData?: Trip | null;
@@ -23,8 +24,8 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
 
     const calculateDuration = () => {
         if (!startDate || !endDate) return 0;
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        const start = parseDate(startDate);
+        const end = parseDate(endDate);
         const diffTime = end.getTime() - start.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays >= 0 ? diffDays + 1 : 0;

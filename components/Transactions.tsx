@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionType, Account, Trip, FamilyMember, CustomCategory } from '../types';
+import { parseDate } from '../utils';
 
 import { TransactionList } from './transactions/TransactionList';
 import { TransactionSummary } from './transactions/TransactionSummary';
@@ -90,7 +91,6 @@ export const Transactions: React.FC<TransactionsProps> = ({
         if (initialEditId && transactions.length > 0) {
             const txToEdit = transactions.find(t => t.id === initialEditId);
             if (txToEdit) {
-                console.log('✅ Carregando transação para edição:', txToEdit.description);
                 setEditingTransaction(txToEdit);
                 setFormMode(txToEdit.type);
                 if (onClearEditId) onClearEditId();
@@ -120,7 +120,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 const futureTxs = transactions.filter(t =>
                     (t.seriesId === original.seriesId || (t.isRecurring && t.description === original.description)) &&
                     t.id !== original.id &&
-                    new Date(t.date) > new Date(original.date)
+                    parseDate(t.date) > parseDate(original.date)
                 );
                 futureTxs.forEach(ft => {
                     onUpdateTransaction({

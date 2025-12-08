@@ -3,7 +3,7 @@ import { Trip, Transaction, TransactionType } from '../../types';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { ArrowLeft, Download, Printer, Pencil, Trash2, Plane, Users, Calendar } from 'lucide-react';
-import { formatCurrency } from '../../utils';
+import { formatCurrency, parseDate } from '../../utils';
 import { exportToCSV, prepareTripExpensesForExport, printComponent } from '../../services/exportUtils';
 
 import { TripOverview } from './tabs/TripOverview';
@@ -81,7 +81,7 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, onBa
                         </div>
                         <div className="flex items-center space-x-2 text-violet-200 text-xs print:text-black">
                             <Calendar className="w-3 h-3" />
-                            <span>{new Date(trip.startDate).toLocaleDateString('pt-BR')} - {new Date(trip.endDate).toLocaleDateString('pt-BR')}</span>
+                            <span>{parseDate(trip.startDate).toLocaleDateString('pt-BR')} - {parseDate(trip.endDate).toLocaleDateString('pt-BR')}</span>
                         </div>
                     </div>
                 </div>

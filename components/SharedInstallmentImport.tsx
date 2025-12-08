@@ -81,10 +81,8 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             return;
         }
 
-        // Fix timezone offset for date input
-        const baseDate = new Date(date);
-        const userDate = new Date(baseDate.valueOf() + baseDate.getTimezoneOffset() * 60 * 1000);
-        const dateStr = userDate.toISOString().split('T')[0];
+        // Date is already YYYY-MM-DD from input
+        const dateStr = date;
 
         // Build SharedWith for the TOTAL amount (service will split per installment)
         const sharePerPerson = round2dec(totalAmount / participantIds.length);
