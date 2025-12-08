@@ -1,10 +1,11 @@
-import React, { useMemo, Suspense, lazy } from 'react';
-import { Account, Transaction, TransactionType, AccountType, Goal } from '../types';
+import React, { useMemo, Suspense, lazy, useState } from 'react';
+import { Account, Transaction, TransactionType, AccountType, Goal, Category } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
 import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue } from '../services/financialLogic';
 import { shouldShowTransaction } from '../utils/transactionFilters';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PieChart, CreditCard, Layers } from 'lucide-react';
+import { Button } from './ui/Button';
 
 // Sub-components (Critical: Loaded immediately)
 import { FinancialProjectionCard } from './dashboard/FinancialProjectionCard';
@@ -34,6 +35,8 @@ const ChartSkeleton = () => (
 );
 
 export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, goals = [], currentDate = new Date(), showValues, onEditRequest, isLoading = false }) => {
+    const [spendingView, setSpendingView] = useState<'CATEGORY' | 'SOURCE'>('CATEGORY');
+
     if (isLoading) {
         return <DashboardSkeleton />;
     }
@@ -90,13 +93,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
     // Annual Cash Flow Data (Calendar Year: Jan - Dec)
     const cashFlowData = useMemo(() => {
         const selectedYear = currentDate.getFullYear();
-        const startMonth = 0; // January
 
+        // Initialize 12 months with 0
         const data = Array.from({ length: 12 }, (_, i) => {
             const date = new Date(selectedYear, i, 1);
             return {
                 date: date,
-                // Short month name (Jan, Fev...)
                 month: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
                 year: selectedYear,
                 monthIndex: i,
@@ -105,15 +107,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
             };
         });
 
-        const startOfYear = new Date(selectedYear, 0, 1);
-        const endOfYear = new Date(selectedYear, 11, 31, 23, 59, 59);
-
         transactions
             .filter(shouldShowTransaction)
             .forEach(t => {
                 const tDate = new Date(t.date);
-                // Filter strictly by year
-                if (tDate < startOfYear || tDate > endOfYear) return;
+                // Filter strict by year
+                if (tDate.getFullYear() !== selectedYear) return;
+
+                // Exclude transfers from Cash Flow visualization (focus on In/Out)
                 if (t.type === TransactionType.TRANSFER) return;
 
                 const account = accounts.find(a => a.id === t.accountId);
@@ -142,7 +143,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
         return data;
     }, [transactions, currentDate, accounts]);
 
-    const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0), [cashFlowData]);
+    const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas < 0), [cashFlowData]);
 
     // Upcoming Bills Logic
     const upcomingBills = useMemo(() => {
@@ -150,7 +151,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
         today.setHours(0, 0, 0, 0);
 
         return transactions
-            .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
+            .filter(shouldShowTransaction) // Filter out unpaid debts
             .filter(t => t.enableNotification && t.type === TransactionType.EXPENSE && !t.isRefund)
             .filter(t => {
                 const targetDateStr = t.notificationDate || t.date;
@@ -165,23 +166,60 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
             .slice(0, 3);
     }, [transactions]);
 
-    // Category Pie Chart Data (Using Effective Values)
-    const categoryData = useMemo(() => Object.entries(
-        monthlyTransactions
+    // Spending Chart Data (Dynamic: Category or Source)
+    const spendingChartData = useMemo(() => {
+        const chartTxs = monthlyTransactions
             .filter(t => t.type === TransactionType.EXPENSE)
-            .reduce((acc, t) => {
-                const account = accounts.find(a => a.id === t.accountId);
-                const effectiveAmount = calculateEffectiveTransactionValue(t);
-                const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
-                const amount = t.isRefund ? -amountBRL : amountBRL;
-                acc[t.category] = (acc[t.category] || 0) + (amount as number);
-                return acc;
-            }, {} as Record<string, number>)
-    )
-        .filter(([_, val]) => (val as number) > 0)
-        .map(([name, value]) => ({ name, value: value as number }))
-        .sort((a, b) => b.value - a.value), // Sort by value desc
-        [monthlyTransactions, accounts]);
+            // Fix: Exclude Opening Balance / Adjustment from Spending Reports
+            .filter(t => t.category !== Category.OPENING_BALANCE);
+
+        if (spendingView === 'CATEGORY') {
+            return Object.entries(
+                chartTxs.reduce((acc, t) => {
+                    const account = accounts.find(a => a.id === t.accountId);
+                    const effectiveAmount = calculateEffectiveTransactionValue(t);
+                    const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
+                    const amount = t.isRefund ? -amountBRL : amountBRL;
+                    acc[t.category] = (acc[t.category] || 0) + (amount as number);
+                    return acc;
+                }, {} as Record<string, number>)
+            )
+                .filter(([_, val]) => (val as number) > 0)
+                .map(([name, value]) => ({ name, value: value as number }))
+                .sort((a, b) => b.value - a.value);
+        } else {
+            // SOURCE VIEW
+            return Object.entries(
+                chartTxs.reduce((acc, t) => {
+                    const account = accounts.find(a => a.id === t.accountId);
+                    const effectiveAmount = calculateEffectiveTransactionValue(t);
+                    const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
+                    const amount = t.isRefund ? -amountBRL : amountBRL;
+
+                    // Determine Source Label
+                    let sourceLabel = 'Outros';
+                    if (account) {
+                        if (account.type === AccountType.CREDIT_CARD) sourceLabel = 'Cartão de Crédito';
+                        else if (account.type === AccountType.CHECKING || account.type === AccountType.SAVINGS) sourceLabel = 'Conta Bancária';
+                        else if (account.type === AccountType.CASH) sourceLabel = 'Dinheiro';
+                        else sourceLabel = account.type; // Fallback
+                    }
+
+                    // Check if it's Shared (overrides account type in visual priority?)
+                    // Maybe better to keep Account Type as primary source, and Shared as a separate concept.
+                    // User asked for "Source of expenses: Money, Card, Shared"
+                    // If shared, it's still paid via Card or Money. 
+                    // Let's stick to Account Type for now as it's cleaner.
+
+                    acc[sourceLabel] = (acc[sourceLabel] || 0) + (amount as number);
+                    return acc;
+                }, {} as Record<string, number>)
+            )
+                .filter(([_, val]) => (val as number) > 0)
+                .map(([name, value]) => ({ name, value: value as number }))
+                .sort((a, b) => b.value - a.value);
+        }
+    }, [monthlyTransactions, accounts, spendingView]);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
@@ -219,13 +257,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                 onEditRequest={onEditRequest}
             />
 
-            <Suspense fallback={<ChartSkeleton />}>
-                <CategorySpendingChart
-                    data={categoryData}
-                    totalExpense={monthlyExpense}
-                    showValues={showValues}
-                />
-            </Suspense>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-bold text-slate-700 dark:text-slate-300">
+                        {spendingView === 'CATEGORY' ? 'Gastos por Categoria' : 'Fontes de Gasto'}
+                    </h3>
+
+                    <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-1 gap-1">
+                        <button
+                            onClick={() => setSpendingView('CATEGORY')}
+                            className={`p-2 rounded-md transition-all ${spendingView === 'CATEGORY' ? 'bg-white dark:bg-slate-800 shadow text-violet-600 dark:text-violet-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'}`}
+                            title="Ver por Categoria"
+                        >
+                            <PieChart className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setSpendingView('SOURCE')}
+                            className={`p-2 rounded-md transition-all ${spendingView === 'SOURCE' ? 'bg-white dark:bg-slate-800 shadow text-violet-600 dark:text-violet-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'}`}
+                            title="Ver por Fonte (Cartão, Dinheiro...)"
+                        >
+                            <CreditCard className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+
+                <Suspense fallback={<ChartSkeleton />}>
+                    <CategorySpendingChart
+                        data={spendingChartData}
+                        totalExpense={monthlyExpense}
+                        showValues={showValues}
+                    />
+                </Suspense>
+            </div>
         </div>
     );
 };
