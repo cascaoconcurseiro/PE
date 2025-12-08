@@ -23,13 +23,22 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
 
     // Determine the closing date for the CURRENT view's cycle
     // Logic: If we are viewing 'May 10th' and closing is '5th', we are in the cycle that ends 'June 5th'.
-    // If we are viewing 'May 1st' and closing is '5th', we are in the cycle that ends 'May 5th'.
+
+    // UX FIX: If Closing Day is early (e.g. 1st-5th), selecting "May 1st" usually implies wanting to see May's spending.
+    // Standard logic would give "May 1st" closing (which is April's spending).
+    // We force a shift forward if both days are small to show the "Spending Month" (May 2 - Jun 1)
 
     let closingDate: Date;
+    const isEarlyClosing = closingDay <= 5;
+    const isEarlyRef = currentDay <= 5;
 
     // If the reference day is before/on closing day, this cycle ends in the current month
-    if (currentDay <= closingDay) {
+    // UNLESS it's an early closing day context, then we prefer the next month
+    if (currentDay <= closingDay && !isEarlyClosing) {
         closingDate = new Date(year, month, closingDay);
+    } else if (currentDay <= closingDay && isEarlyClosing) {
+        // Force shift to next month to show meaningful data for "Dec 1st" selection on "Closing 1st"
+        closingDate = new Date(year, month + 1, closingDay);
     } else {
         // If reference day is after closing day, this cycle ends in the next month
         closingDate = new Date(year, month + 1, closingDay);
