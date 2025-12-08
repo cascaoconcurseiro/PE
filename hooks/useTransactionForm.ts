@@ -102,6 +102,21 @@ export const useTransactionForm = ({
     const isIncome = formMode === TransactionType.INCOME;
     const isTransfer = formMode === TransactionType.TRANSFER;
 
+    // Force Expense mode if Credit Card, or switch Account if Income/Transfer
+    useEffect(() => {
+        if (selectedAccountObj?.type === AccountType.CREDIT_CARD) {
+            if (formMode === TransactionType.INCOME || formMode === TransactionType.TRANSFER) {
+                // If we are in restricted mode but have CC, switch account
+                const safeAccount = accounts.find(a => a.type !== AccountType.CREDIT_CARD);
+                if (safeAccount) {
+                    setAccountId(safeAccount.id);
+                } else {
+                    setAccountId('');
+                }
+            }
+        }
+    }, [formMode, selectedAccountObj]);
+
     // Load Data
     useEffect(() => {
         if (initialData) {
