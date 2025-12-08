@@ -17,14 +17,14 @@ interface CreditCardDetailProps {
     transactions: Transaction[];
     currentDate: Date;
     showValues: boolean;
-    onInvoiceDateChange: (date: Date) => void;
+
     onAction: (type: ActionType, amount?: string) => void;
     onAnticipateInstallments: (tx: Transaction) => void; // New prop for anticipation
     onImportBills: () => void;
 }
 
 export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
-    account, transactions, currentDate, showValues, onInvoiceDateChange, onAction, onAnticipateInstallments, onImportBills
+    account, transactions, currentDate, showValues, onAction, onAnticipateInstallments, onImportBills
 }) => {
     const { invoiceTotal, transactions: invoiceTxs, status, daysToClose, closingDate, dueDate } = getInvoiceData(account, transactions, currentDate);
     const limit = account.limit || 0;
@@ -32,13 +32,7 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     const available = limit - committedBalance;
     const percentageUsed = limit > 0 ? Math.min((committedBalance / limit) * 100, 100) : 0;
 
-    // Helper to safely navigate months without date overflow bugs (e.g. 31 Jan -> Feb)
-    const changeMonth = (direction: 'prev' | 'next') => {
-        const d = new Date(currentDate);
-        d.setDate(15); // Safe middle of month
-        d.setMonth(d.getMonth() + (direction === 'next' ? 1 : -1));
-        onInvoiceDateChange(d);
-    };
+
 
     return (
         <div className="space-y-6">

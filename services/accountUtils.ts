@@ -115,9 +115,26 @@ export const getCommittedBalance = (account: Account, transactions: Transaction[
     return totalDebt + totalPayments + (account.initialBalance || 0);
 };
 
-export const getBankExtract = (accountId: string, transactions: Transaction[]) => {
+export const getBankExtract = (accountId: string, transactions: Transaction[], referenceDate?: Date) => {
     // Filter out deleted transactions and unpaid debts
-    return transactions
-        .filter(t => shouldShowTransaction(t) && t.accountId === accountId)
-        .sort((a, b) => b.date.localeCompare(a.date));
+    let txs = transactions
+        .filter(t => shouldShowTransaction(t) && t.accountId === accountId);
+
+    if (referenceDate) {
+        // Filter by month/year of referenceDate
+        const targetMonth = referenceDate.getMonth();
+        const targetYear = referenceDate.getFullYear();
+
+        txs = txs.filter(t => {
+            const tDate = new Date(t.date);
+            // Use local date parts to match user expectation (avoid timezone shifts)
+            // Ideally we should use ISO strings or a utility like isSameMonth
+            // But here raw date parts usually work since inputs are YYYY-MM-DD
+            // Let's use string checks for safety against timezone shifts
+            const [y, m] = t.date.split('-').map(Number);
+            return y === targetYear && (m - 1) === targetMonth; // m is 1-indexed in split
+        });
+    }
+
+    return txs.sort((a, b) => b.date.localeCompare(a.date));
 };

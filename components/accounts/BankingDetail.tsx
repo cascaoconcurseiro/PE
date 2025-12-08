@@ -15,13 +15,14 @@ interface BankingDetailProps {
     account: Account;
     transactions: Transaction[];
     showValues: boolean;
+    currentDate: Date;
     onAction: (type: ActionType) => void;
 }
 
-export const BankingDetail: React.FC<BankingDetailProps> = ({ 
-    account, transactions, showValues, onAction 
+export const BankingDetail: React.FC<BankingDetailProps> = ({
+    account, transactions, showValues, currentDate, onAction
 }) => {
-    const extractTxs = getBankExtract(account.id, transactions);
+    const extractTxs = getBankExtract(account.id, transactions, currentDate);
     const income = extractTxs.filter(t => t.type === TransactionType.INCOME).reduce((a, b) => a + (b.isRefund ? -b.amount : b.amount), 0);
     const expense = extractTxs.filter(t => t.type === TransactionType.EXPENSE).reduce((a, b) => a + (b.isRefund ? -b.amount : b.amount), 0);
 
@@ -59,7 +60,7 @@ export const BankingDetail: React.FC<BankingDetailProps> = ({
             <div>
                 <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3 px-2">Extrato Detalhado</h3>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">
-                    {extractTxs.length === 0 ? <div className="p-8 text-center text-slate-500 dark:text-slate-400"><p className="text-sm">Nenhuma movimentação.</p></div> : 
+                    {extractTxs.length === 0 ? <div className="p-8 text-center text-slate-500 dark:text-slate-400"><p className="text-sm">Nenhuma movimentação.</p></div> :
                         extractTxs.map(t => {
                             const CatIcon = getCategoryIcon(t.category);
                             const isPositive = (t.type === TransactionType.INCOME && !t.isRefund) || (t.type === TransactionType.EXPENSE && t.isRefund);

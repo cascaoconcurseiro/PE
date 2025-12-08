@@ -48,11 +48,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
         currentDate
     });
 
-    const [invoiceDate, setInvoiceDate] = useState(currentDate);
 
-    useEffect(() => {
-        if (!selectedAccount) setInvoiceDate(currentDate);
-    }, [currentDate, selectedAccount]);
 
     const ofxInputRef = useRef<HTMLInputElement>(null);
     const [importModal, setImportModal] = useState<{ isOpen: boolean, transactions: OFXTransaction[] }>({ isOpen: false, transactions: [] });
@@ -177,9 +173,9 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                 </div>
 
                 {selectedAccount.type === AccountType.CREDIT_CARD ? (
-                    <CreditCardDetail account={selectedAccount} transactions={transactions} currentDate={invoiceDate} showValues={showValues} onInvoiceDateChange={setInvoiceDate} onAction={(type, amount) => openActionModal(type, amount)} onAnticipateInstallments={handleAnticipateRequest} onImportBills={() => setImportBillModal({ isOpen: true, account: selectedAccount })} />
+                    <CreditCardDetail account={selectedAccount} transactions={transactions} currentDate={currentDate} showValues={showValues} onAction={(type, amount) => openActionModal(type, amount)} onAnticipateInstallments={handleAnticipateRequest} onImportBills={() => setImportBillModal({ isOpen: true, account: selectedAccount })} />
                 ) : (
-                    <BankingDetail account={selectedAccount} transactions={transactions} showValues={showValues} onAction={(type) => openActionModal(type)} />
+                    <BankingDetail account={selectedAccount} transactions={transactions} showValues={showValues} currentDate={currentDate} onAction={(type) => openActionModal(type)} />
                 )}
 
                 <ActionModal isOpen={actionModal.isOpen} type={actionModal.type} account={selectedAccount} accounts={accounts} initialAmount={actionModal.amount} onClose={closeActionModal} onConfirm={handleActionSubmit} />
