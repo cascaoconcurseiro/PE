@@ -25,6 +25,7 @@ interface DashboardProps {
     currentDate?: Date;
     showValues: boolean;
     onEditRequest?: (id: string) => void;
+    onNotificationPay?: (id: string) => void;
     isLoading?: boolean;
 }
 
@@ -34,7 +35,7 @@ const ChartSkeleton = () => (
     </div>
 );
 
-export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, goals = [], currentDate = new Date(), showValues, onEditRequest, isLoading = false }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, goals = [], currentDate = new Date(), showValues, onEditRequest, onNotificationPay, isLoading = false }) => {
     const [spendingView, setSpendingView] = useState<'CATEGORY' | 'SOURCE'>('CATEGORY');
 
 

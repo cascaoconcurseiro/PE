@@ -45,6 +45,30 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
                     </div>
                 )}
             </div>
-        </Card>
+
+            {/* Annual Summary Footer */}
+            {
+                hasData && (
+                    <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-between gap-4 text-xs sm:text-sm">
+                        <div className="text-emerald-600 dark:text-emerald-400">
+                            <span className="block text-[10px] uppercase font-bold text-slate-400">Entradas</span>
+                            <span className="font-bold">{formatCurrency(data.reduce((acc, curr) => acc + (curr.Receitas || 0), 0))}</span>
+                        </div>
+                        <div className="text-red-600 dark:text-red-400">
+                            <span className="block text-[10px] uppercase font-bold text-slate-400">Saídas</span>
+                            <span className="font-bold">{formatCurrency(data.reduce((acc, curr) => acc + (Math.abs(curr.Despesas) || 0), 0))}</span>
+                        </div>
+                        <div className="text-slate-700 dark:text-slate-300">
+                            <span className="block text-[10px] uppercase font-bold text-slate-400">Saldo Ano</span>
+                            <span className="font-bold">
+                                {formatCurrency(
+                                    data.reduce((acc, curr) => acc + (curr.Receitas || 0) + (curr.Despesas || 0), 0) // Despesas are negative
+                                )}
+                            </span>
+                        </div>
+                    </div>
+                )
+            }
+        </Card >
     );
 };

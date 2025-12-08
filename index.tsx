@@ -200,6 +200,28 @@ const App = () => {
         }
     }, [transactions, handlers]);
 
+    const handleNotificationPay = useCallback((id: string) => {
+        if (!transactions) return;
+        const tx = transactions.find(t => t.id === id);
+        if (!tx) return;
+
+        const today = new Date();
+        const txDate = new Date(tx.date);
+
+        // If it's a future transaction, bring it to today (Pay Now)
+        // Otherwise keep original date
+        const newDate = txDate > today ? today.toISOString().split('T')[0] : tx.date;
+
+        handlers.handleUpdateTransaction({
+            ...tx,
+            enableNotification: false, // Turn off alert
+            date: newDate,
+            updatedAt: new Date().toISOString()
+        });
+
+        // Feedback could be added here (toast)
+    }, [transactions, handlers]);
+
     const handleLogout = useCallback(async () => {
         await supabase.auth.signOut();
         await handlers.handleLogout();
@@ -244,7 +266,7 @@ const App = () => {
     const renderContent = () => {
         switch (activeView) {
             case View.DASHBOARD:
-                return <Dashboard accounts={calculatedAccounts} transactions={transactions} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={handleNotificationClick} isLoading={isDataLoading} />;
+                return <Dashboard accounts={calculatedAccounts} transactions={transactions} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={handleNotificationClick} onNotificationPay={handleNotificationPay} isLoading={isDataLoading} />;
             case View.ACCOUNTS:
                 return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} />;
             case View.TRANSACTIONS:
@@ -276,6 +298,7 @@ const App = () => {
             setActiveView={handleViewChange}
             user={storedUser || { id: 'loading', name: 'Carregando...', email: '' }}
             onLogout={handleLogout}
+            onNotificationPay={handleNotificationPay}
             showValues={showValues}
             togglePrivacy={togglePrivacy}
             currentDate={currentDate}

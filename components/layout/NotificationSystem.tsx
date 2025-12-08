@@ -6,9 +6,10 @@ interface NotificationSystemProps {
     notifications: Transaction[];
     onNotificationClick: (id: string) => void;
     onNotificationDismiss: (id: string) => void;
+    onNotificationPay?: (id: string) => void;
 }
 
-export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifications, onNotificationClick, onNotificationDismiss }) => {
+export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifications, onNotificationClick, onNotificationDismiss, onNotificationPay }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -73,7 +74,15 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
                                                     </p>
                                                     <div className="flex gap-2">
                                                         <button
-                                                            onClick={() => { onNotificationClick(n.id); setIsOpen(false); }}
+                                                            onClick={() => {
+                                                                if (isOverdue && onNotificationPay) {
+                                                                    onNotificationPay(n.id);
+                                                                    setIsOpen(false);
+                                                                } else {
+                                                                    onNotificationClick(n.id);
+                                                                    setIsOpen(false);
+                                                                }
+                                                            }}
                                                             className={`text-[10px] font-bold px-2 py-1 rounded transition-colors ${isOverdue
                                                                 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40'
                                                                 : 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'
