@@ -23,6 +23,16 @@ export const useAppLogic = ({ accounts, transactions, assets, isMigrating, handl
     const hasCheckedConsistency = useRef(false);
     const hasCreatedSnapshot = useRef(false);
 
+    // Reset refs when user logs out (accounts become empty)
+    useEffect(() => {
+        if (!accounts || accounts.length === 0) {
+            hasCheckedRecurrence.current = false;
+            hasCheckedReminders.current = false;
+            hasCheckedConsistency.current = false;
+            hasCreatedSnapshot.current = false;
+        }
+    }, [accounts?.length]);
+
     // --- DATA CONSISTENCY CHECK ---
     useEffect(() => {
         if (isMigrating || !accounts || !transactions || hasCheckedConsistency.current) return;

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Account, Transaction, TransactionType } from '../../types';
 import { Button } from '../ui/Button';
-import { ArrowLeft, ArrowRight, ArrowDownLeft, Calendar, Lock, Smartphone, ShoppingBag, Clock, FileUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowDownLeft, Calendar, Lock, Smartphone, ShoppingBag, Clock, FileUp } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../../utils';
 import { getInvoiceData, getCommittedBalance } from '../../services/accountUtils';
 import { ActionType } from './ActionModal';
@@ -26,21 +26,8 @@ interface CreditCardDetailProps {
 export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     account, transactions, currentDate, showValues, onAction, onAnticipateInstallments, onImportBills
 }) => {
-    // Local state for invoice navigation (independent of global dashboard date if needed)
-    const [selectedDate, setSelectedDate] = useState(currentDate);
-
-    // Sync when prop changes
-    useEffect(() => {
-        setSelectedDate(currentDate);
-    }, [currentDate]);
-
-    const changeMonth = (offset: number) => {
-        const newDate = new Date(selectedDate);
-        newDate.setMonth(newDate.getMonth() + offset);
-        setSelectedDate(newDate);
-    };
-
-    const { invoiceTotal, transactions: invoiceTxs, status, daysToClose, closingDate, dueDate } = getInvoiceData(account, transactions, selectedDate);
+    // Use currentDate from topbar directly (no local state)
+    const { invoiceTotal, transactions: invoiceTxs, status, daysToClose, closingDate, dueDate } = getInvoiceData(account, transactions, currentDate);
 
     // Calculate start date for display (Closing Date - 1 month + 1 day)
     const startDate = new Date(closingDate);
@@ -57,14 +44,12 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Invoice Navigation Header */}
-            <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                <Button variant="ghost" size="sm" onClick={() => changeMonth(-1)}><ChevronLeft className="w-5 h-5" /></Button>
+            {/* Invoice Header - Removed navigation, follows topbar date */}
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="text-center">
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white capitalize">Fatura de {monthName}</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Ciclo: {rangeStr}</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => changeMonth(1)}><ChevronRight className="w-5 h-5" /></Button>
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative print:shadow-none print:border">

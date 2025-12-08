@@ -179,38 +179,17 @@ export const useDataStore = () => {
             const endOfMonth = `${endOfMonthDate.getFullYear()}-${String(endOfMonthDate.getMonth() + 1).padStart(2, '0')}-${String(endOfMonthDate.getDate()).padStart(2, '0')}`;
 
             // Parallel Request for Critical Data
-            const [accs, serverBalances, recentTxs] = await Promise.all([
+            // NOTE: RPC get_account_totals removed - using balance engine instead
+            const [accs, recentTxs] = await Promise.all([
                 supabaseService.getAccounts(),
-                supabaseService.getAccountBalances(),
                 supabaseService.getTransactions(startOfMonth) // Fetch only from start of this month onwards initially
             ]);
 
-            // reconcile accounts with server balances immediately
-            // Note: If RPC returns empty (function doesn't exist), we use account.balance from DB
-            // The balance engine will recalculate correctly once full history loads
-            const safeServerBalances = Array.isArray(serverBalances) ? serverBalances : [];
-            const hasRpcData = safeServerBalances.length > 0;
-
-            if (!hasRpcData && accs.length > 0) {
-                console.warn("⚠️ RPC get_account_totals não disponível. Usando saldos do banco de dados.");
-            }
-
-            const initialAccountsState = accs.map(account => {
-                if (hasRpcData) {
-                    const rpcBalanceObj = safeServerBalances.find((b: any) => b.account_id === account.id);
-                    if (rpcBalanceObj) {
-                        return {
-                            ...account,
-                            balance: Number(rpcBalanceObj.calculated_balance)
-                        };
-                    }
-                }
-                // Fallback: Use stored balance or initialBalance (will be recalculated by balance engine later)
-                return {
-                    ...account,
-                    balance: account.balance ?? account.initialBalance ?? 0
-                };
-            });
+            // Use stored balance from DB (will be recalculated by balance engine later)
+            const initialAccountsState = accs.map(account => ({
+                ...account,
+                balance: account.balance ?? account.initialBalance ?? 0
+            }));
 
             // Update State IMMEDIATE (First Paint)
             setAccounts(initialAccountsState);
@@ -356,7 +335,24 @@ export const useDataStore = () => {
 
     const handleAnticipateInstallments = async (ids: string[], targetDate: string, targetAccountId?: string) => {
         await performOperation(async () => {
-            const txsToUpdate = transactions.filter(t => ids.includes(t.id)).map(t => ({
+            // ✅ VALIDAÇÃO: Verificar se as parcelas existem
+            const txsToUpdate = transactions.filter(t => ids.includes(t.id));
+            
+            if (txsToUpdate.length === 0) {
+                throw new Error('Nenhuma parcela encontrada para antecipar');
+            }
+
+            // ✅ VALIDAÇÃO: Verificar se a data é válida
+            if (!targetDate || targetDate.trim() === '') {
+                throw new Error('Data de antecipação inválida');
+            }
+
+            // ✅ VALIDAÇÃO: Verificar se a conta de destino existe (se fornecida)
+            if (targetAccountId && !accounts.find(a => a.id === targetAccountId)) {
+                throw new Error('Conta de destino não encontrada');
+            }
+
+            const updatedTxs = txsToUpdate.map(t => ({
                 ...t,
                 date: targetDate,
                 accountId: targetAccountId || t.accountId,
@@ -364,7 +360,7 @@ export const useDataStore = () => {
                 updatedAt: new Date().toISOString()
             }));
 
-            for (const tx of txsToUpdate) {
+            for (const tx of updatedTxs) {
                 await supabaseService.update('transactions', tx);
             }
         }, 'Parcelas antecipadas!');
@@ -387,6 +383,11 @@ export const useDataStore = () => {
         const accountId = crypto.randomUUID();
         const initialAmount = acc.initialBalance || 0;
 
+        // ✅ VALIDAÇÃO: Nome da conta obrigatório
+        if (!acc.name || acc.name.trim() === '') {
+            throw new Error('Nome da conta é obrigatório');
+        }
+
         // Create account with 0 initial balance to avoid double counting
         // The value is now represented by the transaction below
         const accountToCreate = {
@@ -400,20 +401,23 @@ export const useDataStore = () => {
 
         // Create transaction for initial balance if non-zero
         if (Math.abs(initialAmount) > 0) {
-            const now = new Date().toISOString();
+            const now = new Date();
             const isPositive = initialAmount >= 0;
+
+            // FIX: Format date locally to avoid timezone issues
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
             const transaction = {
                 id: crypto.randomUUID(),
-                accountId: accountId,
+                accountId: accountId, // ✅ Validated: accountId is guaranteed to exist
                 amount: Math.abs(initialAmount),
-                date: now.split('T')[0], // YYYY-MM-DD
+                date: dateStr,
                 description: 'Saldo Inicial',
                 type: isPositive ? TransactionType.INCOME : TransactionType.EXPENSE,
                 category: Category.OPENING_BALANCE || Category.INCOME,
                 isSettled: true,
-                createdAt: now,
-                updatedAt: now
+                createdAt: now.toISOString(),
+                updatedAt: now.toISOString()
             };
 
             await supabaseService.create('transactions', transaction);

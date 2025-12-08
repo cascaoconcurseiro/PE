@@ -40,11 +40,18 @@ export const TripList: React.FC<TripListProps> = ({ trips, onTripClick, onCreate
                         className="group relative bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1"
                         onClick={() => onTripClick(trip.id)}
                     >
-                        <div className="h-40 bg-slate-200 relative overflow-hidden pointer-events-none">
-                            <img
-                                src={trip.imageUrl || `https://picsum.photos/seed/${trip.id}/500/300`}
-                                alt={trip.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        <div className="h-40 bg-gradient-to-br from-blue-400 to-purple-500 relative overflow-hidden pointer-events-none">
+                            {trip.imageUrl ? (
+                                <img
+                                    src={trip.imageUrl}
+                                    alt={trip.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold opacity-50">
+                                    {trip.name.charAt(0).toUpperCase()}
+                                </div>
+                            )}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-80" />
                             <span className="absolute top-3 right-3 bg-white/20 backdrop-blur-md px-2 py-1 rounded-md text-xs font-bold text-white shadow-sm border border-white/20">

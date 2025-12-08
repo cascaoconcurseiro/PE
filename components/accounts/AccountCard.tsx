@@ -38,7 +38,12 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
 
         return (
             <div onClick={() => onClick(account)} className="group relative w-full aspect-[1.586/1] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden text-white p-6 flex flex-col justify-between">
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                {/* Removed external texture image - CSP violation */}
+                <div className="absolute inset-0 opacity-10">
+                    <div className="absolute inset-0" style={{
+                        backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.03) 10px, rgba(255,255,255,.03) 20px)`
+                    }}></div>
+                </div>
                 <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
                 <div className="relative z-10 flex justify-between items-start"><h3 className="font-bold text-lg tracking-wider uppercase opacity-90">{account.name}</h3><CreditCard className="w-6 h-6 opacity-60" /></div>
                 <div className="relative z-10 flex justify-between items-end"><div><p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Fatura Atual</p><p className="font-mono font-bold text-lg tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(invoiceTotal, account.currency)}</PrivacyBlur></p></div><div className="flex flex-col items-end"><span className="text-[10px] font-bold opacity-60">{percentageUsed.toFixed(0)}% Limite</span></div></div>

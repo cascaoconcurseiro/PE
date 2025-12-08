@@ -191,7 +191,7 @@ export const supabaseService = {
     async softDeleteAccount(accountId: string) {
         const userId = await getUserId();
 
-        // 1. Mark all related transactions as deleted
+        // 1. Mark all transactions where this account is the SOURCE as deleted
         const { error: txError } = await supabase
             .from('transactions')
             .update({ deleted: true })
@@ -199,11 +199,23 @@ export const supabaseService = {
             .eq('user_id', userId);
 
         if (txError) {
-            console.error('Error deleting account transactions:', txError);
+            console.error('Error deleting account source transactions:', txError);
             throw txError;
         }
 
-        // 2. Mark the account itself as deleted
+        // 2. Mark all transactions where this account is the DESTINATION as deleted
+        const { error: txDestError } = await supabase
+            .from('transactions')
+            .update({ deleted: true })
+            .eq('destination_account_id', accountId)
+            .eq('user_id', userId);
+
+        if (txDestError) {
+            console.error('Error deleting account destination transactions:', txDestError);
+            throw txDestError;
+        }
+
+        // 3. Mark the account itself as deleted
         const { error: accError } = await supabase
             .from('accounts')
             .update({ deleted: true })

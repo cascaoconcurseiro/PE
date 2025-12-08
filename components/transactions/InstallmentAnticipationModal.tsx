@@ -23,7 +23,11 @@ export const InstallmentAnticipationModal: React.FC<InstallmentAnticipationModal
     onConfirm
 }) => {
     const [selectedCount, setSelectedCount] = useState(1);
-    const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+    // FIX: Format date locally to avoid timezone issues
+    const [paymentDate, setPaymentDate] = useState(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    });
     const [selectedAccountId, setSelectedAccountId] = useState(() => {
         // Default to original credit card or first non-credit account
         const originalAccount = accounts.find(a => a.id === transaction.accountId);
