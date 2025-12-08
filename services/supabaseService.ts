@@ -190,11 +190,30 @@ export const supabaseService = {
 
     async softDeleteAccount(accountId: string) {
         const userId = await getUserId();
-        const { error } = await supabase.rpc('soft_delete_account', {
-            p_account_id: accountId,
-            p_user_id: userId
-        });
-        if (error) throw error;
+
+        // 1. Mark all related transactions as deleted
+        const { error: txError } = await supabase
+            .from('transactions')
+            .update({ deleted: true })
+            .eq('account_id', accountId)
+            .eq('user_id', userId);
+
+        if (txError) {
+            console.error('Error deleting account transactions:', txError);
+            throw txError;
+        }
+
+        // 2. Mark the account itself as deleted
+        const { error: accError } = await supabase
+            .from('accounts')
+            .update({ deleted: true })
+            .eq('id', accountId)
+            .eq('user_id', userId);
+
+        if (accError) {
+            console.error('Error deleting account:', accError);
+            throw accError;
+        }
     },
 
     async bulkCreate(table: string, items: any[]) {
