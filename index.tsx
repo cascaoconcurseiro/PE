@@ -212,6 +212,8 @@ const App = () => {
     const changeMonth = useCallback((direction: 'prev' | 'next') => {
         setCurrentDate(prev => {
             const newDate = new Date(prev);
+            // Always snap to day 1 to avoid overflow (e.g. Jan 31 -> Feb -> Mar)
+            newDate.setDate(1);
             newDate.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
             return newDate;
         });
