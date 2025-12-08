@@ -51,34 +51,6 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                             <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-2 ${status === 'CLOSED' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'}`}>
                                 {status === 'CLOSED' ? 'Fatura Fechada' : 'Fatura Aberta'}
                             </div>
-                            <div className="flex items-center gap-2 mt-1 bg-slate-100 dark:bg-slate-700 rounded-full p-1">
-                                <Button variant="ghost" size="sm" onClick={() => changeMonth('prev')} className="h-8 w-8 p-0 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300">
-                                    <ArrowLeft className="w-4 h-4" />
-                                </Button>
-
-                                <select
-                                    className="bg-transparent text-sm font-bold text-slate-800 dark:text-white capitalize text-center outline-none appearance-none cursor-pointer min-w-[140px]"
-                                    value={currentDate.toISOString().slice(0, 7)}
-                                    onChange={(e) => {
-                                        const [y, m] = e.target.value.split('-').map(Number);
-                                        const newDate = new Date(y, m - 1, 1);
-                                        onInvoiceDateChange(newDate);
-                                    }}
-                                >
-                                    {Array.from({ length: 15 }).map((_, i) => {
-                                        const d = new Date();
-                                        d.setDate(15);
-                                        d.setMonth(d.getMonth() - 11 + i); // Last 11 months + current + next 3
-                                        const val = d.toISOString().slice(0, 7);
-                                        const label = d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-                                        return <option key={val} value={val} className="text-slate-900">{label}</option>;
-                                    })}
-                                </select>
-
-                                <Button variant="ghost" size="sm" onClick={() => changeMonth('next')} className="h-8 w-8 p-0 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300">
-                                    <ArrowRight className="w-4 h-4" />
-                                </Button>
-                            </div>
                             <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-2">
                                 {status === 'OPEN'
                                     ? `Fecha em ${daysToClose} dias (Dia ${account.closingDay})`

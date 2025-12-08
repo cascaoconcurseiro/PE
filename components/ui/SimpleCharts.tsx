@@ -163,3 +163,61 @@ export const SimplePieChart: React.FC<SimplePieChartProps> = ({ data, size = 200
         </div>
     );
 };
+
+interface DivergingBarChartProps {
+    data: { name: string; valueUp: number; valueDown: number }[];
+    height?: number;
+}
+
+export const DivergingBarChart: React.FC<DivergingBarChartProps> = ({ data, height = 250 }) => {
+    // Calculate max absolute value to determine scale
+    const allValues = data.flatMap(d => [d.valueUp, Math.abs(d.valueDown)]);
+    const maxValue = Math.max(...allValues, 100); // Minimum scale to avoid division by zero
+
+    return (
+        <div className="w-full relative" style={{ height: `${height}px` }}>
+            {/* Zero Axis Line */}
+            <div className="absolute left-0 right-0 top-1/2 h-px bg-slate-300 dark:bg-slate-600 z-0" />
+
+            <div className="flex items-center justify-between h-full relative z-10 px-2">
+                {data.map((item, index) => {
+                    // Heights as percentage of HALF the container (since 0 is in middle)
+                    // We use 45% to leave some padding
+                    const upHeight = (item.valueUp / maxValue) * 45;
+                    const downHeight = (Math.abs(item.valueDown) / maxValue) * 45;
+
+                    return (
+                        <div key={index} className="flex-1 flex flex-col items-center h-full group">
+                            {/* Upper Part (Positive/Green) */}
+                            <div className="flex-1 w-full flex flex-col justify-end items-center pb-0.5">
+                                <div className="text-[10px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity mb-1">
+                                    {item.valueUp > 0 ? item.valueUp.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : ''}
+                                </div>
+                                <div
+                                    className="w-3/5 sm:w-4/5 max-w-[24px] bg-emerald-500 rounded-t-sm transition-all duration-500 hover:bg-emerald-400"
+                                    style={{ height: `${upHeight}%`, minHeight: item.valueUp > 0 ? '2px' : '0' }}
+                                />
+                            </div>
+
+                            {/* Axis Label */}
+                            <div className="h-6 flex items-center justify-center">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{item.name}</span>
+                            </div>
+
+                            {/* Lower Part (Negative/Red) */}
+                            <div className="flex-1 w-full flex flex-col justify-start items-center pt-0.5">
+                                <div
+                                    className="w-3/5 sm:w-4/5 max-w-[24px] bg-red-500 rounded-b-sm transition-all duration-500 hover:bg-red-400"
+                                    style={{ height: `${downHeight}%`, minHeight: item.valueDown < 0 ? '2px' : '0' }}
+                                />
+                                <div className="text-[10px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                                    {item.valueDown < 0 ? item.valueDown.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : ''}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};

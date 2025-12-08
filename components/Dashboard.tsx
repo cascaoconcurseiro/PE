@@ -87,33 +87,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
         return accountsTotal;
     }, [accounts]);
 
-    // Annual Cash Flow Data (Rolling 12 Months starting from selected date)
+    // Annual Cash Flow Data (Calendar Year: Jan - Dec)
     const cashFlowData = useMemo(() => {
-        const startMonth = currentDate.getMonth();
-        const startYear = currentDate.getFullYear();
+        const selectedYear = currentDate.getFullYear();
+        const startMonth = 0; // January
 
         const data = Array.from({ length: 12 }, (_, i) => {
-            const date = new Date(startYear, startMonth + i, 1);
+            const date = new Date(selectedYear, i, 1);
             return {
-                date: date, // Store full date for comparison
-                month: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
-                year: date.getFullYear(),
-                monthIndex: date.getMonth(),
+                date: date,
+                // Short month name (Jan, Fev...)
+                month: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
+                year: selectedYear,
+                monthIndex: i,
                 Receitas: 0,
                 Despesas: 0
             };
         });
 
-        const endDate = new Date(startYear, startMonth + 12, 0); // End of the 12th month
+        const startOfYear = new Date(selectedYear, 0, 1);
+        const endOfYear = new Date(selectedYear, 11, 31, 23, 59, 59);
 
         transactions
-            .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
+            .filter(shouldShowTransaction)
             .forEach(t => {
                 const tDate = new Date(t.date);
-                // Filter by range [currentDate start, currentDate + 12 months]
-                const rangeStart = new Date(startYear, startMonth, 1);
-
-                if (tDate < rangeStart || tDate > endDate) return;
+                // Filter strictly by year
+                if (tDate < startOfYear || tDate > endOfYear) return;
                 if (t.type === TransactionType.TRANSFER) return;
 
                 const account = accounts.find(a => a.id === t.accountId);
@@ -123,17 +123,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                 const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
 
                 // Find correctly matching month bucket
-                const bucket = data.find(d =>
-                    d.monthIndex === tDate.getMonth() && d.year === tDate.getFullYear()
-                );
+                const bucket = data.find(d => d.monthIndex === tDate.getMonth());
 
                 if (bucket) {
                     if (t.type === TransactionType.EXPENSE) {
                         const value = t.isRefund ? -amountBRL : amountBRL;
-                        bucket.Despesas += value;
+                        // Determine if it's actually an expense or positive
+                        if (value > 0) bucket.Despesas -= value; // Store as negative for chart
+                        else bucket.Receitas += Math.abs(value); // Refund becomes income visually
                     } else if (t.type === TransactionType.INCOME) {
                         const value = t.isRefund ? -amountBRL : amountBRL;
-                        bucket.Receitas += value;
+                        if (value > 0) bucket.Receitas += value;
+                        else bucket.Despesas -= Math.abs(value);
                     }
                 }
             });
@@ -206,7 +207,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                 <CashFlowChart
                     data={cashFlowData}
                     hasData={hasCashFlowData}
-                    periodLabel={`${currentDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })} - ${new Date(currentDate.getFullYear(), currentDate.getMonth() + 11, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`}
+                    periodLabel={`Visão anual de ${selectedYear}`}
                     showValues={showValues}
                 />
             </Suspense>
