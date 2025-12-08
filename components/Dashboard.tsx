@@ -37,9 +37,7 @@ const ChartSkeleton = () => (
 export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, goals = [], currentDate = new Date(), showValues, onEditRequest, isLoading = false }) => {
     const [spendingView, setSpendingView] = useState<'CATEGORY' | 'SOURCE'>('CATEGORY');
 
-    if (isLoading) {
-        return <DashboardSkeleton />;
-    }
+
     const selectedYear = currentDate.getFullYear();
 
     // --- FINANCIAL LOGIC INTEGRATION ---
@@ -220,6 +218,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                 .sort((a, b) => b.value - a.value);
         }
     }, [monthlyTransactions, accounts, spendingView]);
+
+    if (isLoading) {
+        return <DashboardSkeleton />;
+    }
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
