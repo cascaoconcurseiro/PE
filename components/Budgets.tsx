@@ -3,7 +3,7 @@ import { Transaction, Category, Budget, TransactionType } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Plus, Edit2, Trash2, AlertTriangle, PieChart } from 'lucide-react';
-import { formatCurrency, getCategoryIcon } from '../utils';
+import { formatCurrency, getCategoryIcon, parseDate } from '../utils';
 import { shouldShowTransaction } from '../utils/transactionFilters';
 import { calculateEffectiveTransactionValue } from '../services/financialLogic';
 
@@ -36,7 +36,8 @@ export const Budgets: React.FC<BudgetsProps> = ({ transactions, budgets, onAddBu
             .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
             .forEach(t => {
                 if (t.type === TransactionType.EXPENSE && !t.isRefund) {
-                    const tDate = new Date(t.date);
+                    // ✅ FIX: Use parseDate to avoid Timezone shifts (e.g. 2025-05-01 becoming 2025-04-30)
+                    const tDate = parseDate(t.date);
                     const tYear = tDate.getFullYear();
                     if (tYear === currentYear) {
                         const tMonth = tDate.getMonth();
