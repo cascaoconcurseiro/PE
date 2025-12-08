@@ -21,15 +21,15 @@ export const SharedExpensesReport: React.FC<SharedExpensesReportProps> = ({ tran
             .forEach(t => {
                 if (t.type !== TransactionType.EXPENSE || t.currency !== 'BRL') return;
 
-            const month = t.date.substring(0, 7); // YYYY-MM
-            if (!data[month]) data[month] = { month, total: 0, shared: 0 };
+                const month = t.date.substring(0, 7); // YYYY-MM
+                if (!data[month]) data[month] = { month, total: 0, shared: 0 };
 
-            data[month].total += t.amount;
-            if (t.sharedWith && t.sharedWith.length > 0) {
-                // It's a shared transaction
-                data[month].shared += t.amount;
-            }
-        });
+                data[month].total += t.amount;
+                if (t.sharedWith && t.sharedWith.length > 0 && t.isShared) {
+                    // It's a shared transaction
+                    data[month].shared += t.amount;
+                }
+            });
 
         return Object.values(data)
             .sort((a, b) => a.month.localeCompare(b.month))
@@ -45,7 +45,7 @@ export const SharedExpensesReport: React.FC<SharedExpensesReportProps> = ({ tran
             .filter(shouldShowTransaction) // ✅ FIX: Filtrar transações deletadas e dívidas não pagas
             .forEach(t => {
                 if (t.type === TransactionType.EXPENSE && t.currency === 'BRL' && new Date(t.date) > today) {
-                    if (t.sharedWith && t.sharedWith.length > 0) {
+                    if (t.sharedWith && t.sharedWith.length > 0 && t.isShared) {
                         totalFutureShared += t.amount;
                     }
                 }
