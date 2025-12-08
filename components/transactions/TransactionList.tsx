@@ -170,8 +170,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                                 variant="ghost"
                                                 onClick={(e) => { e.stopPropagation(); onAnticipateInstallments(t); }}
                                                 className="text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-xs h-7 px-2"
+                                                title="Antecipar"
                                             >
-                                                <Clock className="w-3 h-3 mr-1" /> Antecipar
+                                                <Clock className="w-3 h-3 sm:mr-1" />
+                                                <span className="hidden sm:inline">Antecipar</span>
                                             </Button>
                                         )}
 

@@ -39,7 +39,7 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                 // Exemplo: Fatura de Dezembro fecha dia 5/12, ciclo 6/11 a 5/12
                 // Usamos dia 1/12 que está dentro do ciclo
                 const daysInMonth = new Date(targetYear, finalMonth + 1, 0).getDate();
-                
+
                 // Usar dia 1 do mês da fatura (sempre dentro do ciclo)
                 // Ou se o fechamento for dia 1, usar dia 1 mesmo
                 const safeDay = Math.min(1, daysInMonth);
@@ -105,14 +105,14 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                     <div className="grid gap-4">
                         {months.map((month, index) => (
-                            <div key={month.date} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                                <div className="flex items-center gap-3 w-1/3">
-                                    <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <div key={month.date} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                                <div className="flex items-center gap-3 w-full sm:w-1/3">
+                                    <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
                                         <Calendar className="w-5 h-5 text-violet-600 dark:text-violet-400" />
                                     </div>
-                                    <div>
+                                    <div className="flex-1">
                                         <p className="font-bold text-slate-700 dark:text-slate-300 capitalize text-sm">{month.label}</p>
-                                        <p className="text-[10px] text-slate-500">Vence em {new Date(month.date).toLocaleDateString('pt-BR')}</p>
+                                        <p className="text-[10px] text-slate-500 dark:text-slate-400">Vence em {new Date(month.date).toLocaleDateString('pt-BR')}</p>
                                     </div>
                                 </div>
                                 <div className="flex-1 relative">

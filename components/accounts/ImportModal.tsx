@@ -53,10 +53,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImp
                                 </div>
                                 <div>
                                     <p className="font-bold text-slate-800 dark:text-white text-sm">{tx.description}</p>
-                                    <p className="text-xs text-slate-500">{new Date(tx.date).toLocaleDateString('pt-BR')}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(tx.date).toLocaleDateString('pt-BR')}</p>
                                 </div>
                             </div>
-                            <span className={`font-bold text-sm ${tx.type === TransactionType.INCOME ? 'text-emerald-600' : 'text-red-600'}`}>
+                            <span className={`font-bold text-sm ${tx.type === TransactionType.INCOME ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {tx.type === TransactionType.INCOME ? '+' : '-'}{formatCurrency(tx.amount)}
                             </span>
                         </div>
