@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, TransactionType } from '../../types';
 import { Button } from '../ui/Button';
-import { ArrowDownLeft, Clock, FileUp, ShoppingBag, CreditCard } from 'lucide-react';
+import { ArrowDownLeft, Clock, FileUp, ShoppingBag, CreditCard, Users } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../../utils';
 import { ActionType } from './ActionModal';
 
@@ -88,7 +88,7 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                             <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
                                 <PrivacyBlur showValues={showValues}>{formatCurrency(finalTotal, account.currency)}</PrivacyBlur>
                             </h2>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                            <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
                                 {filteredTransactions.length} lançamentos neste mês
                             </p>
                         </div>
@@ -140,7 +140,7 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                         filteredTransactions.map(t => {
                             const CatIcon = getCategoryIcon(t.category);
                             const isInstallment = !!t.isInstallment && !!t.totalInstallments && t.totalInstallments > 1;
-                            const isSettled = t.isSettled || (t.sharedWith && t.sharedWith.every(s => s.isSettled));
+                            const isSettled = t.isSettled; // Only consider if the main transaction (Invoice) is paid
 
                             return (
                                 <div key={t.id} className={`p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${isSettled ? 'opacity-60 grayscale' : ''}`}>
@@ -153,9 +153,14 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                                                 {t.description}
                                             </p>
                                             <div className="flex gap-2 text-xs text-slate-600 dark:text-slate-300 items-center mt-1">
-                                                <span>{new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+                                                <span className="text-slate-600 dark:text-slate-300">{new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+                                                {(t.isShared || (t.sharedWith && t.sharedWith.length > 0)) && (
+                                                    <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 p-0.5 rounded" title="Compartilhado">
+                                                        <Users className="w-3 h-3" />
+                                                    </span>
+                                                )}
                                                 {isInstallment && (
-                                                    <span className="bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide text-slate-800 dark:text-white">
+                                                    <span className="bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide text-slate-800 dark:text-slate-200">
                                                         Parcela {t.currentInstallment}/{t.totalInstallments}
                                                     </span>
                                                 )}
@@ -167,11 +172,11 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                                         <span className={`font-bold ${t.isRefund ? 'text-amber-700 dark:text-amber-400' : 'text-slate-900 dark:text-white'}`}>
                                             {t.isRefund ? '-' : ''}{formatCurrency(t.amount, account.currency)}
                                         </span>
-                                        {isInstallment && !isSettled && (
+                                        {isInstallment && (t.currentInstallment || 0) < (t.totalInstallments || 0) && (
                                             <Button
                                                 size="sm"
                                                 variant="secondary"
-                                                onClick={() => onAnticipateInstallments(t)}
+                                                onClick={(e) => { e.stopPropagation(); onAnticipateInstallments(t); }}
                                                 className="text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/40 hover:bg-purple-200 dark:hover:bg-purple-900/60 text-xs h-8 px-3 font-bold"
                                                 title="Antecipar parcelas"
                                             >

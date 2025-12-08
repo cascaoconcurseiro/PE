@@ -73,7 +73,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             const isShared = t.isShared || (t.sharedWith && t.sharedWith.length > 0);
                             const isTrip = !!t.tripId;
                             const isInstallment = !!t.isInstallment && !!t.currentInstallment;
-                            const isSettled = t.isSettled || (t.sharedWith && t.sharedWith.every(s => s.isSettled)); // Check if all splits are settled
+                            const isSettled = t.isSettled; // Fixed: Ignore shared status for main transaction settlement
 
                             // Amount Calculation Logic & Payer Info
                             let displayAmount = t.amount;
@@ -119,15 +119,15 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                                 {isShared && <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 p-0.5 rounded"><Users className="w-3 h-3" /></span>}
                                             </div>
 
-                                            <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                                                <span className="truncate max-w-[100px] font-medium text-slate-700 dark:text-slate-300">{t.category}</span>
+                                            <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-300 mt-0.5">
+                                                <span className="truncate max-w-[100px] font-medium text-slate-700 dark:text-slate-200">{t.category}</span>
                                                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
-                                                <span className="flex items-center gap-1 truncate max-w-[120px] text-slate-400">
+                                                <span className="flex items-center gap-1 truncate max-w-[120px] text-slate-400 dark:text-slate-300">
                                                     {isCreditCard ? <CreditCard className="w-3 h-3" /> : <Wallet className="w-3 h-3" />}
                                                     {accountName}
                                                 </span>
                                                 {isInstallment && (
-                                                    <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 px-1.5 rounded text-[9px] font-bold">
+                                                    <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-1.5 rounded text-[9px] font-bold">
                                                         {t.currentInstallment}/{t.totalInstallments}
                                                     </span>
                                                 )}
@@ -164,7 +164,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                             )}
                                         </div>
 
-                                        {isInstallment && !isSettled && onAnticipateInstallments && (
+                                        {isInstallment && (t.currentInstallment || 0) < (t.totalInstallments || 0) && onAnticipateInstallments && (
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
