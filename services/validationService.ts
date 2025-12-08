@@ -96,8 +96,16 @@ export const validateTransaction = (
     // Shared expense validations
     if (transaction.isShared && transaction.sharedWith) {
         const totalPercentage = transaction.sharedWith.reduce((sum, s) => sum + s.percentage, 0);
+        const totalAssigned = transaction.sharedWith.reduce((sum, s) => sum + s.assignedAmount, 0);
+        
+        // Validate percentages sum to 100%
         if (Math.abs(totalPercentage - 100) > 0.01) {
             errors.push('A soma das porcentagens deve ser 100%');
+        }
+        
+        // ✅ VALIDAÇÃO CRÍTICA: Splits não podem exceder o valor total
+        if (transaction.amount && totalAssigned > transaction.amount) {
+            errors.push(`Divisão inválida: soma dos valores (${totalAssigned.toFixed(2)}) é maior que o total (${transaction.amount.toFixed(2)})`);
         }
     }
 

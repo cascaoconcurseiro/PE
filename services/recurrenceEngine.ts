@@ -60,7 +60,12 @@ export const processRecurringTransactions = (
             let lastGeneratedDate = t.lastGenerated;
 
             while (currentDateToGenerate <= today && safetyCounter < 12) {
-                const dateStr = currentDateToGenerate.toISOString().split('T')[0];
+                // FIX: Formatar data localmente para evitar problemas de timezone
+                // Não usar toISOString() que converte para UTC e pode mudar o dia
+                const dateYear = currentDateToGenerate.getFullYear();
+                const dateMonth = String(currentDateToGenerate.getMonth() + 1).padStart(2, '0');
+                const dateDay = String(currentDateToGenerate.getDate()).padStart(2, '0');
+                const dateStr = `${dateYear}-${dateMonth}-${dateDay}`;
 
                 // FIX: Verificar se já existe uma transação com mesma data, descrição e valor
                 // para evitar duplicação se o app for aberto múltiplas vezes no mesmo dia

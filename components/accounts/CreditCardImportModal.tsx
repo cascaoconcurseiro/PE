@@ -18,8 +18,7 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
             const nextMonths = [];
             const today = new Date();
 
-            // FIX: Usar o dia de fechamento como referência para garantir que
-            // a fatura caia no ciclo correto (antes de fechar)
+            // Usar o dia de fechamento como referência
             const closingDay = account.closingDay || 1;
 
             for (let i = 0; i < 12; i++) {
@@ -28,18 +27,32 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                 const targetYear = today.getFullYear() + Math.floor(targetMonth / 12);
                 const finalMonth = targetMonth % 12;
 
-                // Criar data com dia 1 primeiro
+                // Criar data com dia 1 primeiro para o label
                 const d = new Date(targetYear, finalMonth, 1);
 
                 // Format label (e.g., "Novembro 2025")
                 const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-                // Usar o dia de fechamento como data da transação
+                // FIX: Usar uma data NO MEIO do ciclo da fatura, não no limite
+                // Se fecha dia 5, o ciclo é do dia 6 do mês anterior até dia 5 deste mês
+                // Então usamos dia 1 do mês da fatura (que está dentro do ciclo)
+                // Exemplo: Fatura de Dezembro fecha dia 5/12, ciclo 6/11 a 5/12
+                // Usamos dia 1/12 que está dentro do ciclo
                 const daysInMonth = new Date(targetYear, finalMonth + 1, 0).getDate();
-                const targetDate = new Date(targetYear, finalMonth, Math.min(closingDay, daysInMonth));
+                
+                // Usar dia 1 do mês da fatura (sempre dentro do ciclo)
+                // Ou se o fechamento for dia 1, usar dia 1 mesmo
+                const safeDay = Math.min(1, daysInMonth);
+                const targetDate = new Date(targetYear, finalMonth, safeDay);
+
+                // Formatar data manualmente para evitar problemas de timezone
+                const year = targetDate.getFullYear();
+                const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+                const day = String(targetDate.getDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${day}`;
 
                 nextMonths.push({
-                    date: targetDate.toISOString().split('T')[0],
+                    date: dateStr,
                     label: label.charAt(0).toUpperCase() + label.slice(1),
                     amount: ''
                 });

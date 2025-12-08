@@ -1,6 +1,25 @@
 import { Account, Transaction, TransactionType, Category } from '../types';
 import { shouldShowTransaction } from '../utils/transactionFilters';
 
+/**
+ * Converte uma string de data YYYY-MM-DD para um objeto Date normalizado (meia-noite UTC)
+ * Isso evita problemas de timezone na comparação de datas
+ */
+const parseLocalDate = (dateStr: string): Date => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day, 0, 0, 0, 0);
+};
+
+/**
+ * Formata uma Date para string YYYY-MM-DD usando data local (não UTC)
+ * Isso evita o problema de timezone onde 2025-12-05 vira 2025-12-04 em UTC-3
+ */
+const formatLocalDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
 
 export const getInvoiceData = (account: Account, transactions: Transaction[], referenceDate: Date) => {
     // Default fallback
@@ -43,32 +62,21 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
         dueDate.setMonth(dueDate.getMonth() + 1);
     }
 
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = closingDate.toISOString().split('T')[0];
+    // Usar formatação local para evitar problemas de timezone
+    const startStr = formatLocalDate(startDate);
+    const endStr = formatLocalDate(closingDate);
 
     const activeTransactions = transactions.filter(shouldShowTransaction);
 
-    // FILTRAGEM ROBUSTA
+    // FILTRAGEM ROBUSTA - Apenas por intervalo de datas
+    // Removida a lógica "especial" que causava bugs com parcelas e dívidas importadas
     const txs = activeTransactions.filter(t => {
         if (t.accountId !== account.id) return false;
 
-        // 1. Verificar Intervalo de Datas (Padrão)
-        // Se a transação estiver entre Start e End, ela entra.
-        if (t.date >= startStr && t.date <= endStr) return true;
-
-        // 2. Verificar Parcelas e Importações (Filtro por Mês de Referência)
-        // Se for parcela ou saldo inicial, forçamos a entrada se bater com o Mês/Ano da Fatura (Closing Date)
-        // Isso resolve problemas de faturas importadas com data exata do fechamento ou parcelas em dias limítrofes.
-        const isSpecial = t.isInstallment || t.category === Category.OPENING_BALANCE;
-        if (isSpecial) {
-            const [tY, tM] = t.date.split('-').map(Number);
-            // Comparar com o mês/ano do fechamento desta fatura
-            if (tY === closingDate.getFullYear() && (tM - 1) === closingDate.getMonth()) {
-                return true;
-            }
-        }
-
-        return false;
+        // Verificar Intervalo de Datas do Ciclo da Fatura
+        // Transação deve estar entre startDate (inclusive) e closingDate (inclusive)
+        // Usando comparação de strings YYYY-MM-DD que funciona corretamente
+        return t.date >= startStr && t.date <= endStr;
     });
 
     const finalTxs = txs.sort((a, b) => b.date.localeCompare(a.date));
@@ -124,7 +132,8 @@ export const calculateHistoricalBalance = (account: Account, transactions: Trans
     const month = referenceDate.getMonth();
     // Day 0 of next month is the last day of this month
     const endOfPeriod = new Date(year, month + 1, 0);
-    const endStr = endOfPeriod.toISOString().split('T')[0];
+    // FIX: Usar formatação local para evitar problemas de timezone
+    const endStr = formatLocalDate(endOfPeriod);
 
     // 2. Filter transactions: specific account, not deleted, date <= endOfPeriod
     const activeTransactions = transactions.filter(shouldShowTransaction);

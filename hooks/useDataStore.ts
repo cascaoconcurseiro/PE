@@ -81,8 +81,12 @@ export const useDataStore = () => {
                     const daysInTargetMonth = new Date(targetYear, finalMonth + 1, 0).getDate();
                     nextDate.setDate(Math.min(targetDay, daysInTargetMonth));
 
-                    // Preservar hora original
-                    nextDate.setHours(baseDate.getHours(), baseDate.getMinutes(), baseDate.getSeconds());
+                    // Formatar data manualmente para evitar problemas de timezone
+                    // Não usar toISOString() que converte para UTC e pode mudar o dia
+                    const dateYear = nextDate.getFullYear();
+                    const dateMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
+                    const dateDay = String(nextDate.getDate()).padStart(2, '0');
+                    const formattedDate = `${dateYear}-${dateMonth}-${dateDay}`;
 
                     let currentAmount = baseInstallmentValue;
                     if (i === totalInstallments - 1) {
@@ -117,7 +121,7 @@ export const useDataStore = () => {
                         originalAmount: newTx.amount,
                         sharedWith: currentSharedWith,
                         seriesId: seriesId,
-                        date: nextDate.toISOString().split('T')[0],
+                        date: formattedDate, // Usar data formatada localmente, não toISOString()
                         currentInstallment: i + 1,
                         totalInstallments: totalInstallments,
                         description: `${newTx.description} (${i + 1}/${totalInstallments})`,
@@ -167,8 +171,12 @@ export const useDataStore = () => {
 
             // Calculate "Current Month" range for initial view
             const today = new Date();
-            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+            // FIX: Format dates locally to avoid timezone issues
+            const startOfMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            const startOfMonth = `${startOfMonthDate.getFullYear()}-${String(startOfMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
+            
+            const endOfMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            const endOfMonth = `${endOfMonthDate.getFullYear()}-${String(endOfMonthDate.getMonth() + 1).padStart(2, '0')}-${String(endOfMonthDate.getDate()).padStart(2, '0')}`;
 
             // Parallel Request for Critical Data
             const [accs, serverBalances, recentTxs] = await Promise.all([
@@ -219,12 +227,14 @@ export const useDataStore = () => {
             // Actually, simplest is to fetch everything older than startOfMonth
             const twoYearsAgo = new Date();
             twoYearsAgo.setMonth(twoYearsAgo.getMonth() - 24);
-            const historyStartDate = twoYearsAgo.toISOString().split('T')[0];
+            // FIX: Format date locally to avoid timezone issues
+            const historyStartDate = `${twoYearsAgo.getFullYear()}-${String(twoYearsAgo.getMonth() + 1).padStart(2, '0')}-${String(twoYearsAgo.getDate()).padStart(2, '0')}`;
 
             // Note: We use endDate to avoid fetching duplicates of what we just got, 
             // OR we just fetch everything and merge. Merging is safer for consistency.
             // Let's fetch history strictly BEFORE the start of this month.
-            const historyEndDate = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
+            const historyEndDateObj = new Date(today.getFullYear(), today.getMonth(), 0);
+            const historyEndDate = `${historyEndDateObj.getFullYear()}-${String(historyEndDateObj.getMonth() + 1).padStart(2, '0')}-${String(historyEndDateObj.getDate()).padStart(2, '0')}`;
 
             const [
                 historyTxs,

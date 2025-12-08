@@ -3,6 +3,7 @@ import { Transaction, TransactionType, FamilyMember } from '../../types';
 import { formatCurrency } from '../../utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Users } from 'lucide-react';
+import { shouldShowTransaction } from '../../utils/transactionFilters';
 
 interface SharedExpensesReportProps {
     transactions: Transaction[];
@@ -15,8 +16,10 @@ export const SharedExpensesReport: React.FC<SharedExpensesReportProps> = ({ tran
     const monthlyData = useMemo(() => {
         const data: Record<string, { month: string, total: number, shared: number }> = {};
 
-        transactions.forEach(t => {
-            if (t.type !== TransactionType.EXPENSE || t.currency !== 'BRL') return;
+        transactions
+            .filter(shouldShowTransaction) // ✅ FIX: Filtrar transações deletadas e dívidas não pagas
+            .forEach(t => {
+                if (t.type !== TransactionType.EXPENSE || t.currency !== 'BRL') return;
 
             const month = t.date.substring(0, 7); // YYYY-MM
             if (!data[month]) data[month] = { month, total: 0, shared: 0 };
@@ -38,13 +41,15 @@ export const SharedExpensesReport: React.FC<SharedExpensesReportProps> = ({ tran
         const today = new Date();
         let totalFutureShared = 0;
 
-        transactions.forEach(t => {
-            if (t.type === TransactionType.EXPENSE && t.currency === 'BRL' && new Date(t.date) > today) {
-                if (t.sharedWith && t.sharedWith.length > 0) {
-                    totalFutureShared += t.amount;
+        transactions
+            .filter(shouldShowTransaction) // ✅ FIX: Filtrar transações deletadas e dívidas não pagas
+            .forEach(t => {
+                if (t.type === TransactionType.EXPENSE && t.currency === 'BRL' && new Date(t.date) > today) {
+                    if (t.sharedWith && t.sharedWith.length > 0) {
+                        totalFutureShared += t.amount;
+                    }
                 }
-            }
-        });
+            });
         return totalFutureShared;
     }, [transactions]);
 

@@ -310,7 +310,11 @@ export const useInvestmentActions = ({
                 ...(selectedAsset.tradeHistory || []),
                 {
                     id: crypto.randomUUID(),
-                    date: new Date().toISOString().split('T')[0],
+                    // FIX: Format date locally to avoid timezone issues
+                    date: (() => {
+                        const now = new Date();
+                        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                    })(),
                     type: 'BUY',
                     quantity: newQty - selectedAsset.quantity,
                     price: 0,

@@ -26,10 +26,18 @@ export const useTransactionForm = ({
         return prefer ? prefer.id : accounts[0]?.id || '';
     };
 
+    // Helper function to format date locally
+    const formatLocalDate = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     // State
     const [amountStr, setAmountStr] = useState('');
     const [description, setDescription] = useState('');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(formatLocalDate(new Date()));
     const [category, setCategory] = useState<string>(Category.FOOD);
     const [accountId, setAccountId] = useState('');
     const [destinationAccountId, setDestinationAccountId] = useState('');
@@ -55,7 +63,7 @@ export const useTransactionForm = ({
     const [currentInstallment, setCurrentInstallment] = useState(1);
     const [totalInstallments, setTotalInstallments] = useState(2);
     const [enableNotification, setEnableNotification] = useState(false);
-    const [notificationDate, setNotificationDate] = useState(new Date().toISOString().split('T')[0]);
+    const [notificationDate, setNotificationDate] = useState(formatLocalDate(new Date()));
     const [reminderOption, setReminderOption] = useState<number | 'custom'>(0);
     const [isRefund, setIsRefund] = useState(false);
 
@@ -100,7 +108,7 @@ export const useTransactionForm = ({
             const t = initialData;
             setAmountStr(t.amount.toString());
             setDescription(t.description);
-            setDate(new Date(t.date).toISOString().split('T')[0]);
+            setDate(t.date); // Already in YYYY-MM-DD format
             setCategory(t.category);
             setAccountId(t.accountId);
             setDestinationAccountId(t.destinationAccountId || '');
@@ -122,7 +130,7 @@ export const useTransactionForm = ({
                 const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
                 setReminderOption([0, 1, 2, 7].includes(diffDays) ? diffDays : 'custom');
             } else {
-                setNotificationDate(new Date(t.date).toISOString().split('T')[0]);
+                setNotificationDate(t.date); // Use transaction date directly
                 setReminderOption(0);
             }
 

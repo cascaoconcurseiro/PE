@@ -47,7 +47,9 @@ export const useAppLogic = ({ accounts, transactions, assets, isMigrating, handl
             // we rely on a simple session ref or we should pass snapshots prop.
             // For now, we'll assume if the app loaded, we run once per session.
             
-            const today = new Date().toISOString().split('T')[0];
+            // FIX: Format date locally to avoid timezone issues
+            const now = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             
             // 1. Total Balance (Banking)
             const totalBalance = accounts.filter(a => a.type !== AccountType.CREDIT_CARD).reduce((acc, curr) => acc + curr.balance, 0);
@@ -103,96 +105,8 @@ export const useAppLogic = ({ accounts, transactions, assets, isMigrating, handl
     }, [accounts, assets, transactions]);
 
     // --- RECURRING TRANSACTION GENERATOR ---
-    useEffect(() => {
-        if (isMigrating || !transactions?.length || hasCheckedRecurrence.current) return;
-
-        const runRecurringEngine = async () => {
-            const now = new Date();
-            const newTxList: any[] = [];
-            const updates: Transaction[] = [];
-
-            transactions.forEach(t => {
-                if (t.isRecurring) {
-                    let lastGen = parseDate(t.lastGenerated || t.date);
-
-                    const getNextDate = (base: Date): Date => {
-                        const next = new Date(base);
-                        switch (t.frequency) {
-                            case Frequency.WEEKLY: next.setDate(next.getDate() + 7); break;
-                            case Frequency.YEARLY: next.setFullYear(next.getFullYear() + 1); break;
-                            case Frequency.MONTHLY:
-                            default:
-                                next.setMonth(next.getMonth() + 1);
-                                if (t.recurrenceDay) {
-                                    const year = next.getFullYear();
-                                    const month = next.getMonth();
-                                    const daysInMonth = new Date(year, month + 1, 0).getDate();
-                                    next.setDate(Math.min(t.recurrenceDay, daysInMonth));
-                                }
-                                break;
-                        }
-                        return next;
-                    };
-
-                    let nextDue = getNextDate(lastGen);
-                    let hasUpdates = false;
-                    let latestGenDate = lastGen;
-
-                    // Catch up loop
-                    let safety = 0;
-                    while (now >= nextDue && safety < 12) {
-                        // Only generate if we haven't already generated for this date
-                        // (Basic duplicate check handled by 'lastGenerated' on parent)
-                        
-                        const newTx = {
-                            ...t,
-                            id: undefined, // Let handler generate ID
-                            date: nextDue.toISOString().split('T')[0],
-                            description: `${t.description.replace(' (Recorrente)', '')} (Recorrente)`,
-                            lastGenerated: undefined, // Child isn't recurring generator
-                            isRecurring: false,
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString(),
-                            syncStatus: SyncStatus.PENDING
-                        };
-                        newTxList.push(newTx);
-
-                        latestGenDate = nextDue;
-                        nextDue = getNextDate(nextDue);
-                        hasUpdates = true;
-                        safety++;
-                    }
-
-                    if (hasUpdates) {
-                        updates.push({
-                            ...t,
-                            lastGenerated: latestGenDate.toISOString(),
-                            updatedAt: new Date().toISOString()
-                        });
-                    }
-                }
-            });
-
-            // Batch updates to prevent multiple re-renders
-            if (newTxList.length > 0) {
-                // We loop here because our handler is single-item for now, 
-                // or we can expose bulk handler. For safety, loop.
-                for (const tx of newTxList) {
-                    await handlers.handleAddTransaction(tx);
-                }
-                for (const up of updates) {
-                    await handlers.handleUpdateTransaction(up);
-                }
-                console.log(`Geradas ${newTxList.length} transações recorrentes.`);
-            }
-            
-            hasCheckedRecurrence.current = true;
-        };
-
-        // Delay slightly to ensure data is stable
-        const timer = setTimeout(runRecurringEngine, 2000);
-        return () => clearTimeout(timer);
-    }, [isMigrating, transactions?.length]); // Depend only on length to avoid deep object change loops
+    // NOTE: Recurrence logic is now handled by recurrenceEngine.ts called from useDataStore
+    // This duplicate logic has been removed to prevent double-generation of recurring transactions
 
     // --- NOTIFICATION ENGINE ---
     useEffect(() => {
@@ -205,7 +119,9 @@ export const useAppLogic = ({ accounts, transactions, assets, isMigrating, handl
         if (isMigrating || !transactions?.length || hasCheckedReminders.current) return;
 
         const checkReminders = () => {
-            const todayStr = new Date().toISOString().split('T')[0];
+            // FIX: Format date locally to avoid timezone issues
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             const reminders = transactions.filter(t =>
                 t.enableNotification &&
                 t.notificationDate === todayStr

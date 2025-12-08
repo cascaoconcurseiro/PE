@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { Plus, Edit2, Trash2, AlertTriangle, PieChart } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../utils';
 import { shouldShowTransaction } from '../utils/transactionFilters';
+import { calculateEffectiveTransactionValue } from '../services/financialLogic';
 
 interface BudgetsProps {
     transactions: Transaction[];
@@ -39,10 +40,12 @@ export const Budgets: React.FC<BudgetsProps> = ({ transactions, budgets, onAddBu
                     const tYear = tDate.getFullYear();
                     if (tYear === currentYear) {
                         const tMonth = tDate.getMonth();
+                        // ✅ FIX: Usar valor efetivo para despesas compartilhadas
+                        const effectiveAmount = calculateEffectiveTransactionValue(t);
                         const key = `${t.category}|${tYear}|${tMonth}`;
-                        spendingMap.set(key, (spendingMap.get(key) || 0) + t.amount);
+                        spendingMap.set(key, (spendingMap.get(key) || 0) + effectiveAmount);
                         if (tMonth === currentMonth) {
-                            currentMonthSpending[t.category] = (currentMonthSpending[t.category] || 0) + t.amount;
+                            currentMonthSpending[t.category] = (currentMonthSpending[t.category] || 0) + effectiveAmount;
                         }
                     }
                 }
