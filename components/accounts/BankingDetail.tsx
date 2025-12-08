@@ -2,7 +2,7 @@ import React from 'react';
 import { Account, Transaction, TransactionType } from '../../types';
 import { ArrowUpRight, ArrowDownLeft, Landmark, RefreshCcw } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../../utils';
-import { getBankExtract } from '../../services/accountUtils';
+import { getBankExtract, calculateHistoricalBalance } from '../../services/accountUtils';
 import { ActionType } from './ActionModal';
 
 // Reusable Privacy Blur
@@ -26,14 +26,17 @@ export const BankingDetail: React.FC<BankingDetailProps> = ({
     const income = extractTxs.filter(t => t.type === TransactionType.INCOME).reduce((a, b) => a + (b.isRefund ? -b.amount : b.amount), 0);
     const expense = extractTxs.filter(t => t.type === TransactionType.EXPENSE).reduce((a, b) => a + (b.isRefund ? -b.amount : b.amount), 0);
 
+    // Calculate historical balance for the end of the selected month
+    const displayBalance = calculateHistoricalBalance(account, transactions, currentDate);
+
     return (
         <div className="space-y-6">
             {/* --- ACCOUNT HEADER CARD --- */}
             <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden print:bg-white print:text-black print:border print:border-black">
                 <div className="absolute top-0 right-0 p-32 opacity-10 no-print"><Landmark className="w-32 h-32" /></div>
                 <div className="relative z-10">
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Saldo em Conta</p>
-                    <h3 className="text-5xl font-black mt-2 tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(account.balance, account.currency)}</PrivacyBlur></h3>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Saldo em {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+                    <h3 className="text-5xl font-black mt-2 tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(displayBalance, account.currency)}</PrivacyBlur></h3>
                     <div className="mt-8 flex gap-8">
                         <div><div className="flex items-center gap-1 text-emerald-400 mb-1"><ArrowUpRight className="w-4 h-4" /><span className="text-xs font-bold uppercase">Entradas</span></div><p className="font-mono text-lg"><PrivacyBlur showValues={showValues}>{formatCurrency(income, account.currency)}</PrivacyBlur></p></div>
                         <div><div className="flex items-center gap-1 text-red-400 mb-1"><ArrowDownLeft className="w-4 h-4" /><span className="text-xs font-bold uppercase">Saídas</span></div><p className="font-mono text-lg"><PrivacyBlur showValues={showValues}>{formatCurrency(expense, account.currency)}</PrivacyBlur></p></div>
