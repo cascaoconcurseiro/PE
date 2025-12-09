@@ -162,34 +162,57 @@ export const useDataStore = () => {
                     for (const share of (tx.sharedWith || [])) {
                         const member = familyMembers.find(m => m.id === share.memberId);
                         if (member?.email) {
-                            // Check if user exists
-                            const { data: inviteeId } = await supabase.rpc('check_user_by_email', { email_to_check: member.email });
+                            try {
+                                // Check if user exists
+                                const { data: inviteeId, error: checkError } = await supabase.rpc('check_user_by_email', { email_to_check: member.email.trim() });
 
-                            if (inviteeId) {
-                                // AUTO-ACCEPT LOGIC: 
-                                // Check if this invitee has ever accepted a request from me before.
-                                // If yes, we assume "Trusted Connection" and auto-accept future ones.
-                                const { data: existingTrust } = await supabase
-                                    .from('shared_transaction_requests')
-                                    .select('id')
-                                    .eq('requester_id', currentUser.id)
-                                    .eq('invited_user_id', inviteeId)
-                                    .eq('status', 'ACCEPTED')
-                                    .limit(1)
-                                    .maybeSingle();
+                                if (checkError) {
+                                    console.error("Error checking user for share:", checkError);
+                                    addToast(`Erro ao buscar usuário para partilha: ${member.name}`, 'error');
+                                    continue;
+                                }
 
-                                const initialStatus = existingTrust ? 'ACCEPTED' : 'PENDING';
+                                if (inviteeId) {
+                                    // AUTO-ACCEPT LOGIC: 
+                                    const { data: existingTrust } = await supabase
+                                        .from('shared_transaction_requests')
+                                        .select('id')
+                                        .eq('requester_id', currentUser.id)
+                                        .eq('invited_user_id', inviteeId)
+                                        .eq('status', 'ACCEPTED')
+                                        .limit(1)
+                                        .maybeSingle();
 
-                                // Create Request
-                                await supabase.from('shared_transaction_requests').insert({
-                                    transaction_id: tx.id,
-                                    requester_id: currentUser.id,
-                                    invited_email: member.email,
-                                    invited_user_id: inviteeId,
-                                    status: initialStatus,
-                                    assigned_amount: share.assignedAmount
-                                });
+                                    const initialStatus = existingTrust ? 'ACCEPTED' : 'PENDING';
+
+                                    // Create Request
+                                    const { error: insertError } = await supabase.from('shared_transaction_requests').insert({
+                                        transaction_id: tx.id,
+                                        requester_id: currentUser.id,
+                                        invited_email: member.email.trim(),
+                                        invited_user_id: inviteeId,
+                                        status: initialStatus,
+                                        assigned_amount: share.assignedAmount
+                                    });
+
+                                    if (insertError) {
+                                        console.error("Failed to create shared request:", insertError);
+                                        addToast(`Falha ao enviar convite para ${member.name}`, 'error');
+                                    } else {
+                                        if (initialStatus === 'PENDING') {
+                                            // Optional: addToast(`Convite enviado para ${member.name}`, 'success');
+                                        }
+                                    }
+                                } else {
+                                    console.warn(`User with email ${member.email} not found.`);
+                                    addToast(`Usuário não encontrado para o email: ${member.email}`, 'warning');
+                                }
+                            } catch (err) {
+                                console.error("Unexpected error in sharing logic:", err);
                             }
+                        } else {
+                            // Member has no email, so we can't share digitally.
+                            // Ideally we might warn, but this happens for "Kids" or manual members often.
                         }
                     }
                 }
