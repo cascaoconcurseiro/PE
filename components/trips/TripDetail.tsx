@@ -21,9 +21,10 @@ interface TripDetailProps {
     onDelete: (id: string) => void;
     onUpdateTrip: (trip: Trip) => void;
     onNavigateToShared?: () => void;
+    onEditTransaction?: (id: string) => void;
 }
 
-export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, onBack, onEdit, onDelete, onUpdateTrip, onNavigateToShared }) => {
+export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, onBack, onEdit, onDelete, onUpdateTrip, onNavigateToShared, onEditTransaction }) => {
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'ITINERARY' | 'CHECKLIST' | 'STATS' | 'SHOPPING' | 'EXCHANGE'>('OVERVIEW');
 
     const totalSpent = transactions.reduce((acc, t) => acc + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0);
@@ -98,7 +99,7 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, onBa
             </div>
 
             {/* TAB CONTENT */}
-            {activeTab === 'OVERVIEW' && <TripOverview trip={trip} transactions={transactions} onUpdateTrip={onUpdateTrip} onNavigateToShared={onNavigateToShared} />}
+            {activeTab === 'OVERVIEW' && <TripOverview trip={trip} transactions={transactions} onUpdateTrip={onUpdateTrip} onNavigateToShared={onNavigateToShared} onEditTransaction={onEditTransaction} />}
             {activeTab === 'ITINERARY' && <TripItinerary trip={trip} onUpdateTrip={onUpdateTrip} />}
             {activeTab === 'CHECKLIST' && <TripChecklist trip={trip} onUpdateTrip={onUpdateTrip} />}
             {activeTab === 'STATS' && <TripStats trip={trip} transactions={transactions} />}

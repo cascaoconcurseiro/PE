@@ -23,7 +23,7 @@ async function runMigration() {
         console.log('Connecting to Supabase Postgres...');
         await client.connect();
 
-        const migrationPath = path.join(__dirname, '..', 'supabase', 'migrations', '20250109_add_currency_to_settlements.sql');
+        const migrationPath = path.join('c:\\Users\\Wesley\\.gemini\\antigravity\\brain\\c495709b-96e5-4bfe-80b6-5b221a2a3fe9', 'fix_shared_requests.sql');
         console.log(`Reading migration from ${migrationPath}...`);
 
         if (!fs.existsSync(migrationPath)) {

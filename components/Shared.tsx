@@ -160,7 +160,7 @@ export const Shared: React.FC<SharedProps> = ({
                 </div>
             </div>
 
-            {currentUser && <SharedRequests currentUserId={currentUser.id} onStatusChange={() => window.location.reload()} />}
+            {currentUser && <SharedRequests currentUserId={currentUser.id} accounts={accounts} onStatusChange={() => window.location.reload()} />}
 
             <SharedFilters
                 activeTab={activeTab}

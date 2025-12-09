@@ -16,9 +16,10 @@ interface TripsProps {
     onUpdateTrip?: (t: Trip) => void;
     onDeleteTrip?: (id: string) => void;
     onNavigateToShared?: () => void;
+    onEditTransaction?: (id: string) => void;
 }
 
-export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared }) => {
+export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared, onEditTransaction }) => {
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
     const [isCreatingTrip, setIsCreatingTrip] = useState(false);
     const [editingTripId, setEditingTripId] = useState<string | null>(null);
@@ -77,6 +78,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
                 }}
                 onUpdateTrip={(t) => onUpdateTrip && onUpdateTrip(t)}
                 onNavigateToShared={onNavigateToShared}
+                onEditTransaction={onEditTransaction}
             />
         );
     }

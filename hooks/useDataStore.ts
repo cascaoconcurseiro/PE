@@ -186,7 +186,8 @@ export const useDataStore = () => {
                                     requester_id: currentUser.id,
                                     invited_email: member.email,
                                     invited_user_id: inviteeId,
-                                    status: initialStatus
+                                    status: initialStatus,
+                                    assigned_amount: share.assignedAmount
                                 });
                             }
                         }

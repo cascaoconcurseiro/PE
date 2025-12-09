@@ -149,11 +149,14 @@ export const calculateProjectedBalance = (
                 const amountBRL = convertToBRL(t.amount, 'BRL');
                 pendingIncome += amountBRL;
             } else if (t.type === TransactionType.EXPENSE) {
-                // ✅ CORREÇÃO CRÍTICA: Usar valor efetivo para despesas
-                // Isso considera despesas compartilhadas corretamente
-                const effectiveAmount = calculateEffectiveTransactionValue(t);
-                const amountBRL = convertToBRL(effectiveAmount, 'BRL');
-                pendingExpenses += amountBRL;
+                // ✅ CORREÇÃO CRÍTICA: Ignorar despesas de Cartão de Crédito na projeção de fluxo de caixa
+                // (Pois elas só afetam o caixa no dia do pagamento da fatura, que geralmente é uma Transferência)
+                if (liquidityAccountIds.has(t.accountId)) {
+                    // ✅ Usar valor efetivo para despesas (considera splits)
+                    const effectiveAmount = calculateEffectiveTransactionValue(t);
+                    const amountBRL = convertToBRL(effectiveAmount, 'BRL');
+                    pendingExpenses += amountBRL;
+                }
             }
         }
     });

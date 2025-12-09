@@ -3,11 +3,12 @@ import { supabase } from '../../integrations/supabase/client';
 import { Button } from '../ui/Button';
 import { Check, X, Bell } from 'lucide-react';
 import { useToast } from '../ui/Toast';
-import { Transaction } from '../../types';
+import { Transaction, Account, AccountType } from '../../types';
 import { formatCurrency } from '../../utils';
 
 interface SharedRequest {
     id: string;
+    assigned_amount?: number;
     transaction: Transaction; // Joined data
     transaction_id: string;
     requester_id: string;
@@ -19,10 +20,11 @@ interface SharedRequest {
 
 interface SharedRequestsProps {
     currentUserId: string;
+    accounts?: Account[];
     onStatusChange: () => void; // Reload data
 }
 
-export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, onStatusChange }) => {
+export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, accounts = [], onStatusChange }) => {
     const [requests, setRequests] = useState<SharedRequest[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { addToast } = useToast();
@@ -37,12 +39,15 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, o
                     requester_id,
                     status,
                     created_at,
+                    assigned_amount,
                     transaction:transactions(*)
                 `)
                 .eq('invited_user_id', currentUserId)
                 .eq('status', 'PENDING');
 
             if (error) throw error;
+
+            // ... (rest of fetch logic same)
 
             // Fetch requester profiles manually since we might not have a direct relation setup for it in Types
             // or just rely on IDs if simple. Let's try to get emails.
@@ -79,19 +84,64 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, o
         if (currentUserId) fetchRequests();
     }, [currentUserId]);
 
-    const handleRespond = async (requestId: string, status: 'ACCEPTED' | 'REJECTED') => {
+    const handleRespond = async (request: SharedRequest, status: 'ACCEPTED' | 'REJECTED') => {
         try {
+            if (status === 'ACCEPTED') {
+                // 1. Create Copy
+                const amount = request.assigned_amount && request.assigned_amount > 0 ? request.assigned_amount : request.transaction.amount;
+
+                // Find default account (Liquid)
+                const defaultAccount = accounts.find(a => a.type === AccountType.CHECKING || a.type === AccountType.CASH) || accounts[0];
+                if (!defaultAccount) {
+                    addToast("Erro: Nenhuma conta encontrada para registrar a despesa.", "error");
+                    return;
+                }
+
+                const copyData = {
+                    date: request.transaction.date,
+                    description: request.transaction.description,
+                    amount: amount,
+                    type: 'EXPENSE',
+                    accountId: defaultAccount.id,
+                    category: request.transaction.category,
+                    isShared: true,
+                    // IMPORTANT: Tag it for Sync logic to avoid double-counting or re-sync loops
+                    // Also linking to original transaction for future updates
+                    observation: `[SYNC:${request.transaction_id}] ${request.transaction.observation || ''}`.trim(),
+                    tripId: request.transaction.tripId,
+                    currency: request.transaction.currency,
+                    exchangeRate: request.transaction.exchangeRate,
+                    // sharedWith: [{ memberId: request.requester_id ... }] ? 
+                    // No, "SharedWith" usually implies "Splitting WITH". If I accepted, I am paying my share.
+                    // The "Payer" is me (implicit in accountId).
+                    // We mark it shared so it shows in shared views?
+                    // Actually, if I just pay it, is it shared?
+                    // Yes, it's a shared expense I participated in.
+                    sharedWith: [{
+                        memberId: request.requester_id,
+                        percentage: 0, // Just linking
+                        assignedAmount: 0
+                    }]
+                };
+
+                // Remove undefined keys
+                const cleanData = Object.fromEntries(Object.entries(copyData).filter(([_, v]) => v !== undefined));
+
+                const { error: txError } = await supabase.from('transactions').insert(cleanData);
+                if (txError) throw txError;
+            }
+
             const { error } = await supabase
                 .from('shared_transaction_requests')
                 .update({ status, responded_at: new Date().toISOString() })
-                .eq('id', requestId);
+                .eq('id', request.id);
 
             if (error) throw error;
 
-            addToast(status === 'ACCEPTED' ? "Solicitação aceita!" : "Solicitação recusada.", status === 'ACCEPTED' ? 'success' : 'info');
+            addToast(status === 'ACCEPTED' ? "Solicitação aceita e despesa criada!" : "Solicitação recusada.", status === 'ACCEPTED' ? 'success' : 'info');
 
             // Optimization: Remove from local state immediately
-            setRequests(prev => prev.filter(r => r.id !== requestId));
+            setRequests(prev => prev.filter(r => r.id !== request.id));
             onStatusChange();
 
         } catch (error) {
@@ -99,6 +149,11 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, o
             addToast("Erro ao responder solicitação.", "error");
         }
     };
+
+    // ... render ...
+    // Note: Updated map to pass full object to handleRespond:
+    // onClick={() => handleRespond(req, 'ACCEPTED')}
+
 
     if (isLoading) return null; // Or skeleton
     if (requests.length === 0) return null; // Don't show if empty
@@ -144,7 +199,7 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, o
                                 {req.requester_name} deseja compartilhar uma despesa
                             </p>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                {req.transaction?.description} • <span className="font-bold">{req.transaction ? formatCurrency(req.transaction.amount, req.transaction.currency || 'BRL') : '???'}</span>
+                                {req.transaction?.description} • <span className="font-bold">{req.transaction ? formatCurrency(req.assigned_amount || req.transaction.amount, req.transaction.currency || 'BRL') : '???'}</span>
                             </p>
                             <p className="text-[10px] text-slate-400 mt-1">
                                 {new Date(req.transaction?.date).toLocaleDateString()}
@@ -155,14 +210,14 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, o
                                 size="sm"
                                 variant="secondary"
                                 className="flex-1 sm:flex-none border-red-200 hover:bg-red-50 text-red-600"
-                                onClick={() => handleRespond(req.id, 'REJECTED')}
+                                onClick={() => handleRespond(req, 'REJECTED')}
                             >
                                 <X className="w-4 h-4 mr-1" /> Recusar
                             </Button>
                             <Button
                                 size="sm"
                                 className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white"
-                                onClick={() => handleRespond(req.id, 'ACCEPTED')}
+                                onClick={() => handleRespond(req, 'ACCEPTED')}
                             >
                                 <Check className="w-4 h-4 mr-1" /> Aceitar
                             </Button>

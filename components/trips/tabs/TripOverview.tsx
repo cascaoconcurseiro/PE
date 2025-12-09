@@ -11,9 +11,10 @@ interface TripOverviewProps {
     transactions: Transaction[];
     onUpdateTrip?: (trip: Trip) => void;
     onNavigateToShared?: () => void;
+    onEditTransaction?: (id: string) => void;
 }
 
-export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, onUpdateTrip, onNavigateToShared }) => {
+export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, onUpdateTrip, onNavigateToShared, onEditTransaction }) => {
     const [isEditingBudget, setIsEditingBudget] = useState(false);
     const [tempBudget, setTempBudget] = useState('');
     const [aiAnalysis, setAiAnalysis] = useState<string>('');
@@ -124,8 +125,17 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
                     ) : (
                         transactions.map(t => {
                             const CatIcon = getCategoryIcon(t.category);
+                            // Calculate original foreign amount if exchange rate exists
+                            const originalAmount = (t.exchangeRate && t.exchangeRate > 0)
+                                ? t.amount / t.exchangeRate
+                                : t.amount;
+
                             return (
-                                <div key={t.id} className="flex justify-between items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div
+                                    key={t.id}
+                                    onClick={() => onEditTransaction && onEditTransaction(t.id)}
+                                    className="flex justify-between items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer active:bg-slate-100"
+                                >
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-full bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-violet-700 dark:text-violet-400 font-bold border border-violet-100 dark:border-violet-800">
                                             <CatIcon className="w-5 h-5" />
@@ -139,7 +149,7 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
                                             </div>
                                         </div>
                                     </div>
-                                    <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(t.amount, trip.currency)}</span>
+                                    <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(originalAmount, trip.currency)}</span>
                                 </div>
                             );
                         })
