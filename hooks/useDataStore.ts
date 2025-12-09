@@ -138,7 +138,47 @@ export const useDataStore = () => {
                 });
             }
 
-            await supabaseService.bulkCreate('transactions', txsToCreate);
+            const { data: createdTxs, error } = await supabaseService.bulkCreate('transactions', txsToCreate);
+            if (error) throw error; // Ensure we throw if failed so we don't send invites for failed txs
+
+            // AUTOMATIC SHARING INVITATION LOGIC
+            const currentUser = (await supabase.auth.getUser()).data.user;
+            if (currentUser && newTx.sharedWith && newTx.sharedWith.length > 0) {
+                // We need to process this for each created transaction (e.g. if installments)
+                // However, usually we want one request per transaction ID.
+                // For installments, do we send 12 requests? The user said "todas transações".
+                // But typically for installments, the series is shared?
+                // Providing 12 popups is bad UX.
+                // But the system stores requests per transaction_id.
+                // Optimally: Create request for each, but maybe UI groups them?
+                // Current UI: SharedRequests lists items.
+                // If I buy an iPhone in 12x, the other person gets 12 requests?
+                // User requirement: "Lançamento de despesa... Criar uma SOLICITAÇÃO".
+                // Implies one action. But data model is per-tx.
+                // Let's create for ALL to be consistent with "retroactive" logic which shares all.
+                // The receiver can "Accept All" later if we build it, or we accept the Series.
+                // For now, generate for all created IDs.
+
+                for (const tx of txsToCreate) {
+                    for (const share of (tx.sharedWith || [])) {
+                        const member = familyMembers.find(m => m.id === share.memberId);
+                        if (member?.email) {
+                            // Check if user exists
+                            const { data: inviteeId } = await supabase.rpc('check_user_by_email', { email_to_check: member.email });
+                            if (inviteeId) {
+                                // Create Pending Request
+                                await supabase.from('shared_transaction_requests').insert({
+                                    transaction_id: tx.id,
+                                    requester_id: currentUser.id,
+                                    invited_email: member.email,
+                                    invited_user_id: inviteeId,
+                                    status: 'PENDING'
+                                });
+                            }
+                        }
+                    }
+                }
+            }
         }, 'Transação salva!');
     };
 
