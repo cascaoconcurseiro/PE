@@ -31,46 +31,34 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, a
 
     const fetchRequests = async () => {
         try {
-            const { data, error } = await supabase
-                .from('shared_transaction_requests')
-                .select(`
-                    id,
-                    transaction_id,
-                    requester_id,
-                    status,
-                    created_at,
-                    assigned_amount,
-                    transaction:transactions(*)
-                `)
-                .eq('invited_user_id', currentUserId)
-                .eq('status', 'PENDING');
+            // Use RPC to bypass RLS on transactions table and get details securely
+            const { data, error } = await supabase.rpc('get_pending_shared_requests', {
+                p_user_id: currentUserId
+            });
 
             if (error) throw error;
 
-            // ... (rest of fetch logic same)
-
-            // Fetch requester profiles manually since we might not have a direct relation setup for it in Types
-            // or just rely on IDs if simple. Let's try to get emails.
-            const userIds = Array.from(new Set(data?.map(r => r.requester_id) || []));
-            let userProfiles: Record<string, any> = {};
-
-            if (userIds.length > 0) {
-                const { data: profiles } = await supabase
-                    .from('user_profiles')
-                    .select('id, name, email')
-                    .in('id', userIds);
-
-                profiles?.forEach(p => {
-                    userProfiles[p.id] = p;
-                });
-            }
-
-            const formattedRequests = data?.map(r => ({
-                ...r,
-                transaction: Array.isArray(r.transaction) ? r.transaction[0] : r.transaction,
-                requester_name: userProfiles[r.requester_id]?.name || 'Usuário',
-                requester_email: userProfiles[r.requester_id]?.email
-            })) as unknown as SharedRequest[];
+            const formattedRequests = data?.map((r: any) => ({
+                id: r.id,
+                transaction_id: r.transaction_id,
+                requester_id: r.requester_id,
+                status: r.status,
+                created_at: r.created_at,
+                assigned_amount: r.assigned_amount,
+                requester_name: r.requester_name || 'Usuário',
+                requester_email: r.requester_email,
+                // Construct a partial transaction object for the UI
+                transaction: {
+                    id: r.transaction_id,
+                    description: r.tx_description,
+                    amount: r.tx_amount,
+                    currency: r.tx_currency,
+                    date: r.tx_date,
+                    category: r.tx_category,
+                    observation: r.tx_observation,
+                    tripId: r.tx_trip_id
+                } as Transaction
+            })) as SharedRequest[];
 
             setRequests(formattedRequests || []);
         } catch (error) {

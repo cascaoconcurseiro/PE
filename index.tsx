@@ -133,7 +133,7 @@ const App = () => {
             // Settlement Requests
             const { data: settlements } = await supabase
                 .from('settlement_requests')
-                .select('*, sender:payer_id(name, email)') // Join profile if possible, or just IDs
+                .select('*') // JOIN REMOVED: raw auth table has no relation to user_profiles exposed
                 .eq('receiver_id', sessionUser.id)
                 .eq('status', 'PENDING');
 
