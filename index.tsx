@@ -581,6 +581,10 @@ const App = () => {
                 // Pass extra prop to fulfill request (Implemented in next step)
                 fulfillRequestId={settlementToPay?.id}
                 onAddTransaction={handlers.handleAddTransaction}
+                onSuccess={() => {
+                    setPendingSettlements(prev => prev.filter(p => p.id !== settlementToPay?.id));
+                    setSettlementToPay(null);
+                }}
             />
 
             <SpeedInsights />

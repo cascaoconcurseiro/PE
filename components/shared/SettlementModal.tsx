@@ -17,11 +17,12 @@ interface SettlementModalProps {
     suggestedCurrency?: string;
     mode?: 'PAY' | 'CHARGE';
     fulfillRequestId?: string;
+    onSuccess?: () => void;
     onAddTransaction: (t: any) => void;
 }
 
 export const SettlementModal: React.FC<SettlementModalProps> = ({
-    isOpen, onClose, familyMembers, accounts, currentUserId, preSelectedMemberId, suggestedAmount, suggestedCurrency, mode = 'PAY', fulfillRequestId, onAddTransaction
+    isOpen, onClose, familyMembers, accounts, currentUserId, preSelectedMemberId, suggestedAmount, suggestedCurrency, mode = 'PAY', fulfillRequestId, onSuccess, onAddTransaction
 }) => {
     const { addToast } = useToast();
     const [amount, setAmount] = useState<string>(suggestedAmount ? suggestedAmount.toString() : '');
@@ -125,6 +126,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
 
             if (!sourceAccountId && !isCharge && !fulfillRequestId) addToast('Solicitação de pagamento enviada!', 'success');
 
+            onSuccess?.();
             onClose();
         } catch (error: any) {
             console.error(error);
