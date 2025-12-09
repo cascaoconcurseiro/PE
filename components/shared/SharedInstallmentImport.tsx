@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog } from '../ui/Dialog';
+import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { supabase } from '../../integrations/supabase/client';
 import { Transaction, FamilyMember, Account, TransactionType, Category, SyncStatus } from '../../types';
@@ -92,7 +92,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
     };
 
     return (
-        <Dialog isOpen={isOpen} onClose={onClose} title="Importar Parcelas">
+        <Modal isOpen={isOpen} onClose={onClose} title="Importar Parcelas">
             <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                 {isLoading ? (
                     <p className="text-center text-slate-500">Buscando transações...</p>
@@ -122,6 +122,6 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     <Download className="w-4 h-4 mr-2" /> Importar ({selectedIds.size})
                 </Button>
             </div>
-        </Dialog>
+        </Modal>
     );
 };
