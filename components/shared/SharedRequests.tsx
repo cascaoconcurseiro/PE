@@ -32,9 +32,7 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, a
     const fetchRequests = async () => {
         try {
             // Use RPC to bypass RLS on transactions table and get details securely
-            const { data, error } = await supabase.rpc('get_pending_shared_requests', {
-                p_user_id: currentUserId
-            });
+            const { data, error } = await supabase.rpc('get_shared_requests_v2');
 
             if (error) {
                 console.error("RPC Error:", error);
