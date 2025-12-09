@@ -9,7 +9,7 @@ interface MemberSummaryCardProps {
     items: InvoiceItem[];
     totalsMap: Record<string, { credits: number; debits: number; net: number }>;
     trips: Trip[];
-    onOpenSettleModal: (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET', currency: string) => void;
+    onOpenSettleModal: (memberId: string, mode: 'PAY' | 'CHARGE', currency: string) => void;
     onDeleteTransaction?: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
     onEditTransaction?: (txId: string) => void;
     outgoingStatus?: Record<string, string>;
@@ -71,14 +71,13 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                                 </Button>
                             )}
                             {net > 0 && (
-                                // Hide button for Receita as per user request ("Tire o botão...").
-                                // Receiver waits for Payer to initiate.
-                                // Or we could show a disabled "Aguardando" text?
-                                // User said: "Ali tá receber... mas deveria ser entrada".
-                                // Ideally we show nothing clickable for now to force correct flow.
-                                <div className="ml-3 px-3 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                                    A receber
-                                </div>
+                                <Button
+                                    onClick={() => onOpenSettleModal(member.id, 'CHARGE', curr)}
+                                    size="sm"
+                                    className="ml-3 bg-indigo-600 text-white hover:bg-indigo-700 border-none shadow-md"
+                                >
+                                    Enviar Cobrança
+                                </Button>
                             )}
                         </div>
                     );

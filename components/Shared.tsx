@@ -126,12 +126,9 @@ export const Shared: React.FC<SharedProps> = ({
 
     // Simplified State for New Settlement Modal
     const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
-    const [settlementDefaults, setSettlementDefaults] = useState<{ memberId?: string, amount?: number, currency?: string }>({});
+    const [settlementDefaults, setSettlementDefaults] = useState<{ memberId?: string, amount?: number, currency?: string, mode?: 'PAY' | 'CHARGE' }>({});
 
-    const handleOpenSettleModal = (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET', currency: string) => {
-        // We only support 'PAY' flow via the new Request system clearly now.
-        // 'RECEIVE' is handled by the payer doing the action.
-        // 'OFFSET' is complex, let's stick to simple payment for now as requested.
+    const handleOpenSettleModal = (memberId: string, mode: 'PAY' | 'CHARGE', currency: string) => {
         const allItems = getFilteredInvoice(memberId);
         const items = allItems.filter(i => !i.isPaid && (i.currency || 'BRL') === currency);
         const totals = getTotals(items);
@@ -140,7 +137,8 @@ export const Shared: React.FC<SharedProps> = ({
         setSettlementDefaults({
             memberId,
             amount: Math.abs(net),
-            currency
+            currency,
+            mode
         });
         setIsSettlementModalOpen(true);
     };
@@ -180,6 +178,7 @@ export const Shared: React.FC<SharedProps> = ({
                             items={items}
                             totalsMap={totalsMap}
                             trips={trips}
+                            // @ts-ignore - 'RECEIVE' | 'OFFSET' removed, only PAY/CHARGE now
                             onOpenSettleModal={handleOpenSettleModal}
                             onDeleteTransaction={onDeleteTransaction}
                             onEditTransaction={handleEditTransaction}
@@ -200,6 +199,7 @@ export const Shared: React.FC<SharedProps> = ({
                     preSelectedMemberId={settlementDefaults.memberId}
                     suggestedAmount={settlementDefaults.amount}
                     suggestedCurrency={settlementDefaults.currency}
+                    mode={settlementDefaults.mode}
                     onAddTransaction={onAddTransaction}
                 />
             )}

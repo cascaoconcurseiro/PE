@@ -16,6 +16,7 @@ import { MainLayout } from './components/MainLayout';
 import { InconsistenciesModal } from './components/ui/InconsistenciesModal';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { SettlementReviewModal } from './components/shared/SettlementReviewModal';
+import { SettlementModal } from './components/shared/SettlementModal';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import './index.css';
 
@@ -116,6 +117,7 @@ const App = () => {
     const [pendingSharedRequests, setPendingSharedRequests] = useState(0);
     const [pendingSettlements, setPendingSettlements] = useState<any[]>([]); // Store full objects
     const [activeSettlementRequest, setActiveSettlementRequest] = useState<any | null>(null);
+    const [settlementToPay, setSettlementToPay] = useState<any | null>(null);
 
     // Fetch Pending Shared Requests (Simple Polling)
     useEffect(() => {
@@ -130,22 +132,43 @@ const App = () => {
                 .eq('status', 'PENDING');
             setPendingSharedRequests(count || 0);
 
-            // Settlement Requests
+            // Settlement Requests (Payments received OR Charges received)
+            // fetch where receiver_id = me OR (payer_id = me AND type='CHARGE')
+            // Supabase .or() syntax: .or(`receiver_id.eq.${sessionUser.id},and(payer_id.eq.${sessionUser.id},type.eq.CHARGE)`)
             const { data: settlements } = await supabase
                 .from('settlement_requests')
-                .select('*') // JOIN REMOVED: raw auth table has no relation to user_profiles exposed
-                .eq('receiver_id', sessionUser.id)
-                .eq('status', 'PENDING');
+                .select('*')
+                .eq('status', 'PENDING')
+                .or(`receiver_id.eq.${sessionUser.id},payer_id.eq.${sessionUser.id}`);
 
-            // Fetch sender names manually if join fails (likely due to no Relation in DB schema for raw auth table)
-            // But we can try fetching profiles
-            if (settlements && settlements.length > 0) {
-                const senderIds = settlements.map(s => s.payer_id);
-                const { data: profiles } = await supabase.from('user_profiles').select('id, name').in('id', senderIds);
-                const enrichedSettlements = settlements.map(s => ({
-                    ...s,
-                    payer_name: profiles?.find(p => p.id === s.payer_id)?.name || 'Usuário'
-                }));
+            // Filter relevant ones
+            // If receiver_id == me: Incoming Payment (to confirm) OR Incoming Charge (I created it?? No, if I created Charge, I am Receiver. So I am waiting. No Notif).
+            // Wait: If I (Receiver) Created Charge, Status is Pending. I am waiting.
+            // If I (Receiver) Received Payment, Payer created it. I need to act.
+            // If I (Payer) Received Charge, Receiver created it. I need to act.
+
+            // Actionable items for Me:
+            // 1. I am Receiver AND Type = PAYMENT (Someone sent me money)
+            // 2. I am Payer AND Type = CHARGE (Someone charged me)
+
+            const myActionableSettlements = settlements?.filter(s => {
+                if (s.receiver_id === sessionUser.id && s.type === 'PAYMENT') return true;
+                if (s.payer_id === sessionUser.id && s.type === 'CHARGE') return true;
+                return false;
+            }) || [];
+
+            // Fetch profiles
+            if (myActionableSettlements.length > 0) {
+                const otherUserIds = myActionableSettlements.map(s => s.payer_id === sessionUser.id ? s.receiver_id : s.payer_id);
+                const { data: profiles } = await supabase.from('user_profiles').select('id, name').in('id', otherUserIds);
+
+                const enrichedSettlements = myActionableSettlements.map(s => {
+                    const otherId = s.payer_id === sessionUser.id ? s.receiver_id : s.payer_id;
+                    return {
+                        ...s,
+                        other_user_name: profiles?.find(p => p.id === otherId)?.name || 'Usuário'
+                    };
+                });
                 setPendingSettlements(enrichedSettlements);
             } else {
                 setPendingSettlements([]);
@@ -195,11 +218,19 @@ const App = () => {
 
         // 1.5 Settlement Requests (New)
         pendingSettlements.forEach(s => {
+            const isCharge = s.type === 'CHARGE'; // If I see it, and it's charge, I am Payer.
+            // Logic: 
+            // If Payment: "X pagou Y. Confirmar."
+            // If Charge: "X te cobrou Y. Pagar."
+            const desc = isCharge
+                ? `${s.other_user_name} te cobrou ${s.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Clique para pagar.`
+                : `${s.other_user_name} pagou ${s.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Clique para confirmar.`;
+
             notifs.push({
                 id: `settlement-${s.id}`,
-                type: 'SETTLEMENT',
+                type: isCharge ? 'CHARGE_RECEIVED' : 'PAYMENT_RECEIVED',
                 date: s.date,
-                description: `${s.payer_name} pagou ${s.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Clique para confirmar.`,
+                description: desc,
                 amount: s.amount,
                 enableNotification: true,
                 category: 'Acerto de Contas',
@@ -292,7 +323,11 @@ const App = () => {
             const rawId = id.replace('settlement-', '');
             const request = pendingSettlements.find(s => s.id === rawId);
             if (request) {
-                setActiveSettlementRequest(request);
+                if (request.type === 'CHARGE') {
+                    setSettlementToPay(request);
+                } else {
+                    setActiveSettlementRequest(request);
+                }
             }
             return;
         }
@@ -530,6 +565,22 @@ const App = () => {
                     setPendingSettlements(prev => prev.filter(p => p.id !== activeSettlementRequest?.id));
                     setActiveSettlementRequest(null);
                 }}
+                onAddTransaction={handlers.handleAddTransaction}
+            />
+
+            {/* Modal for Paying a Charge */}
+            <SettlementModal
+                isOpen={!!settlementToPay}
+                onClose={() => setSettlementToPay(null)}
+                familyMembers={familyMembers}
+                accounts={calculatedAccounts}
+                currentUserId={sessionUser?.id}
+                preSelectedMemberId={settlementToPay ? (settlementToPay.payer_id === sessionUser?.id ? settlementToPay.receiver_id : settlementToPay.payer_id) : undefined}
+                suggestedAmount={settlementToPay?.amount}
+                mode="PAY"
+                // Pass extra prop to fulfill request (Implemented in next step)
+                // @ts-ignore
+                fulfillRequestId={settlementToPay?.id}
                 onAddTransaction={handlers.handleAddTransaction}
             />
 
