@@ -1,13 +1,19 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { SharedRequests } from './shared/SharedRequests';
-import { supabase } from '../integrations/supabase/client';
-import { Transaction, Trip, FamilyMember, Account, TransactionType, Category, SyncStatus, InvoiceItem } from '../types';
+import { Users, DollarSign, TrendingUp, ArrowRight, Wallet, Download } from 'lucide-react';
+import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { formatCurrency } from '../utils';
+import { Transaction, Trip, FamilyMember, Account, InvoiceItem, Category, TransactionType, SyncStatus } from '../types';
 import { useSharedFinances } from '../hooks/useSharedFinances';
-import { MemberSummaryCard } from './shared/MemberSummaryCard';
-import { SharedFilters } from './shared/SharedFilters';
+import { supabase } from '../integrations/supabase/client';
+import { SharedRequests } from './shared/SharedRequests';
 import { SettlementModal } from './shared/SettlementModal';
 import { SharedInstallmentImport } from './shared/SharedInstallmentImport';
 import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal';
+import { MemberSummaryCard } from './shared/MemberSummaryCard';
+import { SharedFilters } from './shared/SharedFilters';
+import { useToast } from './ui/Toast';
 
 interface SharedProps {
     transactions: Transaction[];
@@ -118,101 +124,24 @@ export const Shared: React.FC<SharedProps> = ({
         return members;
     }, [members]);
 
-    // Settlement State
-    const [settleModal, setSettleModal] = useState<{
-        isOpen: boolean,
-        memberId: string | null,
-        type: 'PAY' | 'RECEIVE' | 'OFFSET',
-        items: InvoiceItem[],
-        total: number,
-        currency: string
-    }>({
-        isOpen: false, memberId: null, type: 'PAY', items: [], total: 0, currency: 'BRL'
-    });
+    // Simplified State for New Settlement Modal
+    const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
+    const [settlementDefaults, setSettlementDefaults] = useState<{ memberId?: string, amount?: number }>({});
 
     const handleOpenSettleModal = (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET', currency: string) => {
+        // We only support 'PAY' flow via the new Request system clearly now.
+        // 'RECEIVE' is handled by the payer doing the action.
+        // 'OFFSET' is complex, let's stick to simple payment for now as requested.
         const allItems = getFilteredInvoice(memberId);
         const items = allItems.filter(i => !i.isPaid && (i.currency || 'BRL') === currency);
-
         const totals = getTotals(items);
         const net = totals[currency]?.net || 0;
 
-        setSettleModal({
-            isOpen: true,
+        setSettlementDefaults({
             memberId,
-            type,
-            items,
-            total: type === 'OFFSET' ? 0 : Math.abs(net),
-            currency
+            amount: Math.abs(net)
         });
-    };
-
-    const handleConfirmSettlement = (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number) => {
-        if (!settleModal.memberId) return;
-
-        // Validation handled in Modal, but good to check
-        if (settleModal.type !== 'OFFSET' && !accountId) return;
-
-        const now = new Date().toISOString();
-        const isConverting = method === 'CONVERT';
-        const rate = isConverting && exchangeRate ? exchangeRate : 1;
-        const finalAmount = settleModal.total * rate;
-
-        // 1. Transaction Record (Money Movement)
-        if (settleModal.type !== 'OFFSET') {
-            if (settleModal.type === 'PAY') {
-                onAddTransaction({
-                    amount: finalAmount,
-                    description: `Pagamento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`,
-                    date: now.split('T')[0],
-                    type: TransactionType.TRANSFER,
-                    category: Category.TRANSFER,
-                    accountId: accountId,
-                    destinationAccountId: 'EXTERNAL',
-                    isShared: false,
-                    relatedMemberId: settleModal.memberId!,
-                    exchangeRate: isConverting ? rate : undefined,
-                    currency: isConverting ? 'BRL' : settleModal.currency,
-                    createdAt: now,
-                    updatedAt: now,
-                    syncStatus: SyncStatus.PENDING
-                });
-            } else {
-                onAddTransaction({
-                    amount: finalAmount,
-                    description: `Recebimento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`,
-                    date: now.split('T')[0],
-                    type: TransactionType.INCOME,
-                    category: Category.INCOME,
-                    accountId: accountId,
-                    isShared: false,
-                    relatedMemberId: settleModal.memberId!,
-                    exchangeRate: isConverting ? rate : undefined,
-                    currency: isConverting ? 'BRL' : settleModal.currency,
-                    createdAt: now,
-                    updatedAt: now,
-                    syncStatus: SyncStatus.PENDING
-                });
-            }
-        }
-
-        // 2. Settle Original Items
-        settleModal.items.forEach(item => {
-            const originalTx = transactions.find(t => t.id === item.originalTxId);
-            if (originalTx) {
-                if (item.type === 'CREDIT') {
-                    const updatedSplits = originalTx.sharedWith?.map(s => {
-                        if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: now };
-                        return s;
-                    });
-                    onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
-                } else {
-                    onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: now });
-                }
-            }
-        });
-
-        setSettleModal({ isOpen: false, memberId: null, type: 'PAY', items: [], total: 0, currency: 'BRL' });
+        setIsSettlementModalOpen(true);
     };
 
     const handleEditTransaction = (txId: string) => {
@@ -221,6 +150,25 @@ export const Shared: React.FC<SharedProps> = ({
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
+            {/* Header with Global Pay Button */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
+                        Espaço Compartilhado
+                    </h1>
+                </div>
+                <Button
+                    onClick={() => {
+                        setSettlementDefaults({});
+                        setIsSettlementModalOpen(true);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
+                >
+                    <Wallet className="w-4 h-4 mr-2" />
+                    Pagar Alguém
+                </Button>
+            </div>
+
             {currentUser && <SharedRequests currentUserId={currentUser.id} onStatusChange={() => window.location.reload()} />}
 
             <SharedFilters
@@ -251,13 +199,18 @@ export const Shared: React.FC<SharedProps> = ({
                 })}
             </div>
 
-            <SettlementModal
-                isOpen={settleModal.isOpen}
-                onClose={() => setSettleModal(prev => ({ ...prev, isOpen: false }))}
-                settleData={settleModal}
-                accounts={accounts}
-                onConfirm={handleConfirmSettlement}
-            />
+            {currentUser && (
+                <SettlementModal
+                    isOpen={isSettlementModalOpen}
+                    onClose={() => setIsSettlementModalOpen(false)}
+                    familyMembers={members}
+                    accounts={accounts}
+                    currentUserId={currentUser.id}
+                    preSelectedMemberId={settlementDefaults.memberId}
+                    suggestedAmount={settlementDefaults.amount}
+                    onAddTransaction={onAddTransaction}
+                />
+            )}
 
             <SharedInstallmentImport
                 isOpen={isImportModalOpen}

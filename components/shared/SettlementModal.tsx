@@ -1,127 +1,192 @@
-import React, { useState, useEffect } from 'react';
-import { InvoiceItem, Account, AccountType } from '../../types';
+import React, { useState } from 'react';
+import { X, Calendar, Wallet, Check } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { supabase } from '../../integrations/supabase/client';
+import { useToast } from '../ui/Toast';
+import { Account, FamilyMember } from '../../types';
 import { formatCurrency } from '../../utils';
 
 interface SettlementModalProps {
     isOpen: boolean;
     onClose: () => void;
-    settleData: {
-        memberId: string | null;
-        type: 'PAY' | 'RECEIVE' | 'OFFSET';
-        items: InvoiceItem[];
-        total: number;
-        currency: string;
-    };
+    familyMembers: FamilyMember[];
     accounts: Account[];
-    onConfirm: (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number) => void;
+    currentUserId: string;
+    preSelectedMemberId?: string;
+    suggestedAmount?: number;
+    onAddTransaction: (t: any) => void;
 }
 
-export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClose, settleData, accounts, onConfirm }) => {
-    const [selectedAccountId, setSelectedAccountId] = useState('');
-    const [settlementMethod, setSettlementMethod] = useState<'SAME_CURRENCY' | 'CONVERT'>('SAME_CURRENCY');
-    const [exchangeRate, setExchangeRate] = useState('');
-
-    useEffect(() => {
-        if (isOpen) {
-            setSettlementMethod('SAME_CURRENCY');
-            setExchangeRate('');
-            const validAccount = accounts.find(a => a.type !== AccountType.CREDIT_CARD && a.currency === settleData.currency);
-            setSelectedAccountId(validAccount ? validAccount.id : '');
-        }
-    }, [isOpen, settleData.currency, accounts]);
+export const SettlementModal: React.FC<SettlementModalProps> = ({
+    isOpen, onClose, familyMembers, accounts, currentUserId, preSelectedMemberId, suggestedAmount, onAddTransaction
+}) => {
+    const { addToast } = useToast();
+    const [amount, setAmount] = useState<string>(suggestedAmount ? suggestedAmount.toString() : '');
+    const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [selectedMemberId, setSelectedMemberId] = useState<string>(preSelectedMemberId || '');
+    const [sourceAccountId, setSourceAccountId] = useState<string>('');
+    const [isLoading, setIsLoading] = useState(false);
 
     if (!isOpen) return null;
 
-    const handleConfirm = () => {
-        if (!selectedAccountId && settleData.type !== 'OFFSET') return;
-        const rate = settlementMethod === 'CONVERT' ? parseFloat(exchangeRate) : undefined;
-        onConfirm(selectedAccountId, settlementMethod, rate);
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!amount || parseFloat(amount) <= 0) {
+            addToast('Valor inválido.', 'error');
+            return;
+        }
+        if (!selectedMemberId) {
+            addToast('Selecione quem você está pagando.', 'error');
+            return;
+        }
+        if (!date) {
+            addToast('Data é obrigatória.', 'error');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            // 1. Get Receiver User ID from Family Member
+            const member = familyMembers.find(m => m.id === selectedMemberId);
+            if (!member?.email) throw new Error("Membro sem email vinculado.");
+
+            // Resolve email to User ID (RPC check)
+            const { data: receiverId, error: userError } = await supabase.rpc('check_user_by_email', { email_to_check: member.email });
+            if (userError || !receiverId) throw new Error("Usuário não encontrado no sistema.");
+
+            // 2. Create Settlement Request
+            const { data: request, error: reqError } = await supabase
+                .from('settlement_requests')
+                .insert({
+                    payer_id: currentUserId,
+                    receiver_id: receiverId,
+                    amount: parseFloat(amount),
+                    date: date,
+                    status: 'PENDING',
+                    note: `Pagamento de ${member.name}`
+                })
+                .select()
+                .single();
+
+            if (reqError) throw reqError;
+
+            // 3. (Optional) Create Expense Transaction for Payer immediately
+            if (sourceAccountId) {
+                onAddTransaction({
+                    description: `Pagamento para ${member.name}`,
+                    amount: parseFloat(amount),
+                    date: date, // Keep user selected date
+                    type: 'DESPESA',
+                    category: 'Transferência',
+                    accountId: sourceAccountId,
+                    // destinationAccountId? If we tracked transfers properly, but 'Settlement' is effectively an expense for me until proven otherwise.
+                    // Or I could use 'TRANSFER' type?
+                    // Let's stick to DESPESA for simplicity unless 'Transfer' is better.
+                    // With 'Transfer', I need destination. I don't know THEIR account.
+                    // So it is an expense "Pagamento de Dívida".
+                    isSettled: true,
+                    observation: `[SETTLEMENT:${request.id}] Pagamento de acerto de contas.`
+                });
+            } else {
+                addToast('Solicitação enviada!', 'success'); // Only toast if no tx created (onAddTransaction handles its own toast usually? No, performOperation does)
+            }
+
+            // If onAddTransaction handles success toast, we might double toast. 
+            // onAddTransaction is async void.
+            // Let's assume onAddTransaction handles "Transaction Saved". We just say "Request Sent".
+            if (!sourceAccountId) addToast('Solicitação de pagamento enviada!', 'success');
+
+            onClose();
+        } catch (error: any) {
+            console.error(error);
+            addToast(`Erro: ${error.message}`, 'error');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="bg-white dark:bg-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 animate-in slide-in-from-bottom-full">
-                <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Acerto de Contas</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Resolvendo {settleData.items.length} pendências em <strong>{settleData.currency}</strong>.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                <div className="p-4 border-b dark:border-slate-800 flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/20 rounded-t-2xl">
+                    <h3 className="font-bold text-emerald-900 dark:text-emerald-100 flex items-center gap-2">
+                        <Wallet className="w-5 h-5" />
+                        Quitar Dívida / Pagar
+                    </h3>
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
 
-                <div className="p-6 space-y-6">
-                    {/* Foreign Currency Handling */}
-                    {settleData.currency !== 'BRL' && (
-                        <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
-                            <button
-                                onClick={() => { setSettlementMethod('SAME_CURRENCY'); setSelectedAccountId(''); }}
-                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${settlementMethod === 'SAME_CURRENCY' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}
-                            >
-                                Receber em {settleData.currency}
-                            </button>
-                            <button
-                                onClick={() => { setSettlementMethod('CONVERT'); setSelectedAccountId(''); }}
-                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${settlementMethod === 'CONVERT' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}
-                            >
-                                Converter p/ BRL
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Exchange Rate Input */}
-                    {settlementMethod === 'CONVERT' && (
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Cotação do Dia</label>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">1 {settleData.currency} =</span>
-                                <input
-                                    type="number"
-                                    placeholder="0,00"
-                                    className="flex-1 border-b-2 border-slate-300 dark:border-slate-600 bg-transparent py-2 font-bold text-lg outline-none focus:border-indigo-500 dark:text-white"
-                                    value={exchangeRate}
-                                    onChange={e => setExchangeRate(e.target.value)}
-                                    autoFocus
-                                />
-                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">BRL</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Account Selection */}
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    {/* Quem receberá */}
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                            {settleData.type === 'RECEIVE' ? 'Receber na conta:' : 'Pagar com:'}
-                        </label>
+                        <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">Quem você está pagando?</label>
                         <select
-                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white font-bold"
-                            value={selectedAccountId}
-                            onChange={(e) => setSelectedAccountId(e.target.value)}
+                            value={selectedMemberId}
+                            onChange={e => setSelectedMemberId(e.target.value)}
+                            className="w-full p-3 rounded-xl border bg-slate-50 dark:bg-slate-800 dark:border-slate-700"
                         >
                             <option value="">Selecione...</option>
-                            {accounts
-                                .filter(a => a.type !== AccountType.CREDIT_CARD) // Block Credit Cards
-                                .filter(a => settlementMethod === 'CONVERT' ? a.currency === 'BRL' : a.currency === settleData.currency) // Match Currency Logic
-                                .map(acc => (
-                                    <option key={acc.id} value={acc.id}>{acc.name} ({acc.currency})</option>
-                                ))
-                            }
+                            {familyMembers.filter(m => m.email).map(m => ( // Only show members with email (linkable)
+                                <option key={m.id} value={m.id}>{m.name}</option>
+                            ))}
                         </select>
                     </div>
 
-                    {/* Summary */}
-                    <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-500">Valor Final</span>
-                        <span className="text-2xl font-black text-slate-900 dark:text-white">
-                            {settlementMethod === 'CONVERT' && exchangeRate
-                                ? formatCurrency(settleData.total * parseFloat(exchangeRate), 'BRL')
-                                : formatCurrency(settleData.total, settleData.currency)
-                            }
-                        </span>
+                    {/* Quanto */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">Valor (R$)</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={amount}
+                            onChange={e => setAmount(e.target.value)}
+                            className="w-full p-3 text-2xl font-bold text-emerald-600 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
+                            placeholder="0,00"
+                            autoFocus
+                        />
                     </div>
 
-                    <Button onClick={handleConfirm} disabled={!selectedAccountId || (settlementMethod === 'CONVERT' && !exchangeRate)} className="w-full h-12 text-lg">
-                        Confirmar
-                    </Button>
-                </div>
+                    {/* Quando */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">Data do Pagamento</label>
+                        <div className="relative">
+                            <Calendar className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={e => setDate(e.target.value)}
+                                className="w-full pl-10 p-3 rounded-xl border bg-slate-50 dark:bg-slate-800 dark:border-slate-700"
+                            />
+                        </div>
+                    </div>
+
+                    {/* De onde sai o dinheiro (Opcional) */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                            Conta de Origem (Opcional)
+                            <span className="block text-xs font-normal text-slate-500">Se selecionado, cria uma saída no seu extrato agora.</span>
+                        </label>
+                        <select
+                            value={sourceAccountId}
+                            onChange={e => setSourceAccountId(e.target.value)}
+                            className="w-full p-3 rounded-xl border bg-slate-50 dark:bg-slate-800 dark:border-slate-700"
+                        >
+                            <option value="">Não registrar saída agora</option>
+                            {accounts.map(a => (
+                                <option key={a.id} value={a.id}>{a.name} ({formatCurrency(a.balance, a.currency)})</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="pt-4 flex gap-3">
+                        <Button type="button" variant="ghost" onClick={onClose} className="flex-1">Cancelar</Button>
+                        <Button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isLoading}>
+                            {isLoading ? 'Enviando...' : 'Confirmar Pagamento'}
+                        </Button>
+                    </div>
+                </form>
             </div>
         </div>
     );

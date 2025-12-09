@@ -15,6 +15,7 @@ import { useAppLogic } from './hooks/useAppLogic';
 import { MainLayout } from './components/MainLayout';
 import { InconsistenciesModal } from './components/ui/InconsistenciesModal';
 import { LoadingScreen } from './components/ui/LoadingScreen';
+import { SettlementReviewModal } from './components/shared/SettlementReviewModal';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import './index.css';
 
@@ -111,23 +112,50 @@ const App = () => {
     });
     const [currentDate, setCurrentDate] = useState(new Date());
     const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
-    const [pendingSharedRequests, setPendingSharedRequests] = useState<number>(0);
+    // ... (previous imports)
+    const [pendingSharedRequests, setPendingSharedRequests] = useState(0);
+    const [pendingSettlements, setPendingSettlements] = useState<any[]>([]); // Store full objects
+    const [activeSettlementRequest, setActiveSettlementRequest] = useState<any | null>(null);
 
     // Fetch Pending Shared Requests (Simple Polling)
     useEffect(() => {
         const fetchRequests = async () => {
             if (!sessionUser?.id) return;
+
+            // Shared Transactions
             const { count } = await supabase
                 .from('shared_transaction_requests')
                 .select('*', { count: 'exact', head: true })
                 .eq('invited_user_id', sessionUser.id)
                 .eq('status', 'PENDING');
             setPendingSharedRequests(count || 0);
+
+            // Settlement Requests
+            const { data: settlements } = await supabase
+                .from('settlement_requests')
+                .select('*, sender:payer_id(name, email)') // Join profile if possible, or just IDs
+                .eq('receiver_id', sessionUser.id)
+                .eq('status', 'PENDING');
+
+            // Fetch sender names manually if join fails (likely due to no Relation in DB schema for raw auth table)
+            // But we can try fetching profiles
+            if (settlements && settlements.length > 0) {
+                const senderIds = settlements.map(s => s.payer_id);
+                const { data: profiles } = await supabase.from('user_profiles').select('id, name').in('id', senderIds);
+                const enrichedSettlements = settlements.map(s => ({
+                    ...s,
+                    payer_name: profiles?.find(p => p.id === s.payer_id)?.name || 'Usuário'
+                }));
+                setPendingSettlements(enrichedSettlements);
+            } else {
+                setPendingSettlements([]);
+            }
         };
         fetchRequests();
-        const interval = setInterval(fetchRequests, 60000);
+        const interval = setInterval(fetchRequests, 30000); // 30s poll
         return () => clearInterval(interval);
     }, [sessionUser]);
+
 
     useEffect(() => { localStorage.setItem('pdm_privacy', JSON.stringify(showValues)); }, [showValues]);
 
@@ -165,7 +193,22 @@ const App = () => {
             });
         }
 
+        // 1.5 Settlement Requests (New)
+        pendingSettlements.forEach(s => {
+            notifs.push({
+                id: `settlement-${s.id}`,
+                type: 'SETTLEMENT',
+                date: s.date,
+                description: `${s.payer_name} pagou ${s.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Clique para confirmar.`,
+                amount: s.amount,
+                enableNotification: true,
+                category: 'Acerto de Contas',
+                accountId: 'system'
+            });
+        });
+
         // 2. Credit Card Due Dates (Approximate)
+
         const creditCards = accounts.filter(a => a.type === 'CARTÃO DE CRÉDITO' && a.dueDay);
         creditCards.forEach(card => {
             if (!card.dueDay) return;
@@ -243,6 +286,14 @@ const App = () => {
     const handleNotificationClick = useCallback((id: string) => {
         if (id === 'shared-requests') {
             startTransition(() => setActiveView(View.SHARED));
+            return;
+        }
+        if (id.startsWith('settlement-')) {
+            const rawId = id.replace('settlement-', '');
+            const request = pendingSettlements.find(s => s.id === rawId);
+            if (request) {
+                setActiveSettlementRequest(request);
+            }
             return;
         }
         if (id.startsWith('cc-due-')) {
@@ -469,11 +520,17 @@ const App = () => {
                 </div>
             )}
 
-            <InconsistenciesModal
-                isOpen={isInconsistenciesModalOpen}
-                onClose={() => setIsInconsistenciesModalOpen(false)}
-                issues={dataInconsistencies}
-                onNavigateToTransaction={handleNotificationClick}
+            <SettlementReviewModal
+                isOpen={!!activeSettlementRequest}
+                onClose={() => setActiveSettlementRequest(null)}
+                request={activeSettlementRequest}
+                accounts={calculatedAccounts}
+                currentUserId={sessionUser?.id}
+                onSuccess={() => {
+                    setPendingSettlements(prev => prev.filter(p => p.id !== activeSettlementRequest?.id));
+                    setActiveSettlementRequest(null);
+                }}
+                onAddTransaction={handlers.handleAddTransaction}
             />
 
             <SpeedInsights />
