@@ -1,5 +1,13 @@
+import React, { useState, useEffect, useMemo } from 'react';
 import { SharedRequests } from './shared/SharedRequests';
 import { supabase } from '../integrations/supabase/client';
+import { Transaction, Trip, FamilyMember, Account, TransactionType, Category, SyncStatus, InvoiceItem } from '../types';
+import { useSharedFinances } from '../hooks/useSharedFinances';
+import { MemberSummaryCard } from './shared/MemberSummaryCard';
+import { SharedFilters } from './shared/SharedFilters';
+import { SettlementModal } from './shared/SettlementModal';
+import { SharedInstallmentImport } from './shared/SharedInstallmentImport';
+import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal';
 
 interface SharedProps {
     transactions: Transaction[];
