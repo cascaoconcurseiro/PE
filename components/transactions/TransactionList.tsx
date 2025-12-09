@@ -92,7 +92,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                     // I paid full amount
                                     displayAmount = t.amount - splitsTotal; // Show net cost (my share)
                                     if (splitsTotal > 0) {
-                                        subText = `Você pagou o total (${formatCurrency(t.amount)})`;
+                                        subText = `Você pagou o total (${formatCurrency(t.amount, t.currency || 'BRL')})`;
                                     }
                                 } else {
                                     // Someone else paid
@@ -139,13 +139,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                     <div className="flex items-center gap-4">
                                         <div className="text-right cursor-pointer" onClick={() => onEdit(t)}>
                                             <span className={`block font-bold text-sm ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
-                                                {isPositive ? '+' : ''} <BlurValue value={formatCurrency(displayAmount)} show={showValues} />
+                                                {isPositive ? '+' : ''} <BlurValue value={formatCurrency(displayAmount, t.currency || 'BRL')} show={showValues} />
                                             </span>
 
                                             {/* Subtext Logic */}
                                             {isInstallment && t.originalAmount && !subText && (
                                                 <div className="text-[9px] font-medium text-slate-400 mt-0.5">
-                                                    Total: {formatCurrency(t.originalAmount)}
+                                                    Total: {formatCurrency(t.originalAmount, t.currency || 'BRL')}
                                                 </div>
                                             )}
 

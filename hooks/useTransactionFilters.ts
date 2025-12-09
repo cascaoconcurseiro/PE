@@ -3,6 +3,7 @@ import { Transaction, TransactionType } from '../types';
 import { isSameMonth } from '../utils';
 import { calculateMyExpense } from '../utils/expenseUtils';
 import { shouldShowTransaction } from '../utils/transactionFilters';
+import { convertToBRL } from '../services/currencyService';
 
 interface UseTransactionFiltersProps {
     transactions: Transaction[];
@@ -36,11 +37,20 @@ export const useTransactionFilters = ({ transactions, currentDate, searchTerm, a
     const { income, expense, balance } = useMemo(() => {
         let inc = 0;
         let exp = 0;
+
+        const toBRL = (val: number, t: Transaction) => {
+            if (t.exchangeRate && t.exchangeRate > 0) return val * t.exchangeRate;
+            return convertToBRL(val, t.currency || 'BRL');
+        };
+
         filteredTxs.forEach(t => {
-            if (t.type === TransactionType.INCOME) inc += t.isRefund ? -t.amount : t.amount;
-            else if (t.type === TransactionType.EXPENSE) {
+            if (t.type === TransactionType.INCOME) {
+                const val = toBRL(t.amount, t);
+                inc += t.isRefund ? -val : val;
+            } else if (t.type === TransactionType.EXPENSE) {
                 const myVal = calculateMyExpense(t);
-                exp += t.isRefund ? -myVal : myVal;
+                const valBRL = toBRL(myVal, t);
+                exp += t.isRefund ? -valBRL : valBRL;
             }
         });
         return { income: inc, expense: exp, balance: inc - exp };
