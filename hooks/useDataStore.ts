@@ -138,8 +138,7 @@ export const useDataStore = () => {
                 });
             }
 
-            const { data: createdTxs, error } = await supabaseService.bulkCreate('transactions', txsToCreate);
-            if (error) throw error; // Ensure we throw if failed so we don't send invites for failed txs
+            await supabaseService.bulkCreate('transactions', txsToCreate);
 
             // AUTOMATIC SHARING INVITATION LOGIC
             const currentUser = (await supabase.auth.getUser()).data.user;
