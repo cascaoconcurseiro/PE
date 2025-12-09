@@ -164,14 +164,29 @@ export const useDataStore = () => {
                         if (member?.email) {
                             // Check if user exists
                             const { data: inviteeId } = await supabase.rpc('check_user_by_email', { email_to_check: member.email });
+
                             if (inviteeId) {
-                                // Create Pending Request
+                                // AUTO-ACCEPT LOGIC: 
+                                // Check if this invitee has ever accepted a request from me before.
+                                // If yes, we assume "Trusted Connection" and auto-accept future ones.
+                                const { data: existingTrust } = await supabase
+                                    .from('shared_transaction_requests')
+                                    .select('id')
+                                    .eq('requester_id', currentUser.id)
+                                    .eq('invited_user_id', inviteeId)
+                                    .eq('status', 'ACCEPTED')
+                                    .limit(1)
+                                    .maybeSingle();
+
+                                const initialStatus = existingTrust ? 'ACCEPTED' : 'PENDING';
+
+                                // Create Request
                                 await supabase.from('shared_transaction_requests').insert({
                                     transaction_id: tx.id,
                                     requester_id: currentUser.id,
                                     invited_email: member.email,
                                     invited_user_id: inviteeId,
-                                    status: 'PENDING'
+                                    status: initialStatus
                                 });
                             }
                         }

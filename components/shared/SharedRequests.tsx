@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../integrations/supabase/client';
 import { Button } from '../ui/Button';
-import { Check, X, Bell, AlertTriangle } from 'lucide-react';
+import { Check, X, Bell } from 'lucide-react';
 import { useToast } from '../ui/Toast';
 import { Transaction } from '../../types';
 import { formatCurrency } from '../../utils';
@@ -108,6 +108,33 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, o
             <div className="p-4 flex items-center gap-3 border-b border-amber-100 dark:border-amber-800/50">
                 <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 <h3 className="font-bold text-amber-900 dark:text-amber-100 text-sm">Solicitações de Compartilhamento ({requests.length})</h3>
+                <div className="ml-auto">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-amber-700 hover:bg-amber-100 hover:text-amber-900 h-7 px-2 text-xs"
+                        onClick={async () => {
+                            if (!window.confirm("Aceitar todas as solicitações pendentes?")) return;
+
+                            try {
+                                const updates = requests.map(r =>
+                                    supabase.from('shared_transaction_requests')
+                                        .update({ status: 'ACCEPTED', responded_at: new Date().toISOString() })
+                                        .eq('id', r.id)
+                                );
+                                await Promise.all(updates);
+                                addToast("Todas as solicitações foram aceitas!", 'success');
+                                setRequests([]);
+                                onStatusChange();
+                            } catch (e) {
+                                console.error(e);
+                                addToast("Erro ao aceitar tudo.", 'error');
+                            }
+                        }}
+                    >
+                        Aceitar Tudo
+                    </Button>
+                </div>
             </div>
             <div className="divide-y divide-amber-100 dark:divide-amber-800/50">
                 {requests.map(req => (
