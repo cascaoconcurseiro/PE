@@ -57,12 +57,14 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                             <span className="text-xs font-bold text-slate-500">{curr}</span>
                             <div className="text-right">
                                 <p className={`text-lg font-black ${net > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{formatCurrency(Math.abs(net), curr)}</p>
-                                <p className="text-[10px] uppercase font-bold text-slate-400">{net > 0 ? 'A Receber' : 'A Pagar'}</p>
+                                <p className="text-[10px] uppercase font-bold text-slate-400">
+                                    {net > 0 ? `${member.name.split(' ')[0]} deve a você` : `Você deve a ${member.name.split(' ')[0]}`}
+                                </p>
                             </div>
                             <Button
                                 onClick={() => onOpenSettleModal(member.id, net > 0 ? 'RECEIVE' : 'PAY', curr)}
                                 size="sm"
-                                className={`ml-3 ${net > 0 ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-red-100 text-red-700 hover:bg-red-200'} border-none shadow-none`}
+                                className={`ml-3 ${net > 0 ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-red-600 text-white hover:bg-red-700'} border-none shadow-md`}
                             >
                                 {net > 0 ? 'Receber' : 'Pagar'}
                             </Button>
