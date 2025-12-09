@@ -36,7 +36,11 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, a
                 p_user_id: currentUserId
             });
 
-            if (error) throw error;
+            if (error) {
+                console.error("RPC Error:", error);
+                throw error;
+            }
+            console.log("Shared Requests Data:", data);
 
             const formattedRequests = data?.map((r: any) => ({
                 id: r.id,
