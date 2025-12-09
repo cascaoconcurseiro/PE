@@ -20,6 +20,7 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
     const [aiAnalysis, setAiAnalysis] = useState<string>('');
     const [loadingAi, setLoadingAi] = useState(false);
 
+    // Calculate totals in the TRIP'S currency (e.g. USD)
     const totalSpent = transactions.reduce((acc, t) => acc + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0);
     const budget = trip.budget || 0;
     const percentUsed = budget > 0 ? (totalSpent / budget) * 100 : 0;
@@ -125,10 +126,6 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
                     ) : (
                         transactions.map(t => {
                             const CatIcon = getCategoryIcon(t.category);
-                            // Calculate original foreign amount if exchange rate exists
-                            const originalAmount = (t.exchangeRate && t.exchangeRate > 0)
-                                ? t.amount / t.exchangeRate
-                                : t.amount;
 
                             return (
                                 <div
@@ -149,7 +146,7 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
                                             </div>
                                         </div>
                                     </div>
-                                    <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(originalAmount, trip.currency)}</span>
+                                    <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(t.amount, trip.currency)}</span>
                                 </div>
                             );
                         })

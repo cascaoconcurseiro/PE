@@ -108,6 +108,14 @@ export const calculateProjectedBalance = (
     let pendingIncome = 0;
     let pendingExpenses = 0;
 
+    // Helper to convert transaction amount to BRL using stored rate or fallback
+    const toBRL = (amount: number, t: Transaction) => {
+        if (t.exchangeRate && t.exchangeRate > 0) {
+            return amount * t.exchangeRate;
+        }
+        return convertToBRL(amount, t.currency || 'BRL');
+    };
+
     transactions.forEach(t => {
         // Filtrar apenas transações deste mês
         if (!isSameMonth(t.date, currentDate)) return;
@@ -128,8 +136,7 @@ export const calculateProjectedBalance = (
                 // Cenário 1: Saiu da liquidez para não-liquidez (ex: Investimento ou Pagamento Fatura)
                 // Deve contar como "Despesa" na projeção de fluxo de caixa líquido
                 if (isSourceLiquid && !isDestLiquid) {
-                    const amountBRL = convertToBRL(t.amount, 'BRL');
-                    pendingExpenses += amountBRL;
+                    pendingExpenses += toBRL(t.amount, t);
                 }
                 // Cenário 2: Entrou na liquidez vindo de não-liquidez (ex: Resgate)
                 // Deve contar como "Receita" na projeção
@@ -137,25 +144,48 @@ export const calculateProjectedBalance = (
                     let amountIncoming = t.amount;
                     if (t.destinationAmount && t.destinationAmount > 0) {
                         amountIncoming = t.destinationAmount;
+                        // Destination Amount is likely in Destination Currency.
+                        // If Destination is BRL, no conversion needed. Use 1.
+                        // If Destination is USD, use static rate? 
+                        // For simplicity, if destinationAmount exists, assume it's the target value. 
+                        // If the target account is BRL (Liquid), then destinationAmount IS BRL.
+                        // (Assuming we don't have Liquid USD accounts yet effectively).
+                        // Let's assume destinationAmount is in Destination Account Currency.
+                        // If Dest Account is BRL, it's BRL.
+                        // If we are projecting BRL balance, and Dest is BRL, we just add it.
+                        // If Dest is USD, we convert it?
+                        // For now, assume Liquid accounts are BRL or treated as such.
+                        // But wait! toBRL uses t.currency. 
+                        // For transfer, t.currency usually applies to Source Amount.
+                        // destinationAmount should be treated carefully.
+                        // If destinationAmount is present, it is the raw amount entering the destination.
+                        // Check destination account currency?
+                        const destAcc = accounts.find(a => a.id === t.destinationAccountId);
+                        if (destAcc) {
+                            // If destination is BRL, value is direct.
+                            if (destAcc.currency === 'BRL') pendingIncome += amountIncoming;
+                            else pendingIncome += convertToBRL(amountIncoming, destAcc.currency);
+                        } else {
+                            pendingIncome += toBRL(amountIncoming, t);
+                        }
+                    } else {
+                        // Fallback to source amount converted
+                        pendingIncome += toBRL(amountIncoming, t);
                     }
-                    const amountBRL = convertToBRL(amountIncoming, 'BRL');
-                    pendingIncome += amountBRL;
                 }
                 return;
             }
 
             if (t.type === TransactionType.INCOME) {
                 // Receitas: usar valor total
-                const amountBRL = convertToBRL(t.amount, 'BRL');
-                pendingIncome += amountBRL;
+                pendingIncome += toBRL(t.amount, t);
             } else if (t.type === TransactionType.EXPENSE) {
                 // ✅ CORREÇÃO CRÍTICA: Ignorar despesas de Cartão de Crédito na projeção de fluxo de caixa
                 // (Pois elas só afetam o caixa no dia do pagamento da fatura, que geralmente é uma Transferência)
                 if (liquidityAccountIds.has(t.accountId)) {
                     // ✅ Usar valor efetivo para despesas (considera splits)
                     const effectiveAmount = calculateEffectiveTransactionValue(t);
-                    const amountBRL = convertToBRL(effectiveAmount, 'BRL');
-                    pendingExpenses += amountBRL;
+                    pendingExpenses += toBRL(effectiveAmount, t);
                 }
             }
         }
