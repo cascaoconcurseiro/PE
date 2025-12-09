@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FamilyMember, Trip, InvoiceItem } from '../../types';
 import { Button } from '../ui/Button';
-import { ArrowRight, Plane, Calendar, Trash2, Pencil } from 'lucide-react';
+import { ArrowRight, Plane, Calendar, Trash2, Pencil, RotateCcw, AlertCircle, Clock } from 'lucide-react';
 import { formatCurrency, parseDate } from '../../utils';
 
 interface MemberSummaryCardProps {
@@ -12,13 +12,23 @@ interface MemberSummaryCardProps {
     onOpenSettleModal: (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET', currency: string) => void;
     onDeleteTransaction?: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
     onEditTransaction?: (txId: string) => void;
+    outgoingStatus?: Record<string, string>;
+    onResendRequest?: (txId: string, memberId: string) => void;
 }
 
-export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, items, totalsMap, trips, onOpenSettleModal, onDeleteTransaction, onEditTransaction }) => {
+export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, items, totalsMap, trips, onOpenSettleModal, onDeleteTransaction, onEditTransaction, outgoingStatus, onResendRequest }) => {
     const currencies = Object.keys(totalsMap).filter(c => Math.abs(totalsMap[c].net) > 0.01);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-    if (currencies.length === 0) return null;
+    // If no currencies but we have items (e.g. all pending/rejected), show card but with 0 balance
+    // Actually items might be empty if rejected and filtered out?
+    // Let's assume we want to show even if balance is 0 if there are active items?
+    // For now, keep existing logic but allow if items > 0?
+    if (currencies.length === 0 && items.length === 0) return null;
+
+    // Helper to check if item is "active" for balance calculation
+    // If we want to hide Rejected from balance, we should have filtered them in `useSharedFinances`.
+    // Assuming `getFilteredInvoice` returns ALL relevant items.
 
     const handleDelete = (id: string, hasSeriesId: boolean) => {
         if (deleteConfirmId === id) {
@@ -62,18 +72,30 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
             </div>
 
             <div className="bg-slate-50/50 dark:bg-slate-900/30 divide-y divide-slate-100 dark:divide-slate-700 max-h-60 overflow-y-auto">
-                {items.filter(i => !i.isPaid).map(item => {
+                {items.map(item => {
                     const trip = item.tripId ? trips.find(t => t.id === item.tripId) : null;
                     const isConfirming = deleteConfirmId === item.originalTxId;
                     const hasSeriesId = !!item.seriesId;
+                    const isPaid = item.isPaid;
+
+                    const status = outgoingStatus?.[item.originalTxId];
+                    const isPending = status === 'PENDING';
+                    const isRejected = status === 'REJECTED';
+                    // If no status found, assume Accepted (synced local) or just local only (no email sent).
+
                     return (
-                        <div key={item.id} className="px-6 py-4 flex justify-between items-center">
+                        <div key={item.id} className={`px-6 py-4 flex justify-between items-center ${isPaid ? 'opacity-50 grayscale bg-slate-50/50 dark:bg-slate-900/20' : ''}`}>
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div className={`p-2 rounded-lg shrink-0 ${item.type === 'CREDIT' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
                                     {item.type === 'CREDIT' ? <ArrowRight className="w-4 h-4" /> : <ArrowRight className="w-4 h-4 transform rotate-180" />}
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{item.description}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className={`text-sm font-bold truncate ${isPaid ? 'text-slate-500 line-through' : 'text-slate-800 dark:text-white'}`}>{item.description}</p>
+                                        {isPaid && <span className="text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded uppercase">Pago</span>}
+                                        {isPending && <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-600 px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><Clock className="w-3 h-3" /> Aguardando</span>}
+                                        {isRejected && <span className="text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-600 px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Recusado</span>}
+                                    </div>
                                     <div className="flex flex-wrap gap-2 mt-0.5">
                                         {trip && <span className="text-[10px] bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><Plane className="w-3 h-3" /> {trip.name}</span>}
                                         <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3 h-3" /> {parseDate(item.date).toLocaleDateString()}</span>
@@ -82,10 +104,21 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                                 </div>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
-                                <span className={`font-bold text-sm mr-2 ${item.type === 'CREDIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                                <span className={`font-bold text-sm mr-2 ${isPaid ? 'text-slate-500' : (item.type === 'CREDIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400')}`}>
                                     {formatCurrency(item.amount, item.currency || 'BRL')}
                                 </span>
-                                {onEditTransaction && hasSeriesId && (
+
+                                {isRejected && onResendRequest && (
+                                    <button
+                                        onClick={() => onResendRequest(item.originalTxId, member.id)}
+                                        className="p-1.5 rounded-lg transition-all text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                        title="Reenviar Solicitação"
+                                    >
+                                        <RotateCcw className="w-4 h-4" />
+                                    </button>
+                                )}
+
+                                {!isPaid && onEditTransaction && hasSeriesId && !isRejected && (
                                     <button
                                         onClick={() => onEditTransaction(item.originalTxId)}
                                         className="p-1.5 rounded-lg transition-all text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
@@ -94,7 +127,7 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                                         <Pencil className="w-4 h-4" />
                                     </button>
                                 )}
-                                {onDeleteTransaction && (
+                                {!isPaid && onDeleteTransaction && (
                                     <button
                                         onClick={() => handleDelete(item.originalTxId, hasSeriesId)}
                                         className={`p-1.5 rounded-lg transition-all ${isConfirming ? 'bg-red-500 text-white' : 'text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'}`}

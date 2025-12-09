@@ -1,11 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Transaction, Trip, FamilyMember, TransactionType, Account, SyncStatus, Category, InvoiceItem } from '../types';
-import { SharedInstallmentImport } from './SharedInstallmentImport';
-import { useSharedFinances } from '../hooks/useSharedFinances';
-import { MemberSummaryCard } from './shared/MemberSummaryCard';
-import { SettlementModal } from './shared/SettlementModal';
-import { SharedFilters } from './shared/SharedFilters';
-import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal';
+import { SharedRequests } from './shared/SharedRequests';
+import { supabase } from '../integrations/supabase/client';
 
 interface SharedProps {
     transactions: Transaction[];
@@ -32,6 +26,72 @@ export const Shared: React.FC<SharedProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [outgoingRequests, setOutgoingRequests] = useState<Record<string, string>>({}); // txId -> Status
+    const [currentUser, setCurrentUser] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchUserAndRequests = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setCurrentUser(user);
+                // Fetch status of requests sent BY me
+                const { data } = await supabase
+                    .from('shared_transaction_requests')
+                    .select('transaction_id, status')
+                    .eq('requester_id', user.id);
+
+                if (data) {
+                    const map: Record<string, string> = {};
+                    data.forEach(r => map[r.transaction_id] = r.status);
+                    setOutgoingRequests(map);
+                }
+            }
+        };
+        fetchUserAndRequests();
+    }, []);
+
+    const handleResendRequest = async (txId: string, memberId: string) => {
+        // Logic to resend (create new pending request)
+        if (!currentUser) return;
+
+        // Find member email
+        const member = members.find(m => m.id === memberId);
+        if (!member?.email) {
+            alert("Este membro não possui e-mail cadastrado.");
+            return;
+        }
+
+        try {
+            // Check if user exists (Frontend check using RPC or just insert and let logic handle? 
+            // Plan said RPC. Let's try direct insert first, or use the RPC if accessible. 
+            // For now, simpler: Insert new request.
+
+            // First check if user exists to be safe/clean
+            const { data: inviteeId, error: checkError } = await supabase.rpc('check_user_by_email', { email_to_check: member.email });
+
+            if (!inviteeId) {
+                alert("Usuário com este e-mail não encontrado no sistema.");
+                return;
+            }
+
+            const { error } = await supabase.from('shared_transaction_requests').insert({
+                transaction_id: txId,
+                requester_id: currentUser.id,
+                invited_email: member.email,
+                invited_user_id: inviteeId,
+                status: 'PENDING'
+            });
+
+            if (error) throw error;
+
+            alert("Solicitação reenviada com sucesso!");
+            setOutgoingRequests(prev => ({ ...prev, [txId]: 'PENDING' }));
+
+        } catch (e) {
+            console.error("Erro ao reenviar:", e);
+            alert("Erro ao reenviar solicitação.");
+        }
+    };
 
     // Edit Modal State
     const [editModalTxId, setEditModalTxId] = useState<string | null>(null);
@@ -153,6 +213,8 @@ export const Shared: React.FC<SharedProps> = ({
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
+            {currentUser && <SharedRequests currentUserId={currentUser.id} onStatusChange={() => window.location.reload()} />}
+
             <SharedFilters
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -174,6 +236,8 @@ export const Shared: React.FC<SharedProps> = ({
                             onOpenSettleModal={handleOpenSettleModal}
                             onDeleteTransaction={onDeleteTransaction}
                             onEditTransaction={handleEditTransaction}
+                            outgoingStatus={outgoingRequests}
+                            onResendRequest={handleResendRequest}
                         />
                     );
                 })}
