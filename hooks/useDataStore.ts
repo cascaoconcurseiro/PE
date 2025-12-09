@@ -365,7 +365,7 @@ export const useDataStore = () => {
     // --- GENERIC CRUD FACTORY ---
     const createCrudHandlers = (table: string, labels: { create: string, update: string, delete: string }) => {
         return {
-            add: (item: any) => performOperation(async () => { await supabaseService.create(table, { ...item, id: crypto.randomUUID() }); }, labels.create),
+            add: (item: any) => performOperation(async () => { await supabaseService.create(table, { id: crypto.randomUUID(), ...item }); }, labels.create),
             update: (item: any) => performOperation(async () => { await supabaseService.update(table, item); }, labels.update),
             delete: (id: string) => performOperation(async () => { await supabaseService.delete(table, id); }, labels.delete),
         };

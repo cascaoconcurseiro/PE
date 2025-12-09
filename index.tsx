@@ -280,7 +280,46 @@ const App = () => {
             case View.SHARED:
                 return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} />;
             case View.FAMILY:
-                return <Family members={familyMembers} onAddMember={handlers.handleAddMember} onUpdateMember={handlers.handleUpdateMember} onDeleteMember={handlers.handleDeleteMember} />;
+                return <Family members={familyMembers} onAddMember={handlers.handleAddMember} onUpdateMember={handlers.handleUpdateMember} onDeleteMember={handlers.handleDeleteMember}
+                    onInviteMember={async (memberId, email) => {
+                        // Logic to share all shared transactions with this member
+                        const { data: inviteeId } = await supabase.rpc('check_user_by_email', { email_to_check: email });
+                        if (!inviteeId) return;
+
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) return;
+
+                        // Find all candidate transactions
+                        const candidates = transactions.filter(t =>
+                            t.isShared &&
+                            t.sharedWith?.some(s => s.memberId === memberId)
+                        );
+
+                        if (candidates.length === 0) {
+                            alert("Não há despesas compartilhadas com este membro para sincronizar.");
+                            return;
+                        }
+
+                        let count = 0;
+                        for (const tx of candidates) {
+                            // Create request if not likely exists (checking existence is better but for speed lets just try insert)
+                            // Or better: rely on logic in backend or just fire and forget (assuming trigger prevents dups or we handle error)
+                            try {
+                                const { error } = await supabase.from('shared_transaction_requests').insert({
+                                    transaction_id: tx.id,
+                                    requester_id: user.id,
+                                    invited_email: email,
+                                    invited_user_id: inviteeId,
+                                    status: 'PENDING'
+                                });
+                                if (!error) count++;
+                            } catch (e) {
+                                // Ignore duplicates or errors
+                            }
+                        }
+                        if (count > 0) alert(`${count} solicitações de compartilhamento enviadas!`);
+                    }}
+                />
             case View.INVESTMENTS:
                 return <Investments accounts={calculatedAccounts} transactions={transactions} assets={assets} onAddAsset={handlers.handleAddAsset} onUpdateAsset={handlers.handleUpdateAsset} onDeleteAsset={handlers.handleDeleteAsset} onAddTransaction={handlers.handleAddTransaction} onAddAccount={handlers.handleAddAccount} currentDate={currentDate} showValues={showValues} />;
             case View.REPORTS:

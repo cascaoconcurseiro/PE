@@ -3,23 +3,45 @@ import { FamilyMember } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Plus, Users, User, Trash2, Mail, Pencil, X, Check } from 'lucide-react';
+import { supabase } from '../integrations/supabase/client';
 
 interface FamilyProps {
     members: FamilyMember[];
-    onAddMember: (member: Omit<FamilyMember, 'id'>) => void;
+    onAddMember: (member: Partial<FamilyMember>) => void; // Changed to partial to allow ID
     onUpdateMember: (member: FamilyMember) => void;
     onDeleteMember: (id: string) => void;
+    onInviteMember?: (memberId: string, email: string) => Promise<void>;
 }
 
-export const Family: React.FC<FamilyProps> = ({ members, onAddMember, onUpdateMember, onDeleteMember }) => {
+export const Family: React.FC<FamilyProps> = ({ members, onAddMember, onUpdateMember, onDeleteMember, onInviteMember }) => {
     const [name, setName] = useState('');
     const [role, setRole] = useState('');
     const [email, setEmail] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name.trim()) return;
+
+        const currentEmail = email.trim() || undefined;
+        let finalMemberId = editingId;
+        let shouldInvite = false;
+
+        // Check for invite if email is present and changed (or new)
+        // Logic: specific rule "Assim que colocar o email..."
+        if (currentEmail && onInviteMember) {
+            // Check if email belongs to a real user
+            const { data: inviteeId } = await supabase.rpc('check_user_by_email', { email_to_check: currentEmail });
+
+            if (inviteeId) {
+                // Check if already invited? Assume "send invite" prompts every time on save if confirmed?
+                // Or check if changed. For simplicity, just ask.
+                const confirmInvite = window.confirm(`O usuário com e-mail ${currentEmail} foi encontrado no sistema.\n\nDeseja enviar uma solicitação para compartilhar todas as despesas vinculadas a este membro?`);
+                if (confirmInvite) {
+                    shouldInvite = true;
+                }
+            }
+        }
 
         if (editingId) {
             // Update existing
@@ -27,22 +49,28 @@ export const Family: React.FC<FamilyProps> = ({ members, onAddMember, onUpdateMe
                 id: editingId,
                 name: name.trim(),
                 role: role.trim(),
-                email: email.trim() || undefined
+                email: currentEmail
             });
-            setEditingId(null);
         } else {
-            // Add new
+            // Add new - generate ID here if inviting, so we can link it
+            finalMemberId = crypto.randomUUID();
             onAddMember({
+                id: finalMemberId,
                 name: name.trim(),
                 role: role.trim(),
-                email: email.trim() || undefined
+                email: currentEmail
             });
+        }
+
+        if (shouldInvite && finalMemberId && currentEmail && onInviteMember) {
+            await onInviteMember(finalMemberId, currentEmail);
         }
 
         // Reset form
         setName('');
         setRole('');
         setEmail('');
+        setEditingId(null);
     };
 
     const handleEdit = (member: FamilyMember) => {
