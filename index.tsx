@@ -579,7 +579,6 @@ const App = () => {
                 suggestedAmount={settlementToPay?.amount}
                 mode="PAY"
                 // Pass extra prop to fulfill request (Implemented in next step)
-                // @ts-ignore
                 fulfillRequestId={settlementToPay?.id}
                 onAddTransaction={handlers.handleAddTransaction}
             />
