@@ -236,7 +236,7 @@ export const useTransactionForm = ({
             date,
             type: formMode!,
             category: formMode === TransactionType.TRANSFER ? Category.TRANSFER : category,
-            accountId: (payerId && payerId !== 'me') ? 'EXTERNAL' : (accountId || undefined),
+            accountId: (payerId && payerId !== 'me') ? undefined : (accountId || undefined),
             destinationAccountId: isTransfer ? destinationAccountId : undefined,
             destinationAmount: (isTransfer && isMultiCurrencyTransfer) ? parseFloat(destinationAmountStr) : undefined,
             tripId: tripId || undefined,

@@ -198,7 +198,28 @@ export const useDataStore = () => {
 
     const handleUpdateTransaction = async (updatedTx: Transaction) => {
         await performOperation(async () => {
+            // 1. Update Local
             await supabaseService.update('transactions', { ...updatedTx, updatedAt: new Date().toISOString() });
+
+            // 2. Sync Metadata to Linked Copies (RPC)
+            try {
+                // Call the Manual Migration RPC
+                const { error } = await supabase.rpc('sync_shared_transaction', {
+                    original_id: updatedTx.id,
+                    new_amount: updatedTx.amount, // Note: This updates Total. Frontend should maybe handle splits? For now, sync metadata.
+                    new_description: updatedTx.description,
+                    new_date: updatedTx.date,
+                    new_type: updatedTx.type,
+                    new_category: updatedTx.category,
+                    new_currency: updatedTx.currency || 'BRL'
+                });
+
+                if (error) {
+                    console.warn("Sync RPC failed (Remote update skipped):", error.message);
+                }
+            } catch (e) {
+                console.error("Sync error:", e);
+            }
         }, 'Transação atualizada!');
     };
 
@@ -345,39 +366,29 @@ export const useDataStore = () => {
 
     const handleDeleteTransaction = async (id: string, deleteScope: 'SINGLE' | 'SERIES' = 'SINGLE') => {
         await performOperation(async () => {
-            // ✅ SOFT DELETE: Marcar transações como deletadas ao invés de excluir fisicamente
-            // Isso mantém histórico e permite auditoria
+            // 1. Local Delete (Soft)
             if (deleteScope === 'SERIES') {
                 const tx = transactions.find(t => t.id === id);
                 if (tx && tx.seriesId) {
-                    // Find all transactions in this series
                     const seriesTxs = transactions.filter(t => t.seriesId === tx.seriesId);
                     for (const t of seriesTxs) {
-                        await supabaseService.update('transactions', {
-                            ...t,
-                            deleted: true,
-                            updatedAt: new Date().toISOString()
-                        });
+                        await supabaseService.update('transactions', { ...t, deleted: true, updatedAt: new Date().toISOString() });
+                        // Delete copies for series? RPC only handles one ID. 
+                        // Loop RPC calls.
+                        supabase.rpc('sync_delete_transaction', { original_id: t.id });
                     }
                 } else {
-                    // Fallback if no seriesId found
                     const tx = transactions.find(t => t.id === id);
                     if (tx) {
-                        await supabaseService.update('transactions', {
-                            ...tx,
-                            deleted: true,
-                            updatedAt: new Date().toISOString()
-                        });
+                        await supabaseService.update('transactions', { ...tx, deleted: true, updatedAt: new Date().toISOString() });
+                        supabase.rpc('sync_delete_transaction', { original_id: tx.id });
                     }
                 }
             } else {
                 const tx = transactions.find(t => t.id === id);
                 if (tx) {
-                    await supabaseService.update('transactions', {
-                        ...tx,
-                        deleted: true,
-                        updatedAt: new Date().toISOString()
-                    });
+                    await supabaseService.update('transactions', { ...tx, deleted: true, updatedAt: new Date().toISOString() });
+                    supabase.rpc('sync_delete_transaction', { original_id: tx.id });
                 }
             }
         }, 'Transação excluída.');
@@ -385,22 +396,10 @@ export const useDataStore = () => {
 
     const handleAnticipateInstallments = async (ids: string[], targetDate: string, targetAccountId?: string) => {
         await performOperation(async () => {
-            // ✅ VALIDAÇÃO: Verificar se as parcelas existem
             const txsToUpdate = transactions.filter(t => ids.includes(t.id));
-
-            if (txsToUpdate.length === 0) {
-                throw new Error('Nenhuma parcela encontrada para antecipar');
-            }
-
-            // ✅ VALIDAÇÃO: Verificar se a data é válida
-            if (!targetDate || targetDate.trim() === '') {
-                throw new Error('Data de antecipação inválida');
-            }
-
-            // ✅ VALIDAÇÃO: Verificar se a conta de destino existe (se fornecida)
-            if (targetAccountId && !accounts.find(a => a.id === targetAccountId)) {
-                throw new Error('Conta de destino não encontrada');
-            }
+            if (txsToUpdate.length === 0) throw new Error('Nenhuma parcela encontrada para antecipar');
+            if (!targetDate || targetDate.trim() === '') throw new Error('Data de antecipação inválida');
+            if (targetAccountId && !accounts.find(a => a.id === targetAccountId)) throw new Error('Conta de destino não encontrada');
 
             const updatedTxs = txsToUpdate.map(t => ({
                 ...t,
@@ -427,19 +426,13 @@ export const useDataStore = () => {
 
     // --- HANDLERS ---
 
-    // Custom Handlers (Complex Logic)
-    // handleAddAccount defined above... 
+    // Account Handlers
     const handleAddAccount = async (acc: any) => performOperation(async () => {
         const accountId = crypto.randomUUID();
         const initialAmount = acc.initialBalance || 0;
 
-        // ✅ VALIDAÇÃO: Nome da conta obrigatório
-        if (!acc.name || acc.name.trim() === '') {
-            throw new Error('Nome da conta é obrigatório');
-        }
+        if (!acc.name || acc.name.trim() === '') throw new Error('Nome da conta é obrigatório');
 
-        // Create account with 0 initial balance to avoid double counting
-        // The value is now represented by the transaction below
         const accountToCreate = {
             ...acc,
             id: accountId,
@@ -449,17 +442,14 @@ export const useDataStore = () => {
 
         await supabaseService.create('accounts', accountToCreate);
 
-        // Create transaction for initial balance if non-zero
         if (Math.abs(initialAmount) > 0) {
             const now = new Date();
             const isPositive = initialAmount >= 0;
-
-            // FIX: Format date locally to avoid timezone issues
             const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
             const transaction = {
                 id: crypto.randomUUID(),
-                accountId: accountId, // ✅ Validated: accountId is guaranteed to exist
+                accountId: accountId,
                 amount: Math.abs(initialAmount),
                 date: dateStr,
                 description: 'Saldo Inicial',
@@ -476,12 +466,11 @@ export const useDataStore = () => {
 
     const handleUpdateAccount = async (acc: any) => performOperation(async () => { await supabaseService.update('accounts', acc); }, 'Conta atualizada!');
 
-    // Custom Delete Account (Soft Delete RPC)
     const handleDeleteAccount = async (id: string) => performOperation(async () => {
         await supabaseService.softDeleteAccount(id);
     }, 'Conta excluída com sucesso.');
 
-    // Generated Handlers (Simple CRUD)
+    // Generated Handlers
     const tripsHandler = createCrudHandlers('trips', { create: 'Viagem criada!', update: 'Viagem atualizada!', delete: 'Viagem excluída.' });
     const membersHandler = createCrudHandlers('family_members', { create: 'Membro adicionado!', update: 'Membro atualizado!', delete: 'Membro removido.' });
     const categoriesHandler = createCrudHandlers('custom_categories', { create: 'Categoria adicionada!', update: 'Categoria atualizada!', delete: 'Categoria removida.' });
@@ -490,7 +479,6 @@ export const useDataStore = () => {
     const assetsHandler = createCrudHandlers('assets', { create: 'Ativo adicionado!', update: 'Ativo atualizado!', delete: 'Ativo removido.' });
     const snapshotsHandler = createCrudHandlers('snapshots', { create: 'Snapshot salvo!', update: 'Snapshot atualizado!', delete: 'Snapshot removido.' });
 
-    // Helper for adding simple category (name only)
     const handleAddCategory = async (name: string) => categoriesHandler.add({ name });
 
     return {
@@ -509,6 +497,31 @@ export const useDataStore = () => {
             handleAddSnapshot: snapshotsHandler.add,
 
             handleFactoryReset: async () => performOperation(async () => {
+                // 1. BROADCAST DELETE: Clean up copies I sent to others
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    try {
+                        const { data: requests } = await supabase
+                            .from('shared_transaction_requests')
+                            .select('transaction_id')
+                            .eq('requester_id', user.id);
+
+                        if (requests && requests.length > 0) {
+                            // Delete copies in other users' accounts
+                            const cleanupPromises = requests.map(r =>
+                                supabase.from('transactions')
+                                    .delete()
+                                    .ilike('observation', `%[SYNC:${r.transaction_id}]%`)
+                            );
+                            await Promise.all(cleanupPromises);
+                        }
+                    } catch (e) {
+                        console.error("Failed to cleanup shared copies:", e);
+                        // Continue to wipe anyway
+                    }
+                }
+
+                // 2. Local Wipe
                 await supabaseService.dangerouslyWipeAllData();
                 setAccounts([]);
                 setTransactions([]);

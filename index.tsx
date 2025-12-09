@@ -111,6 +111,23 @@ const App = () => {
     });
     const [currentDate, setCurrentDate] = useState(new Date());
     const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
+    const [pendingSharedRequests, setPendingSharedRequests] = useState<number>(0);
+
+    // Fetch Pending Shared Requests (Simple Polling)
+    useEffect(() => {
+        const fetchRequests = async () => {
+            if (!sessionUser?.id) return;
+            const { count } = await supabase
+                .from('shared_transaction_requests')
+                .select('*', { count: 'exact', head: true })
+                .eq('invited_user_id', sessionUser.id)
+                .eq('status', 'PENDING');
+            setPendingSharedRequests(count || 0);
+        };
+        fetchRequests();
+        const interval = setInterval(fetchRequests, 60000);
+        return () => clearInterval(interval);
+    }, [sessionUser]);
 
     useEffect(() => { localStorage.setItem('pdm_privacy', JSON.stringify(showValues)); }, [showValues]);
 
@@ -127,40 +144,112 @@ const App = () => {
     }, [accounts, transactions, currentDate]);
 
     const activeNotifications = useMemo(() => {
-        if (!transactions) return [];
+        if (!transactions || !accounts) return [];
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayStr = today.toISOString().split('T')[0];
 
-        // 1. Configured Reminders (Explicit)
-        const reminders = transactions.filter(t =>
+        const notifs: any[] = [];
+
+        // 1. Shared Transaction Requests
+        if (pendingSharedRequests > 0) {
+            notifs.push({
+                id: 'shared-requests',
+                type: 'SHARED_REQUEST',
+                date: todayStr,
+                description: `Você tem ${pendingSharedRequests} solicitação(ões) de compartilhamento pendente(s).`,
+                amount: 0,
+                enableNotification: true,
+                category: 'Compartilhado',
+                accountId: 'system'
+            });
+        }
+
+        // 2. Credit Card Due Dates (Approximate)
+        const creditCards = accounts.filter(a => a.type === 'CARTÃO DE CRÉDITO' && a.dueDay);
+        creditCards.forEach(card => {
+            if (!card.dueDay) return;
+            // Calculate due date for current month
+            let due = new Date(today.getFullYear(), today.getMonth(), card.dueDay);
+            // If today is past due day, assume next month? Or if it's close? 
+            // Simple logic: If due date is within next 3 days.
+            // If due day is 5 and today is 25, we look at NEXT month's 5.
+            if (due < today) {
+                due = new Date(today.getFullYear(), today.getMonth() + 1, card.dueDay);
+            }
+
+            const diffTime = due.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays >= 0 && diffDays <= 2) {
+                notifs.push({
+                    id: `cc-due-${card.id}`,
+                    type: 'CREDIT_CARD_DUE',
+                    date: due.toISOString().split('T')[0],
+                    description: `Fatura do cartão ${card.name} vence ${diffDays === 0 ? 'HOJE' : `em ${diffDays} dias`}.`,
+                    amount: 0,
+                    enableNotification: true,
+                    category: 'Cartão de Crédito',
+                    accountId: card.id
+                });
+            }
+        });
+
+        // 3. User Configured Reminders (Only Explicit)
+        const manualReminders = transactions.filter(t =>
             t.enableNotification &&
             t.notificationDate &&
             t.notificationDate <= todayStr &&
-            !t.deleted  // ✅ Ignorar deletadas
+            !t.deleted
         );
+        notifs.push(...manualReminders);
 
-        // 2. Critical: Overdue or Due Today Expenses (Unpaid)
-        // ✅ CORREÇÃO: Usar lógica correta sem isSettled
-        const critical = transactions.filter(t => {
-            if (t.deleted) return false;
-            if (t.type !== TransactionType.EXPENSE) return false;
-            if (t.enableNotification) return false;  // Já está em reminders
+        // 4. Budget API Limits
+        if (budgets && budgets.length > 0) {
+            budgets.forEach(budget => {
+                // Calculate spent in current month for this category
+                const spent = transactions
+                    .filter(t =>
+                        t.category === budget.categoryId &&
+                        t.type === TransactionType.EXPENSE &&
+                        !t.deleted &&
+                        t.date.startsWith(todayStr.substring(0, 7)) // Current month YYYY-MM
+                    )
+                    .reduce((sum, t) => sum + t.amount, 0);
 
-            // Verificar se está vencida (data <= hoje)
-            const txDate = new Date(t.date);
-            txDate.setHours(0, 0, 0, 0);
+                const percentage = (spent / budget.amount) * 100;
 
-            return txDate <= today;
-        });
+                if (percentage >= 90) {
+                    notifs.push({
+                        id: `budget-${budget.id}`,
+                        type: 'BUDGET_ALERT',
+                        date: todayStr,
+                        description: `Alerta: Orçamento de ${budget.categoryId} em ${percentage.toFixed(0)}%.`,
+                        amount: 0,
+                        enableNotification: true,
+                        category: budget.categoryId as string,
+                        accountId: 'system'
+                    });
+                }
+            });
+        }
 
-        return [...reminders, ...critical]
-            .filter(t => !dismissedNotifications.includes(t.id))  // ✅ Filtrar dispensadas
+        return notifs
+            .filter(t => !dismissedNotifications.includes(t.id))
             .sort((a, b) => a.date.localeCompare(b.date))
-            .slice(0, 20);  // ✅ Limitar a 20 notificações
-    }, [transactions, dismissedNotifications]);
+            .slice(0, 20);
+    }, [transactions, accounts, pendingSharedRequests, dismissedNotifications]);
 
     const handleNotificationClick = useCallback((id: string) => {
+        if (id === 'shared-requests') {
+            startTransition(() => setActiveView(View.SHARED));
+            return;
+        }
+        if (id.startsWith('cc-due-')) {
+            startTransition(() => setActiveView(View.ACCOUNTS));
+            return;
+        }
+
         // Navegar para a view de transações e destacar a transação
         startTransition(() => {
             setActiveView(View.TRANSACTIONS);
@@ -172,7 +261,6 @@ const App = () => {
             const element = document.getElementById(`transaction-${id}`);
             if (element) {
                 element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // Adicionar efeito visual temporário
                 element.classList.add('ring-2', 'ring-amber-500', 'ring-offset-2');
                 setTimeout(() => {
                     element.classList.remove('ring-2', 'ring-amber-500', 'ring-offset-2');
@@ -182,44 +270,43 @@ const App = () => {
     }, []);
 
     const handleDismissNotification = useCallback((id: string) => {
+        if (id === 'shared-requests' || id.startsWith('cc-due-')) {
+            setDismissedNotifications(prev => [...prev, id]);
+            return;
+        }
+
         if (!transactions) return;
         const tx = transactions.find(t => t.id === id);
         if (!tx) return;
 
-        // Para notificações configuradas: desativar permanentemente
         if (tx.enableNotification) {
             handlers.handleUpdateTransaction({
                 ...tx,
                 enableNotification: false,
                 updatedAt: new Date().toISOString()
             });
-        }
-        // Para notificações críticas (vencidas): dispensar temporariamente
-        else {
+        } else {
             setDismissedNotifications(prev => [...prev, id]);
         }
     }, [transactions, handlers]);
 
     const handleNotificationPay = useCallback((id: string) => {
+        if (id === 'shared-requests' || id.startsWith('cc-due-')) return;
+
         if (!transactions) return;
         const tx = transactions.find(t => t.id === id);
         if (!tx) return;
 
         const today = new Date();
         const txDate = new Date(tx.date);
-
-        // If it's a future transaction, bring it to today (Pay Now)
-        // Otherwise keep original date
         const newDate = txDate > today ? today.toISOString().split('T')[0] : tx.date;
 
         handlers.handleUpdateTransaction({
             ...tx,
-            enableNotification: false, // Turn off alert
+            enableNotification: false,
             date: newDate,
             updatedAt: new Date().toISOString()
         });
-
-        // Feedback could be added here (toast)
     }, [transactions, handlers]);
 
     const handleLogout = useCallback(async () => {
