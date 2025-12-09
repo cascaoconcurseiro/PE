@@ -121,16 +121,6 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                                     {formatCurrency(item.amount, item.currency || 'BRL')}
                                 </span>
 
-                                {isRejected && onResendRequest && (
-                                    <button
-                                        onClick={() => onResendRequest(item.originalTxId, member.id)}
-                                        className="p-1.5 rounded-lg transition-all text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                        title="Reenviar Solicitação"
-                                    >
-                                        <RotateCcw className="w-4 h-4" />
-                                    </button>
-                                )}
-
                                 {!isPaid && onEditTransaction && hasSeriesId && !isRejected && (
                                     <button
                                         onClick={() => onEditTransaction(item.originalTxId)}
@@ -138,6 +128,15 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                                         title="Editar Parcelas"
                                     >
                                         <Pencil className="w-4 h-4" />
+                                    </button>
+                                )}
+                                {isRejected && onResendRequest && (
+                                    <button
+                                        onClick={() => onResendRequest(item.originalTxId, member.id)}
+                                        className="p-1.5 rounded-lg transition-all text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                        title="Reenviar Solicitação"
+                                    >
+                                        <RotateCcw className="w-4 h-4" />
                                     </button>
                                 )}
                                 {!isPaid && onDeleteTransaction && (
