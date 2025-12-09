@@ -31,40 +31,39 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, a
 
     const fetchRequests = async () => {
         try {
-            // Use RPC to bypass RLS on transactions table and get details securely
-            const { data, error } = await supabase.rpc('get_shared_requests_v2');
+            // UPDATE RPC TO V3 (Fixes ambiguous 400 error)
+            const { data, error } = await supabase.rpc('get_shared_requests_v3');
 
             if (error) {
-                console.error("RPC Error:", error);
-                throw error;
+                console.error('Error fetching shared requests:', error);
+                // toast.error("Erro ao carregar solicitações pendentes.");
+            } else if (data) {
+                // Map db headers to expected format if needed
+                const formatted = data.map((item: any) => ({
+                    id: item.id,
+                    transaction_id: item.transaction_id,
+                    requester_id: item.requester_id,
+                    status: item.status,
+                    created_at: item.created_at,
+                    assigned_amount: item.assigned_amount,
+                    // Flatten nested TX logic if it was object, but RPC returns flat columns now
+                    transaction: {
+                        id: item.transaction_id, // Add id to transaction object
+                        description: item.tx_description,
+                        amount: item.tx_amount,
+                        currency: item.tx_currency,
+                        date: item.tx_date,
+                        category: item.tx_category,
+                        observation: item.tx_observation,
+                        tripId: item.tx_trip_id
+                    } as Transaction,
+                    requester_name: item.requester_name, // Directly assign requester_name
+                    requester_email: item.requester_email // Directly assign requester_email
+                }));
+                setRequests(formatted);
             }
-            console.log("Shared Requests Data:", data);
-
-            const formattedRequests = data?.map((r: any) => ({
-                id: r.id,
-                transaction_id: r.transaction_id,
-                requester_id: r.requester_id,
-                status: r.status,
-                created_at: r.created_at,
-                assigned_amount: r.assigned_amount,
-                requester_name: r.requester_name || 'Usuário',
-                requester_email: r.requester_email,
-                // Construct a partial transaction object for the UI
-                transaction: {
-                    id: r.transaction_id,
-                    description: r.tx_description,
-                    amount: r.tx_amount,
-                    currency: r.tx_currency,
-                    date: r.tx_date,
-                    category: r.tx_category,
-                    observation: r.tx_observation,
-                    tripId: r.tx_trip_id
-                } as Transaction
-            })) as SharedRequest[];
-
-            setRequests(formattedRequests || []);
-        } catch (error) {
-            console.error("Error fetching requests:", error);
+        } catch (e) {
+            console.error("Fetch shared requests exception:", e);
         } finally {
             setIsLoading(false);
         }
