@@ -76,117 +76,115 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, a
 
     const handleRespond = async (request: SharedRequest, status: 'ACCEPTED' | 'REJECTED') => {
         try {
-            const handleRespond = async (request: SharedRequest, status: 'ACCEPTED' | 'REJECTED') => {
-                try {
-                    let accountId = undefined;
+            let accountId = undefined;
 
-                    if (status === 'ACCEPTED') {
-                        // Find default account (Liquid) to link the new expense
-                        const defaultAccount = accounts.find(a => a.type === AccountType.CHECKING || a.type === AccountType.CASH) || accounts[0];
-                        if (!defaultAccount) {
-                            addToast("Erro: Nenhuma conta encontrada para registrar a despesa.", "error");
-                            return;
-                        }
-                        accountId = defaultAccount.id;
-                    }
-
-                    // Call Atomic RPC
-                    const { data, error } = await supabase.rpc('respond_to_shared_request', {
-                        p_request_id: request.id,
-                        p_status: status,
-                        p_account_id: accountId
-                    });
-
-                    if (error) throw error;
-                    if (!data.success) throw new Error(data.message);
-
-                    addToast(status === 'ACCEPTED' ? "Solicitação aceita e despesa criada!" : "Solicitação recusada.", status === 'ACCEPTED' ? 'success' : 'info');
-
-                    // Optimization: Remove from local state immediately
-                    setRequests(prev => prev.filter(r => r.id !== request.id));
-                    onStatusChange();
-
-                } catch (error: any) {
-                    console.error("Error responding:", error);
-                    addToast(error.message || "Erro ao responder solicitação.", "error");
+            if (status === 'ACCEPTED') {
+                // Find default account (Liquid) to link the new expense
+                const defaultAccount = accounts.find(a => a.type === AccountType.CHECKING || a.type === AccountType.CASH) || accounts[0];
+                if (!defaultAccount) {
+                    addToast("Erro: Nenhuma conta encontrada para registrar a despesa.", "error");
+                    return;
                 }
-            };
+                accountId = defaultAccount.id;
+            }
 
-            // ... render ...
-            // Note: Updated map to pass full object to handleRespond:
-            // onClick={() => handleRespond(req, 'ACCEPTED')}
+            // Call Atomic RPC
+            const { data, error } = await supabase.rpc('respond_to_shared_request', {
+                p_request_id: request.id,
+                p_status: status,
+                p_account_id: accountId
+            });
+
+            if (error) throw error;
+            if (!data.success) throw new Error(data.message);
+
+            addToast(status === 'ACCEPTED' ? "Solicitação aceita e despesa criada!" : "Solicitação recusada.", status === 'ACCEPTED' ? 'success' : 'info');
+
+            // Optimization: Remove from local state immediately
+            setRequests(prev => prev.filter(r => r.id !== request.id));
+            onStatusChange();
+
+        } catch (error: any) {
+            console.error("Error responding:", error);
+            addToast(error.message || "Erro ao responder solicitação.", "error");
+        }
+    };
+
+    // ... render ...
+    // Note: Updated map to pass full object to handleRespond:
+    // onClick={() => handleRespond(req, 'ACCEPTED')}
 
 
-            if (isLoading) return null; // Or skeleton
-            if (requests.length === 0) return null; // Don't show if empty
+    if (isLoading) return null; // Or skeleton
+    if (requests.length === 0) return null; // Don't show if empty
 
-            return (
-                <div className="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-2xl overflow-hidden animate-in slide-in-from-top-2">
-                    <div className="p-4 flex items-center gap-3 border-b border-amber-100 dark:border-amber-800/50">
-                        <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                        <h3 className="font-bold text-amber-900 dark:text-amber-100 text-sm">Solicitações de Compartilhamento ({requests.length})</h3>
-                        <div className="ml-auto">
+    return (
+        <div className="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-2xl overflow-hidden animate-in slide-in-from-top-2">
+            <div className="p-4 flex items-center gap-3 border-b border-amber-100 dark:border-amber-800/50">
+                <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <h3 className="font-bold text-amber-900 dark:text-amber-100 text-sm">Solicitações de Compartilhamento ({requests.length})</h3>
+                <div className="ml-auto">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-amber-700 hover:bg-amber-100 hover:text-amber-900 h-7 px-2 text-xs"
+                        onClick={async () => {
+                            if (!window.confirm("Aceitar todas as solicitações pendentes?")) return;
+
+                            try {
+                                const updates = requests.map(r =>
+                                    supabase.from('shared_transaction_requests')
+                                        .update({ status: 'ACCEPTED', responded_at: new Date().toISOString() })
+                                        .eq('id', r.id)
+                                );
+                                await Promise.all(updates);
+                                addToast("Todas as solicitações foram aceitas!", 'success');
+                                setRequests([]);
+                                onStatusChange();
+                            } catch (e) {
+                                console.error(e);
+                                addToast("Erro ao aceitar tudo.", 'error');
+                            }
+                        }}
+                    >
+                        Aceitar Tudo
+                    </Button>
+                </div>
+            </div>
+            <div className="divide-y divide-amber-100 dark:divide-amber-800/50">
+                {requests.map(req => (
+                    <div key={req.id} className="p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                        <div>
+                            <p className="text-sm font-bold text-slate-800 dark:text-white">
+                                {req.requester_name} deseja compartilhar uma despesa
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                {req.transaction?.description} • <span className="font-bold">{req.transaction ? formatCurrency(req.assigned_amount || req.transaction.amount, req.transaction.currency || 'BRL') : '???'}</span>
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-1">
+                                {new Date(req.transaction?.date).toLocaleDateString()}
+                            </p>
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
                             <Button
                                 size="sm"
-                                variant="ghost"
-                                className="text-amber-700 hover:bg-amber-100 hover:text-amber-900 h-7 px-2 text-xs"
-                                onClick={async () => {
-                                    if (!window.confirm("Aceitar todas as solicitações pendentes?")) return;
-
-                                    try {
-                                        const updates = requests.map(r =>
-                                            supabase.from('shared_transaction_requests')
-                                                .update({ status: 'ACCEPTED', responded_at: new Date().toISOString() })
-                                                .eq('id', r.id)
-                                        );
-                                        await Promise.all(updates);
-                                        addToast("Todas as solicitações foram aceitas!", 'success');
-                                        setRequests([]);
-                                        onStatusChange();
-                                    } catch (e) {
-                                        console.error(e);
-                                        addToast("Erro ao aceitar tudo.", 'error');
-                                    }
-                                }}
+                                variant="secondary"
+                                className="flex-1 sm:flex-none border-red-200 hover:bg-red-50 text-red-600"
+                                onClick={() => handleRespond(req, 'REJECTED')}
                             >
-                                Aceitar Tudo
+                                <X className="w-4 h-4 mr-1" /> Recusar
+                            </Button>
+                            <Button
+                                size="sm"
+                                className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white"
+                                onClick={() => handleRespond(req, 'ACCEPTED')}
+                            >
+                                <Check className="w-4 h-4 mr-1" /> Aceitar
                             </Button>
                         </div>
                     </div>
-                    <div className="divide-y divide-amber-100 dark:divide-amber-800/50">
-                        {requests.map(req => (
-                            <div key={req.id} className="p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-bold text-slate-800 dark:text-white">
-                                        {req.requester_name} deseja compartilhar uma despesa
-                                    </p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                        {req.transaction?.description} • <span className="font-bold">{req.transaction ? formatCurrency(req.assigned_amount || req.transaction.amount, req.transaction.currency || 'BRL') : '???'}</span>
-                                    </p>
-                                    <p className="text-[10px] text-slate-400 mt-1">
-                                        {new Date(req.transaction?.date).toLocaleDateString()}
-                                    </p>
-                                </div>
-                                <div className="flex gap-2 w-full sm:w-auto">
-                                    <Button
-                                        size="sm"
-                                        variant="secondary"
-                                        className="flex-1 sm:flex-none border-red-200 hover:bg-red-50 text-red-600"
-                                        onClick={() => handleRespond(req, 'REJECTED')}
-                                    >
-                                        <X className="w-4 h-4 mr-1" /> Recusar
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white"
-                                        onClick={() => handleRespond(req, 'ACCEPTED')}
-                                    >
-                                        <Check className="w-4 h-4 mr-1" /> Aceitar
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        };
+                ))}
+            </div>
+        </div>
+    );
+};
