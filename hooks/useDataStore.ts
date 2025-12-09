@@ -173,20 +173,20 @@ export const useDataStore = () => {
                                 }
 
                                 if (inviteeId) {
-                                    // AUTO-ACCEPT RULE:
-                                    // User requested: "Already appear automatically without needing authorization".
-                                    // We set status to ACCEPTED immediately. 
-                                    // The Database Trigger 'on_shared_request_accepted' will handle the creation of the mirror transaction.
+                                    // ARCHITECT REFACTOR (AUTO-SHARE):
+                                    // We simply create the request. 
+                                    // The Database Trigger 'force_auto_accept_linked_members' will:
+                                    // 1. Check if user is linked in family_members.
+                                    // 2. If linked, force status to 'ACCEPTED'.
+                                    // 3. Trigger 'on_shared_request_accepted' creates the mirror transaction.
 
-                                    const initialStatus = 'ACCEPTED';
-
-                                    // Create Request
+                                    // We send 'PENDING' by default. The DB upgrades it if applicable.
                                     const { error: insertError } = await supabase.from('shared_transaction_requests').insert({
                                         transaction_id: tx.id,
                                         requester_id: currentUser.id,
                                         invited_email: member.email.trim(),
                                         invited_user_id: inviteeId,
-                                        status: initialStatus,
+                                        status: 'PENDING', // DB will auto-accept if linked
                                         assigned_amount: share.assignedAmount
                                     });
 
