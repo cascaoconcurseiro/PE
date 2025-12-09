@@ -30,15 +30,15 @@ BEGIN
         str.status,
         str.created_at,
         str.assigned_amount,
-        t.description AS tx_description,
-        t.amount AS tx_amount,
-        t.currency AS tx_currency,
-        t.date AS tx_date,
-        t.category AS tx_category,
-        t.observation AS tx_observation,
-        t.trip_id AS tx_trip_id,
-        COALESCE(up.name, 'Usuário Desconhecido') AS requester_name,
-        up.email AS requester_email
+        t.description,
+        t.amount,
+        t.currency,
+        t.date,
+        t.category,
+        t.observation,
+        t.trip_id,
+        COALESCE(up.name, 'Usuário Desconhecido'),
+        up.email
     FROM 
         public.shared_transaction_requests str
     JOIN 
@@ -47,7 +47,8 @@ BEGIN
         public.user_profiles up ON str.requester_id = up.id
     WHERE 
         str.invited_user_id = auth.uid() 
-        AND str.status = 'PENDING';
+        AND str.status = 'PENDING'
+    ORDER BY str.created_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
