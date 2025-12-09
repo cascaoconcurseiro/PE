@@ -7,7 +7,6 @@ import { formatCurrency } from '../utils';
 import { Transaction, Trip, FamilyMember, Account, InvoiceItem, Category, TransactionType, SyncStatus } from '../types';
 import { useSharedFinances } from '../hooks/useSharedFinances';
 import { supabase } from '../integrations/supabase/client';
-import { SharedRequests } from './shared/SharedRequests';
 import { SettlementModal } from './shared/SettlementModal';
 import { SharedInstallmentImport } from './shared/SharedInstallmentImport';
 import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal';
@@ -45,6 +44,10 @@ export const Shared: React.FC<SharedProps> = ({
     const [editModalTxId, setEditModalTxId] = useState<string | null>(null);
     const editTransaction = editModalTxId ? transactions.find(t => t.id === editModalTxId) : null;
 
+    // Local Settlement State (Lightweight)
+    const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
+    const [settlementDefaults, setSettlementDefaults] = useState<{ memberId?: string, amount?: number, currency?: string, mode?: 'PAY' | 'CHARGE' }>({});
+
     // Use Custom Hook for Calculation Logic
     const { getFilteredInvoice, getTotals } = useSharedFinances({
         transactions,
@@ -58,22 +61,28 @@ export const Shared: React.FC<SharedProps> = ({
         return members;
     }, [members]);
 
+    const handleOpenSettleModal = (memberId: string, mode: 'PAY' | 'CHARGE', currency: string) => {
+        const allItems = getFilteredInvoice(memberId);
+        const items = allItems.filter(i => !i.isPaid && (i.currency || 'BRL') === currency);
+        const totals = getTotals(items);
+        const net = totals[currency]?.net || 0;
+
+        setSettlementDefaults({
+            memberId,
+            amount: Math.abs(net),
+            currency,
+            mode
+        });
+        setIsSettlementModalOpen(true);
+    };
+
     const handleEditTransaction = (txId: string) => {
         setEditModalTxId(txId);
     };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
-                        Espaço Compartilhado
-                    </h1>
-                </div>
-            </div>
-
-            {/* Removed Sync Features (Requests/Settlements) as requested */}
+            {/* Header Removed as requested */}
 
             <SharedFilters
                 activeTab={activeTab}
@@ -93,16 +102,26 @@ export const Shared: React.FC<SharedProps> = ({
                             items={items}
                             totalsMap={totalsMap}
                             trips={trips}
-                            // @ts-ignore - Settlement functions handled internally or removed
-                            onOpenSettleModal={() => { }} // Disabled
+                            onOpenSettleModal={handleOpenSettleModal}
                             onDeleteTransaction={onDeleteTransaction}
                             onEditTransaction={handleEditTransaction}
-                            outgoingStatus={{}} // Disabled
-                            onResendRequest={() => { }} // Disabled
                         />
                     );
                 })}
             </div>
+
+            <SettlementModal
+                isOpen={isSettlementModalOpen}
+                onClose={() => setIsSettlementModalOpen(false)}
+                familyMembers={members}
+                accounts={accounts}
+                currentUserId="me"
+                preSelectedMemberId={settlementDefaults.memberId}
+                suggestedAmount={settlementDefaults.amount}
+                suggestedCurrency={settlementDefaults.currency}
+                mode={settlementDefaults.mode}
+                onAddTransaction={onAddTransaction}
+            />
 
             <SharedInstallmentImport
                 isOpen={isImportModalOpen}

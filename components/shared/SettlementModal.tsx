@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Wallet, Check, ArrowRightLeft } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../ui/Toast';
-import { Account, FamilyMember } from '../../types';
+import { Account, FamilyMember, TransactionType, Category } from '../../types';
 import { formatCurrency } from '../../utils';
 
 interface SettlementModalProps {
@@ -16,20 +15,26 @@ interface SettlementModalProps {
     suggestedAmount?: number;
     suggestedCurrency?: string;
     mode?: 'PAY' | 'CHARGE';
-    fulfillRequestId?: string;
-    onSuccess?: () => void;
     onAddTransaction: (t: any) => void;
 }
 
 export const SettlementModal: React.FC<SettlementModalProps> = ({
-    isOpen, onClose, familyMembers, accounts, currentUserId, preSelectedMemberId, suggestedAmount, suggestedCurrency, mode = 'PAY', fulfillRequestId, onSuccess, onAddTransaction
+    isOpen, onClose, familyMembers, accounts, preSelectedMemberId, suggestedAmount, suggestedCurrency, mode = 'PAY', onAddTransaction
 }) => {
     const { addToast } = useToast();
-    const [amount, setAmount] = useState<string>(suggestedAmount ? suggestedAmount.toString() : '');
+    const [amount, setAmount] = useState<string>('');
     const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
-    const [selectedMemberId, setSelectedMemberId] = useState<string>(preSelectedMemberId || '');
-    const [sourceAccountId, setSourceAccountId] = useState<string>('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [selectedMemberId, setSelectedMemberId] = useState<string>('');
+    const [accountId, setAccountId] = useState<string>('');
+
+    // Reset state when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setAmount(suggestedAmount ? suggestedAmount.toString() : '');
+            setSelectedMemberId(preSelectedMemberId || '');
+            setAccountId(''); // Reset account
+        }
+    }, [isOpen, preSelectedMemberId, suggestedAmount]);
 
     const validAccounts = suggestedCurrency
         ? accounts.filter(a => (a.currency || 'BRL') === suggestedCurrency)
@@ -37,10 +42,12 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
 
     if (!isOpen) return null;
 
-    const isCharge = mode === 'CHARGE';
+    const isCharge = mode === 'CHARGE'; // CHARGE = "Cobrar" (They owe me -> Income for me)
+    // PAY = "Pagar" (I owe them -> Expense for me)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         if (!amount || parseFloat(amount) <= 0) {
             addToast('Valor inválido.', 'error');
             return;
@@ -53,87 +60,48 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
             addToast('Data é obrigatória.', 'error');
             return;
         }
-
-        setIsLoading(true);
-        try {
-            // 1. Get Target User ID from Family Member
-            const member = familyMembers.find(m => m.id === selectedMemberId);
-            if (!member?.email) throw new Error("Membro sem email vinculado.");
-
-            let requestId = fulfillRequestId;
-
-            if (fulfillRequestId) {
-                // UPDATE existing request (Paying a Charge)
-                const { error } = await supabase
-                    .from('settlement_requests')
-                    .update({
-                        status: 'COMPLETED',
-                        responded_at: new Date().toISOString()
-                    })
-                    .eq('id', fulfillRequestId);
-
-                if (error) throw error;
-
-            } else {
-                // CREATE new request
-                // Resolve email to User ID (RPC check)
-                const { data: targetUserId, error: userError } = await supabase.rpc('check_user_by_email', { email_to_check: member.email });
-                if (userError || !targetUserId) throw new Error("Usuário não encontrado no sistema.");
-
-                // 2. Determine Payer/Receiver based on Mode
-                const payerId = isCharge ? targetUserId : currentUserId;
-                const receiverId = isCharge ? currentUserId : targetUserId;
-                const type = isCharge ? 'CHARGE' : 'PAYMENT';
-
-                // 3. Create Settlement Request
-                const { data: request, error: reqError } = await supabase
-                    .from('settlement_requests')
-                    .insert({
-                        payer_id: payerId,
-                        receiver_id: receiverId,
-                        amount: parseFloat(amount),
-                        date: date,
-                        status: 'PENDING',
-                        type: type,
-                        note: isCharge ? `Cobrança de ${member.name}` : `Pagamento para ${member.name}`
-                    })
-                    .select()
-                    .single();
-
-                if (reqError) throw reqError;
-                requestId = request.id;
-            }
-
-            // 4. (Optional) Create Expense Transaction for Payer immediately (ONLY IF PAYING)
-            if (!isCharge && sourceAccountId) {
-                onAddTransaction({
-                    description: `Pagamento para ${member.name}`,
-                    amount: parseFloat(amount),
-                    date: date, // Keep user selected date
-                    type: 'DESPESA',
-                    category: 'Transferência',
-                    accountId: sourceAccountId,
-                    isSettled: true,
-                    observation: `[SETTLEMENT:${requestId}] Pagamento de acerto de contas.`
-                });
-            } else {
-                if (fulfillRequestId) {
-                    addToast('Cobrança paga com sucesso!', 'success');
-                } else {
-                    addToast(isCharge ? 'Cobrança enviada!' : 'Solicitação enviada!', 'success');
-                }
-            }
-
-            if (!sourceAccountId && !isCharge && !fulfillRequestId) addToast('Solicitação de pagamento enviada!', 'success');
-
-            onSuccess?.();
-            onClose();
-        } catch (error: any) {
-            console.error(error);
-            addToast(`Erro: ${error.message}`, 'error');
-        } finally {
-            setIsLoading(false);
+        if (!accountId) {
+            addToast('Selecione a conta para o registro.', 'error');
+            return;
         }
+
+        const member = familyMembers.find(m => m.id === selectedMemberId);
+        const memberName = member?.name || 'Membro';
+
+        // Logic requested: 
+        // "se a pessoa me deve é receita" (Charge -> Income)
+        // "se caso eu devesse... despesa" (Pay -> Expense)
+
+        const type = isCharge ? TransactionType.INCOME : TransactionType.EXPENSE;
+        // Adjust category if needed, or generic 'Transfer'
+        const description = isCharge
+            ? `Recebimento de ${memberName}`
+            : `Pagamento para ${memberName}`;
+
+        onAddTransaction({
+            description,
+            amount: parseFloat(amount),
+            date: date,
+            type: type,
+            category: 'Transferência',
+            accountId: accountId,
+            isSettled: true,
+            observation: `[ACERTO] ${isCharge ? 'Recebido de' : 'Pago a'} ${memberName}`,
+            // CRITICAL FIX: Add shared metadata so useSharedFinances detects this 
+            // and adjusts the balance (Net = Credit - Debit).
+            isShared: true,
+            sharedWith: [{
+                memberId: selectedMemberId, // Who is involved
+                assignedAmount: parseFloat(amount), // 100% of the value affects the balance with them
+                isSettled: true // It's paid
+            }],
+            payerId: isCharge ? selectedMemberId : 'me'
+            // If I Charge (Income), Payer is THEM. 
+            // If I Pay (Expense), Payer is ME.
+        });
+
+        addToast(isCharge ? 'Recebimento registrado!' : 'Pagamento registrado!', 'success');
+        onClose();
     };
 
     return (
@@ -142,7 +110,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                 <div className={`p-4 border-b dark:border-slate-800 flex justify-between items-center rounded-t-2xl ${isCharge ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'bg-emerald-50 dark:bg-emerald-900/20'}`}>
                     <h3 className={`font-bold flex items-center gap-2 ${isCharge ? 'text-indigo-900 dark:text-indigo-100' : 'text-emerald-900 dark:text-emerald-100'}`}>
                         {isCharge ? <ArrowRightLeft className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
-                        {isCharge ? 'Enviar Cobrança' : 'Quitar Dívida / Pagar'}
+                        {isCharge ? 'Registrar Recebimento (Eles devem)' : 'Registrar Pagamento (Eu devo)'}
                     </h3>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                         <X className="w-5 h-5" />
@@ -153,7 +121,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                     {/* Quem */}
                     <div>
                         <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
-                            {isCharge ? 'Quem você está cobrando?' : 'Quem você está pagando?'}
+                            {isCharge ? 'Quem está te pagando?' : 'Quem você está pagando?'}
                         </label>
                         <select
                             value={selectedMemberId}
@@ -161,7 +129,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                             className="w-full p-3 rounded-xl border bg-slate-50 dark:bg-slate-800 dark:border-slate-700"
                         >
                             <option value="">Selecione...</option>
-                            {familyMembers.filter(m => m.email).map(m => (
+                            {familyMembers.map(m => (
                                 <option key={m.id} value={m.id}>{m.name}</option>
                             ))}
                         </select>
@@ -184,7 +152,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                     {/* Quando */}
                     <div>
                         <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
-                            {isCharge ? 'Data de Vencimento / Referência' : 'Data do Pagamento'}
+                            Data
                         </label>
                         <div className="relative">
                             <Calendar className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
@@ -197,30 +165,27 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                         </div>
                     </div>
 
-                    {/* De onde sai o dinheiro (Show only if PAYING) */}
-                    {!isCharge && (
-                        <div>
-                            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
-                                Conta de Origem (Opcional)
-                                <span className="block text-xs font-normal text-slate-500">Se selecionado, cria uma saída no seu extrato agora.</span>
-                            </label>
-                            <select
-                                value={sourceAccountId}
-                                onChange={e => setSourceAccountId(e.target.value)}
-                                className="w-full p-3 rounded-xl border bg-slate-50 dark:bg-slate-800 dark:border-slate-700"
-                            >
-                                <option value="">Não registrar saída agora</option>
-                                {validAccounts.map(a => (
-                                    <option key={a.id} value={a.id}>{a.name} ({formatCurrency(a.balance, a.currency)})</option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
+                    {/* Conta */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                            {isCharge ? 'Onde o dinheiro entrou?' : 'De onde o dinheiro saiu?'}
+                        </label>
+                        <select
+                            value={accountId}
+                            onChange={e => setAccountId(e.target.value)}
+                            className="w-full p-3 rounded-xl border bg-slate-50 dark:bg-slate-800 dark:border-slate-700"
+                        >
+                            <option value="">Selecione a conta...</option>
+                            {validAccounts.map(a => (
+                                <option key={a.id} value={a.id}>{a.name} ({formatCurrency(a.balance, a.currency)})</option>
+                            ))}
+                        </select>
+                    </div>
 
                     <div className="pt-4 flex gap-3">
                         <Button type="button" variant="ghost" onClick={onClose} className="flex-1">Cancelar</Button>
-                        <Button type="submit" className={`flex-1 text-white ${isCharge ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'}`} disabled={isLoading}>
-                            {isLoading ? 'Enviando...' : (isCharge ? 'Enviar Cobrança' : 'Confirmar Pagamento')}
+                        <Button type="submit" className={`flex-1 text-white ${isCharge ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+                            {isCharge ? 'Confirmar Recebimento' : 'Confirmar Pagamento'}
                         </Button>
                     </div>
                 </form>
