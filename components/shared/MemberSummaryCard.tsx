@@ -67,7 +67,7 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                                     size="sm"
                                     className="ml-3 bg-red-600 text-white hover:bg-red-700 border-none shadow-md"
                                 >
-                                    Pagar
+                                    Registrar Pagamento
                                 </Button>
                             )}
                             {net > 0 && (
@@ -76,7 +76,7 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                                     size="sm"
                                     className="ml-3 bg-indigo-600 text-white hover:bg-indigo-700 border-none shadow-md"
                                 >
-                                    Enviar Cobrança
+                                    Confirmar Recebimento
                                 </Button>
                             )}
                         </div>

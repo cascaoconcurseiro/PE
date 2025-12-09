@@ -110,7 +110,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                 <div className={`p-4 border-b dark:border-slate-800 flex justify-between items-center rounded-t-2xl ${isCharge ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'bg-emerald-50 dark:bg-emerald-900/20'}`}>
                     <h3 className={`font-bold flex items-center gap-2 ${isCharge ? 'text-indigo-900 dark:text-indigo-100' : 'text-emerald-900 dark:text-emerald-100'}`}>
                         {isCharge ? <ArrowRightLeft className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
-                        {isCharge ? 'Registrar Recebimento (Eles devem)' : 'Registrar Pagamento (Eu devo)'}
+                        {isCharge ? 'Confirmar Recebimento (Baixar Dívida)' : 'Registrar Pagamento Realizado'}
                     </h3>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                         <X className="w-5 h-5" />
@@ -121,7 +121,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                     {/* Quem */}
                     <div>
                         <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
-                            {isCharge ? 'Quem está te pagando?' : 'Quem você está pagando?'}
+                            {isCharge ? 'Quem te pagou?' : 'Quem você pagou?'}
                         </label>
                         <select
                             value={selectedMemberId}
@@ -185,7 +185,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                     <div className="pt-4 flex gap-3">
                         <Button type="button" variant="ghost" onClick={onClose} className="flex-1">Cancelar</Button>
                         <Button type="submit" className={`flex-1 text-white ${isCharge ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
-                            {isCharge ? 'Confirmar Recebimento' : 'Confirmar Pagamento'}
+                            {isCharge ? 'Confirmar que Recebi' : 'Confirmar que Paguei'}
                         </Button>
                     </div>
                 </form>
