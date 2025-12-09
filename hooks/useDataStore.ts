@@ -140,76 +140,7 @@ export const useDataStore = () => {
 
             await supabaseService.bulkCreate('transactions', txsToCreate);
 
-            // AUTOMATIC SHARING INVITATION LOGIC
-            const currentUser = (await supabase.auth.getUser()).data.user;
-            if (currentUser && newTx.sharedWith && newTx.sharedWith.length > 0) {
-                // We need to process this for each created transaction (e.g. if installments)
-                // However, usually we want one request per transaction ID.
-                // For installments, do we send 12 requests? The user said "todas transações".
-                // But typically for installments, the series is shared?
-                // Providing 12 popups is bad UX.
-                // But the system stores requests per transaction_id.
-                // Optimally: Create request for each, but maybe UI groups them?
-                // Current UI: SharedRequests lists items.
-                // If I buy an iPhone in 12x, the other person gets 12 requests?
-                // User requirement: "Lançamento de despesa... Criar uma SOLICITAÇÃO".
-                // Implies one action. But data model is per-tx.
-                // Let's create for ALL to be consistent with "retroactive" logic which shares all.
-                // The receiver can "Accept All" later if we build it, or we accept the Series.
-                // For now, generate for all created IDs.
 
-                for (const tx of txsToCreate) {
-                    for (const share of (tx.sharedWith || [])) {
-                        const member = familyMembers.find(m => m.id === share.memberId);
-                        if (member?.email) {
-                            try {
-                                // Check if user exists
-                                const { data: inviteeId, error: checkError } = await supabase.rpc('check_user_by_email', { email_to_check: member.email.trim() });
-
-                                if (checkError) {
-                                    console.error("Error checking user for share:", checkError);
-                                    addToast(`Erro ao buscar usuário para partilha: ${member.name}`, 'error');
-                                    continue;
-                                }
-
-                                if (inviteeId) {
-                                    // ARCHITECT REFACTOR (AUTO-SHARE):
-                                    // We simply create the request. 
-                                    // The Database Trigger 'force_auto_accept_linked_members' will:
-                                    // 1. Check if user is linked in family_members.
-                                    // 2. If linked, force status to 'ACCEPTED'.
-                                    // 3. Trigger 'on_shared_request_accepted' creates the mirror transaction.
-
-                                    // We send 'PENDING' by default. The DB upgrades it if applicable.
-                                    const { error: insertError } = await supabase.from('shared_transaction_requests').insert({
-                                        transaction_id: tx.id,
-                                        requester_id: currentUser.id,
-                                        invited_email: member.email.trim(),
-                                        invited_user_id: inviteeId,
-                                        status: 'PENDING', // DB will auto-accept if linked
-                                        assigned_amount: share.assignedAmount
-                                    });
-
-                                    if (insertError) {
-                                        console.error("Failed to create shared request:", insertError);
-                                        addToast(`Falha ao compartilhar com ${member.name}`, 'error');
-                                    } else {
-                                        // addToast(`Despesa compartilhada com ${member.name}!`, 'success');
-                                    }
-                                } else {
-                                    console.warn(`User with email ${member.email} not found.`);
-                                    addToast(`Usuário não encontrado para o email: ${member.email}`, 'warning');
-                                }
-                            } catch (err) {
-                                console.error("Unexpected error in sharing logic:", err);
-                            }
-                        } else {
-                            // Member has no email, so we can't share digitally.
-                            // Ideally we might warn, but this happens for "Kids" or manual members often.
-                        }
-                    }
-                }
-            }
         }, 'Transação salva!');
     };
 
@@ -218,25 +149,7 @@ export const useDataStore = () => {
             // 1. Update Local
             await supabaseService.update('transactions', { ...updatedTx, updatedAt: new Date().toISOString() });
 
-            // 2. Sync Metadata to Linked Copies (RPC)
-            try {
-                // Call the Manual Migration RPC
-                const { error } = await supabase.rpc('sync_shared_transaction', {
-                    original_id: updatedTx.id,
-                    new_amount: updatedTx.amount, // Note: This updates Total. Frontend should maybe handle splits? For now, sync metadata.
-                    new_description: updatedTx.description,
-                    new_date: updatedTx.date,
-                    new_type: updatedTx.type,
-                    new_category: updatedTx.category,
-                    new_currency: updatedTx.currency || 'BRL'
-                });
 
-                if (error) {
-                    console.warn("Sync RPC failed (Remote update skipped):", error.message);
-                }
-            } catch (e) {
-                console.error("Sync error:", e);
-            }
         }, 'Transação atualizada!');
     };
 
@@ -392,20 +305,13 @@ export const useDataStore = () => {
                         await supabaseService.update('transactions', { ...t, deleted: true, updatedAt: new Date().toISOString() });
                         // Delete copies for series? RPC only handles one ID. 
                         // Loop RPC calls.
-                        supabase.rpc('sync_delete_transaction', { original_id: t.id });
-                    }
-                } else {
-                    const tx = transactions.find(t => t.id === id);
-                    if (tx) {
                         await supabaseService.update('transactions', { ...tx, deleted: true, updatedAt: new Date().toISOString() });
-                        supabase.rpc('sync_delete_transaction', { original_id: tx.id });
                     }
                 }
             } else {
                 const tx = transactions.find(t => t.id === id);
                 if (tx) {
                     await supabaseService.update('transactions', { ...tx, deleted: true, updatedAt: new Date().toISOString() });
-                    supabase.rpc('sync_delete_transaction', { original_id: tx.id });
                 }
             }
         }, 'Transação excluída.');
@@ -514,29 +420,7 @@ export const useDataStore = () => {
             handleAddSnapshot: snapshotsHandler.add,
 
             handleFactoryReset: async () => performOperation(async () => {
-                // 1. BROADCAST DELETE: Clean up copies I sent to others
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    try {
-                        const { data: requests } = await supabase
-                            .from('shared_transaction_requests')
-                            .select('transaction_id')
-                            .eq('requester_id', user.id);
 
-                        if (requests && requests.length > 0) {
-                            // Delete copies in other users' accounts
-                            const cleanupPromises = requests.map(r =>
-                                supabase.from('transactions')
-                                    .delete()
-                                    .ilike('observation', `%[SYNC:${r.transaction_id}]%`)
-                            );
-                            await Promise.all(cleanupPromises);
-                        }
-                    } catch (e) {
-                        console.error("Failed to cleanup shared copies:", e);
-                        // Continue to wipe anyway
-                    }
-                }
 
                 // 2. Local Wipe
                 await supabaseService.dangerouslyWipeAllData();

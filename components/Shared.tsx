@@ -40,72 +40,6 @@ export const Shared: React.FC<SharedProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-    const [outgoingRequests, setOutgoingRequests] = useState<Record<string, string>>({}); // txId -> Status
-    const [currentUser, setCurrentUser] = useState<any>(null);
-
-    useEffect(() => {
-        const fetchUserAndRequests = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setCurrentUser(user);
-                // Fetch status of requests sent BY me
-                const { data } = await supabase
-                    .from('shared_transaction_requests')
-                    .select('transaction_id, status')
-                    .eq('requester_id', user.id);
-
-                if (data) {
-                    const map: Record<string, string> = {};
-                    data.forEach(r => map[r.transaction_id] = r.status);
-                    setOutgoingRequests(map);
-                }
-            }
-        };
-        fetchUserAndRequests();
-    }, []);
-
-    const handleResendRequest = async (txId: string, memberId: string) => {
-        // Logic to resend (create new pending request)
-        if (!currentUser) return;
-
-        // Find member email
-        const member = members.find(m => m.id === memberId);
-        if (!member?.email) {
-            alert("Este membro não possui e-mail cadastrado.");
-            return;
-        }
-
-        try {
-            // Check if user exists (Frontend check using RPC or just insert and let logic handle? 
-            // Plan said RPC. Let's try direct insert first, or use the RPC if accessible. 
-            // For now, simpler: Insert new request.
-
-            // First check if user exists to be safe/clean
-            const { data: inviteeId, error: checkError } = await supabase.rpc('check_user_by_email', { email_to_check: member.email });
-
-            if (!inviteeId) {
-                alert("Usuário com este e-mail não encontrado no sistema.");
-                return;
-            }
-
-            const { error } = await supabase.from('shared_transaction_requests').insert({
-                transaction_id: txId,
-                requester_id: currentUser.id,
-                invited_email: member.email,
-                invited_user_id: inviteeId,
-                status: 'PENDING'
-            });
-
-            if (error) throw error;
-
-            alert("Solicitação reenviada com sucesso!");
-            setOutgoingRequests(prev => ({ ...prev, [txId]: 'PENDING' }));
-
-        } catch (e) {
-            console.error("Erro ao reenviar:", e);
-            alert("Erro ao reenviar solicitação.");
-        }
-    };
 
     // Edit Modal State
     const [editModalTxId, setEditModalTxId] = useState<string | null>(null);
@@ -120,28 +54,9 @@ export const Shared: React.FC<SharedProps> = ({
     });
 
     const displayMembers = useMemo(() => {
-        const uniqueIds = new Set([...members.map(m => m.id)]); // Assuming all members are passed in props
+        const uniqueIds = new Set([...members.map(m => m.id)]);
         return members;
     }, [members]);
-
-    // Simplified State for New Settlement Modal
-    const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
-    const [settlementDefaults, setSettlementDefaults] = useState<{ memberId?: string, amount?: number, currency?: string, mode?: 'PAY' | 'CHARGE' }>({});
-
-    const handleOpenSettleModal = (memberId: string, mode: 'PAY' | 'CHARGE', currency: string) => {
-        const allItems = getFilteredInvoice(memberId);
-        const items = allItems.filter(i => !i.isPaid && (i.currency || 'BRL') === currency);
-        const totals = getTotals(items);
-        const net = totals[currency]?.net || 0;
-
-        setSettlementDefaults({
-            memberId,
-            amount: Math.abs(net),
-            currency,
-            mode
-        });
-        setIsSettlementModalOpen(true);
-    };
 
     const handleEditTransaction = (txId: string) => {
         setEditModalTxId(txId);
@@ -149,7 +64,7 @@ export const Shared: React.FC<SharedProps> = ({
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
-            {/* Header with Global Pay Button */}
+            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
@@ -158,7 +73,7 @@ export const Shared: React.FC<SharedProps> = ({
                 </div>
             </div>
 
-            {currentUser && <SharedRequests currentUserId={currentUser.id} accounts={accounts} onStatusChange={() => window.location.reload()} />}
+            {/* Removed Sync Features (Requests/Settlements) as requested */}
 
             <SharedFilters
                 activeTab={activeTab}
@@ -178,31 +93,16 @@ export const Shared: React.FC<SharedProps> = ({
                             items={items}
                             totalsMap={totalsMap}
                             trips={trips}
-                            // @ts-ignore - 'RECEIVE' | 'OFFSET' removed, only PAY/CHARGE now
-                            onOpenSettleModal={handleOpenSettleModal}
+                            // @ts-ignore - Settlement functions handled internally or removed
+                            onOpenSettleModal={() => { }} // Disabled
                             onDeleteTransaction={onDeleteTransaction}
                             onEditTransaction={handleEditTransaction}
-                            outgoingStatus={outgoingRequests}
-                            onResendRequest={handleResendRequest}
+                            outgoingStatus={{}} // Disabled
+                            onResendRequest={() => { }} // Disabled
                         />
                     );
                 })}
             </div>
-
-            {currentUser && (
-                <SettlementModal
-                    isOpen={isSettlementModalOpen}
-                    onClose={() => setIsSettlementModalOpen(false)}
-                    familyMembers={members}
-                    accounts={accounts}
-                    currentUserId={currentUser.id}
-                    preSelectedMemberId={settlementDefaults.memberId}
-                    suggestedAmount={settlementDefaults.amount}
-                    suggestedCurrency={settlementDefaults.currency}
-                    mode={settlementDefaults.mode}
-                    onAddTransaction={onAddTransaction}
-                />
-            )}
 
             <SharedInstallmentImport
                 isOpen={isImportModalOpen}
