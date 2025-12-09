@@ -173,17 +173,12 @@ export const useDataStore = () => {
                                 }
 
                                 if (inviteeId) {
-                                    // AUTO-ACCEPT LOGIC: 
-                                    const { data: existingTrust } = await supabase
-                                        .from('shared_transaction_requests')
-                                        .select('id')
-                                        .eq('requester_id', currentUser.id)
-                                        .eq('invited_user_id', inviteeId)
-                                        .eq('status', 'ACCEPTED')
-                                        .limit(1)
-                                        .maybeSingle();
+                                    // AUTO-ACCEPT RULE:
+                                    // User requested: "Already appear automatically without needing authorization".
+                                    // We set status to ACCEPTED immediately. 
+                                    // The Database Trigger 'on_shared_request_accepted' will handle the creation of the mirror transaction.
 
-                                    const initialStatus = existingTrust ? 'ACCEPTED' : 'PENDING';
+                                    const initialStatus = 'ACCEPTED';
 
                                     // Create Request
                                     const { error: insertError } = await supabase.from('shared_transaction_requests').insert({
@@ -197,11 +192,9 @@ export const useDataStore = () => {
 
                                     if (insertError) {
                                         console.error("Failed to create shared request:", insertError);
-                                        addToast(`Falha ao enviar convite para ${member.name}`, 'error');
+                                        addToast(`Falha ao compartilhar com ${member.name}`, 'error');
                                     } else {
-                                        if (initialStatus === 'PENDING') {
-                                            // Optional: addToast(`Convite enviado para ${member.name}`, 'success');
-                                        }
+                                        // addToast(`Despesa compartilhada com ${member.name}!`, 'success');
                                     }
                                 } else {
                                     console.warn(`User with email ${member.email} not found.`);
