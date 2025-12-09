@@ -447,7 +447,7 @@ export const useDataStore = () => {
             handleAddAccount, handleUpdateAccount, handleDeleteAccount,
 
             handleAddTrip: tripsHandler.add, handleUpdateTrip: tripsHandler.update, handleDeleteTrip: tripsHandler.delete,
-            handleAddMember: membersHandler.add, handleDeleteMember: membersHandler.delete,
+            handleAddMember: membersHandler.add, handleUpdateMember: membersHandler.update, handleDeleteMember: membersHandler.delete,
             handleAddCategory, handleDeleteCategory: categoriesHandler.delete,
             handleAddBudget: budgetsHandler.add, handleUpdateBudget: budgetsHandler.update, handleDeleteBudget: budgetsHandler.delete,
             handleAddGoal: goalsHandler.add, handleUpdateGoal: goalsHandler.update, handleDeleteGoal: goalsHandler.delete,

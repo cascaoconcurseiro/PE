@@ -1,0 +1,32 @@
+capacitor.config.ts(1,38): error TS2307: Cannot find module '@capacitor/cli' or its corresponding type declarations.
+components/Shared.tsx(5,19): error TS2552: Cannot find name 'Transaction'. Did you mean 'IDBTransaction'?
+components/Shared.tsx(6,12): error TS2304: Cannot find name 'Trip'.
+components/Shared.tsx(7,14): error TS2304: Cannot find name 'FamilyMember'.
+components/Shared.tsx(8,15): error TS2304: Cannot find name 'Account'.
+components/Shared.tsx(10,32): error TS2552: Cannot find name 'Transaction'. Did you mean 'IDBTransaction'?
+components/Shared.tsx(11,30): error TS2552: Cannot find name 'Transaction'. Did you mean 'IDBTransaction'?
+components/Shared.tsx(27,39): error TS2304: Cannot find name 'useState'.
+components/Shared.tsx(28,55): error TS2304: Cannot find name 'useState'.
+components/Shared.tsx(29,53): error TS2304: Cannot find name 'useState'.
+components/Shared.tsx(30,43): error TS2304: Cannot find name 'useState'.
+components/Shared.tsx(32,5): error TS2304: Cannot find name 'useEffect'.
+components/Shared.tsx(97,47): error TS2304: Cannot find name 'useState'.
+components/Shared.tsx(101,47): error TS2304: Cannot find name 'useSharedFinances'.
+components/Shared.tsx(108,28): error TS2304: Cannot find name 'useMemo'.
+components/Shared.tsx(114,43): error TS2304: Cannot find name 'useState'.
+components/Shared.tsx(118,16): error TS2304: Cannot find name 'InvoiceItem'.
+components/Shared.tsx(160,27): error TS2304: Cannot find name 'TransactionType'.
+components/Shared.tsx(161,31): error TS2304: Cannot find name 'Category'.
+components/Shared.tsx(170,33): error TS2304: Cannot find name 'SyncStatus'.
+components/Shared.tsx(177,27): error TS2304: Cannot find name 'TransactionType'.
+components/Shared.tsx(178,31): error TS2304: Cannot find name 'Category'.
+components/Shared.tsx(186,33): error TS2304: Cannot find name 'SyncStatus'.
+components/Shared.tsx(218,14): error TS2304: Cannot find name 'SharedFilters'.
+components/Shared.tsx(230,26): error TS2304: Cannot find name 'MemberSummaryCard'.
+components/Shared.tsx(246,14): error TS2304: Cannot find name 'SettlementModal'.
+components/Shared.tsx(254,14): error TS2304: Cannot find name 'SharedInstallmentImport'.
+components/Shared.tsx(268,18): error TS2304: Cannot find name 'SharedInstallmentEditModal'.
+components/shared/SharedRequests.tsx(63,39): error TS2352: Conversion of type '{ requester_name: any; requester_email: any; id: any; transaction_id: any; requester_id: any; status: any; created_at: any; transaction: any[]; }[]' to type 'SharedRequest[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ requester_name: any; requester_email: any; id: any; transaction_id: any; requester_id: any; status: any; created_at: any; transaction: any[]; }' is not comparable to type 'SharedRequest'.
+    Types of property 'transaction' are incompatible.
+      Type 'any[]' is missing the following properties from type 'Transaction': id, date, amount, type, and 2 more.

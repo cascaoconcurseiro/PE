@@ -62,9 +62,10 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, o
 
             const formattedRequests = data?.map(r => ({
                 ...r,
+                transaction: Array.isArray(r.transaction) ? r.transaction[0] : r.transaction,
                 requester_name: userProfiles[r.requester_id]?.name || 'Usuário',
                 requester_email: userProfiles[r.requester_id]?.email
-            })) as SharedRequest[];
+            })) as unknown as SharedRequest[];
 
             setRequests(formattedRequests || []);
         } catch (error) {
