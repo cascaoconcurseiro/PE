@@ -269,9 +269,49 @@ export const supabaseService = {
                 query = query.lte('date', endDate);
             }
 
-            const { data, error } = await query;
-            if (error) throw error;
-            return mapToApp(data);
+            // FETCH TRANSACTIONS + SHARED REQUESTS
+            // We need to join shared_transaction_requests to populate 'sharedWith'
+            // However, Supabase simple join might duplicate rows. 
+            // Better to fetch requests separately and map, or use a complex query.
+            // SImple approach: Fetch transactions, then fetch requests for those IDs.
+
+            const { data: txData, error: txError } = await query;
+            if (txError) throw txError;
+
+            const transactions = mapToApp(txData);
+
+            // Fetch related shared requests
+            if (transactions.length > 0) {
+                const txIds = transactions.map((t: any) => t.id);
+                const { data: requestData, error: reqError } = await supabase
+                    .from('shared_transaction_requests')
+                    .select('transaction_id, status, assigned_amount, invited_user_id, invited_email, created_at')
+                    .in('transaction_id', txIds);
+
+                if (!reqError && requestData) {
+                    // Map requests to transactions
+                    const requestMap: Record<string, any[]> = {};
+                    requestData.forEach((r: any) => {
+                        if (!requestMap[r.transaction_id]) requestMap[r.transaction_id] = [];
+                        requestMap[r.transaction_id].push({
+                            memberId: r.invited_user_id, // Map Invited ID to Member ID for display
+                            email: r.invited_email,
+                            assignedAmount: r.assigned_amount || 0,
+                            status: r.status,
+                            isSettled: r.status === 'SETTLED' // Future proofing
+                        });
+                    });
+
+                    // Attach to transactions
+                    transactions.forEach((t: any) => {
+                        if (requestMap[t.id]) {
+                            t.sharedWith = requestMap[t.id];
+                        }
+                    });
+                }
+            }
+
+            return transactions;
         } catch (e) {
             console.error("Failed to fetch transactions:", e);
             return [];
