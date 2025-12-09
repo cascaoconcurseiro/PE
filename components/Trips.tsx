@@ -36,7 +36,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
         } else {
             onAddTrip({
                 ...tripData,
-                id: Math.random().toString(36).substr(2, 9),
+                id: crypto.randomUUID(),
             });
         }
         setIsCreatingTrip(false);
