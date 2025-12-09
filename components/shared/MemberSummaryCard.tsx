@@ -71,7 +71,7 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                 })}
             </div>
 
-            <div className="bg-slate-50/50 dark:bg-slate-900/30 divide-y divide-slate-100 dark:divide-slate-700 max-h-60 overflow-y-auto">
+            <div className="bg-slate-50/50 dark:bg-slate-900/30 divide-y divide-slate-100 dark:divide-slate-700">
                 {items.map(item => {
                     const trip = item.tripId ? trips.find(t => t.id === item.tripId) : null;
                     const isConfirming = deleteConfirmId === item.originalTxId;
