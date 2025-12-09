@@ -10,13 +10,6 @@ const __dirname = path.dirname(__filename);
 
 // Connection string from setup-db.js
 const connectionString = "postgres://postgres.mlqzeihukezlozooqhko:[PASSWORD]@aws-1-us-east-1.pooler.supabase.com:5432/postgres";
-// Note: Password 'Wesley@yasmin9094' contains special char '@', so must be URL encoded as %40 if strict, 
-// BUT typically connection string parsers handle it if standard. 
-// However, the '@' separates user:pass from host. 
-// So 'postgres:pass@word@host' is ambiguous.
-// URL encoding '@' in password is required. '@' -> '%40'
-// User password: [REDACTED]
-// Encoded: [REDACTED]
 
 const client = new Client({
     connectionString,
@@ -30,7 +23,7 @@ async function runMigration() {
         console.log('Connecting to Supabase Postgres...');
         await client.connect();
 
-        const migrationPath = path.join(__dirname, '..', 'supabase', 'migrations', '20250109_consolidated_apply.sql');
+        const migrationPath = path.join(__dirname, '..', 'supabase', 'migrations', '20250109_add_currency_to_settlements.sql');
         console.log(`Reading migration from ${migrationPath}...`);
 
         if (!fs.existsSync(migrationPath)) {

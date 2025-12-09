@@ -25,6 +25,12 @@ export const SettlementReviewModal: React.FC<SettlementReviewModalProps> = ({
 
     if (!isOpen || !request) return null;
 
+    // Filter accounts to match request currency
+    // Since we added currency column to settlement_requests, it should be in request object.
+    // Fallback to BRL if missing (legacy requests)
+    const requestCurrency = request.currency || 'BRL';
+    const validAccounts = accounts.filter(a => (a.currency || 'BRL') === requestCurrency);
+
     const handleConfirm = async () => {
         if (!destinationAccountId) {
             addToast('Selecione uma conta para receber o valor.', 'error');
@@ -95,7 +101,7 @@ export const SettlementReviewModal: React.FC<SettlementReviewModalProps> = ({
                         Recebimento de Valor
                     </h3>
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
-                        <span className="font-bold text-slate-900 dark:text-white">{request.payer_name}</span> diz que pagou <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(request.amount, 'BRL')}</span> em {new Date(request.date).toLocaleDateString()}.
+                        <span className="font-bold text-slate-900 dark:text-white">{request.payer_name}</span> diz que pagou <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(request.amount, request.currency || 'BRL')}</span> em {new Date(request.date).toLocaleDateString()}.
                     </p>
 
                     <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-6 text-left border border-slate-100 dark:border-slate-700">
@@ -108,7 +114,7 @@ export const SettlementReviewModal: React.FC<SettlementReviewModalProps> = ({
                             className="w-full p-3 rounded-lg border bg-white dark:bg-slate-900 dark:border-slate-700 font-medium"
                         >
                             <option value="">Selecione a conta...</option>
-                            {accounts.map(a => (
+                            {validAccounts.map(a => (
                                 <option key={a.id} value={a.id}>{a.name}</option>
                             ))}
                         </select>

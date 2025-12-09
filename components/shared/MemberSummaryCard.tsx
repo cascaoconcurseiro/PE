@@ -61,13 +61,25 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                                     {net > 0 ? `${member.name.split(' ')[0]} deve a você` : `Você deve a ${member.name.split(' ')[0]}`}
                                 </p>
                             </div>
-                            <Button
-                                onClick={() => onOpenSettleModal(member.id, net > 0 ? 'RECEIVE' : 'PAY', curr)}
-                                size="sm"
-                                className={`ml-3 ${net > 0 ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-red-600 text-white hover:bg-red-700'} border-none shadow-md`}
-                            >
-                                {net > 0 ? 'Receber' : 'Pagar'}
-                            </Button>
+                            {net < 0 && (
+                                <Button
+                                    onClick={() => onOpenSettleModal(member.id, 'PAY', curr)}
+                                    size="sm"
+                                    className="ml-3 bg-red-600 text-white hover:bg-red-700 border-none shadow-md"
+                                >
+                                    Pagar
+                                </Button>
+                            )}
+                            {net > 0 && (
+                                // Hide button for Receita as per user request ("Tire o botão...").
+                                // Receiver waits for Payer to initiate.
+                                // Or we could show a disabled "Aguardando" text?
+                                // User said: "Ali tá receber... mas deveria ser entrada".
+                                // Ideally we show nothing clickable for now to force correct flow.
+                                <div className="ml-3 px-3 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                                    A receber
+                                </div>
+                            )}
                         </div>
                     );
                 })}

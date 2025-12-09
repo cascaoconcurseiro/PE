@@ -126,7 +126,7 @@ export const Shared: React.FC<SharedProps> = ({
 
     // Simplified State for New Settlement Modal
     const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
-    const [settlementDefaults, setSettlementDefaults] = useState<{ memberId?: string, amount?: number }>({});
+    const [settlementDefaults, setSettlementDefaults] = useState<{ memberId?: string, amount?: number, currency?: string }>({});
 
     const handleOpenSettleModal = (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET', currency: string) => {
         // We only support 'PAY' flow via the new Request system clearly now.
@@ -139,7 +139,8 @@ export const Shared: React.FC<SharedProps> = ({
 
         setSettlementDefaults({
             memberId,
-            amount: Math.abs(net)
+            amount: Math.abs(net),
+            currency
         });
         setIsSettlementModalOpen(true);
     };
@@ -157,16 +158,6 @@ export const Shared: React.FC<SharedProps> = ({
                         Espaço Compartilhado
                     </h1>
                 </div>
-                <Button
-                    onClick={() => {
-                        setSettlementDefaults({});
-                        setIsSettlementModalOpen(true);
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
-                >
-                    <Wallet className="w-4 h-4 mr-2" />
-                    Pagar Alguém
-                </Button>
             </div>
 
             {currentUser && <SharedRequests currentUserId={currentUser.id} onStatusChange={() => window.location.reload()} />}
@@ -208,6 +199,7 @@ export const Shared: React.FC<SharedProps> = ({
                     currentUserId={currentUser.id}
                     preSelectedMemberId={settlementDefaults.memberId}
                     suggestedAmount={settlementDefaults.amount}
+                    suggestedCurrency={settlementDefaults.currency}
                     onAddTransaction={onAddTransaction}
                 />
             )}

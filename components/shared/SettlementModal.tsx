@@ -14,11 +14,12 @@ interface SettlementModalProps {
     currentUserId: string;
     preSelectedMemberId?: string;
     suggestedAmount?: number;
+    suggestedCurrency?: string;
     onAddTransaction: (t: any) => void;
 }
 
 export const SettlementModal: React.FC<SettlementModalProps> = ({
-    isOpen, onClose, familyMembers, accounts, currentUserId, preSelectedMemberId, suggestedAmount, onAddTransaction
+    isOpen, onClose, familyMembers, accounts, currentUserId, preSelectedMemberId, suggestedAmount, suggestedCurrency, onAddTransaction
 }) => {
     const { addToast } = useToast();
     const [amount, setAmount] = useState<string>(suggestedAmount ? suggestedAmount.toString() : '');
@@ -26,6 +27,10 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
     const [selectedMemberId, setSelectedMemberId] = useState<string>(preSelectedMemberId || '');
     const [sourceAccountId, setSourceAccountId] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
+
+    const validAccounts = suggestedCurrency
+        ? accounts.filter(a => (a.currency || 'BRL') === suggestedCurrency)
+        : accounts;
 
     if (!isOpen) return null;
 
@@ -174,7 +179,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                             className="w-full p-3 rounded-xl border bg-slate-50 dark:bg-slate-800 dark:border-slate-700"
                         >
                             <option value="">Não registrar saída agora</option>
-                            {accounts.map(a => (
+                            {validAccounts.map(a => (
                                 <option key={a.id} value={a.id}>{a.name} ({formatCurrency(a.balance, a.currency)})</option>
                             ))}
                         </select>
