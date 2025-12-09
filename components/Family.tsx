@@ -179,77 +179,49 @@ export const Family: React.FC<FamilyProps> = ({ members, onAddMember, onUpdateMe
                                 placeholder="email@exemplo.com"
                             />
                             <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-
+                            
                             {/* Status Indicator */}
                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                 {isCheckingEmail && <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />}
-                                {!isCheckingEmail && emailCheckStatus === 'FOUND' && <UserCheck className="w-4 h-4 text-emerald-600" title="Usuário encontrado no sistema!" />}
-                                {!isCheckingEmail && emailCheckStatus === 'NOT_FOUND' && email && <UserX className="w-4 h-4 text-amber-500" title="Usuário não encontrado (será convidado por e-mail)" />}
+                                {!isCheckingEmail && emailCheckStatus === 'FOUND' && <UserCheck className="w-4 h-4 text-emerald-600" aria-label="Usuário encontrado" />}
+                                {!isCheckingEmail && emailCheckStatus === 'NOT_FOUND' && email && <UserX className="w-4 h-4 text-amber-500" aria-label="Usuário não encontrado" />}
                             </div>
                         </div>
                         {/* Feedback Text */}
                         {emailCheckStatus === 'FOUND' && !isCheckingEmail && (
                             <p className="text-[10px] text-emerald-600 font-bold mt-1 px-1">✓ Usuário do App encontrado!</p>
                         )}
-                        {emailCheckStatus === 'NOT_FOUND' && !isCheckingEmail && email && (
+                         {emailCheckStatus === 'NOT_FOUND' && !isCheckingEmail && email && (
                             <p className="text-[10px] text-amber-600 mt-1 px-1">⚠️ Usuário não possui conta no App ainda</p>
                         )}
                     </div>
+                </div>
+                <div className="flex gap-2 w-full md:w-auto">
+                    {editingId && (
+                        <Button type="button" variant="secondary" onClick={handleCancelEdit} title="Cancelar Edição">
+                            <X className="w-4 h-4" />
+                        </Button>
+                    )}
+                    <Button type="submit" disabled={!name.trim()}>
+                        {editingId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    </Button>
+                </div>
+            </form>
+        </Card>
 
-                    return (
-                    <div className="space-y-6 animate-in fade-in duration-500">
-                        <div>
-                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Minha Família</h2>
-                            <p className="text-slate-600 dark:text-slate-400 text-sm">Gerencie os membros para dividir despesas.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {members.length === 0 && (
+                <div className="col-span-2 text-center py-8 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 border border-dashed rounded-xl border-slate-300 dark:border-slate-700">
+                    Nenhum membro cadastrado. Adicione alguém para começar a compartilhar gastos.
+                </div>
+            )}
+            {members.map(member => (
+                <div key={member.id} className={`bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm flex justify-between items-center hover:shadow-md transition-all ${editingId === member.id ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-slate-200 dark:border-slate-700'}`}>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-700 dark:text-indigo-400">
+                            <User className="w-5 h-5" />
                         </div>
-
-                        <Card title={editingId ? "Editar Membro" : "Adicionar Membro"}>
-                            <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-end">
-                                <div className="flex-1 w-full">
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Nome</label>
-                                    <input
-                                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
-                                        value={name}
-                                        onChange={e => setName(e.target.value)}
-                                        placeholder="Ex: João"
-                                        required
-                                    />
-                                </div>
-                                <div className="flex-1 w-full">
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Parentesco (Opcional)</label>
-                                    <input
-                                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
-                                        value={role}
-                                        onChange={e => setRole(e.target.value)}
-                                        placeholder="Ex: Cônjuge"
-                                    />
-                                </div>
-                                <div className="flex-1 w-full">
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Email (Para convites)</label>
-                                    <div className="relative">
-                                        <input
-                                            type="email"
-                                            className="w-full pl-9 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
-                                            value={email}
-                                            onChange={e => setEmail(e.target.value)}
-                                            placeholder="email@exemplo.com"
-                                        />
-                                        <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    {editingId && (
-                                        <Button type="button" variant="secondary" onClick={handleCancelEdit} title="Cancelar Edição">
-                                            <X className="w-4 h-4" />
-                                        </Button>
-                                    )}
-                                    <Button type="submit" disabled={!name.trim()}>
-                                        {editingId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                                    </Button>
-                                </div>
-                            </form>
-                        </Card>
-
+                        <div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {members.length === 0 && (
                                 <div className="col-span-2 text-center py-8 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 border border-dashed rounded-xl border-slate-300 dark:border-slate-700">
@@ -282,6 +254,6 @@ export const Family: React.FC<FamilyProps> = ({ members, onAddMember, onUpdateMe
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </div >
                     );
 };
