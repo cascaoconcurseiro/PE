@@ -353,7 +353,7 @@ const App = () => {
                 }, 3000);
             }
         }, 300);
-    }, []);
+    }, [transactions, accounts, pendingSharedRequests, pendingSettlements]);
 
     const handleDismissNotification = useCallback((id: string) => {
         if (id === 'shared-requests' || id.startsWith('cc-due-')) {
@@ -439,7 +439,23 @@ const App = () => {
     const renderContent = () => {
         switch (activeView) {
             case View.DASHBOARD:
-                return <Dashboard accounts={calculatedAccounts} transactions={transactions} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={handleNotificationClick} onNotificationPay={handleNotificationPay} isLoading={isDataLoading} />;
+                return <Dashboard
+                    accounts={calculatedAccounts}
+                    transactions={transactions}
+                    goals={goals}
+                    currentDate={currentDate}
+                    showValues={showValues}
+                    onEditRequest={handleNotificationClick}
+                    onNotificationPay={handleNotificationPay}
+                    isLoading={isDataLoading}
+                    pendingSharedRequestsCount={pendingSharedRequests}
+                    pendingSettlements={pendingSettlements}
+                    onOpenShared={() => handleViewChange(View.SHARED)}
+                    onOpenSettlement={(r) => {
+                        if (r.type === 'CHARGE') setSettlementToPay(r);
+                        else setActiveSettlementRequest(r);
+                    }}
+                />;
             case View.ACCOUNTS:
                 return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} />;
             case View.TRANSACTIONS:
