@@ -294,6 +294,8 @@ export const supabaseService = {
         // Delete in order of dependencies (Child -> Parent)
         const tables = [
             'transactions',
+            'shared_transaction_requests',
+            'settlement_requests',
             'snapshots',
             'assets',
             'budgets',

@@ -253,7 +253,6 @@ export const useTransactionForm = ({
             enableNotification,
             notificationDate: enableNotification ? notificationDate : undefined,
             isRefund,
-            isRefund,
             currency: activeCurrency,
             exchangeRate: (manualExchangeRate && parseFloat(manualExchangeRate) > 0) ? parseFloat(manualExchangeRate) : undefined
         };

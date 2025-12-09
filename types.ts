@@ -296,3 +296,15 @@ export interface InvoiceItem {
   currency?: string;
   seriesId?: string;
 }
+
+export interface SettlementRequest extends BaseEntity {
+  id: string;
+  payer_id: string;
+  receiver_id: string;
+  amount: number;
+  date: string;
+  status: 'PENDING' | 'COMPLETED' | 'REJECTED';
+  type: 'PAYMENT' | 'CHARGE';
+  note?: string;
+  responded_at?: string;
+}
