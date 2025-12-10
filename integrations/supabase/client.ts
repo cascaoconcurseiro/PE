@@ -40,9 +40,9 @@ const safeLocalStorage = {
 
 export const supabase = createClient(supabaseUrl || '', supabaseKey || '', {
     auth: {
-        // storage: safeLocalStorage, // Removed to ensure no storage access
-        autoRefreshToken: true,
-        persistSession: false, // Critical: Disable persistence to avoid 'Access to storage' errors
-        detectSessionInUrl: true
+        // storage: undefined, // Explicitly undefined to verify no storage is used
+        autoRefreshToken: false, // User requirement: Disable auto refresh
+        persistSession: false, // User requirement: Disable persistence
+        detectSessionInUrl: false // User requirement: Disable URL detection
     }
 });

@@ -20,17 +20,6 @@ interface SettingsContextType {
     isLoading: boolean;
 }
 
-const safeStorage = {
-    getItem: (key: string) => {
-        try { return localStorage.getItem(key); }
-        catch (e) { return null; }
-    },
-    setItem: (key: string, value: string) => {
-        try { localStorage.setItem(key, value); }
-        catch (e) { console.warn('Storage write failed', e); }
-    }
-};
-
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export const useSettings = () => {
@@ -62,18 +51,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {
-                // Not logged in, load from localStorage
-                const localSettings = safeStorage.getItem('pdm_user_settings');
-                if (localSettings) {
-                    try {
-                        setSettings(JSON.parse(localSettings));
-                    } catch (e) { /* ignore parse error */ }
-                }
+                // Not logged in, use defaults (in-memory only)
+                setSettings(defaultUserSettings);
                 setIsLoading(false);
                 return;
             }
 
-            // Load from Supabase with robust error handling for missing table
+            // Load from Supabase
             try {
                 const { data, error } = await supabase
                     .from('user_settings')
@@ -82,28 +66,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
                     .single();
 
                 if (error) {
-                    // Check if it's a "relation does not exist" error (table missing) or just no rows
-                    if (error.code === '42P01' || (error.message && error.message.includes('relation "public.user_settings" does not exist'))) {
-                        console.warn('User settings table missing, using defaults');
-                        // Fallback to defaults/local
-                        // Fallback to defaults/local
-                        const localSettings = safeStorage.getItem('pdm_user_settings');
-                        if (localSettings) {
-                            try { setSettings(JSON.parse(localSettings)); } catch { }
-                        } else {
-                            setSettings(defaultUserSettings);
-                            safeStorage.setItem('pdm_user_settings', JSON.stringify(defaultUserSettings));
-                        }
-                    } else if (error.code !== 'PGRST116') { // PGRST116 = no rows returned
-                        console.error('Error loading settings:', error);
-                        // Fallback to localStorage
-                        // Fallback to localStorage
-                        const localSettings = safeStorage.getItem('pdm_user_settings');
-                        if (localSettings) {
-                            try { setSettings(JSON.parse(localSettings)); } catch { }
-                        }
-                    } else { // No rows returned, creating defaults
+                    // Table missing or no rows
+                    console.warn('User settings sync issue or first login:', error.message);
+                    if (error.code === 'PGRST116') { // No rows
                         await createDefaultSettings(user.id);
+                    } else {
+                        // Other error (e.g. table missing), use defaults
+                        setSettings(defaultUserSettings);
                     }
                 } else if (data) {
                     const loadedSettings: UserSettings = {
@@ -114,17 +83,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
                         appearance: data.appearance || defaultUserSettings.appearance
                     };
                     setSettings(loadedSettings);
-                    // Also save to localStorage for offline access
-                    safeStorage.setItem('pdm_user_settings', JSON.stringify(loadedSettings));
                 }
             } catch (innerError) {
-                console.warn('Exception loading settings (likely missing table):', innerError);
-                const localSettings = safeStorage.getItem('pdm_user_settings');
-                if (localSettings) {
-                    try { setSettings(JSON.parse(localSettings)); } catch { }
-                } else {
-                    setSettings(defaultUserSettings);
-                }
+                console.warn('Exception loading settings:', innerError);
+                setSettings(defaultUserSettings);
             }
         } catch (error) {
             console.error('Error in loadSettings:', error);
@@ -150,7 +112,6 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
                 console.error('Error creating default settings:', error);
             } else {
                 setSettings(defaultUserSettings);
-                safeStorage.setItem('pdm_user_settings', JSON.stringify(defaultUserSettings));
             }
         } catch (error) {
             console.error('Error in createDefaultSettings:', error);
@@ -159,13 +120,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
     const saveSettings = async (newSettings: UserSettings) => {
         try {
-            // Save to state
+            // Save to state (memory)
             setSettings(newSettings);
 
-            // Save to localStorage
-            safeStorage.setItem('pdm_user_settings', JSON.stringify(newSettings));
-
-            // Save to Supabase
+            // Save to Supabase (if logged in)
             const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {

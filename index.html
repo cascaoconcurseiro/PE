@@ -4,64 +4,47 @@
 <head>
   <meta charset="UTF-8" />
 
-  <!-- CRITICAL: Storage Polyfill for Restricted Environments (Must be first script) -->
+  <!-- STRICT STORAGE BLOCKER & POLYFILL -->
   <script>
     (function () {
+      console.log('🔒 Applying Strict Storage & Cookie Shield...');
+
+      var memoryStore = {};
+      var storageShim = {
+        getItem: function (key) { return memoryStore[key] || null; },
+        setItem: function (key, value) { memoryStore[key] = String(value); },
+        removeItem: function (key) { delete memoryStore[key]; },
+        clear: function () { memoryStore = {}; },
+        key: function (n) { return Object.keys(memoryStore)[n]; },
+        get length() { return Object.keys(memoryStore).length; }
+      };
+
       try {
-        // Test if storage is working
-        var x = '__storage_test__';
-        localStorage.setItem(x, x);
-        localStorage.removeItem(x);
+        // 1. Kill LocalStorage
+        Object.defineProperty(window, 'localStorage', { value: storageShim, writable: false, configurable: false });
+
+        // 2. Kill SessionStorage
+        Object.defineProperty(window, 'sessionStorage', { value: storageShim, writable: false, configurable: false });
+
+        // 3. Kill Cookies (JS access)
+        Object.defineProperty(document, 'cookie', {
+          get: function () { return ''; },
+          set: function () { console.warn('🍪 Cookie set blocked by policy.'); },
+          configurable: false
+        });
+
+        console.log('✅ Storage & Cookies successfully Shimmed to Memory.');
       } catch (e) {
-        console.warn('Storage access blocked. Activating in-memory polyfill.');
-
-        function createStorage() {
-          var store = {};
-          return {
-            getItem: function (key) { return store[key] || null; },
-            setItem: function (key, value) { store[key] = String(value); },
-            removeItem: function (key) { delete store[key]; },
-            clear: function () { store = {}; },
-            key: function (n) { return Object.keys(store)[n]; },
-            get length() { return Object.keys(store).length; }
-          };
-        }
-
-        try {
-          Object.defineProperty(window, 'localStorage', { value: createStorage(), writable: true, configurable: true });
-          Object.defineProperty(window, 'sessionStorage', { value: createStorage(), writable: true, configurable: true });
-          console.log('Storage polyfill activated successfully.');
-        } catch (err) {
-          console.error('Failed to inject storage polyfill:', err);
-        }
+        console.error('❌ Critical: Failed to shim storage.', e);
       }
-    })();
-  </script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-  <!-- Error Suppression: Handle external storage access errors -->
-  <script>
-    (function () {
-      const suppress = (msg) => msg && (
-        msg.includes('Access to storage is not allowed') ||
-        msg.includes('message channel closed')
-      );
-
+      // Global Error Suppression for residual access attempts from browser internals
       window.addEventListener('error', function (e) {
-        if (suppress(e.message)) {
+        if (e.message && (e.message.includes('Access to storage') || e.message.includes('cookie'))) {
           e.stopImmediatePropagation();
-          e.preventDefault();
-          console.debug('Suppressed external storage error');
-          return true;
+          console.debug('🛡️ Suppressed external storage error.');
         }
       }, true);
-
-      window.addEventListener('unhandledrejection', function (e) {
-        if (e.reason && suppress(e.reason.message)) {
-          e.preventDefault();
-          console.debug('Suppressed external storage promise rejection');
-        }
-      });
     })();
   </script>
 

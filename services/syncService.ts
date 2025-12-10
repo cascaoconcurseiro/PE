@@ -1,12 +1,10 @@
 import { supabaseService } from './supabaseService';
 import { Transaction } from '../types';
 
-const QUEUE_KEY = 'pe_sync_queue';
-
 export type SyncOperation =
-    | { type: 'ADD_TRANSACTION'; payload: any } // using any to accommodate omit<id> logic if needed, but preferably full object
+    | { type: 'ADD_TRANSACTION'; payload: any }
     | { type: 'UPDATE_TRANSACTION'; payload: Transaction }
-    | { type: 'DELETE_TRANSACTION'; payload: string }; // ID
+    | { type: 'DELETE_TRANSACTION'; payload: string };
 
 interface QueueItem {
     id: string;
@@ -14,48 +12,29 @@ interface QueueItem {
     timestamp: number;
 }
 
+// In-memory queue (non-persistent)
+let memoryQueue: QueueItem[] = [];
+
 export const SyncService = {
     getQueue: (): QueueItem[] => {
-        try {
-            const stored = localStorage.getItem(QUEUE_KEY);
-            return stored ? JSON.parse(stored) : [];
-        } catch {
-            return [];
-        }
+        return memoryQueue;
     },
 
     addToQueue: (op: SyncOperation) => {
-        const queue = SyncService.getQueue();
         const item: QueueItem = {
             id: crypto.randomUUID(),
             op,
             timestamp: Date.now()
         };
-        queue.push(item);
-        try {
-            localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
-        } catch (e) {
-            console.warn('Sync queue write failed', e);
-        }
+        memoryQueue.push(item);
     },
 
     clearQueue: () => {
-        try {
-            localStorage.removeItem(QUEUE_KEY);
-        } catch (e) {
-            console.warn('Sync queue clear failed', e);
-        }
+        memoryQueue = [];
     },
 
     removeFromQueue: (id: string) => {
-        const queue = SyncService.getQueue();
-        const newQueue = queue.filter(item => item.id !== id);
-
-        try {
-            localStorage.setItem(QUEUE_KEY, JSON.stringify(newQueue));
-        } catch (e) {
-            console.warn('Sync queue remove failed', e);
-        }
+        memoryQueue = memoryQueue.filter(item => item.id !== id);
     },
 
     processQueue: async (): Promise<{ success: number; failed: number }> => {
@@ -65,12 +44,17 @@ export const SyncService = {
         let successCount = 0;
         let failedCount = 0;
 
-        // Process sequentially to maintain order logic
-        for (const item of queue) {
+        // Clone queue to avoid modification issues during iteration, or handle carefully
+        // We modify 'memoryQueue' via removeFromQueue inside loop.
+        const snapshot = [...queue];
+
+        for (const item of snapshot) {
             try {
+                // Verify item is still in queue (sync concurrency)
+                if (!memoryQueue.find(q => q.id === item.id)) continue;
+
                 switch (item.op.type) {
                     case 'ADD_TRANSACTION':
-                        // Check if it already exists (idempotency) to avoid duplicates if partial fail
                         await supabaseService.create('transactions', item.op.payload);
                         break;
                     case 'UPDATE_TRANSACTION':
@@ -80,14 +64,12 @@ export const SyncService = {
                         await supabaseService.delete('transactions', item.op.payload);
                         break;
                 }
-                // If successful, remove from queue
+
                 SyncService.removeFromQueue(item.id);
                 successCount++;
             } catch (error) {
                 console.error(`Failed to sync item ${item.id}`, error);
                 failedCount++;
-                // Keep in queue for retry? Or move to 'dead letter queue'?
-                // For now, keep in queue.
             }
         }
 
