@@ -120,10 +120,24 @@ export const Budgets: React.FC<BudgetsProps> = ({ transactions, budgets, onAddBu
                     const CatIcon = getCategoryIcon(budget.categoryId as string);
 
                     return (
-                        <div key={budget.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm relative overflow-hidden">
-                            <div className="flex items-center justify-between mb-3">
+                        <div key={budget.id} className={`bg-white dark:bg-slate-800 border rounded-2xl p-4 shadow-sm relative overflow-hidden ${isOver ? 'border-red-300 dark:border-red-700 ring-2 ring-red-500/20' : percentage > 80 ? 'border-amber-300 dark:border-amber-700' : 'border-slate-200 dark:border-slate-700'}`}>
+                            {/* Alert Banner */}
+                            {isOver && (
+                                <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 flex items-center gap-2">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    LIMITE EXCEDIDO em {formatCurrency(spent - effectiveLimit)}
+                                </div>
+                            )}
+                            {!isOver && percentage > 80 && (
+                                <div className="absolute top-0 left-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 flex items-center gap-2">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    ATENÇÃO: {percentage.toFixed(0)}% do limite usado
+                                </div>
+                            )}
+
+                            <div className={`flex items-center justify-between mb-3 ${isOver || percentage > 80 ? 'mt-6' : ''}`}>
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300"><CatIcon className="w-6 h-6" /></div>
+                                    <div className={`p-2 rounded-xl ${isOver ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}><CatIcon className="w-6 h-6" /></div>
                                     <div><h3 className="font-bold text-slate-800 dark:text-white">{budget.categoryId}</h3><div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium"><span>Limite: {formatCurrency(budget.amount)}</span>{rollover !== 0 && (<span className={`px-1.5 py-0.5 rounded ${rollover > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>{rollover > 0 ? '+' : ''}{formatCurrency(rollover)}</span>)}</div></div>
                                 </div>
                                 <div className="flex gap-2"><button onClick={() => { setEditingBudget(budget); setNewBudget(budget); setIsFormOpen(true); }} className="p-2 text-slate-400 hover:text-indigo-600"><Edit2 className="w-4 h-4" /></button><button onClick={() => onDeleteBudget(budget.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button></div>
