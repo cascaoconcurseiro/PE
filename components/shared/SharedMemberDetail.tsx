@@ -19,6 +19,7 @@ interface SharedMemberDetailProps {
     currentDate: Date;
     showValues: boolean;
     currency: string;
+    tripName?: string;
 
     // Actions
     onSettle: (type: 'PAY' | 'RECEIVE', amount: number) => void;
@@ -30,7 +31,7 @@ interface SharedMemberDetailProps {
 }
 
 export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
-    member, items, currentDate, showValues, currency,
+    member, items, currentDate, showValues, currency, tripName,
     onSettle, onImport, onEditTransaction, onDeleteTransaction, onBulkDelete, onUndoSettlement
 }) => {
 
@@ -151,7 +152,9 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                         : netTotal < 0
                                             ? `Débito para ${member.name}`
                                             : `Acerto com ${member.name}`
-                                    } - {currentDate.toLocaleDateString('pt-BR', { month: 'long' })}
+                                    }
+                                    {tripName ? ` - ${tripName}` : ''}
+                                    {' - '}{currentDate.toLocaleDateString('pt-BR', { month: 'long' })}
                                 </span>
                             </div>
                             <h2 className={`text-3xl md:text-4xl font-black tracking-tight ${netTotal > 0
@@ -186,7 +189,7 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                         : 'shadow-red-500/20 bg-red-600 hover:bg-red-700'
                                         }`}
                                 >
-                                    {netTotal > 0 ? 'Receber Fatura' : 'Pagar Fatura'}
+                                    {netTotal > 0 ? 'Receber Fatura' : 'Pagar Fatura'}{currency !== 'BRL' ? ` (${currency})` : ''}
                                 </Button>
                             )}
                             <div className="flex gap-2">

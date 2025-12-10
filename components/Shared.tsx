@@ -197,33 +197,62 @@ export const Shared: React.FC<SharedProps> = ({
             <div className="space-y-6">
                 {displayMembers.map(member => {
                     // Filter items for this view (Month + Tab)
-                    const items = getFilteredInvoice(member.id);
+                    const memberItems = getFilteredInvoice(member.id);
 
-                    return (
-                        <SharedMemberDetail
-                            key={member.id}
-                            member={member}
-                            items={items}
-                            currentDate={currentDate}
-                            showValues={true} // Using global setting? Should pass prop or assume true for detail view? Using true for now or access context.
-                            currency="BRL" // Default to BRL for now, improved logic would detect mix
-                            onSettle={(type, amount) => handleOpenSettleModal(member.id, type, 'BRL')}
-                            onImport={() => setIsImportModalOpen(true)}
-                            onEditTransaction={(id) => {
-                                const tx = transactions.find(t => t.id === id);
-                                if (tx) setEditingTransaction(tx);
-                            }}
-                            onDeleteTransaction={(id) => {
-                                const tx = transactions.find(t => t.id === id);
-                                if (tx) {
-                                    setTransactionToDelete(tx);
-                                    setIsDeleteModalOpen(true);
-                                }
-                            }}
-                            onBulkDelete={handleBulkDelete}
-                            onUndoSettlement={handleUndoSettlement}
-                        />
-                    );
+                    // Group items by currency
+                    const itemsByCurrency: Record<string, InvoiceItem[]> = {};
+                    memberItems.forEach(item => {
+                        const curr = item.currency || 'BRL';
+                        if (!itemsByCurrency[curr]) itemsByCurrency[curr] = [];
+                        itemsByCurrency[curr].push(item);
+                    });
+
+                    // Ensure at least BRL shows up if empty (or handle empty state)
+                    const currencies = Object.keys(itemsByCurrency);
+                    if (currencies.length === 0) currencies.push('BRL');
+
+                    return currencies.map(currency => {
+                        const items = itemsByCurrency[currency] || [];
+
+                        // Detect trip from items
+                        // If all items belong to same trip, use that name. 
+                        // If mixed trips, say 'Múltiplas Viagens' or just list items.
+                        // Assuming items in a currency bucket for a period usually belong to one context or none.
+                        const tripIds = Array.from(new Set(items.map(i => i.tripId).filter(Boolean)));
+                        let tripName = undefined;
+                        if (tripIds.length === 1) {
+                            tripName = trips.find(t => t.id === tripIds[0])?.name;
+                        } else if (tripIds.length > 1) {
+                            tripName = 'Múltiplas Viagens';
+                        }
+
+                        return (
+                            <SharedMemberDetail
+                                key={`${member.id}-${currency}`}
+                                member={member}
+                                items={items}
+                                currentDate={currentDate}
+                                showValues={true}
+                                currency={currency}
+                                tripName={tripName}
+                                onSettle={(type, amount) => handleOpenSettleModal(member.id, type, currency)}
+                                onImport={() => setIsImportModalOpen(true)}
+                                onEditTransaction={(id) => {
+                                    const tx = transactions.find(t => t.id === id);
+                                    if (tx) setEditingTransaction(tx);
+                                }}
+                                onDeleteTransaction={(id) => {
+                                    const tx = transactions.find(t => t.id === id);
+                                    if (tx) {
+                                        setTransactionToDelete(tx);
+                                        setIsDeleteModalOpen(true);
+                                    }
+                                }}
+                                onBulkDelete={handleBulkDelete}
+                                onUndoSettlement={handleUndoSettlement}
+                            />
+                        );
+                    });
                 })}
             </div>
 
