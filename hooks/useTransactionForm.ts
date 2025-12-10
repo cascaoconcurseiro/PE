@@ -256,7 +256,8 @@ export const useTransactionForm = ({
             recurrenceDay: isRecurring ? recurrenceDay : undefined,
             lastGenerated: isRecurring ? date : undefined,
             frequency: isRecurring ? frequency : Frequency.ONE_TIME,
-            isInstallment: isCreditCard ? isInstallment : false,
+            // Allow installments for: (1) Credit cards, (2) When someone else paid
+            isInstallment: (isCreditCard || isExternalPayer) ? isInstallment : false,
             currentInstallment: isInstallment ? currentInstallment : undefined,
             totalInstallments: isInstallment ? totalInstallments : undefined,
             enableNotification,

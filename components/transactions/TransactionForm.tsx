@@ -481,7 +481,22 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 </div>
             </div>
 
-            <SplitModal isOpen={isSplitModalOpen} onClose={handleConfirmSplit} onConfirm={handleConfirmSplit} payerId={payerId} setPayerId={setPayerId} splits={splits} setSplits={setSplits} familyMembers={familyMembers} activeAmount={activeAmount} onNavigateToFamily={onNavigateToFamily} />
+            <SplitModal
+                isOpen={isSplitModalOpen}
+                onClose={handleConfirmSplit}
+                onConfirm={handleConfirmSplit}
+                payerId={payerId}
+                setPayerId={setPayerId}
+                splits={splits}
+                setSplits={setSplits}
+                familyMembers={familyMembers}
+                activeAmount={activeAmount}
+                onNavigateToFamily={onNavigateToFamily}
+                isInstallment={isInstallment}
+                setIsInstallment={setIsInstallment}
+                totalInstallments={totalInstallments}
+                setTotalInstallments={setTotalInstallments}
+            />
         </div>
     );
 };

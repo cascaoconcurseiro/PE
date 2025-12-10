@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Users, ChevronDown, Check, Plus } from 'lucide-react';
+import { X, User, Users, ChevronDown, Check, Plus, CreditCard } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { FamilyMember, TransactionSplit } from '../../types';
 
@@ -14,6 +14,11 @@ interface SplitModalProps {
     familyMembers: FamilyMember[];
     activeAmount: number;
     onNavigateToFamily?: () => void;
+    // Installment props
+    isInstallment?: boolean;
+    setIsInstallment?: (value: boolean) => void;
+    totalInstallments?: number;
+    setTotalInstallments?: (value: number) => void;
 }
 
 export const SplitModal: React.FC<SplitModalProps> = ({
@@ -26,7 +31,11 @@ export const SplitModal: React.FC<SplitModalProps> = ({
     setSplits,
     familyMembers,
     activeAmount,
-    onNavigateToFamily
+    onNavigateToFamily,
+    isInstallment = false,
+    setIsInstallment,
+    totalInstallments = 2,
+    setTotalInstallments
 }) => {
     if (!isOpen) return null;
 
@@ -94,6 +103,42 @@ export const SplitModal: React.FC<SplitModalProps> = ({
                                 )}
                             </div>
                         )}
+
+                        {/* PARCELAMENTO (quando Outro Pagou) */}
+                        {payerId !== 'me' && setIsInstallment && setTotalInstallments && (
+                            <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-200 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <CreditCard className="w-4 h-4 text-purple-600" />
+                                        <span className="text-sm font-bold text-purple-900">Foi parcelado?</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsInstallment(!isInstallment)}
+                                        className={`w-12 h-6 rounded-full transition-colors ${isInstallment ? 'bg-purple-600' : 'bg-slate-300'}`}
+                                    >
+                                        <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${isInstallment ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                    </button>
+                                </div>
+
+                                {isInstallment && (
+                                    <div className="flex items-center gap-3 animate-in fade-in">
+                                        <span className="text-sm text-purple-700">Nº de Parcelas:</span>
+                                        <input
+                                            type="number"
+                                            min="2"
+                                            max="48"
+                                            value={totalInstallments}
+                                            onChange={e => setTotalInstallments(parseInt(e.target.value) || 2)}
+                                            className="w-20 px-3 py-2 bg-white border border-purple-300 rounded-lg text-center font-bold text-purple-900 outline-none focus:ring-2 focus:ring-purple-500"
+                                        />
+                                        <span className="text-xs text-purple-600">
+                                            = R$ {(activeAmount / totalInstallments).toFixed(2)}/mês
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* 2. QUEM DIVIDE? */}
@@ -156,8 +201,8 @@ export const SplitModal: React.FC<SplitModalProps> = ({
                                                 setSplits(newSplits);
                                             }}
                                             className={`py-2 px-3 rounded-xl text-xs font-bold transition-all ${isActive
-                                                    ? 'bg-indigo-600 text-white shadow-lg'
-                                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                                ? 'bg-indigo-600 text-white shadow-lg'
+                                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                                 }`}
                                         >
                                             {preset.label}
