@@ -258,32 +258,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
 
-
-
-            {/* Header / Actions */}
-            <div className="flex justify-end gap-2">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => generateMonthlyReport(transactions, accounts, currentDate)}
-                    className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
-                    title="Imprimir Relatório Mensal"
-                >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Relatório Mensal
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => generateAnnualReport(transactions, accounts, selectedYear)}
-                    className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
-                    title="Imprimir Relatório Anual"
-                >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Relatório Anual
-                </Button>
-            </div>
-
             {/* Pending Actions Section */}
             {(pendingSharedRequestsCount > 0 || (pendingSettlements && pendingSettlements.length > 0)) && (
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-2xl p-4 animate-in slide-in-from-top-4">
@@ -392,6 +366,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                         showValues={showValues}
                     />
                 </Suspense>
+            </div>
+
+            {/* Report Buttons - Bottom of Page */}
+            <div className="flex justify-center gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => generateMonthlyReport(transactions, accounts, currentDate)}
+                    className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                    title="Imprimir Relatório Mensal"
+                >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Relatório Mensal
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => generateAnnualReport(transactions, accounts, selectedYear)}
+                    className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                    title="Imprimir Relatório Anual"
+                >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Relatório Anual
+                </Button>
             </div>
         </div>
     );
