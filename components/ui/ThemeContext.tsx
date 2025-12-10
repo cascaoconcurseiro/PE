@@ -20,12 +20,13 @@ export const useTheme = () => {
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [theme, setTheme] = useState<Theme>(() => {
         if (typeof window !== 'undefined') {
-            try {
-                const saved = localStorage.getItem('pdm_theme');
-                if (saved === 'dark' || saved === 'light') return saved;
-            } catch (e) {
-                console.warn('Theme storage access denied', e);
-            }
+            // Storage disabled
+            // try {
+            //     const saved = localStorage.getItem('pdm_theme');
+            //     if (saved === 'dark' || saved === 'light') return saved;
+            // } catch (e) {
+            //     console.warn('Theme storage access denied', e);
+            // }
             return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
         return 'light';
@@ -38,11 +39,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         } else {
             root.classList.remove('dark');
         }
-        try {
-            localStorage.setItem('pdm_theme', theme);
-        } catch (e) {
-            // Ignore write errors in restricted environments
-        }
+        // Storage disabled
+        // try {
+        //     localStorage.setItem('pdm_theme', theme);
+        // } catch (e) {
+        //     // Ignore write errors in restricted environments
+        // }
     }, [theme]);
 
     const toggleTheme = () => {

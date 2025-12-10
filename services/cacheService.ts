@@ -9,19 +9,22 @@ interface CacheItem<T> {
 
 export const CacheService = {
     set: <T>(key: string, data: T): void => {
-        try {
-            const item: CacheItem<T> = {
-                data,
-                timestamp: Date.now(),
-                version: '1.0'
-            };
-            localStorage.setItem(PREFIX + key, JSON.stringify(item));
-        } catch (e) {
-            console.warn('Cache write failed', e);
-        }
+        // LocalStorage disabled to prevent 'Access to storage is not allowed' errors
+        // try {
+        //     const item: CacheItem<T> = {
+        //         data,
+        //         timestamp: Date.now(),
+        //         version: '1.0'
+        //     };
+        //     localStorage.setItem(PREFIX + key, JSON.stringify(item));
+        // } catch (e) {
+        //     console.warn('Cache write failed', e);
+        // }
     },
 
     get: <T>(key: string): T | null => {
+        return null; // Force refresh from DB
+        /*
         try {
             const stored = localStorage.getItem(PREFIX + key);
             if (!stored) return null;
@@ -41,6 +44,7 @@ export const CacheService = {
             console.warn('Cache read failed', e);
             return null;
         }
+        */
     },
 
     clear: (key: string): void => {
