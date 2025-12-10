@@ -22,8 +22,9 @@ const formatLocalDate = (date: Date): string => {
 };
 
 export const getInvoiceData = (account: Account, transactions: Transaction[], referenceDate: Date) => {
-    // Default fallback
-    if (!account.closingDay || !account.limit) {
+    // Default fallback - only require closingDay for date calculations
+    // Limit is optional (used for utilization percentage, not invoice total)
+    if (!account.closingDay) {
         return {
             invoiceTotal: 0,
             transactions: [],

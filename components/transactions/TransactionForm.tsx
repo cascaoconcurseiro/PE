@@ -222,11 +222,52 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                     <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-10 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative">
                                         <CategoryIcon className="w-4 h-4 text-slate-400 mr-2" />
                                         <select value={category} onChange={e => setCategory(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900">
-                                            <optgroup label="Categorias Padrão">
-                                                {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
+                                            <optgroup label="🏠 Moradia">
+                                                <option value={Category.HOUSING}>{Category.HOUSING}</option>
+                                                <option value={Category.RENT}>{Category.RENT}</option>
+                                                <option value={Category.UTILITIES}>{Category.UTILITIES}</option>
+                                            </optgroup>
+                                            <optgroup label="🍽️ Alimentação">
+                                                <option value={Category.FOOD}>{Category.FOOD}</option>
+                                                <option value={Category.RESTAURANTS}>{Category.RESTAURANTS}</option>
+                                                <option value={Category.GROCERY}>{Category.GROCERY}</option>
+                                            </optgroup>
+                                            <optgroup label="🚗 Transporte">
+                                                <option value={Category.TRANSPORTATION}>{Category.TRANSPORTATION}</option>
+                                                <option value={Category.UBER}>{Category.UBER}</option>
+                                                <option value={Category.FUEL}>{Category.FUEL}</option>
+                                            </optgroup>
+                                            <optgroup label="🏥 Saúde">
+                                                <option value={Category.HEALTH}>{Category.HEALTH}</option>
+                                                <option value={Category.PHARMACY}>{Category.PHARMACY}</option>
+                                                <option value={Category.DOCTOR}>{Category.DOCTOR}</option>
+                                            </optgroup>
+                                            <optgroup label="🎬 Lazer & Compras">
+                                                <option value={Category.ENTERTAINMENT}>{Category.ENTERTAINMENT}</option>
+                                                <option value={Category.STREAMING}>{Category.STREAMING}</option>
+                                                <option value={Category.SHOPPING}>{Category.SHOPPING}</option>
+                                                <option value={Category.CLOTHING}>{Category.CLOTHING}</option>
+                                                <option value={Category.ELECTRONICS}>{Category.ELECTRONICS}</option>
+                                                <option value={Category.TRAVEL}>{Category.TRAVEL}</option>
+                                            </optgroup>
+                                            <optgroup label="💰 Finanças">
+                                                <option value={Category.INVESTMENT}>{Category.INVESTMENT}</option>
+                                                <option value={Category.INSURANCE}>{Category.INSURANCE}</option>
+                                                <option value={Category.TAXES}>{Category.TAXES}</option>
+                                                <option value={Category.INCOME}>{Category.INCOME}</option>
+                                                <option value={Category.FREELANCE}>{Category.FREELANCE}</option>
+                                            </optgroup>
+                                            <optgroup label="📦 Outros">
+                                                <option value={Category.EDUCATION}>{Category.EDUCATION}</option>
+                                                <option value={Category.PERSONAL_CARE}>{Category.PERSONAL_CARE}</option>
+                                                <option value={Category.PETS}>{Category.PETS}</option>
+                                                <option value={Category.GIFTS}>{Category.GIFTS}</option>
+                                                <option value={Category.OTHER}>{Category.OTHER}</option>
+                                                <option value={Category.TRANSFER}>{Category.TRANSFER}</option>
+                                                <option value={Category.OPENING_BALANCE}>{Category.OPENING_BALANCE}</option>
                                             </optgroup>
                                             {customCategories.length > 0 && (
-                                                <optgroup label="Personalizadas">
+                                                <optgroup label="⭐ Personalizadas">
                                                     {customCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                                 </optgroup>
                                             )}
