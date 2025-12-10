@@ -80,13 +80,12 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
         if (activeTab === 'TRAVEL') {
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else {
-            const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-            const currentMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+            // Only show items from the current month (same as credit card logic)
+            // Each installment appears only in its respective month
             return allItems.filter(i => {
                 if (i.tripId) return false;
                 const itemDate = parseDate(i.date);
-                if (i.isPaid) return isSameMonth(itemDate, currentDate);
-                return itemDate <= currentMonthEnd;
+                return isSameMonth(itemDate, currentDate);
             }).sort((a, b) => b.date.localeCompare(a.date));
         }
     };
