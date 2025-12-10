@@ -149,10 +149,10 @@ export const useDataStore = () => {
             // CHECK FOR SERIES REGENERATION (Change in Total Installments)
             const originalTx = transactions.find(t => t.id === updatedTx.id);
             if (updatedTx.seriesId && originalTx && updatedTx.totalInstallments !== originalTx.totalInstallments) {
-                // 1. Validation: Check if any installment is paid or settled
+                // 1. Validation: Check if any installment is settled
                 const seriesTxs = transactions.filter(t => t.seriesId === updatedTx.seriesId);
-                const hasPaid = seriesTxs.some(t => t.isSettled || t.isPaid); // isPaid property usually on invoice item but isSettled on tx
-                // Actually 'isPaid' is on InvoiceItem mapped from transactions. 'isSettled' is the core flag.
+                const hasPaid = seriesTxs.some(t => t.isSettled || (t.sharedWith?.some(s => s.isSettled)));
+                // Check isSettled on transaction and on any shared splits
                 if (hasPaid) {
                     throw new Error('Não é possível alterar o número de parcelas de uma série com pagamentos já realizados.');
                 }
