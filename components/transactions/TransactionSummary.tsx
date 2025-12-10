@@ -2,19 +2,21 @@ import React from 'react';
 import { formatCurrency } from '../../utils';
 import { ArrowUpRight, ArrowDownLeft, Wallet } from 'lucide-react';
 
+// Reusable Blur Component
+const BlurValue = ({ value, show, scale = 1, currency = 'BRL' }: { value: number, show: boolean, scale?: number, currency?: string }) => {
+    if (show) return <>{formatCurrency(value, currency)}</>;
+    return <span className={`blur-sm select-none opacity-60 scale-${scale * 100}`}>{currency === 'BRL' ? 'R$' : currency} ••••</span>;
+};
+
 interface TransactionSummaryProps {
     income: number;
     expense: number;
     balance: number;
     showValues: boolean;
+    currency?: string;
 }
 
-const BlurValue = ({ value, show, scale = 1 }: { value: number, show: boolean, scale?: number }) => {
-    if (show) return <>{formatCurrency(value)}</>;
-    return <span className={`blur-sm select-none opacity-60 scale-${scale * 100}`}>R$ ••••</span>;
-};
-
-export const TransactionSummary: React.FC<TransactionSummaryProps> = ({ income, expense, balance, showValues }) => {
+export const TransactionSummary: React.FC<TransactionSummaryProps> = ({ income, expense, balance, showValues, currency = 'BRL' }) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* SALDO CARD - PREMIUM GRADIENT */}
@@ -31,7 +33,7 @@ export const TransactionSummary: React.FC<TransactionSummaryProps> = ({ income, 
                     </div>
                     <div>
                         <span className={`text-3xl font-black tracking-tight ${balance >= 0 ? 'text-white' : 'text-red-400'}`}>
-                            <BlurValue value={balance} show={showValues} />
+                            <BlurValue value={balance} show={showValues} currency={currency} />
                         </span>
                     </div>
                 </div>
@@ -46,7 +48,7 @@ export const TransactionSummary: React.FC<TransactionSummaryProps> = ({ income, 
                     </div>
                 </div>
                 <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-                    <BlurValue value={income} show={showValues} />
+                    <BlurValue value={income} show={showValues} currency={currency} />
                 </span>
             </div>
 
@@ -59,7 +61,7 @@ export const TransactionSummary: React.FC<TransactionSummaryProps> = ({ income, 
                     </div>
                 </div>
                 <span className="text-2xl font-black text-red-600 dark:text-red-400 tracking-tight">
-                    <BlurValue value={expense} show={showValues} />
+                    <BlurValue value={expense} show={showValues} currency={currency} />
                 </span>
             </div>
         </div>

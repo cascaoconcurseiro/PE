@@ -68,7 +68,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
 
     // Use Custom Hook for Filtering Logic
-    const { filteredTxs, groupedTxs, income, expense, balance } = useTransactionFilters({
+    const { filteredTxs, groupedTxs, income, expense, balance, currency } = useTransactionFilters({
         transactions,
         currentDate,
         searchTerm,
@@ -192,7 +192,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 setSearchTerm={setSearchTerm}
             />
 
-            <TransactionSummary income={income} expense={expense} balance={balance} showValues={showValues} />
+            <TransactionSummary income={income} expense={expense} balance={balance} showValues={showValues} currency={currency} />
 
             <TransactionList
                 groupedTxs={groupedTxs}
