@@ -9,9 +9,12 @@ import { useToast } from '../components/ui/Toast';
 import { supabase } from '../integrations/supabase/client';
 import { processRecurringTransactions } from '../services/recurrenceEngine';
 import { checkDataConsistency } from '../services/financialLogic';
+import { CacheService } from '../services/cacheService';
+import { SyncService } from '../services/syncService';
 
 export const useDataStore = () => {
     const { addToast } = useToast();
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [user, setUser] = useState<UserProfile | null>(null);
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -47,11 +50,41 @@ export const useDataStore = () => {
         }
     };
 
+    // Network Status Listener & Sync
+    useEffect(() => {
+        const handleOnline = () => {
+            setIsOnline(true);
+            addToast('Você está online. Sincronizando...', 'success');
+            SyncService.processQueue().then(({ success, failed }) => {
+                if (success > 0) {
+                    addToast(`${success} itens sincronizados!`, 'success');
+                    // refresh(); // Refresh after sync to get latest data from DB
+                }
+                if (failed > 0) {
+                    addToast(`${failed} itens falharam na sincronização.`, 'error');
+                }
+            });
+        };
+        const handleOffline = () => {
+            setIsOnline(false);
+            addToast('Você está offline. As alterações serão salvas localmente.', 'warning');
+        };
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
     const handleAddTransaction = async (newTx: Omit<Transaction, 'id'>) => {
-        await performOperation(async () => {
+        // Prepare logic (Generate Installments vs Single)
+        // We separate calculation from execution to support offline queuing
+        const generateTransactions = (): any[] => {
             const now = new Date().toISOString();
             const totalInstallments = Number(newTx.totalInstallments);
-            const txsToCreate: any[] = [];
+            const txs: any[] = [];
 
             if (newTx.isInstallment && totalInstallments > 1) {
                 const baseDate = parseDate(newTx.date);
@@ -60,29 +93,19 @@ export const useDataStore = () => {
                 let accumulatedAmount = 0;
                 let accumulatedSharedAmounts: { [memberId: string]: number } = {};
 
-                // Initialize accumulated amounts for each shared member
                 if (newTx.sharedWith) {
-                    newTx.sharedWith.forEach(s => {
-                        accumulatedSharedAmounts[s.memberId] = 0;
-                    });
+                    newTx.sharedWith.forEach(s => { accumulatedSharedAmounts[s.memberId] = 0; });
                 }
 
                 for (let i = 0; i < totalInstallments; i++) {
-                    // FIX: Calcular mês/ano corretamente para evitar problemas com dias 29, 30, 31
                     const targetMonth = baseDate.getMonth() + i;
                     const targetYear = baseDate.getFullYear() + Math.floor(targetMonth / 12);
                     const finalMonth = targetMonth % 12;
-
-                    // Criar data sempre com dia 1 primeiro para evitar overflow de mês
                     const nextDate = new Date(targetYear, finalMonth, 1);
-
-                    // Ajustar para o dia correto (ou último dia do mês se não existir)
                     const targetDay = baseDate.getDate();
                     const daysInTargetMonth = new Date(targetYear, finalMonth + 1, 0).getDate();
                     nextDate.setDate(Math.min(targetDay, daysInTargetMonth));
 
-                    // Formatar data manualmente para evitar problemas de timezone
-                    // Não usar toISOString() que converte para UTC e pode mudar o dia
                     const dateYear = nextDate.getFullYear();
                     const dateMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
                     const dateDay = String(nextDate.getDate()).padStart(2, '0');
@@ -90,64 +113,98 @@ export const useDataStore = () => {
 
                     let currentAmount = baseInstallmentValue;
                     if (i === totalInstallments - 1) {
-                        // Last installment: adjust to match exact total
                         currentAmount = Number((newTx.amount - accumulatedAmount).toFixed(2));
                     }
                     accumulatedAmount += currentAmount;
 
-                    // Calculate shared amounts with rounding correction on last installment
                     const currentSharedWith = newTx.sharedWith?.map(s => {
                         let assignedAmount = Number(((s.assignedAmount / newTx.amount) * currentAmount).toFixed(2));
-
                         if (i === totalInstallments - 1) {
-                            // Last installment: adjust to match exact total for this member
-                            const totalAssigned = accumulatedSharedAmounts[s.memberId] || 0;
-                            assignedAmount = Number((s.assignedAmount - totalAssigned).toFixed(2));
-                        } else {
-                            // Accumulate for correction on last installment
-                            accumulatedSharedAmounts[s.memberId] = (accumulatedSharedAmounts[s.memberId] || 0) + assignedAmount;
+                            assignedAmount = Number((s.assignedAmount - accumulatedSharedAmounts[s.memberId]).toFixed(2));
                         }
-
-                        return {
-                            ...s,
-                            assignedAmount
-                        };
+                        accumulatedSharedAmounts[s.memberId] += assignedAmount;
+                        return { ...s, assignedAmount };
                     });
 
-                    txsToCreate.push({
+                    txs.push({
                         ...newTx,
                         id: crypto.randomUUID(),
+                        date: formattedDate,
                         amount: currentAmount,
-                        originalAmount: newTx.amount,
-                        sharedWith: currentSharedWith,
-                        seriesId: seriesId,
-                        date: formattedDate, // Usar data formatada localmente, não toISOString()
+                        description: `${newTx.description} (${i + 1}/${totalInstallments})`,
                         currentInstallment: i + 1,
                         totalInstallments: totalInstallments,
-                        description: `${newTx.description} (${i + 1}/${totalInstallments})`,
-                        createdAt: now,
+                        seriesId: seriesId,
+                        sharedWith: currentSharedWith,
+                        isRecurring: false,
+                        status: 'COMPLETED',
+                        created_at: now,
                         updatedAt: now
                     });
                 }
             } else {
-                txsToCreate.push({
+                txs.push({
                     ...newTx,
                     id: crypto.randomUUID(),
-                    createdAt: now,
+                    status: 'COMPLETED',
+                    created_at: now,
                     updatedAt: now
                 });
             }
+            return txs;
+        };
 
-            await supabaseService.bulkCreate('transactions', txsToCreate);
+        if (!isOnline) {
+            try {
+                const txsToCreate = generateTransactions();
+                // Queue and Optimistic Update
+                txsToCreate.forEach(tx => {
+                    SyncService.addToQueue({ type: 'ADD_TRANSACTION', payload: tx });
+                });
 
+                // Update Local State Optimistically
+                setTransactions(prev => {
+                    const updated = [...txsToCreate, ...prev];
+                    return updated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                });
 
-        }, 'Transação salva!');
+                addToast('Transação salva offline. Será sincronizada quando houver conexão.', 'warning');
+            } catch (e) {
+                console.error("Offline Error", e);
+                addToast('Erro ao salvar offline.', 'error');
+            }
+            return;
+        }
+
+        // Online execution using normal flow
+        await performOperation(async () => {
+            const txsToCreate = generateTransactions();
+            for (const tx of txsToCreate) {
+                await supabaseService.create('transactions', tx);
+            }
+        }, 'Transação adicionada com sucesso!');
     };
 
     const handleUpdateTransaction = async (updatedTx: Transaction) => {
+        const originalTx = transactions.find(t => t.id === updatedTx.id);
+
+        // Offline Check
+        if (!isOnline) {
+            // Block complex series regeneration offline
+            if (updatedTx.seriesId && originalTx && updatedTx.totalInstallments !== originalTx.totalInstallments) {
+                addToast('Edição de parcelamento requer internet.', 'error');
+                return;
+            }
+
+            SyncService.addToQueue({ type: 'UPDATE_TRANSACTION', payload: updatedTx });
+            setTransactions(prev => prev.map(t => t.id === updatedTx.id ? updatedTx : t).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            addToast('Atualização salva offline.', 'warning');
+            return;
+        }
+
         await performOperation(async () => {
             // CHECK FOR SERIES REGENERATION (Change in Total Installments)
-            const originalTx = transactions.find(t => t.id === updatedTx.id);
+            // const originalTx = transactions.find(t => t.id === updatedTx.id); // Already found above
             if (updatedTx.seriesId && originalTx && updatedTx.totalInstallments !== originalTx.totalInstallments) {
                 // 1. Validation: Check if any installment is settled
                 const seriesTxs = transactions.filter(t => t.seriesId === updatedTx.seriesId);
@@ -206,6 +263,24 @@ export const useDataStore = () => {
 
         try {
             const userId = session.user.id;
+
+            // --- CACHE LAYER (Offline First) ---
+            if (!isInitialized.current && !forceLoading) {
+                const cachedData = CacheService.get<any>(`data_${userId}`);
+                if (cachedData) {
+                    console.log("Loading from cache...");
+                    setAccounts(cachedData.accounts || []);
+                    setTransactions(cachedData.transactions || []);
+                    setTrips(cachedData.trips || []);
+                    setBudgets(cachedData.budgets || []);
+                    setGoals(cachedData.goals || []);
+                    setFamilyMembers(cachedData.familyMembers || []);
+                    setAssets(cachedData.assets || []);
+                    setSnapshots(cachedData.snapshots || []);
+                    setCustomCategories(cachedData.customCategories || []);
+                    setIsLoading(false); // Immediate visual feedback
+                }
+            }
 
             // --- TIER 1: CRITICAL DATA (Dashboard Immediate Render) ---
             // Fetch Accounts + Balances (RPC) + Recent Transactions (Current Month)
@@ -286,6 +361,20 @@ export const useDataStore = () => {
             setSnapshots(snaps);
             setCustomCategories(cats);
 
+            // SAVE TO CACHE (Full Dataset)
+            CacheService.set(`data_${userId}`, {
+                accounts: accs,
+                // Combine recent and history for full cache
+                transactions: [...recentTxs, ...historyTxs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+                trips: trps,
+                budgets: bdgts,
+                goals: gls,
+                familyMembers: fam,
+                assets: assts,
+                snapshots: snaps,
+                customCategories: cats
+            });
+
             console.timeEnd("Tier2_Load");
 
             // Recurrence Engine & Consistency Checks run on FULL data (including DELETED to prevent regeneration)
@@ -339,6 +428,25 @@ export const useDataStore = () => {
     const refresh = () => fetchData(false);
 
     const handleDeleteTransaction = async (id: string, deleteScope: 'SINGLE' | 'SERIES' = 'SINGLE') => {
+        if (!isOnline) {
+            if (deleteScope === 'SERIES') {
+                // Deleting series offline is risky if we don't know all IDs. 
+                // But logic says: deleteTransactionSeries(seriesId).
+                // SyncService supports DELETE_TRANSACTION payload string. Using it for series?
+                // No, payload is ID. We don't have DELETE_SERIES op yet.
+                // Let's block series delete offline for safety or implement loop.
+                // Actually, we can just queue multiple deletes if we find them in local state?
+                // Simpler: Block series delete offline.
+                addToast('Exclusão em série requer internet.', 'error');
+                return;
+            }
+
+            SyncService.addToQueue({ type: 'DELETE_TRANSACTION', payload: id });
+            setTransactions(prev => prev.filter(t => t.id !== id));
+            addToast('Exclusão salva offline.', 'warning');
+            return;
+        }
+
         await performOperation(async () => {
             if (deleteScope === 'SERIES') {
                 const tx = transactions.find(t => t.id === id);
@@ -445,7 +553,7 @@ export const useDataStore = () => {
     const handleAddCategory = async (name: string) => categoriesHandler.add({ name });
 
     return {
-        user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading, dataInconsistencies,
+        user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading, dataInconsistencies, isOnline,
         handlers: {
             handleLogin, handleLogout,
             handleAddTransaction, handleUpdateTransaction, handleDeleteTransaction, handleAnticipateInstallments,

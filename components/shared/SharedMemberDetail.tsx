@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { FamilyMember, Transaction, Category, InvoiceItem } from '../../types';
+import { FamilyMember, Transaction, Category, InvoiceItem, TransactionType } from '../../types';
 import { Button } from '../ui/Button';
 import { ArrowDownLeft, Clock, FileUp, ShoppingBag, CreditCard, Users, Trash2, Edit2, CheckSquare, Square, Download, Printer, RotateCcw, CheckCircle } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../../utils';
@@ -96,7 +96,8 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
             i.description,
             i.category || '',
             i.amount.toFixed(2).replace('.', ','),
-            i.type === 'DEBIT' ? 'Eu Devo' : 'Me Devem'
+
+            i.type === 'DEBIT' ? 'Débito' : 'Crédito'
         ]);
 
         if (format === 'CSV') {
@@ -109,7 +110,8 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                     date: i.date,
                     description: i.description,
                     amount: i.amount,
-                    type: i.type === 'DEBIT' ? 'EXPENSE' : 'INCOME',
+
+                    type: i.type === 'DEBIT' ? TransactionType.EXPENSE : TransactionType.INCOME,
                     category: i.category as Category,
                     accountId: 'shared',
                     isShared: true
@@ -145,9 +147,9 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                 </div>
                                 <span className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                     {netTotal > 0
-                                        ? `${member.name} me deve`
+                                        ? `Crédito de ${member.name}`
                                         : netTotal < 0
-                                            ? `Eu devo para ${member.name}`
+                                            ? `Débito para ${member.name}`
                                             : `Acerto com ${member.name}`
                                     } - {currentDate.toLocaleDateString('pt-BR', { month: 'long' })}
                                 </span>
@@ -204,8 +206,8 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                 {/* Mini Stats Footer with Exports */}
                 <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center text-xs font-medium text-slate-500 dark:text-slate-400">
                     <div className="flex gap-4">
-                        <span className="text-red-600">Eu devo: {formatCurrency(totalExpenses, currency)}</span>
-                        <span className="text-emerald-600">{member.name} me deve: {formatCurrency(totalIncome, currency)}</span>
+                        <span className="text-red-600">Débito: {formatCurrency(totalExpenses, currency)}</span>
+                        <span className="text-emerald-600">Crédito: {formatCurrency(totalIncome, currency)}</span>
                     </div>
 
                     <div className="flex gap-2">
@@ -336,7 +338,7 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                                         ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                                                                         : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                                                                         }`}>
-                                                                        {item.type === 'DEBIT' ? 'EU DEVO' : 'ME DEVEM'}
+                                                                        {item.type === 'DEBIT' ? 'DÉBITO' : 'CRÉDITO'}
                                                                     </span>
                                                                 </div>
                                                             </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Transaction, TransactionType, Account, FamilyMember, AccountType } from '../../types';
 import { formatCurrency, getCategoryIcon, parseDate } from '../../utils';
 import { RefreshCcw, ScanLine, Plus, Plane, Users, Trash2, ArrowRight, User, CreditCard, Wallet, ArrowDownLeft, ArrowUpRight, Clock, CalendarDays } from 'lucide-react';
@@ -33,6 +33,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     onAnticipateInstallments
 }) => {
     const dates = Object.keys(groupedTxs).sort((a, b) => b.localeCompare(a));
+    const [visibleDays, setVisibleDays] = useState(5);
+    const visibleDates = dates.slice(0, visibleDays);
+    const hasMore = visibleDays < dates.length;
 
     if (dates.length === 0) {
         return (
@@ -54,7 +57,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             {/* Vertical Timeline Line */}
             <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-slate-200 dark:bg-slate-800 hidden md:block"></div>
 
-            {dates.map((dateStr) => (
+
+
+            {visibleDates.map((dateStr) => (
                 <div key={dateStr} className="relative">
                     {/* Date Header */}
                     <div className="sticky top-0 z-10 flex items-center gap-4 mb-4 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm py-2">
@@ -200,6 +205,19 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     </div>
                 </div>
             ))}
+
+            {hasMore && (
+                <div className="flex justify-center pt-4 pb-8">
+                    <Button
+                        variant="secondary"
+                        onClick={() => setVisibleDays(prev => prev + 5)}
+                        className="rounded-full px-8 py-6 shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all hover:scale-105"
+                    >
+                        <ArrowDownLeft className="w-5 h-5 mr-2" />
+                        Carregar Mais Dias
+                    </Button>
+                </div>
+            )}
         </div>
     );
 };

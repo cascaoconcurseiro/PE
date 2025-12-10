@@ -3,8 +3,9 @@ import { Account, Transaction, TransactionType, AccountType, Goal, Category } fr
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
 import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue } from '../services/financialLogic';
+import { generateMonthlyReport, generateAnnualReport } from '../services/pdfService';
 import { shouldShowTransaction } from '../utils/transactionFilters';
-import { Loader2, PieChart, CreditCard, Layers } from 'lucide-react';
+import { Loader2, PieChart, CreditCard, Layers, Printer } from 'lucide-react';
 import { Button } from './ui/Button';
 
 // Sub-components (Critical: Loaded immediately)
@@ -226,6 +227,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
 
+
+
+            {/* Header / Actions */}
+            <div className="flex justify-end gap-2">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => generateMonthlyReport(transactions, accounts, currentDate)}
+                    className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                    title="Imprimir Relatório Mensal"
+                >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Relatório Mensal
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => generateAnnualReport(transactions, accounts, selectedYear)}
+                    className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                    title="Imprimir Relatório Anual"
+                >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Relatório Anual
+                </Button>
+            </div>
 
             {/* Pending Actions Section */}
             {(pendingSharedRequestsCount > 0 || (pendingSettlements && pendingSettlements.length > 0)) && (
