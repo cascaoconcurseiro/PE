@@ -50,7 +50,7 @@ export const SyncService = {
     removeFromQueue: (id: string) => {
         const queue = SyncService.getQueue();
         const newQueue = queue.filter(item => item.id !== id);
-        const newQueue = queue.filter(item => item.id !== id);
+
         try {
             localStorage.setItem(QUEUE_KEY, JSON.stringify(newQueue));
         } catch (e) {
