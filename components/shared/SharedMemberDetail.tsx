@@ -129,28 +129,54 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
 
             {/* Main Summary Card */}
             <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative group">
-                {/* Gradient Header - Different color for Shared/People? Maybe Indigo/Blue */}
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-cyan-500"></div>
+                {/* Gradient Header - Red for debt (I owe), Green for credit (they owe me) */}
+                <div className={`absolute top-0 left-0 w-full h-2 ${netTotal > 0
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500'
+                    : netTotal < 0
+                        ? 'bg-gradient-to-r from-red-500 to-rose-500'
+                        : 'bg-gradient-to-r from-slate-400 to-slate-500'
+                    }`}></div>
 
                 <div className="p-6 md:p-8">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full text-indigo-600 dark:text-indigo-400">
+                                <div className={`p-2 rounded-full ${netTotal > 0
+                                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                                    : netTotal < 0
+                                        ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                                    }`}>
                                     <Users className="w-6 h-6" />
                                 </div>
                                 <span className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                    Fatura de {currentDate.toLocaleDateString('pt-BR', { month: 'long' })} de {member.name}
+                                    {netTotal > 0
+                                        ? `${member.name} me deve`
+                                        : netTotal < 0
+                                            ? `Eu devo para ${member.name}`
+                                            : `Acerto com ${member.name}`
+                                    } - {currentDate.toLocaleDateString('pt-BR', { month: 'long' })}
                                 </span>
                             </div>
-                            <h2 className={`text-3xl md:text-4xl font-black tracking-tight ${netTotal > 0 ? 'text-slate-900 dark:text-white' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                            <h2 className={`text-3xl md:text-4xl font-black tracking-tight ${netTotal > 0
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : netTotal < 0
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-slate-600 dark:text-slate-400'
+                                }`}>
                                 <PrivacyBlur showValues={showValues}>
-                                    {netTotal >= 0 ? formatCurrency(netTotal, currency) : `+ ${formatCurrency(Math.abs(netTotal), currency)}`}
+                                    {netTotal > 0
+                                        ? `+ ${formatCurrency(netTotal, currency)}`
+                                        : netTotal < 0
+                                            ? `- ${formatCurrency(Math.abs(netTotal), currency)}`
+                                            : 'R$ 0,00'
+                                    }
                                 </PrivacyBlur>
                             </h2>
                             <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
                                 {items.length} lançamentos neste mês
-                                {netTotal < 0 && <span className="ml-2 font-bold text-emerald-600">(A receber)</span>}
+                                {netTotal > 0 && <span className="ml-2 font-bold text-emerald-600">(A receber)</span>}
+                                {netTotal < 0 && <span className="ml-2 font-bold text-red-600">(A pagar)</span>}
                             </p>
                         </div>
 
@@ -161,7 +187,7 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                     onClick={() => onSettle(netTotal > 0 ? 'RECEIVE' : 'PAY', Math.abs(netTotal))}
                                     className={`w-full md:w-auto rounded-xl font-bold shadow-lg text-white min-w-[160px] ${netTotal > 0
                                         ? 'shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700'
-                                        : 'shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700'
+                                        : 'shadow-red-500/20 bg-red-600 hover:bg-red-700'
                                         }`}
                                 >
                                     {netTotal > 0 ? 'Receber Fatura' : 'Pagar Fatura'}
@@ -184,8 +210,8 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                 {/* Mini Stats Footer with Exports */}
                 <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center text-xs font-medium text-slate-500 dark:text-slate-400">
                     <div className="flex gap-4">
-                        <span>Total Despesas: {formatCurrency(totalExpenses, currency)}</span>
-                        <span>Total Reembolsos: {formatCurrency(totalIncome, currency)}</span>
+                        <span className="text-red-600">Eu devo: {formatCurrency(totalExpenses, currency)}</span>
+                        <span className="text-emerald-600">{member.name} me deve: {formatCurrency(totalIncome, currency)}</span>
                     </div>
 
                     <div className="flex gap-2">
@@ -279,9 +305,12 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                                 </div>
                                                             )}
 
-                                                            {/* Category Icon */}
-                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${item.type === 'DEBIT' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                                                                {item.type === 'DEBIT' ? <ArrowDownLeft className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
+                                                            {/* Category Icon - CREDIT (eu devo) = red, DEBIT (ela me deve) = green */}
+                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${item.type === 'CREDIT'
+                                                                ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                                                                : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                                                }`}>
+                                                                {item.type === 'CREDIT' ? <CatIcon className="w-5 h-5" /> : <ArrowDownLeft className="w-5 h-5" />}
                                                             </div>
 
                                                             <div className="flex-1 min-w-0">
@@ -301,13 +330,24 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                                             {item.installmentNumber}/{item.totalInstallments}
                                                                         </span>
                                                                     )}
+
+                                                                    {/* Type indicator badge */}
+                                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${item.type === 'CREDIT'
+                                                                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                                                                        : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                                                        }`}>
+                                                                        {item.type === 'CREDIT' ? 'EU DEVO' : 'ME DEVEM'}
+                                                                    </span>
                                                                 </div>
                                                             </div>
                                                         </div>
 
                                                         <div className="flex items-center gap-3">
-                                                            <span className={`font-bold text-base ${item.type === 'DEBIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
-                                                                {item.type === 'DEBIT' ? '-' : ''}{formatCurrency(item.amount, currency)}
+                                                            <span className={`font-bold text-base ${item.type === 'CREDIT'
+                                                                ? 'text-red-700 dark:text-red-400'
+                                                                : 'text-emerald-700 dark:text-emerald-400'
+                                                                }`}>
+                                                                {item.type === 'CREDIT' ? '-' : '+'}{formatCurrency(item.amount, currency)}
                                                             </span>
 
                                                             {!isSelectionMode && (
@@ -337,17 +377,19 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                                                 size="sm"
                                                                                 variant="ghost"
                                                                                 onClick={(e) => { e.stopPropagation(); onEditTransaction(item.originalTxId); }}
-                                                                                className="h-8 w-8 p-0 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600"
+                                                                                className="h-9 w-9 p-0 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800/50"
+                                                                                title="Editar"
                                                                             >
-                                                                                <Edit2 className="w-3.5 h-3.5" />
+                                                                                <Edit2 className="w-4 h-4" />
                                                                             </Button>
                                                                             <Button
                                                                                 size="sm"
                                                                                 variant="ghost"
                                                                                 onClick={(e) => { e.stopPropagation(); onDeleteTransaction(item.originalTxId); }}
-                                                                                className="h-8 w-8 p-0 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600"
+                                                                                className="h-9 w-9 p-0 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/50"
+                                                                                title="Excluir"
                                                                             >
-                                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                                                <Trash2 className="w-4 h-4" />
                                                                             </Button>
                                                                         </>
                                                                     )}

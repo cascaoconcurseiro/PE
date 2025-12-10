@@ -1,3 +1,0 @@
-capacitor.config.ts(1,38): error TS2307: Cannot find module '@capacitor/cli' or its corresponding type declarations.
-components/ServiceWorkerUpdater.tsx(2,31): error TS2307: Cannot find module 'virtual:pwa-register/react' or its corresponding type declarations.
-hooks/useDataStore.ts(154,70): error TS2339: Property 'isPaid' does not exist on type 'Transaction'.
