@@ -32,17 +32,30 @@ export const SyncService = {
             timestamp: Date.now()
         };
         queue.push(item);
-        localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+        try {
+            localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+        } catch (e) {
+            console.warn('Sync queue write failed', e);
+        }
     },
 
     clearQueue: () => {
-        localStorage.removeItem(QUEUE_KEY);
+        try {
+            localStorage.removeItem(QUEUE_KEY);
+        } catch (e) {
+            console.warn('Sync queue clear failed', e);
+        }
     },
 
     removeFromQueue: (id: string) => {
         const queue = SyncService.getQueue();
         const newQueue = queue.filter(item => item.id !== id);
-        localStorage.setItem(QUEUE_KEY, JSON.stringify(newQueue));
+        const newQueue = queue.filter(item => item.id !== id);
+        try {
+            localStorage.setItem(QUEUE_KEY, JSON.stringify(newQueue));
+        } catch (e) {
+            console.warn('Sync queue remove failed', e);
+        }
     },
 
     processQueue: async (): Promise<{ success: number; failed: number }> => {

@@ -44,14 +44,22 @@ export const CacheService = {
     },
 
     clear: (key: string): void => {
-        localStorage.removeItem(PREFIX + key);
+        try {
+            localStorage.removeItem(PREFIX + key);
+        } catch (e) {
+            console.warn('Cache clear failed', e);
+        }
     },
 
     clearAll: (): void => {
-        Object.keys(localStorage).forEach(key => {
-            if (key.startsWith(PREFIX)) {
-                localStorage.removeItem(key);
-            }
-        });
+        try {
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith(PREFIX)) {
+                    localStorage.removeItem(key);
+                }
+            });
+        } catch (e) {
+            console.warn('Cache clearAll failed', e);
+        }
     }
 };
