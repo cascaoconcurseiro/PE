@@ -7,7 +7,7 @@
   <!-- STRICT STORAGE BLOCKER & POLYFILL + ERROR SUPPRESSION -->
   <script>
     (function () {
-      // Suppress all console output for storage/extension errors
+      // ULTRA-AGGRESSIVE: Suppress ALL storage-related errors before they even log
       var suppressPatterns = [
         'access to storage',
         'storage is not allowed',
@@ -29,7 +29,11 @@
         '#426',
         '#418',
         '#423',
-        'invariant'
+        'invariant',
+        'vercel.live',
+        'localstorage',
+        'sessionstorage',
+        'quota'
       ];
 
       function shouldSuppress(msg) {
@@ -41,28 +45,26 @@
         return false;
       }
 
-      // Intercept console.error to hide extension errors
+      // EARLIEST INTERCEPTION: Replace console methods IMMEDIATELY
+      var noop = function () { };
       var originalError = console.error;
+      var originalWarn = console.warn;
+
       console.error = function () {
         var args = Array.prototype.slice.call(arguments);
         var msgStr = args.map(function (a) { return String(a); }).join(' ');
-        if (shouldSuppress(msgStr)) {
-          return; // Silently suppress
-        }
+        if (shouldSuppress(msgStr)) return;
         originalError.apply(console, arguments);
       };
 
-      // Intercept console.warn similarly
-      var originalWarn = console.warn;
       console.warn = function () {
         var args = Array.prototype.slice.call(arguments);
         var msgStr = args.map(function (a) { return String(a); }).join(' ');
-        if (shouldSuppress(msgStr)) {
-          return; // Silently suppress
-        }
+        if (shouldSuppress(msgStr)) return;
         originalWarn.apply(console, arguments);
       };
 
+      // MEMORY STORAGE SHIM
       var memoryStore = {};
       var storageShim = {
         getItem: function (key) { return memoryStore[key] || null; },
@@ -74,41 +76,64 @@
       };
 
       try {
-        // 1. Kill LocalStorage
         Object.defineProperty(window, 'localStorage', { value: storageShim, writable: false, configurable: false });
-
-        // 2. Kill SessionStorage
         Object.defineProperty(window, 'sessionStorage', { value: storageShim, writable: false, configurable: false });
-
-        // 3. Kill Cookies (JS access) - silently
         Object.defineProperty(document, 'cookie', {
           get: function () { return ''; },
-          set: function () { /* Silent block */ },
+          set: function () { },
           configurable: false
         });
-      } catch (e) {
-        // Intentionally silent
-      }
+      } catch (e) { }
 
-      // Global Error Suppression for residual access attempts from browser/extensions
+      // AGGRESSIVE ERROR SUPPRESSION - Capture phase
       window.addEventListener('error', function (e) {
-        if (shouldSuppress(e.message) || shouldSuppress(e.filename)) {
+        if (shouldSuppress(e.message) || shouldSuppress(e.filename) || shouldSuppress(String(e.error))) {
           e.preventDefault();
           e.stopImmediatePropagation();
-          return true;
+          return false;
         }
       }, true);
 
-      // Suppress unhandled promise rejections from storage errors
+      // AGGRESSIVE PROMISE REJECTION SUPPRESSION
       window.addEventListener('unhandledrejection', function (e) {
         var reason = e.reason;
-        var msg = reason && (reason.message || String(reason));
+        var msg = '';
+        if (reason) {
+          msg = reason.message || reason.toString() || String(reason);
+        }
         if (shouldSuppress(msg)) {
           e.preventDefault();
           e.stopImmediatePropagation();
-          return true;
+          return false;
         }
       }, true);
+
+      // NUCLEAR OPTION: Override Promise to catch all rejections from extensions
+      var OriginalPromise = window.Promise;
+      window.Promise = function (executor) {
+        return new OriginalPromise(function (resolve, reject) {
+          executor(resolve, function (reason) {
+            var msg = reason && (reason.message || String(reason)) || '';
+            if (shouldSuppress(msg)) {
+              resolve(undefined); // Silently resolve instead of reject
+              return;
+            }
+            reject(reason);
+          });
+        });
+      };
+      window.Promise.prototype = OriginalPromise.prototype;
+      window.Promise.resolve = OriginalPromise.resolve.bind(OriginalPromise);
+      window.Promise.reject = function (reason) {
+        var msg = reason && (reason.message || String(reason)) || '';
+        if (shouldSuppress(msg)) {
+          return OriginalPromise.resolve(undefined);
+        }
+        return OriginalPromise.reject(reason);
+      };
+      window.Promise.all = OriginalPromise.all.bind(OriginalPromise);
+      window.Promise.race = OriginalPromise.race.bind(OriginalPromise);
+      window.Promise.allSettled = OriginalPromise.allSettled ? OriginalPromise.allSettled.bind(OriginalPromise) : undefined;
     })();
   </script>
 
