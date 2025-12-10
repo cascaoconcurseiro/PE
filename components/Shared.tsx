@@ -16,7 +16,7 @@ interface SharedProps {
     currentDate: Date;
     onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
     onUpdateTransaction: (t: Transaction) => void;
-    onDeleteTransaction?: (id: string) => void;
+    onDeleteTransaction?: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
     onNavigateToTrips: () => void;
 }
 
@@ -246,13 +246,10 @@ export const Shared: React.FC<SharedProps> = ({
                         if (onDeleteTransaction && transactionToDelete) {
                             if (scope === 'SERIES' && transactionToDelete.seriesId) {
                                 // Delete All in Series
-                                const seriesIds = transactions
-                                    .filter(t => t.seriesId === transactionToDelete.seriesId)
-                                    .map(t => t.id);
-                                seriesIds.forEach(id => onDeleteTransaction(id));
+                                onDeleteTransaction(transactionToDelete.id, 'SERIES');
                             } else {
                                 // Delete Single
-                                onDeleteTransaction(transactionToDelete.id);
+                                onDeleteTransaction(transactionToDelete.id, 'SINGLE');
                             }
                         }
                         setIsDeleteModalOpen(false);

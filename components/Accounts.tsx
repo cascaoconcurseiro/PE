@@ -31,9 +31,11 @@ interface AccountsProps {
     showValues: boolean;
     currentDate?: Date;
     onAnticipate: (ids: string[], date: string, accountId: string) => void;
+    initialAccountId?: string | null;
+    onClearInitialAccount?: () => void;
 }
 
-export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, showValues, currentDate = new Date(), onAnticipate }) => {
+export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, showValues, currentDate = new Date(), onAnticipate, initialAccountId, onClearInitialAccount }) => {
     const [viewState, setViewState] = useState<'LIST' | 'DETAIL'>('LIST');
     const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS' | 'INTERNATIONAL'>('BANKING');
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -41,7 +43,24 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
     const [isEditing, setIsEditing] = useState(false);
     const { addToast } = useToast();
 
-    // Account Actions Hook
+    // Handle Deep Linking
+    useEffect(() => {
+        if (typeof initialAccountId === 'string') { // Check specifically if it's a string (could be empty string but usually ID)
+            const acc = accounts.find(a => a.id === initialAccountId);
+            if (acc) {
+                setSelectedAccount(acc);
+                setViewState('DETAIL');
+
+                // Clear the prop in parent so we don't get stuck stuck
+                if (onClearInitialAccount) {
+                    // We use a small timeout to ensure the render cycle completes? Not strictly needed with React state usually
+                    // But safer to allow the transition to happen
+                    // Actually, calling it immediately is fine as it schedules state update in parent.
+                    onClearInitialAccount();
+                }
+            }
+        }
+    }, [initialAccountId, accounts]); // Removing onClearInitialAccount from deps to avoid loop if parent recreates it (useCallback recommended in parent)
     const { actionModal, openActionModal, closeActionModal, handleActionSubmit } = useAccountActions({
         selectedAccount,
         onAddTransaction,

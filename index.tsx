@@ -108,6 +108,7 @@ const App = () => {
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [isInconsistenciesModalOpen, setIsInconsistenciesModalOpen] = useState(false);
     const [editTxId, setEditTxId] = useState<string | null>(null);
+    const [navigatedAccountId, setNavigatedAccountId] = useState<string | null>(null);
     const [showValues, setShowValues] = useState<boolean>(() => {
         try { return JSON.parse(localStorage.getItem('pdm_privacy') || 'true'); } catch { return true; }
     });
@@ -304,7 +305,11 @@ const App = () => {
             return;
         }
         if (id.startsWith('cc-due-')) {
-            startTransition(() => setActiveView(View.ACCOUNTS));
+            const accId = id.replace('cc-due-', '');
+            startTransition(() => {
+                setNavigatedAccountId(accId);
+                setActiveView(View.ACCOUNTS);
+            });
             return;
         }
 
@@ -429,7 +434,7 @@ const App = () => {
                     }}
                 />;
             case View.ACCOUNTS:
-                return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} />;
+                return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} initialAccountId={navigatedAccountId} onClearInitialAccount={() => setNavigatedAccountId(null)} />;
             case View.TRANSACTIONS:
                 return <Transactions transactions={transactions} accounts={calculatedAccounts} trips={trips} familyMembers={familyMembers} customCategories={customCategories} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAnticipate={handlers.handleAnticipateInstallments} currentDate={currentDate} showValues={showValues} initialEditId={editTxId} onClearEditId={() => setEditTxId(null)} onNavigateToAccounts={() => handleViewChange(View.ACCOUNTS)} onNavigateToTrips={() => handleViewChange(View.TRIPS)} onNavigateToFamily={() => handleViewChange(View.FAMILY)} />;
             case View.BUDGETS:
@@ -439,7 +444,7 @@ const App = () => {
             case View.TRIPS:
                 return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onNavigateToShared={() => handleViewChange(View.SHARED)} onEditTransaction={(id) => { setEditTxId(id); setIsTxModalOpen(true); }} />;
             case View.SHARED:
-                return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} />;
+                return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} />;
             case View.FAMILY:
                 return <Family members={familyMembers} onAddMember={handlers.handleAddMember} onUpdateMember={handlers.handleUpdateMember} onDeleteMember={handlers.handleDeleteMember}
                     onInviteMember={async (memberId, email) => {

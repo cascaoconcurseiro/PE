@@ -146,10 +146,48 @@ export const useDataStore = () => {
 
     const handleUpdateTransaction = async (updatedTx: Transaction) => {
         await performOperation(async () => {
-            // 1. Update Local
+            // CHECK FOR SERIES REGENERATION (Change in Total Installments)
+            const originalTx = transactions.find(t => t.id === updatedTx.id);
+            if (updatedTx.seriesId && originalTx && updatedTx.totalInstallments !== originalTx.totalInstallments) {
+                // 1. Validation: Check if any installment is paid or settled
+                const seriesTxs = transactions.filter(t => t.seriesId === updatedTx.seriesId);
+                const hasPaid = seriesTxs.some(t => t.isSettled || t.isPaid); // isPaid property usually on invoice item but isSettled on tx
+                // Actually 'isPaid' is on InvoiceItem mapped from transactions. 'isSettled' is the core flag.
+                if (hasPaid) {
+                    throw new Error('Não é possível alterar o número de parcelas de uma série com pagamentos já realizados.');
+                }
+
+                // 2. Delete Old Series
+                await supabaseService.deleteTransactionSeries(updatedTx.seriesId);
+
+                // 3. Re-Create New Series
+                // We use the UPDATED amount and UPDATED totalInstallments
+                // We base the start date on the ORIGINAL start date (from the first installment of the old series)
+                // OR we use the date of the transaction being edited as the anchor?
+                // Ideally, we find the first installment of the old series to get the start date.
+                const firstOldTx = seriesTxs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+                const baseDateStr = firstOldTx ? firstOldTx.date : updatedTx.date;
+
+                // Call handleAddTransaction logic (duplicated here for safety/closure access or extracted)
+                // Since handleAddTransaction is complex, let's call it!
+                // But we need to omit ID.
+                const newSeriesTx: any = {
+                    ...updatedTx,
+                    date: baseDateStr, // Reset to start date
+                    currentInstallment: 1, // Reset
+                    seriesId: undefined, // Create new series ID
+                    isInstallment: true
+                };
+                delete newSeriesTx.id;
+                delete newSeriesTx.createdAt;
+                delete newSeriesTx.updatedAt;
+
+                await handleAddTransaction(newSeriesTx);
+                return; // Stop here, we replaced it.
+            }
+
+            // Standard Update
             await supabaseService.update('transactions', { ...updatedTx, updatedAt: new Date().toISOString() });
-
-
         }, 'Transação atualizada!');
     };
 
@@ -302,17 +340,13 @@ export const useDataStore = () => {
 
     const handleDeleteTransaction = async (id: string, deleteScope: 'SINGLE' | 'SERIES' = 'SINGLE') => {
         await performOperation(async () => {
-            // 1. Local Delete (Soft)
             if (deleteScope === 'SERIES') {
                 const tx = transactions.find(t => t.id === id);
                 if (tx && tx.seriesId) {
-                    const seriesTxs = transactions.filter(t => t.seriesId === tx.seriesId);
-                    for (const t of seriesTxs) {
-                        await supabaseService.update('transactions', { ...t, deleted: true, updatedAt: new Date().toISOString() });
-                        // Delete copies for series? RPC only handles one ID. 
-                        // Loop RPC calls.
-                        await supabaseService.update('transactions', { ...tx, deleted: true, updatedAt: new Date().toISOString() });
-                    }
+                    await supabaseService.deleteTransactionSeries(tx.seriesId);
+                } else if (tx) {
+                    // Fallback if no seriesId but scope requests series (shouldn't happen logic wise but safe fallback)
+                    await supabaseService.update('transactions', { ...tx, deleted: true, updatedAt: new Date().toISOString() });
                 }
             } else {
                 const tx = transactions.find(t => t.id === id);

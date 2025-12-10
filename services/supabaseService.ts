@@ -184,6 +184,18 @@ export const supabaseService = {
         if (error) throw error;
     },
 
+    async deleteTransactionSeries(seriesId: string) {
+        const userId = await getUserId();
+        // Soft delete all transactions in series
+        const { error } = await supabase
+            .from('transactions')
+            .update({ deleted: true, updated_at: new Date().toISOString() })
+            .eq('series_id', seriesId)
+            .eq('user_id', userId);
+
+        if (error) throw error;
+    },
+
     async softDeleteAccount(accountId: string) {
         const userId = await getUserId();
 
