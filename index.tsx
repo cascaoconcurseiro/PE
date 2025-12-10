@@ -13,17 +13,19 @@ if (!container) {
     throw new Error('Root element not found (index.tsx)');
 }
 
+// IMPORTANT: Clear any existing content (like the loading spinner)
+// before React takes control. This prevents hydration mismatches.
+container.innerHTML = '';
+
 const root = createRoot(container);
 root.render(
-    <React.StrictMode>
-        <ErrorBoundary>
-            <ThemeProvider>
-                <ToastProvider>
-                    <SettingsProvider>
-                        <App />
-                    </SettingsProvider>
-                </ToastProvider>
-            </ThemeProvider>
-        </ErrorBoundary>
-    </React.StrictMode>
+    <ErrorBoundary>
+        <ThemeProvider>
+            <ToastProvider>
+                <SettingsProvider>
+                    <App />
+                </SettingsProvider>
+            </ToastProvider>
+        </ThemeProvider>
+    </ErrorBoundary>
 );
