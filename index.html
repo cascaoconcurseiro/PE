@@ -12,6 +12,11 @@
       // ═══════════════════════════════════════════════════════════════════
       var DEBUG_MODE = true; // ← MUDE PARA false PARA DESATIVAR O RASTREAMENTO
 
+      // Confirmação visual de que o script está ativo
+      if (DEBUG_MODE) {
+        console.log('%c🛡️ PEMEIA DEBUG MODE ATIVO - Rastreando erros suprimidos...', 'background: #10b981; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+      }
+
       var suppressPatterns = [
         'access to storage',
         'storage is not allowed',
