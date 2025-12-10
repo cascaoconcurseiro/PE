@@ -17,6 +17,10 @@ export const shouldShowTransaction = (t: Transaction): boolean => {
         return false;
     }
 
+    // Filter transactions without account (Pending/Shadow/Orphan)
+    // These should not appear in the main ledger until linked to an account
+    if (!t.accountId) return false;
+
     return true;
 };
 

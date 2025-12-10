@@ -14,18 +14,20 @@ interface SettlementModalProps {
         currency: string;
     };
     accounts: Account[];
-    onConfirm: (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number) => void;
+    onConfirm: (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number, date?: string) => void;
 }
 
 export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClose, settleData, accounts, onConfirm }) => {
     const [selectedAccountId, setSelectedAccountId] = useState('');
     const [settlementMethod, setSettlementMethod] = useState<'SAME_CURRENCY' | 'CONVERT'>('SAME_CURRENCY');
     const [exchangeRate, setExchangeRate] = useState('');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
     useEffect(() => {
         if (isOpen) {
             setSettlementMethod('SAME_CURRENCY');
             setExchangeRate('');
+            setDate(new Date().toISOString().split('T')[0]);
             const validAccount = accounts.find(a => a.type !== AccountType.CREDIT_CARD && a.currency === settleData.currency);
             setSelectedAccountId(validAccount ? validAccount.id : '');
         }
@@ -36,8 +38,13 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClos
     const handleConfirm = () => {
         if (!selectedAccountId && settleData.type !== 'OFFSET') return;
         const rate = settlementMethod === 'CONVERT' ? parseFloat(exchangeRate) : undefined;
-        onConfirm(selectedAccountId, settlementMethod, rate);
+        onConfirm(selectedAccountId, settlementMethod, rate, date);
     };
+
+    const isExpense = settleData.type === 'PAY';
+    const isIncome = settleData.type === 'RECEIVE';
+    const actionLabel = isExpense ? 'Pagamento (Despesa)' : isIncome ? 'Recebimento (Receita)' : 'Compensação';
+    const actionColor = isExpense ? 'text-red-500' : isIncome ? 'text-emerald-500' : 'text-slate-500';
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -49,6 +56,11 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClos
                 </div>
 
                 <div className="p-6 space-y-6">
+                    {/* Action Type Label */}
+                    <div className={`text-center font-bold text-lg ${actionColor} bg-slate-50 dark:bg-slate-900 py-2 rounded-xl`}>
+                        {actionLabel}
+                    </div>
+
                     {/* Foreign Currency Handling */}
                     {settleData.currency !== 'BRL' && (
                         <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
@@ -105,6 +117,19 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClos
                                 ))
                             }
                         </select>
+                    </div>
+
+                    {/* Date Selection */}
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                            Data do {isExpense ? 'Pagamento' : 'Recebimento'}
+                        </label>
+                        <input
+                            type="date"
+                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white font-bold"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                        />
                     </div>
 
                     {/* Summary */}

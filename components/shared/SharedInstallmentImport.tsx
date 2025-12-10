@@ -79,13 +79,15 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
         const totalAmount = installmentValue * numInstallments;
 
+        const [y, m, d] = date.split('-').map(Number);
+
         for (let i = 0; i < numInstallments; i++) {
             const currentInstallmentAmount = installmentValue;
 
-            // Calculate Date: Add 'i' months
-            const txDate = new Date(userDate);
-            txDate.setMonth(userDate.getMonth() + i);
-            const dateStr = txDate.toISOString().split('T')[0];
+            // Safe Date Calculation using UTC to prevent timezone shifts
+            // m is 1-indexed from split, Date.UTC expects 0-indexed month
+            const utcDate = new Date(Date.UTC(y, m - 1 + i, d, 12, 0, 0));
+            const dateStr = utcDate.toISOString().split('T')[0];
 
             // Build SharedWith
             // Logic: sharedWith includes everyone in participantIds EXCEPT 'me'.
@@ -147,7 +149,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     {/* Amount & Installments Row */}
                     <div className="flex gap-4">
                         <div className="flex-1">
-                            <label className="block text-xs font-bold text-slate-500 mb-1">Valor Total</label>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Valor da Parcela</label>
                             <div className="relative">
                                 <DollarSign className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
                                 <input type="number" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />

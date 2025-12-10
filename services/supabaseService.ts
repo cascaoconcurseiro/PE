@@ -72,6 +72,7 @@ const mapToDB = (data: any, userId: string): any => {
         sharedWith: 'shared_with',
         payerId: 'payer_id',
         isSettled: 'is_settled',
+        settledAt: 'settled_at', // ✅ PERSISTENCE FIX
         isRefund: 'is_refund',
         destinationAmount: 'destination_amount',
         exchangeRate: 'exchange_rate',
@@ -249,12 +250,16 @@ export const supabaseService = {
         }
     },
 
-    async getTransactions(startDate?: string, endDate?: string) {
+    async getTransactions(startDate?: string, endDate?: string, includeDeleted = false) {
         const userId = await getUserId();
         let query = supabase.from('transactions').select('*')
             .eq('user_id', userId)
-            .eq('deleted', false)
-            .order('date', { ascending: false });
+
+        if (!includeDeleted) {
+            query = query.eq('deleted', false);
+        }
+
+        query = query.order('date', { ascending: false });
 
         if (startDate) {
             query = query.gte('date', startDate);

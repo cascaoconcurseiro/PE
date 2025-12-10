@@ -59,7 +59,9 @@ export const checkDataConsistency = (accounts: Account[], transactions: Transact
 
     activeTransactions.forEach(t => {
         // Regra 1: Toda transação deve ter uma conta de origem válida
-        if (!accountIds.has(t.accountId)) {
+        // EXCEÇÃO: Transações compartilhadas pendentes (onde eu pago ou outro paga e ainda não foi quitado/definido conta)
+        const isSharedPending = t.isShared || (t.payerId && t.payerId !== 'me');
+        if (!accountIds.has(t.accountId) && !isSharedPending) {
             issues.push(`Transação órfã encontrada: ${t.description} (ID da conta inválido)`);
         }
 

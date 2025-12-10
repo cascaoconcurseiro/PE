@@ -236,13 +236,7 @@ export const useDataStore = () => {
 
             // MERGE & UPDATE
             setTransactions(prev => {
-                // Combine recent (prev) and history. 
-                // Any overlap? getTransactions(startOfMonth) gets >= startOfMonth
-                // getTransactions(..., historyEndDate) gets <= historyEndDate
-                // So no overlap logically. 
-                // But let's safely deduplicate by ID just in case.
                 const all = [...prev, ...historyTxs];
-                // Sort descending date
                 return all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             });
 
@@ -256,16 +250,24 @@ export const useDataStore = () => {
 
             console.timeEnd("Tier2_Load");
 
-            // Recurrence Engine & Consistency Checks run on FULL data
-            // We re-run this now that we have full history
-            // Wait a tick to let React render the updates
-            setTimeout(() => {
-                // Combine recent and history for the engine
-                const allTxs = [...recentTxs, ...historyTxs];
-                processRecurringTransactions(allTxs, handleAddTransaction, handleUpdateTransaction);
+            // Recurrence Engine & Consistency Checks run on FULL data (including DELETED to prevent regeneration)
+            // Retrieve deleted transactions for logic check
+            const deletedTxs = await supabaseService.getTransactions(undefined, undefined, true);
+            // Note: getTransactions(undefined, undefined, true) returns ALL (active + deleted) if logic above is correct?
+            // Wait, my change to getTransactions was: if (!includeDeleted) eq('deleted', false).
+            // So incldeusDeleted=true means NO filter on deleted, so it returns BOTH.
+            // So deletedTxs contains EVERYTHING. Ideal for the engine.
 
-                // Run Consistency Check
-                const issues = checkDataConsistency(accs, allTxs);
+            setTimeout(() => {
+                // Use the fresh full list from DB (active + deleted) for the engine
+                // to ensure we don't recreate things that were deleted.
+                processRecurringTransactions(deletedTxs, handleAddTransaction, handleUpdateTransaction);
+
+                // Run Consistency Check (Active only)
+                // We can filter deletedTxs for active ones or use the state 'transactions' (but we need to wait for state update?)
+                // Actually 'historyTxs' + 'recentTxs' are the active ones we have in scope.
+                const activeTxs = [...recentTxs, ...historyTxs];
+                const issues = checkDataConsistency(accs, activeTxs);
                 setDataInconsistencies(issues);
             }, 100);
 

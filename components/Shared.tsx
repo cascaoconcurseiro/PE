@@ -72,13 +72,18 @@ export const Shared: React.FC<SharedProps> = ({
         });
     };
 
-    const handleConfirmSettlement = (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number) => {
+    const handleConfirmSettlement = (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number, date?: string) => {
         if (!settleModal.memberId) return;
 
         // Validation handled in Modal, but good to check
         if (settleModal.type !== 'OFFSET' && !accountId) return;
 
+        const settlementDate = date || new Date().toISOString().split('T')[0];
+        // Ensure we preserve the time part if we want, or just T12:00:00 to avoid timezone shifts
+        // For settlementAt, ISO string is fine.
         const now = new Date().toISOString();
+        const settledAtISO = new Date(settlementDate).toISOString();
+
         const isConverting = method === 'CONVERT';
         const rate = isConverting && exchangeRate ? exchangeRate : 1;
         const finalAmount = settleModal.total * rate;
@@ -89,8 +94,8 @@ export const Shared: React.FC<SharedProps> = ({
                 onAddTransaction({
                     amount: finalAmount,
                     description: `Pagamento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`,
-                    date: now.split('T')[0],
-                    type: TransactionType.TRANSFER,
+                    date: settlementDate, // ✅ Use selected date
+                    type: TransactionType.EXPENSE,
                     category: Category.TRANSFER,
                     accountId: accountId,
                     destinationAccountId: 'EXTERNAL',
@@ -106,7 +111,7 @@ export const Shared: React.FC<SharedProps> = ({
                 onAddTransaction({
                     amount: finalAmount,
                     description: `Recebimento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`,
-                    date: now.split('T')[0],
+                    date: settlementDate, // ✅ Use selected date
                     type: TransactionType.INCOME,
                     category: Category.INCOME,
                     accountId: accountId,
@@ -127,12 +132,12 @@ export const Shared: React.FC<SharedProps> = ({
             if (originalTx) {
                 if (item.type === 'CREDIT') {
                     const updatedSplits = originalTx.sharedWith?.map(s => {
-                        if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: now };
+                        if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: settledAtISO };
                         return s;
                     });
                     onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
                 } else {
-                    onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: now });
+                    onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: settledAtISO });
                 }
             }
         });

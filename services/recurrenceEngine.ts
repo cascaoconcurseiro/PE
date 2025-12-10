@@ -74,8 +74,8 @@ export const processRecurringTransactions = (
                     tx.accountId === t.accountId &&
                     tx.amount === t.amount &&
                     tx.type === t.type &&
-                    (tx.description === `${t.description} (Recorrente)` || tx.description === t.description) &&
-                    !tx.deleted
+                    (tx.description === `${t.description} (Recorrente)` || tx.description === t.description)
+                    // REMOVIDO: !tx.deleted -> Se existir uma deletada, consideramos que JÁ FOI GERADA e excluída intencionalmente.
                 );
 
                 if (!alreadyExists) {
