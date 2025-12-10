@@ -14,6 +14,7 @@ interface SharedInstallmentEditModalProps {
     members: FamilyMember[];
     onUpdateTransaction: (t: Transaction) => void;
     onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
+    onAddTransaction?: (t: Omit<Transaction, 'id'>) => void;
 }
 
 export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProps> = ({
@@ -24,10 +25,12 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
     accounts,
     members,
     onUpdateTransaction,
-    onDeleteTransaction
+    onDeleteTransaction,
+    onAddTransaction
 }) => {
-    const [editMode, setEditMode] = useState<'view' | 'editValue' | 'anticipate'>('view');
+    const [editMode, setEditMode] = useState<'view' | 'editValue' | 'editCount' | 'anticipate'>('view');
     const [newTotalValue, setNewTotalValue] = useState('');
+    const [newInstallmentCount, setNewInstallmentCount] = useState('');
     const [selectedInstallments, setSelectedInstallments] = useState<string[]>([]);
     const [anticipateDate, setAnticipateDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -85,6 +88,106 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
 
         setEditMode('view');
         setNewTotalValue('');
+        onClose();
+    };
+
+    // Handle Edit Installment Count
+    const handleEditCount = () => {
+        const newCount = parseInt(newInstallmentCount);
+        if (isNaN(newCount) || newCount < 1) {
+            alert('Digite uma quantidade válida (mínimo 1).');
+            return;
+        }
+
+        const currentCount = seriesInstallments.length;
+        const newInstallmentValue = round2dec(totalOriginalValue / newCount);
+
+        if (newCount > currentCount && onAddTransaction) {
+            // AUMENTAR: Criar novas parcelas
+            const remainder = round2dec(totalOriginalValue - (newInstallmentValue * newCount));
+
+            // Atualizar parcelas existentes
+            seriesInstallments.forEach((t, index) => {
+                const adjustedAmount = index === 0 ? round2dec(newInstallmentValue + remainder) : newInstallmentValue;
+                const ratio = adjustedAmount / t.amount;
+                const updatedSharedWith = t.sharedWith?.map(s => ({
+                    ...s,
+                    assignedAmount: round2dec(s.assignedAmount * ratio)
+                }));
+
+                onUpdateTransaction({
+                    ...t,
+                    amount: adjustedAmount,
+                    totalInstallments: newCount,
+                    sharedWith: updatedSharedWith
+                });
+            });
+
+            // Criar parcelas novas
+            const lastInstallment = seriesInstallments[seriesInstallments.length - 1];
+            const lastDate = parseDate(lastInstallment.date);
+
+            for (let i = currentCount; i < newCount; i++) {
+                const newDate = new Date(lastDate);
+                newDate.setMonth(newDate.getMonth() + (i - currentCount + 1));
+
+                const newTx: Omit<Transaction, 'id'> = {
+                    ...lastInstallment,
+                    amount: newInstallmentValue,
+                    date: newDate.toISOString().split('T')[0],
+                    currentInstallment: i + 1,
+                    totalInstallments: newCount,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    sharedWith: lastInstallment.sharedWith?.map(s => ({
+                        ...s,
+                        assignedAmount: round2dec(s.assignedAmount * (newInstallmentValue / lastInstallment.amount))
+                    }))
+                };
+                delete (newTx as any).id;
+                onAddTransaction(newTx);
+            }
+        } else if (newCount < currentCount) {
+            // DIMINUIR: Remover parcelas futuras e ajustar existentes
+            const remainder = round2dec(totalOriginalValue - (newInstallmentValue * newCount));
+
+            // Manter apenas as primeiras N parcelas
+            seriesInstallments.forEach((t, index) => {
+                if (index < newCount) {
+                    const adjustedAmount = index === 0 ? round2dec(newInstallmentValue + remainder) : newInstallmentValue;
+                    const ratio = adjustedAmount / t.amount;
+                    const updatedSharedWith = t.sharedWith?.map(s => ({
+                        ...s,
+                        assignedAmount: round2dec(s.assignedAmount * ratio)
+                    }));
+
+                    onUpdateTransaction({
+                        ...t,
+                        amount: adjustedAmount,
+                        totalInstallments: newCount,
+                        currentInstallment: index + 1,
+                        sharedWith: updatedSharedWith
+                    });
+                } else {
+                    // Deletar parcelas excedentes
+                    onDeleteTransaction(t.id, 'SINGLE');
+                }
+            });
+        } else {
+            // Mesma quantidade - apenas atualizar valores
+            const remainder = round2dec(totalOriginalValue - (newInstallmentValue * newCount));
+            seriesInstallments.forEach((t, index) => {
+                const adjustedAmount = index === 0 ? round2dec(newInstallmentValue + remainder) : newInstallmentValue;
+                onUpdateTransaction({
+                    ...t,
+                    amount: adjustedAmount,
+                    totalInstallments: newCount
+                });
+            });
+        }
+
+        setEditMode('view');
+        setNewInstallmentCount('');
         onClose();
     };
 
@@ -146,7 +249,7 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
 
                 {/* Mode Selection */}
                 {editMode === 'view' && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <button
                             onClick={() => {
                                 setNewTotalValue(totalOriginalValue.toString());
@@ -159,6 +262,20 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
                             </div>
                             <p className="font-bold text-sm text-slate-900 dark:text-white">Editar Valor</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">Alterar valor total</p>
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setNewInstallmentCount(totalInstallments.toString());
+                                setEditMode('editCount');
+                            }}
+                            className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all text-left"
+                        >
+                            <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2">
+                                <Hash className="w-5 h-5" />
+                            </div>
+                            <p className="font-bold text-sm text-slate-900 dark:text-white">Alterar Parcelas</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Mudar nº de parcelas</p>
                         </button>
 
                         <button
@@ -218,7 +335,51 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
                     </div>
                 )}
 
-                {/* Anticipate Mode */}
+                {/* Edit Count Mode */}
+                {editMode === 'editCount' && (
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 block">
+                                Nova Quantidade de Parcelas
+                            </label>
+                            <div className="relative">
+                                <Hash className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    value={newInstallmentCount}
+                                    onChange={e => setNewInstallmentCount(e.target.value)}
+                                    className="w-full pl-11 pr-4 h-12 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white font-bold text-lg"
+                                    placeholder="Quantidade"
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500 mt-2">
+                                Valor por parcela: {formatCurrency(totalOriginalValue / (parseInt(newInstallmentCount) || 1))}
+                            </p>
+                        </div>
+
+                        <div className={`rounded-xl p-3 flex gap-2 ${parseInt(newInstallmentCount) > seriesInstallments.length ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-900/30' : parseInt(newInstallmentCount) < seriesInstallments.length ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30' : 'bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
+                            <AlertCircle className={`w-4 h-4 shrink-0 mt-0.5 ${parseInt(newInstallmentCount) > seriesInstallments.length ? 'text-emerald-600 dark:text-emerald-400' : parseInt(newInstallmentCount) < seriesInstallments.length ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`} />
+                            <p className={`text-xs ${parseInt(newInstallmentCount) > seriesInstallments.length ? 'text-emerald-900 dark:text-emerald-200' : parseInt(newInstallmentCount) < seriesInstallments.length ? 'text-red-900 dark:text-red-200' : 'text-slate-700 dark:text-slate-300'}`}>
+                                {parseInt(newInstallmentCount) > seriesInstallments.length
+                                    ? `Serão criadas ${parseInt(newInstallmentCount) - seriesInstallments.length} novas parcelas.`
+                                    : parseInt(newInstallmentCount) < seriesInstallments.length
+                                        ? `Serão removidas ${seriesInstallments.length - parseInt(newInstallmentCount)} parcelas futuras.`
+                                        : 'Quantidade mantida - valores serão recalculados.'}
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <Button variant="secondary" onClick={() => setEditMode('view')} className="flex-1 h-12">
+                                Voltar
+                            </Button>
+                            <Button onClick={handleEditCount} className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-700">
+                                Salvar Alterações
+                            </Button>
+                        </div>
+                    </div>
+                )}
                 {editMode === 'anticipate' && (
                     <div className="space-y-4">
                         <div>

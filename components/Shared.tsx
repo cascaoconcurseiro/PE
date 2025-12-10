@@ -235,6 +235,7 @@ export const Shared: React.FC<SharedProps> = ({
                     accounts={accounts}
                     members={members}
                     onUpdateTransaction={onUpdateTransaction}
+                    onAddTransaction={onAddTransaction}
                     onDeleteTransaction={(id, scope) => {
                         const txStr = transactions.find(t => t.id === id);
                         if (txStr) {
