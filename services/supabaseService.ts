@@ -249,23 +249,25 @@ export const supabaseService = {
         }
     },
 
-    const userId = await getUserId();
-    let query = supabase.from('transactions').select('*')
-        .eq('user_id', userId)
-        .eq('deleted', false)
-        .order('date', { ascending: false });
+    async getTransactions(startDate?: string, endDate?: string) {
+        const userId = await getUserId();
+        let query = supabase.from('transactions').select('*')
+            .eq('user_id', userId)
+            .eq('deleted', false)
+            .order('date', { ascending: false });
 
-    if(startDate) {
-        query = query.gte('date', startDate);
-    }
-            if(endDate) {
-        query = query.lte('date', endDate);
-    }
+        if (startDate) {
+            query = query.gte('date', startDate);
+        }
+        if (endDate) {
+            query = query.lte('date', endDate);
+        }
 
-            const { data: txData, error: txError } = await query;
-    if(txError) throw txError;
+        const { data: txData, error: txError } = await query;
+        if (txError) throw txError;
 
-    return mapToApp(txData);
+        return mapToApp(txData);
+    },
     async getAccounts() { return this.getAll('accounts'); },
     async getTrips() { return this.getAll('trips'); },
     async getFamilyMembers() { return this.getAll('family_members'); },
