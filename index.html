@@ -7,7 +7,11 @@
   <!-- STRICT STORAGE BLOCKER & POLYFILL + ERROR SUPPRESSION -->
   <script>
     (function () {
-      // ULTRA-AGGRESSIVE: Suppress ALL storage-related errors before they even log
+      // ═══════════════════════════════════════════════════════════════════
+      // 🔧 DEBUG MODE - Set to true to see detailed error tracking
+      // ═══════════════════════════════════════════════════════════════════
+      var DEBUG_MODE = true; // ← MUDE PARA false PARA DESATIVAR O RASTREAMENTO
+
       var suppressPatterns = [
         'access to storage',
         'storage is not allowed',
@@ -45,6 +49,21 @@
         return false;
       }
 
+      // Debug logger - shows where errors come from
+      function debugLog(type, message, source, stack) {
+        if (!DEBUG_MODE) return;
+        console.groupCollapsed('%c🔍 [DEBUG] ' + type + ': ' + (message || '').substring(0, 80), 'color: #f59e0b; font-weight: bold');
+        console.log('%cMensagem:', 'color: #6366f1; font-weight: bold', message);
+        console.log('%cFonte:', 'color: #10b981; font-weight: bold', source || 'Desconhecida');
+        if (stack) {
+          console.log('%cStack Trace:', 'color: #ef4444; font-weight: bold');
+          console.log(stack);
+        }
+        console.log('%cPadrão detectado:', 'color: #8b5cf6; font-weight: bold',
+          suppressPatterns.find(function (p) { return (message || '').toLowerCase().indexOf(p) !== -1; }) || 'N/A');
+        console.groupEnd();
+      }
+
       // EARLIEST INTERCEPTION: Replace console methods IMMEDIATELY
       var noop = function () { };
       var originalError = console.error;
@@ -53,14 +72,20 @@
       console.error = function () {
         var args = Array.prototype.slice.call(arguments);
         var msgStr = args.map(function (a) { return String(a); }).join(' ');
-        if (shouldSuppress(msgStr)) return;
+        if (shouldSuppress(msgStr)) {
+          debugLog('console.error SUPRIMIDO', msgStr, 'console.error()', new Error().stack);
+          return;
+        }
         originalError.apply(console, arguments);
       };
 
       console.warn = function () {
         var args = Array.prototype.slice.call(arguments);
         var msgStr = args.map(function (a) { return String(a); }).join(' ');
-        if (shouldSuppress(msgStr)) return;
+        if (shouldSuppress(msgStr)) {
+          debugLog('console.warn SUPRIMIDO', msgStr, 'console.warn()', new Error().stack);
+          return;
+        }
         originalWarn.apply(console, arguments);
       };
 
@@ -88,6 +113,7 @@
       // AGGRESSIVE ERROR SUPPRESSION - Capture phase
       window.addEventListener('error', function (e) {
         if (shouldSuppress(e.message) || shouldSuppress(e.filename) || shouldSuppress(String(e.error))) {
+          debugLog('window.error SUPRIMIDO', e.message, e.filename + ':' + e.lineno + ':' + e.colno, e.error && e.error.stack);
           e.preventDefault();
           e.stopImmediatePropagation();
           return false;
@@ -98,10 +124,13 @@
       window.addEventListener('unhandledrejection', function (e) {
         var reason = e.reason;
         var msg = '';
+        var stack = '';
         if (reason) {
           msg = reason.message || reason.toString() || String(reason);
+          stack = reason.stack || '';
         }
         if (shouldSuppress(msg)) {
+          debugLog('unhandledrejection SUPRIMIDO', msg, 'Promise Rejeitada', stack);
           e.preventDefault();
           e.stopImmediatePropagation();
           return false;
