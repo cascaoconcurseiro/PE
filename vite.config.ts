@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
         // Performance: Optimize JSX runtime
         jsxRuntime: 'automatic',
       }),
+      /*
       VitePWA({
         injectRegister: null, // Disable auto injection to handle registration errors manually
         registerType: 'autoUpdate',
@@ -48,15 +49,16 @@ export default defineConfig(({ mode }) => {
           clientsClaim: true,
           skipWaiting: true,
           cleanupOutdatedCaches: true,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          globPatterns: ['**\/*.{js,css,html,ico,png,svg,woff,woff2}'],
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-              handler: 'NetworkOnly', // Changed from NetworkFirst to NetworkOnly to ensure freshness
+              urlPattern: /^https:\/\/.*\.supabase\.co\/.* /i,
+              handler: 'NetworkOnly',
             }
           ]
         }
       }),
+      */
       viteCompression({
         algorithm: 'brotliCompress',
         ext: '.br',
