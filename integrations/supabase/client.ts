@@ -38,11 +38,17 @@ const safeLocalStorage = {
     }
 };
 
+const memoryStorage = {
+    getItem: (key: string) => { return null; },
+    setItem: (key: string, value: string) => { },
+    removeItem: (key: string) => { }
+};
+
 export const supabase = createClient(supabaseUrl || '', supabaseKey || '', {
     auth: {
-        // storage: undefined, // Explicitly undefined to verify no storage is used
-        autoRefreshToken: false, // User requirement: Disable auto refresh
-        persistSession: false, // User requirement: Disable persistence
-        detectSessionInUrl: false // User requirement: Disable URL detection
+        storage: memoryStorage, // Force memory storage
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
     }
 });
