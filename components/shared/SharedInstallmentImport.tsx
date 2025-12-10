@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Transaction, FamilyMember, Account, Category, TransactionType, SyncStatus, TransactionSplit } from '../types';
-import { Button } from './ui/Button';
-import { round2dec } from '../utils';
+import { Transaction, FamilyMember, Account, Category, TransactionType, SyncStatus, TransactionSplit } from '../../types';
+import { Button } from '../ui/Button';
+import { round2dec } from '../../utils';
 import { X, Calendar, DollarSign, CreditCard, Layers, Check } from 'lucide-react';
 
 // Helper for currency format inside component
