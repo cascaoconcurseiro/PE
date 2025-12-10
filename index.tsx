@@ -124,22 +124,8 @@ const App = () => {
         const fetchRequests = async () => {
             if (!sessionUser?.id) return;
 
-            // Shared Transactions
-            const { count } = await supabase
-                .from('shared_transaction_requests')
-                .select('*', { count: 'exact', head: true })
-                .eq('invited_user_id', sessionUser.id)
-                .eq('status', 'PENDING');
-            setPendingSharedRequests(count || 0);
+            setPendingSharedRequests(0);
 
-            // Settlement Requests (Payments received OR Charges received)
-            // fetch where receiver_id = me OR (payer_id = me AND type='CHARGE')
-            // Supabase .or() syntax: .or(`receiver_id.eq.${sessionUser.id},and(payer_id.eq.${sessionUser.id},type.eq.CHARGE)`)
-            const { data: settlements } = await supabase
-                .from('settlement_requests')
-                .select('*')
-                .eq('status', 'PENDING')
-                .or(`receiver_id.eq.${sessionUser.id},payer_id.eq.${sessionUser.id}`);
 
             // Filter relevant ones
             // If receiver_id == me: Incoming Payment (to confirm) OR Incoming Charge (I created it?? No, if I created Charge, I am Receiver. So I am waiting. No Notif).
@@ -151,28 +137,7 @@ const App = () => {
             // 1. I am Receiver AND Type = PAYMENT (Someone sent me money)
             // 2. I am Payer AND Type = CHARGE (Someone charged me)
 
-            const myActionableSettlements = settlements?.filter(s => {
-                if (s.receiver_id === sessionUser.id && s.type === 'PAYMENT') return true;
-                if (s.payer_id === sessionUser.id && s.type === 'CHARGE') return true;
-                return false;
-            }) || [];
-
-            // Fetch profiles
-            if (myActionableSettlements.length > 0) {
-                const otherUserIds = myActionableSettlements.map(s => s.payer_id === sessionUser.id ? s.receiver_id : s.payer_id);
-                const { data: profiles } = await supabase.from('user_profiles').select('id, name').in('id', otherUserIds);
-
-                const enrichedSettlements = myActionableSettlements.map(s => {
-                    const otherId = s.payer_id === sessionUser.id ? s.receiver_id : s.payer_id;
-                    return {
-                        ...s,
-                        other_user_name: profiles?.find(p => p.id === otherId)?.name || 'Usuário'
-                    };
-                });
-                setPendingSettlements(enrichedSettlements);
-            } else {
-                setPendingSettlements([]);
-            }
+            setPendingSettlements([]);
         };
         fetchRequests();
         const interval = setInterval(fetchRequests, 30000); // 30s poll
@@ -467,46 +432,11 @@ const App = () => {
             case View.TRIPS:
                 return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onNavigateToShared={() => handleViewChange(View.SHARED)} onEditTransaction={(id) => { setEditTxId(id); setIsTxModalOpen(true); }} />;
             case View.SHARED:
-                return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} />;
+                return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} />;
             case View.FAMILY:
                 return <Family members={familyMembers} onAddMember={handlers.handleAddMember} onUpdateMember={handlers.handleUpdateMember} onDeleteMember={handlers.handleDeleteMember}
                     onInviteMember={async (memberId, email) => {
-                        // Logic to share all shared transactions with this member
-                        const { data: inviteeId } = await supabase.rpc('check_user_by_email', { email_to_check: email });
-                        if (!inviteeId) return;
-
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (!user) return;
-
-                        // Find all candidate transactions
-                        const candidates = transactions.filter(t =>
-                            t.isShared &&
-                            t.sharedWith?.some(s => s.memberId === memberId)
-                        );
-
-                        if (candidates.length === 0) {
-                            alert("Não há despesas compartilhadas com este membro para sincronizar.");
-                            return;
-                        }
-
-                        let count = 0;
-                        for (const tx of candidates) {
-                            // Create request if not likely exists (checking existence is better but for speed lets just try insert)
-                            // Or better: rely on logic in backend or just fire and forget (assuming trigger prevents dups or we handle error)
-                            try {
-                                const { error } = await supabase.from('shared_transaction_requests').insert({
-                                    transaction_id: tx.id,
-                                    requester_id: user.id,
-                                    invited_email: email,
-                                    invited_user_id: inviteeId,
-                                    status: 'PENDING'
-                                });
-                                if (!error) count++;
-                            } catch (e) {
-                                // Ignore duplicates or errors
-                            }
-                        }
-                        if (count > 0) alert(`${count} solicitações de compartilhamento enviadas!`);
+                        alert("Convites desabilitados na versão local.");
                     }}
                 />
             case View.INVESTMENTS:
@@ -571,37 +501,7 @@ const App = () => {
                 </div>
             )}
 
-            <SettlementReviewModal
-                isOpen={!!activeSettlementRequest}
-                onClose={() => setActiveSettlementRequest(null)}
-                request={activeSettlementRequest}
-                accounts={calculatedAccounts}
-                currentUserId={sessionUser?.id}
-                onSuccess={() => {
-                    setPendingSettlements(prev => prev.filter(p => p.id !== activeSettlementRequest?.id));
-                    setActiveSettlementRequest(null);
-                }}
-                onAddTransaction={handlers.handleAddTransaction}
-            />
 
-            {/* Modal for Paying a Charge */}
-            <SettlementModal
-                isOpen={!!settlementToPay}
-                onClose={() => setSettlementToPay(null)}
-                familyMembers={familyMembers}
-                accounts={calculatedAccounts}
-                currentUserId={sessionUser?.id}
-                preSelectedMemberId={settlementToPay ? (settlementToPay.payer_id === sessionUser?.id ? settlementToPay.receiver_id : settlementToPay.payer_id) : undefined}
-                suggestedAmount={settlementToPay?.amount}
-                mode="PAY"
-                // Pass extra prop to fulfill request (Implemented in next step)
-                fulfillRequestId={settlementToPay?.id}
-                onAddTransaction={handlers.handleAddTransaction}
-                onSuccess={() => {
-                    setPendingSettlements(prev => prev.filter(p => p.id !== settlementToPay?.id));
-                    setSettlementToPay(null);
-                }}
-            />
 
             <SpeedInsights />
         </MainLayout>

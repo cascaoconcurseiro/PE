@@ -280,36 +280,7 @@ export const supabaseService = {
 
             const transactions = mapToApp(txData);
 
-            // Fetch related shared requests
-            if (transactions.length > 0) {
-                const txIds = transactions.map((t: any) => t.id);
-                const { data: requestData, error: reqError } = await supabase
-                    .from('shared_transaction_requests')
-                    .select('transaction_id, status, assigned_amount, invited_user_id, invited_email, created_at')
-                    .in('transaction_id', txIds);
 
-                if (!reqError && requestData) {
-                    // Map requests to transactions
-                    const requestMap: Record<string, any[]> = {};
-                    requestData.forEach((r: any) => {
-                        if (!requestMap[r.transaction_id]) requestMap[r.transaction_id] = [];
-                        requestMap[r.transaction_id].push({
-                            memberId: r.invited_user_id, // Map Invited ID to Member ID for display
-                            email: r.invited_email,
-                            assignedAmount: r.assigned_amount || 0,
-                            status: r.status,
-                            isSettled: r.status === 'SETTLED' // Future proofing
-                        });
-                    });
-
-                    // Attach to transactions
-                    transactions.forEach((t: any) => {
-                        if (requestMap[t.id]) {
-                            t.sharedWith = requestMap[t.id];
-                        }
-                    });
-                }
-            }
 
             return transactions;
         } catch (e) {
