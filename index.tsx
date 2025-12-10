@@ -112,7 +112,13 @@ const App = () => {
         try { return JSON.parse(localStorage.getItem('pdm_privacy') || 'true'); } catch { return true; }
     });
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
+    const [dismissedNotifications, setDismissedNotifications] = useState<string[]>(() => {
+        try {
+            return JSON.parse(localStorage.getItem('pdm_dismissed_notifications') || '[]');
+        } catch {
+            return [];
+        }
+    });
     // ... (previous imports)
     const [pendingSharedRequests, setPendingSharedRequests] = useState(0);
     const [pendingSettlements, setPendingSettlements] = useState<any[]>([]); // Store full objects
@@ -146,6 +152,7 @@ const App = () => {
 
 
     useEffect(() => { localStorage.setItem('pdm_privacy', JSON.stringify(showValues)); }, [showValues]);
+    useEffect(() => { localStorage.setItem('pdm_dismissed_notifications', JSON.stringify(dismissedNotifications)); }, [dismissedNotifications]);
 
     const handleViewChange = (view: View) => {
         startTransition(() => {
@@ -501,6 +508,27 @@ const App = () => {
             )}
 
 
+
+            <InconsistenciesModal
+                isOpen={isInconsistenciesModalOpen}
+                onClose={() => setIsInconsistenciesModalOpen(false)}
+                issues={dataInconsistencies}
+                onNavigateToTransaction={(id) => {
+                    handleViewChange(View.TRANSACTIONS);
+                    setEditTxId(id);
+                    // Standard logic to scroll to tx
+                    setTimeout(() => {
+                        const element = document.getElementById(`transaction-${id}`);
+                        if (element) {
+                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            element.classList.add('ring-2', 'ring-amber-500', 'ring-offset-2');
+                            setTimeout(() => {
+                                element.classList.remove('ring-2', 'ring-amber-500', 'ring-offset-2');
+                            }, 3000);
+                        }
+                    }, 500);
+                }}
+            />
 
             <SpeedInsights />
         </MainLayout>

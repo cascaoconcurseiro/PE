@@ -59,10 +59,10 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             return;
         }
 
-        const totalAmount = parseFloat(amount);
+        const installmentValue = parseFloat(amount);
         const numInstallments = parseInt(installments);
 
-        if (isNaN(totalAmount) || totalAmount <= 0) {
+        if (isNaN(installmentValue) || installmentValue <= 0) {
             alert('Valor inválido.');
             return;
         }
@@ -77,14 +77,10 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         // Fix timezone offset for date input
         const userDate = new Date(baseDate.valueOf() + baseDate.getTimezoneOffset() * 60 * 1000);
 
-        const installmentValue = round2dec(totalAmount / numInstallments);
-        // Adjust last installment (or first) to match total exactly?
-        // Let's add remainder to the first installment.
-        const totalCalculated = installmentValue * numInstallments;
-        const remainder = round2dec(totalAmount - totalCalculated);
+        const totalAmount = installmentValue * numInstallments;
 
         for (let i = 0; i < numInstallments; i++) {
-            const currentInstallmentAmount = i === 0 ? round2dec(installmentValue + remainder) : installmentValue;
+            const currentInstallmentAmount = installmentValue;
 
             // Calculate Date: Add 'i' months
             const txDate = new Date(userDate);

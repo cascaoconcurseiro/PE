@@ -45,7 +45,7 @@ export const AccountList: React.FC<AccountListProps> = ({ activeTab, accounts, t
                 ))}
 
                 {/* The "Add New" button logic */}
-                {(type === 'BANKING' || type === 'CARDS' || (type === 'INTERNATIONAL' && items.length > 0)) && (
+                {(type === 'BANKING' || type === 'CARDS' || type === 'INTERNATIONAL') && (
                     <AddAccountCard
                         onClick={onAddClick}
                         label={type === 'CARDS' ? "Adicionar Cartão" : type === 'INTERNATIONAL' ? "Adicionar Conta Global" : "Adicionar Conta"}
