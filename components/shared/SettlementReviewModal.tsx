@@ -23,13 +23,13 @@ export const SettlementReviewModal: React.FC<SettlementReviewModalProps> = ({
     const [destinationAccountId, setDestinationAccountId] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
 
-    if (!isOpen || !request) return null;
-
     // Filter accounts to match request currency
     // Since we added currency column to settlement_requests, it should be in request object.
     // Fallback to BRL if missing (legacy requests)
-    const requestCurrency = request.currency || 'BRL';
+    const requestCurrency = request?.currency || 'BRL';
     const validAccounts = accounts.filter(a => (a.currency || 'BRL') === requestCurrency);
+
+    if (!isOpen || !request) return null;
 
     const handleConfirm = async () => {
         if (!destinationAccountId) {

@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Account, Transaction, TransactionType } from '../../types';
 import { Button } from '../ui/Button';
 import { ArrowDownLeft, Clock, FileUp, ShoppingBag, CreditCard, Users } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../../utils';
 import { ActionType } from './ActionModal';
+import { getInvoiceData } from '../../services/accountUtils';
 
 // Reusable Privacy Blur
 const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
@@ -25,47 +26,11 @@ interface CreditCardDetailProps {
 export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     account, transactions, currentDate, showValues, onAction, onAnticipateInstallments, onImportBills
 }) => {
-
-    // 1. Filter Transactions by Calendar Month (Global Date)
-    const filteredTransactions = useMemo(() => {
-        const targetYear = currentDate.getFullYear();
-        const targetMonth = currentDate.getMonth();
-
-        return transactions
-            .filter(t => {
-                // Must belong to this account
-                if (t.accountId !== account.id) return false;
-
-                // Must be active (not deleted, etc - assumed handled by parent or robust check)
-                if (t.deleted) return false; // Basic safety check if not filtered upstream
-
-                // Date Check (Local Date parts to avoid timezone issues)
-                const [y, m] = t.date.split('-').map(Number);
-                // m is 1-indexed in date string, so m-1 to match getMonth() (0-indexed)
-                return y === targetYear && (m - 1) === targetMonth;
-            })
-            .sort((a, b) => b.date.localeCompare(a.date)); // Newest first
-    }, [transactions, currentDate, account.id]);
-
-    // 2. Calculate Totals for this Month
-    const { totalExpenses, totalRefunds, finalTotal } = useMemo(() => {
-        let expenses = 0;
-        let refunds = 0;
-
-        filteredTransactions.forEach(t => {
-            if (t.isRefund) {
-                refunds += t.amount;
-            } else if (t.type === TransactionType.EXPENSE) {
-                expenses += t.amount;
-            }
-        });
-
-        return {
-            totalExpenses: expenses,
-            totalRefunds: refunds,
-            finalTotal: expenses - refunds
-        };
-    }, [filteredTransactions]);
+    // Use getInvoiceData to get transactions for the invoice cycle
+    const { invoiceTotal, transactions: filteredTransactions, closingDate } = getInvoiceData(account, transactions, currentDate);
+    
+    // Calculate totals
+    const finalTotal = invoiceTotal;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
