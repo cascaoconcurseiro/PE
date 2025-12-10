@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ThemeProvider } from './components/ui/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
 import { SettingsProvider } from './hooks/useSettings';
+import { ErrorTrackerProvider } from './hooks/useErrorTracker';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
@@ -19,13 +20,15 @@ container.innerHTML = '';
 
 const root = createRoot(container);
 root.render(
-    <ErrorBoundary>
-        <ThemeProvider>
-            <ToastProvider>
-                <SettingsProvider>
-                    <App />
-                </SettingsProvider>
-            </ToastProvider>
-        </ThemeProvider>
-    </ErrorBoundary>
+    <ErrorTrackerProvider>
+        <ErrorBoundary>
+            <ThemeProvider>
+                <ToastProvider>
+                    <SettingsProvider>
+                        <App />
+                    </SettingsProvider>
+                </ToastProvider>
+            </ThemeProvider>
+        </ErrorBoundary>
+    </ErrorTrackerProvider>
 );

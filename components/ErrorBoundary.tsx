@@ -33,6 +33,22 @@ export class ErrorBoundary extends Component<Props, State> {
         console.error('Stack:', error.stack);
         console.error('Component Stack:', errorInfo.componentStack);
         console.groupEnd();
+
+        // Store error in localStorage for persistence across reloads
+        try {
+            const errorReport = {
+                message: error.message,
+                stack: error.stack,
+                componentStack: errorInfo.componentStack,
+                timestamp: new Date().toISOString(),
+                url: window.location.href
+            };
+            const existingErrors = JSON.parse(localStorage.getItem('__app_errors__') || '[]');
+            existingErrors.unshift(errorReport);
+            localStorage.setItem('__app_errors__', JSON.stringify(existingErrors.slice(0, 10)));
+        } catch (e) {
+            // Ignore storage errors
+        }
     }
 
     private getErrorReport = () => {
