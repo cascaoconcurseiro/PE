@@ -269,7 +269,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
             )}
 
             <FinancialProjectionCard
-                projectedBalance={monthlyResult}
+                projectedBalance={projectedBalance}
                 currentBalance={currentBalance}
                 pendingIncome={pendingIncome}
                 pendingExpenses={pendingExpenses}

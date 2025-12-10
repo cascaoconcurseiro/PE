@@ -120,7 +120,63 @@ export const Shared: React.FC<SharedProps> = ({
                 suggestedAmount={settlementDefaults.amount}
                 suggestedCurrency={settlementDefaults.currency}
                 mode={settlementDefaults.mode}
-                onAddTransaction={onAddTransaction}
+                pendingItems={settlementDefaults.memberId ? getFilteredInvoice(settlementDefaults.memberId) : []}
+                onSettle={async (paymentTx, settledItemIds) => {
+                    // 1. Create Payment Transaction
+                    onAddTransaction(paymentTx);
+
+                    // 2. Update Settled Items
+                    if (settledItemIds.length > 0) {
+                        try {
+                            const { addToast } = useToast();
+
+                            for (const item of settledItemIds) {
+                                // Find the original transaction
+                                const originalTx = transactions.find(t => t.id === item.originalTxId);
+                                if (!originalTx) continue;
+
+                                if (item.isSplit) { // CREDIT - Update Split (They owe me)
+                                    const updatedSplits = originalTx.sharedWith?.map(s => {
+                                        // We need to match the memberId. The 'item' has originalTxId, 
+                                        // but we also know the memberId from context or we should verify.
+                                        // However, the InvoiceItem structure makes it easy:
+                                        // We are in Shared context, assuming we are settling for 'settlementDefaults.memberId'
+                                        if (s.memberId === settlementDefaults.memberId) {
+                                            return { ...s, isSettled: true, settledAt: new Date().toISOString() };
+                                        }
+                                        return s;
+                                    });
+
+                                    // DB Update
+                                    const { error } = await supabase
+                                        .from('transactions')
+                                        .update({ shared_with: updatedSplits })
+                                        .eq('id', originalTx.id);
+
+                                    if (error) throw error;
+
+                                    // UI Update
+                                    onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
+
+                                } else { // DEBIT - Update Main (I owe them)
+                                    // DB Update
+                                    const { error } = await supabase
+                                        .from('transactions')
+                                        .update({ is_settled: true, settled_at: new Date().toISOString() })
+                                        .eq('id', originalTx.id);
+
+                                    if (error) throw error;
+
+                                    // UI Update
+                                    onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: new Date().toISOString() });
+                                }
+                            }
+                            // toast({ title: "Sucesso", description: `${settledItemIds.length} itens foram baixados com sucesso.` });
+                        } catch (error) {
+                            console.error("Erro ao liquidar itens:", error);
+                        }
+                    }
+                }}
             />
 
             <SharedInstallmentImport

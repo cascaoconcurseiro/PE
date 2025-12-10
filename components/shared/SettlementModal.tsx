@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, Wallet, Check, ArrowRightLeft } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useToast } from '../ui/Toast';
-import { Account, FamilyMember, TransactionType, Category } from '../../types';
+import { Account, FamilyMember, TransactionType, InvoiceItem, Transaction } from '../../types';
 import { formatCurrency } from '../../utils';
 
 interface SettlementModalProps {
@@ -15,11 +15,13 @@ interface SettlementModalProps {
     suggestedAmount?: number;
     suggestedCurrency?: string;
     mode?: 'PAY' | 'CHARGE';
-    onAddTransaction: (t: any) => void;
+    pendingItems?: InvoiceItem[]; // New: Items available to be settled
+    // Changed: Now returns the payment tx AND the list of IDs that were settled
+    onSettle: (paymentTx: any, settledItemIds: { id: string, seriesId?: string, isSplit?: boolean, originalTxId: string }[]) => void;
 }
 
 export const SettlementModal: React.FC<SettlementModalProps> = ({
-    isOpen, onClose, familyMembers, accounts, preSelectedMemberId, suggestedAmount, suggestedCurrency, mode = 'PAY', onAddTransaction
+    isOpen, onClose, familyMembers, accounts, preSelectedMemberId, suggestedAmount, suggestedCurrency, mode = 'PAY', pendingItems = [], onSettle
 }) => {
     const { addToast } = useToast();
     const [amount, setAmount] = useState<string>('');
@@ -48,7 +50,8 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!amount || parseFloat(amount) <= 0) {
+        const val = parseFloat(amount);
+        if (!amount || val <= 0) {
             addToast('Valor inválido.', 'error');
             return;
         }
@@ -68,39 +71,66 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
         const member = familyMembers.find(m => m.id === selectedMemberId);
         const memberName = member?.name || 'Membro';
 
-        // Logic requested: 
-        // "se a pessoa me deve é receita" (Charge -> Income)
-        // "se caso eu devesse... despesa" (Pay -> Expense)
+        // 1. Calculate which items are settled (FIFO)
+        let remainingAmount = val;
+        const settledItemIds: { id: string, seriesId?: string, isSplit?: boolean, originalTxId: string }[] = [];
+
+        // Filter items for the specific member and sort by date (Oldest first)
+        // Only consider items that match the user and are not paid
+        const candidateItems = pendingItems
+            .filter(i => i.memberId === selectedMemberId && !i.isPaid)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        for (const item of candidateItems) {
+            if (remainingAmount <= 0.01) break;
+
+            // Simple logic: If we have enough money, we pay off the item
+            // We fully settle items as long as we have funds.
+            // Note: This does not support "Partial Settlement" of a single transaction yet
+            // because our data model treats 'isSettled' as boolean.
+            // We will settle the item if we cover at least 99% of it or if we have enough remaining.
+            // Actually, safe logic: Only mark as settled if we assume it's fully paid.
+            // But user wants to "clean up" the logic. 
+            // Better logic: Decrement remainingAmount. If result >= 0, mark item settled.
+
+            if (remainingAmount >= (item.amount - 0.05)) { // Tolerance of 5 cents
+                remainingAmount -= item.amount;
+                settledItemIds.push({
+                    id: item.id,
+                    seriesId: item.seriesId,
+                    isSplit: item.type === 'CREDIT', // Crude check: Credit = Split (They owe me), Debit = Main Layout?
+                    // Actually we need to know if we are updating a split or the main tx.
+                    // InvoiceItem.type is 'CREDIT' (Receivable) or 'DEBIT' (Payable)
+                    // If CREDIT (They owe me), we update the split in the original Tx.
+                    // If DEBIT (I owe them), usually I am the helper or it's a split I own. 
+                    // Let's pass the Original ID and let Shared.tsx handle the specific field update.
+                    originalTxId: item.originalTxId
+                });
+            }
+        }
 
         const type = isCharge ? TransactionType.INCOME : TransactionType.EXPENSE;
-        // Adjust category if needed, or generic 'Transfer'
         const description = isCharge
             ? `Recebimento de ${memberName}`
             : `Pagamento para ${memberName}`;
 
-        onAddTransaction({
+        const paymentTx: any = {
             description,
             amount: parseFloat(amount),
             date: date,
             type: type,
             category: 'Transferência',
             accountId: accountId,
-            isSettled: true,
-            observation: `[ACERTO] ${isCharge ? 'Recebido de' : 'Pago a'} ${memberName}`,
-            // CRITICAL FIX: Add shared metadata so useSharedFinances detects this 
-            // and adjusts the balance (Net = Credit - Debit).
-            isShared: true,
-            sharedWith: [{
-                memberId: selectedMemberId, // Who is involved
-                assignedAmount: parseFloat(amount), // 100% of the value affects the balance with them
-                isSettled: true // It's paid
-            }],
-            payerId: isCharge ? selectedMemberId : 'me'
-            // If I Charge (Income), Payer is THEM. 
-            // If I Pay (Expense), Payer is ME.
-        });
+            isSettled: true, // This payment record itself is "done"
+            observation: `[ACERTO] ${isCharge ? 'Recebido de' : 'Pago a'} ${memberName}. Baixou ${settledItemIds.length} itens.`,
+            // IMPORTANT: We do NOT mark this as "isShared" anymore. 
+            // It is just the money movement verifying the settlement.
+            isShared: false,
+            payerId: 'me'
+        };
 
-        addToast(isCharge ? 'Recebimento registrado!' : 'Pagamento registrado!', 'success');
+        onSettle(paymentTx, settledItemIds);
+
         onClose();
     };
 
@@ -147,6 +177,11 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                             placeholder="0,00"
                             autoFocus
                         />
+                        {pendingItems.length > 0 && selectedMemberId && (
+                            <div className="mt-2 text-xs text-slate-500">
+                                <span>Itens pendentes para este membro: {pendingItems.filter(i => i.memberId === selectedMemberId && !i.isPaid).length}</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Quando */}
@@ -185,7 +220,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                     <div className="pt-4 flex gap-3">
                         <Button type="button" variant="ghost" onClick={onClose} className="flex-1">Cancelar</Button>
                         <Button type="submit" className={`flex-1 text-white ${isCharge ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
-                            {isCharge ? 'Confirmar que Recebi' : 'Confirmar que Paguei'}
+                            {isCharge ? 'Confirmar' : 'Confirmar'}
                         </Button>
                     </div>
                 </form>

@@ -32,7 +32,7 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                 <div>
                     <div className="flex items-center gap-2 mb-2 text-indigo-300">
                         <Wallet className="w-5 h-5" />
-                        <span className="text-xs font-bold uppercase tracking-widest">Resultado do Mês</span>
+                        <span className="text-xs font-bold uppercase tracking-widest">Saldo Final Previsto</span>
                     </div>
                     <div className="mb-1">
                         <span className={`text-4xl font-black tracking-tight ${projectedBalance < 0 ? 'text-red-300' : 'text-emerald-300'}`}>

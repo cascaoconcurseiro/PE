@@ -50,9 +50,11 @@ async function run() {
         const sql = fs.readFileSync(fullPath, 'utf8');
         console.log(`🚀 Executing: ${path.basename(fullPath)}...`);
 
-        await client.query(sql);
-
-        console.log('✅ Success! SQL executed.');
+        const res = await client.query(sql);
+        console.log('✅ Success! Rows returned:', res.rowCount);
+        if (res.rows && res.rows.length > 0) {
+            console.log(JSON.stringify(res.rows, null, 2));
+        }
     } catch (err) {
         console.error('❌ Error executing SQL:', err.message);
         process.exit(1);
