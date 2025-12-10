@@ -1,18 +1,10 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
-import { Users, DollarSign, TrendingUp, ArrowRight, Wallet, Download } from 'lucide-react';
-import { Card } from './ui/Card';
-import { Button } from './ui/Button';
-import { formatCurrency } from '../utils';
-import { Transaction, Trip, FamilyMember, Account, InvoiceItem, Category, TransactionType, SyncStatus } from '../types';
-import { useSharedFinances } from '../hooks/useSharedFinances';
-import { supabase } from '../integrations/supabase/client';
-import { SettlementModal } from './shared/SettlementModal';
+import React, { useState, useMemo } from 'react';
+import { Transaction, Trip, FamilyMember, TransactionType, Account, SyncStatus, Category, InvoiceItem } from '../types';
 import { SharedInstallmentImport } from './shared/SharedInstallmentImport';
-import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal';
+import { useSharedFinances } from '../hooks/useSharedFinances';
 import { MemberSummaryCard } from './shared/MemberSummaryCard';
+import { SettlementModal } from './shared/SettlementModal';
 import { SharedFilters } from './shared/SharedFilters';
-import { useToast } from './ui/Toast';
 
 interface SharedProps {
     transactions: Transaction[];
@@ -22,7 +14,6 @@ interface SharedProps {
     currentDate: Date;
     onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
     onUpdateTransaction: (t: Transaction) => void;
-    onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
     onNavigateToTrips: () => void;
 }
 
@@ -34,19 +25,10 @@ export const Shared: React.FC<SharedProps> = ({
     currentDate,
     onAddTransaction,
     onUpdateTransaction,
-    onDeleteTransaction,
     onNavigateToTrips
 }) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-
-    // Edit Modal State
-    const [editModalTxId, setEditModalTxId] = useState<string | null>(null);
-    const editTransaction = editModalTxId ? transactions.find(t => t.id === editModalTxId) : null;
-
-    // Local Settlement State (Lightweight)
-    const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
-    const [settlementDefaults, setSettlementDefaults] = useState<{ memberId?: string, amount?: number, currency?: string, mode?: 'PAY' | 'CHARGE' }>({});
 
     // Use Custom Hook for Calculation Logic
     const { getFilteredInvoice, getTotals } = useSharedFinances({
@@ -57,33 +39,109 @@ export const Shared: React.FC<SharedProps> = ({
     });
 
     const displayMembers = useMemo(() => {
-        const uniqueIds = new Set([...members.map(m => m.id)]);
+        const uniqueIds = new Set([...members.map(m => m.id)]); // Assuming all members are passed in props
         return members;
     }, [members]);
 
-    const handleOpenSettleModal = (memberId: string, mode: 'PAY' | 'CHARGE', currency: string) => {
+    // Settlement State
+    const [settleModal, setSettleModal] = useState<{
+        isOpen: boolean,
+        memberId: string | null,
+        type: 'PAY' | 'RECEIVE' | 'OFFSET',
+        items: InvoiceItem[],
+        total: number,
+        currency: string
+    }>({
+        isOpen: false, memberId: null, type: 'PAY', items: [], total: 0, currency: 'BRL'
+    });
+
+    const handleOpenSettleModal = (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET', currency: string) => {
         const allItems = getFilteredInvoice(memberId);
         const items = allItems.filter(i => !i.isPaid && (i.currency || 'BRL') === currency);
+
         const totals = getTotals(items);
         const net = totals[currency]?.net || 0;
 
-        setSettlementDefaults({
+        setSettleModal({
+            isOpen: true,
             memberId,
-            amount: Math.abs(net),
-            currency,
-            mode
+            type,
+            items,
+            total: type === 'OFFSET' ? 0 : Math.abs(net),
+            currency
         });
-        setIsSettlementModalOpen(true);
     };
 
-    const handleEditTransaction = (txId: string) => {
-        setEditModalTxId(txId);
+    const handleConfirmSettlement = (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number) => {
+        if (!settleModal.memberId) return;
+
+        // Validation handled in Modal, but good to check
+        if (settleModal.type !== 'OFFSET' && !accountId) return;
+
+        const now = new Date().toISOString();
+        const isConverting = method === 'CONVERT';
+        const rate = isConverting && exchangeRate ? exchangeRate : 1;
+        const finalAmount = settleModal.total * rate;
+
+        // 1. Transaction Record (Money Movement)
+        if (settleModal.type !== 'OFFSET') {
+            if (settleModal.type === 'PAY') {
+                onAddTransaction({
+                    amount: finalAmount,
+                    description: `Pagamento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`,
+                    date: now.split('T')[0],
+                    type: TransactionType.TRANSFER,
+                    category: Category.TRANSFER,
+                    accountId: accountId,
+                    destinationAccountId: 'EXTERNAL',
+                    isShared: false,
+                    relatedMemberId: settleModal.memberId!,
+                    exchangeRate: isConverting ? rate : undefined,
+                    currency: isConverting ? 'BRL' : settleModal.currency,
+                    createdAt: now,
+                    updatedAt: now,
+                    syncStatus: SyncStatus.PENDING
+                });
+            } else {
+                onAddTransaction({
+                    amount: finalAmount,
+                    description: `Recebimento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`,
+                    date: now.split('T')[0],
+                    type: TransactionType.INCOME,
+                    category: Category.INCOME,
+                    accountId: accountId,
+                    isShared: false,
+                    relatedMemberId: settleModal.memberId!,
+                    exchangeRate: isConverting ? rate : undefined,
+                    currency: isConverting ? 'BRL' : settleModal.currency,
+                    createdAt: now,
+                    updatedAt: now,
+                    syncStatus: SyncStatus.PENDING
+                });
+            }
+        }
+
+        // 2. Settle Original Items
+        settleModal.items.forEach(item => {
+            const originalTx = transactions.find(t => t.id === item.originalTxId);
+            if (originalTx) {
+                if (item.type === 'CREDIT') {
+                    const updatedSplits = originalTx.sharedWith?.map(s => {
+                        if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: now };
+                        return s;
+                    });
+                    onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
+                } else {
+                    onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: now });
+                }
+            }
+        });
+
+        setSettleModal({ isOpen: false, memberId: null, type: 'PAY', items: [], total: 0, currency: 'BRL' });
     };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
-            {/* Header Removed as requested */}
-
             <SharedFilters
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -103,80 +161,17 @@ export const Shared: React.FC<SharedProps> = ({
                             totalsMap={totalsMap}
                             trips={trips}
                             onOpenSettleModal={handleOpenSettleModal}
-                            onDeleteTransaction={onDeleteTransaction}
-                            onEditTransaction={handleEditTransaction}
                         />
                     );
                 })}
             </div>
 
             <SettlementModal
-                isOpen={isSettlementModalOpen}
-                onClose={() => setIsSettlementModalOpen(false)}
-                familyMembers={members}
+                isOpen={settleModal.isOpen}
+                onClose={() => setSettleModal(prev => ({ ...prev, isOpen: false }))}
+                settleData={settleModal}
                 accounts={accounts}
-                currentUserId="me"
-                preSelectedMemberId={settlementDefaults.memberId}
-                suggestedAmount={settlementDefaults.amount}
-                suggestedCurrency={settlementDefaults.currency}
-                mode={settlementDefaults.mode}
-                pendingItems={settlementDefaults.memberId ? getFilteredInvoice(settlementDefaults.memberId) : []}
-                onSettle={async (paymentTx, settledItemIds) => {
-                    // 1. Create Payment Transaction
-                    onAddTransaction(paymentTx);
-
-                    // 2. Update Settled Items
-                    if (settledItemIds.length > 0) {
-                        try {
-                            const { addToast } = useToast();
-
-                            for (const item of settledItemIds) {
-                                // Find the original transaction
-                                const originalTx = transactions.find(t => t.id === item.originalTxId);
-                                if (!originalTx) continue;
-
-                                if (item.isSplit) { // CREDIT - Update Split (They owe me)
-                                    const updatedSplits = originalTx.sharedWith?.map(s => {
-                                        // We need to match the memberId. The 'item' has originalTxId, 
-                                        // but we also know the memberId from context or we should verify.
-                                        // However, the InvoiceItem structure makes it easy:
-                                        // We are in Shared context, assuming we are settling for 'settlementDefaults.memberId'
-                                        if (s.memberId === settlementDefaults.memberId) {
-                                            return { ...s, isSettled: true, settledAt: new Date().toISOString() };
-                                        }
-                                        return s;
-                                    });
-
-                                    // DB Update
-                                    const { error } = await supabase
-                                        .from('transactions')
-                                        .update({ shared_with: updatedSplits })
-                                        .eq('id', originalTx.id);
-
-                                    if (error) throw error;
-
-                                    // UI Update
-                                    onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
-
-                                } else { // DEBIT - Update Main (I owe them)
-                                    // DB Update
-                                    const { error } = await supabase
-                                        .from('transactions')
-                                        .update({ is_settled: true, settled_at: new Date().toISOString() })
-                                        .eq('id', originalTx.id);
-
-                                    if (error) throw error;
-
-                                    // UI Update
-                                    onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: new Date().toISOString() });
-                                }
-                            }
-                            // toast({ title: "Sucesso", description: `${settledItemIds.length} itens foram baixados com sucesso.` });
-                        } catch (error) {
-                            console.error("Erro ao liquidar itens:", error);
-                        }
-                    }
-                }}
+                onConfirm={handleConfirmSettlement}
             />
 
             <SharedInstallmentImport
@@ -190,20 +185,6 @@ export const Shared: React.FC<SharedProps> = ({
                 accounts={accounts}
                 currentUserId="me"
             />
-
-            {/* Edit Installment Modal */}
-            {editTransaction && (
-                <SharedInstallmentEditModal
-                    isOpen={!!editModalTxId}
-                    onClose={() => setEditModalTxId(null)}
-                    transaction={editTransaction}
-                    allTransactions={transactions}
-                    accounts={accounts}
-                    members={members}
-                    onUpdateTransaction={onUpdateTransaction}
-                    onDeleteTransaction={onDeleteTransaction}
-                />
-            )}
         </div >
     );
 };

@@ -36,8 +36,7 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                         isPaid: !!split.isSettled,
                         tripId: t.tripId,
                         memberId: split.memberId,
-                        currency: txCurrency,
-                        seriesId: t.seriesId
+                        currency: txCurrency
                     });
                 });
             }
@@ -64,8 +63,7 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                         isPaid: !!t.isSettled,
                         tripId: t.tripId,
                         memberId: payerId,
-                        currency: txCurrency,
-                        seriesId: t.seriesId
+                        currency: txCurrency
                     });
                 }
             }
@@ -78,13 +76,13 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
         if (activeTab === 'TRAVEL') {
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else {
-            // Show only items from the current selected month (like credit card behavior)
-            // Each installment has its own date, so they show up in their respective months
+            const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const currentMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
             return allItems.filter(i => {
                 if (i.tripId) return false;
                 const itemDate = parseDate(i.date);
-                // Only show items that belong to the selected month
-                return isSameMonth(itemDate, currentDate);
+                if (i.isPaid) return isSameMonth(itemDate, currentDate);
+                return itemDate <= currentMonthEnd;
             }).sort((a, b) => b.date.localeCompare(a.date));
         }
     };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Transaction, FamilyMember, Account, Category, TransactionType, SyncStatus, TransactionSplit } from '../../types';
-import { Button } from '../ui/Button';
-import { round2dec } from '../../utils';
+import { Transaction, FamilyMember, Account, Category, TransactionType, SyncStatus, TransactionSplit } from '../types';
+import { Button } from './ui/Button';
+import { round2dec } from '../utils';
 import { X, Calendar, DollarSign, CreditCard, Layers, Check } from 'lucide-react';
 
 // Helper for currency format inside component
@@ -43,14 +43,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             setCategory(Category.OTHER);
             setPayerId('me');
             setParticipantIds(['me']);
-            // Default to first account if available
-            if (accounts.length > 0) {
-                setAccountId(accounts[0].id);
-            } else {
-                setAccountId('');
-            }
+            setAccountId('');
         }
-    }, [isOpen, accounts]);
+    }, [isOpen]);
 
     const handleToggleParticipant = (id: string) => {
         setParticipantIds(prev =>
@@ -61,11 +56,6 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
     const handleConfirm = () => {
         if (!description || !amount || !date || participantIds.length === 0) {
             alert('Preencha todos os campos obrigatórios e selecione pelo menos um participante.');
-            return;
-        }
-
-        if (!accountId) {
-            alert('Selecione uma conta para cobrar.');
             return;
         }
 
@@ -81,42 +71,65 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             return;
         }
 
-        // Date is already YYYY-MM-DD from input
-        const dateStr = date;
+        // Generate Transactions
+        const generatedTransactions: Omit<Transaction, 'id'>[] = [];
+        const baseDate = new Date(date);
+        // Fix timezone offset for date input
+        const userDate = new Date(baseDate.valueOf() + baseDate.getTimezoneOffset() * 60 * 1000);
 
-        // Build SharedWith for the TOTAL amount (service will split per installment)
-        const sharePerPerson = round2dec(totalAmount / participantIds.length);
+        const installmentValue = round2dec(totalAmount / numInstallments);
+        // Adjust last installment (or first) to match total exactly?
+        // Let's add remainder to the first installment.
+        const totalCalculated = installmentValue * numInstallments;
+        const remainder = round2dec(totalAmount - totalCalculated);
 
-        const sharedWith: TransactionSplit[] = participantIds
-            .filter(pid => pid !== 'me')
-            .map(pid => ({
-                memberId: pid,
-                assignedAmount: sharePerPerson,
-                percentage: round2dec((1 / participantIds.length) * 100)
-            }));
+        for (let i = 0; i < numInstallments; i++) {
+            const currentInstallmentAmount = i === 0 ? round2dec(installmentValue + remainder) : installmentValue;
 
-        // Generate SINGLE Transaction
-        // The service (useDataStore -> handleAddTransaction) will handle splitting this into installments
-        const singleTransaction: Omit<Transaction, 'id'> = {
-            description: description,
-            amount: totalAmount,
-            type: TransactionType.EXPENSE,
-            category: category,
-            date: dateStr,
-            accountId: accountId || undefined,
-            payerId: payerId === 'me' ? undefined : payerId,
-            isShared: true,
-            sharedWith: sharedWith,
-            isInstallment: numInstallments > 1,
-            currentInstallment: 1, // Start at 1
-            totalInstallments: numInstallments,
-            originalAmount: totalAmount,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            syncStatus: SyncStatus.PENDING
-        };
+            // Calculate Date: Add 'i' months
+            const txDate = new Date(userDate);
+            txDate.setMonth(userDate.getMonth() + i);
+            const dateStr = txDate.toISOString().split('T')[0];
 
-        onImport([singleTransaction]);
+            // Build SharedWith
+            // Logic: sharedWith includes everyone in participantIds EXCEPT 'me'.
+            // Their share is (currentInstallmentAmount / participantIds.length).
+
+            const sharePerPerson = round2dec(currentInstallmentAmount / participantIds.length);
+
+            const sharedWith: TransactionSplit[] = participantIds
+                .filter(pid => pid !== 'me')
+                .map(pid => ({
+                    memberId: pid,
+                    assignedAmount: sharePerPerson,
+                    percentage: round2dec((1 / participantIds.length) * 100)
+                }));
+
+            generatedTransactions.push({
+                description: `${description} (${i + 1}/${numInstallments})`,
+                amount: currentInstallmentAmount,
+                type: TransactionType.EXPENSE,
+                category: category,
+                date: dateStr,
+                accountId: accountId || undefined, // Allow undefined for pending shared transactions
+                payerId: payerId === 'me' ? undefined : payerId,
+                isShared: true,
+                sharedWith: sharedWith,
+                isInstallment: numInstallments > 1,
+                currentInstallment: i + 1,
+                totalInstallments: numInstallments,
+                originalAmount: totalAmount,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                syncStatus: SyncStatus.PENDING
+            });
+        }
+
+        // Optional Account if Payer is Me (Pending Debt)
+        // if (payerId === 'me' && !accountId) { ... } -> Removed Validation
+
+
+        onImport(generatedTransactions);
     };
 
     return (
@@ -165,25 +178,6 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         <select className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white" value={category} onChange={e => setCategory(e.target.value as Category)}>
                             {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
-
-                    </div>
-
-                    {/* Account Selector - CRITICAL FIX */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">Conta de Pagamento</label>
-                        <div className="relative">
-                            <CreditCard className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                            <select
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white appearance-none"
-                                value={accountId}
-                                onChange={e => setAccountId(e.target.value)}
-                            >
-                                <option value="" disabled>Selecione uma conta...</option>
-                                {accounts.map(acc => (
-                                    <option key={acc.id} value={acc.id}>{acc.name}</option>
-                                ))}
-                            </select>
-                        </div>
                     </div>
 
                     {/* Who Paid */}
@@ -247,6 +241,6 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     </Button>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
