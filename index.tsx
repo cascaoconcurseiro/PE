@@ -556,5 +556,4 @@ root.render(
             </ToastProvider>
         </ThemeProvider>
     </ErrorBoundary>
-    </ErrorBoundary >
 );
