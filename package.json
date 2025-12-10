@@ -23,6 +23,7 @@
     "recharts": "^3.5.1",
     "tailwindcss": "^4.1.17",
     "tailwindcss-animate": "^1.0.7",
+    "workbox-window": "^7.4.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {
