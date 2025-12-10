@@ -5,6 +5,32 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
+  <!-- Error Suppression: Handle external storage access errors -->
+  <script>
+    (function () {
+      const suppress = (msg) => msg && (
+        msg.includes('Access to storage is not allowed') ||
+        msg.includes('message channel closed')
+      );
+
+      window.addEventListener('error', function (e) {
+        if (suppress(e.message)) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          console.debug('Suppressed external storage error');
+          return true;
+        }
+      }, true);
+
+      window.addEventListener('unhandledrejection', function (e) {
+        if (e.reason && suppress(e.reason.message)) {
+          e.preventDefault();
+          console.debug('Suppressed external storage promise rejection');
+        }
+      });
+    })();
+  </script>
+
   <!-- Performance: Preconnect to external domains -->
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
