@@ -5,6 +5,8 @@ import { useSharedFinances } from '../hooks/useSharedFinances';
 import { MemberSummaryCard } from './shared/MemberSummaryCard';
 import { SettlementModal } from './shared/SettlementModal';
 import { SharedFilters } from './shared/SharedFilters';
+import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal';
+import { TransactionDeleteModal } from './transactions/TransactionDeleteModal';
 
 interface SharedProps {
     transactions: Transaction[];
@@ -14,6 +16,7 @@ interface SharedProps {
     currentDate: Date;
     onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
     onUpdateTransaction: (t: Transaction) => void;
+    onDeleteTransaction?: (id: string) => void;
     onNavigateToTrips: () => void;
 }
 
@@ -25,10 +28,16 @@ export const Shared: React.FC<SharedProps> = ({
     currentDate,
     onAddTransaction,
     onUpdateTransaction,
+    onDeleteTransaction,
     onNavigateToTrips
 }) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+    // Edit & Delete State
+    const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
 
     // Use Custom Hook for Calculation Logic
     const { getFilteredInvoice, getTotals } = useSharedFinances({
@@ -166,6 +175,10 @@ export const Shared: React.FC<SharedProps> = ({
                             totalsMap={totalsMap}
                             trips={trips}
                             onOpenSettleModal={handleOpenSettleModal}
+                            onTransactionClick={(txId) => {
+                                const tx = transactions.find(t => t.id === txId);
+                                if (tx) setEditingTransaction(tx);
+                            }}
                         />
                     );
                 })}
@@ -190,6 +203,56 @@ export const Shared: React.FC<SharedProps> = ({
                 accounts={accounts}
                 currentUserId="me"
             />
+
+            {editingTransaction && (
+                <SharedInstallmentEditModal
+                    isOpen={!!editingTransaction}
+                    onClose={() => setEditingTransaction(null)}
+                    transaction={editingTransaction}
+                    allTransactions={transactions}
+                    accounts={accounts}
+                    members={members}
+                    onUpdateTransaction={onUpdateTransaction}
+                    onDeleteTransaction={(id, scope) => {
+                        // Forward to Delete Modal Logic
+                        const txStr = transactions.find(t => t.id === id);
+                        if (txStr) {
+                            setTransactionToDelete(txStr);
+                            setIsDeleteModalOpen(true);
+                            // Do NOT close editingTransaction here, wait for delete confirm? 
+                            // Usually better to close edit modal when opening delete modal
+                            setEditingTransaction(null);
+                        }
+                    }}
+                />
+            )}
+
+            {transactionToDelete && (
+                <TransactionDeleteModal
+                    isOpen={isDeleteModalOpen}
+                    isSeries={!!transactionToDelete.seriesId}
+                    onClose={() => {
+                        setIsDeleteModalOpen(false);
+                        setTransactionToDelete(null);
+                    }}
+                    onConfirm={(scope) => {
+                        if (onDeleteTransaction && transactionToDelete) {
+                            if (scope === 'SERIES' && transactionToDelete.seriesId) {
+                                // Delete All in Series
+                                const seriesIds = transactions
+                                    .filter(t => t.seriesId === transactionToDelete.seriesId)
+                                    .map(t => t.id);
+                                seriesIds.forEach(id => onDeleteTransaction(id));
+                            } else {
+                                // Delete Single
+                                onDeleteTransaction(transactionToDelete.id);
+                            }
+                        }
+                        setIsDeleteModalOpen(false);
+                        setTransactionToDelete(null);
+                    }}
+                />
+            )}
         </div >
     );
 };

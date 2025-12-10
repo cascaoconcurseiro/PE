@@ -10,9 +10,10 @@ interface MemberSummaryCardProps {
     totalsMap: Record<string, { credits: number; debits: number; net: number }>;
     trips: Trip[];
     onOpenSettleModal: (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET', currency: string) => void;
+    onTransactionClick?: (transactionId: string) => void;
 }
 
-export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, items, totalsMap, trips, onOpenSettleModal }) => {
+export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, items, totalsMap, trips, onOpenSettleModal, onTransactionClick }) => {
     const currencies = Object.keys(totalsMap).filter(c => Math.abs(totalsMap[c].net) > 0.01);
 
     if (currencies.length === 0) return null;
@@ -77,7 +78,11 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
                         const bgColor = isPaid ? 'bg-slate-50 dark:bg-slate-900/30' : 'bg-white dark:bg-slate-800';
 
                         return (
-                            <div key={item.id} className={`px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${isPaid ? 'opacity-60 grayscale' : ''} ${bgColor}`}>
+                            <div
+                                key={item.id}
+                                onClick={() => onTransactionClick?.(item.originalTxId)}
+                                className={`px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer ${isPaid ? 'opacity-60 grayscale' : ''} ${bgColor}`}
+                            >
                                 <div className="flex items-center gap-4">
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isPaid
                                         ? 'bg-slate-100 dark:bg-slate-800 text-slate-400'

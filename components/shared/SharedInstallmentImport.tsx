@@ -73,20 +73,30 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
         // Generate Transactions
         const generatedTransactions: Omit<Transaction, 'id'>[] = [];
-        const baseDate = new Date(date);
-        // Fix timezone offset for date input
-        const userDate = new Date(baseDate.valueOf() + baseDate.getTimezoneOffset() * 60 * 1000);
+        const [yearStr, monthStr, dayStr] = date.split('-');
+        const startYear = parseInt(yearStr);
+        const startMonth = parseInt(monthStr) - 1; // 0-indexed
+        const startDay = parseInt(dayStr);
 
+        const seriesId = crypto.randomUUID(); // Unique ID for this installment series
         const totalAmount = installmentValue * numInstallments;
-
-        const [y, m, d] = date.split('-').map(Number);
 
         for (let i = 0; i < numInstallments; i++) {
             const currentInstallmentAmount = installmentValue;
 
-            // Safe Date Calculation using UTC to prevent timezone shifts
-            // m is 1-indexed from split, Date.UTC expects 0-indexed month
-            const utcDate = new Date(Date.UTC(y, m - 1 + i, d, 12, 0, 0));
+            // Robust Date Calculation (Credit Card Style)
+            // Ensures we stick to the original day if possible, or clamp to end of month
+            const currentMonthIndex = startMonth + i;
+            const targetYear = startYear + Math.floor(currentMonthIndex / 12);
+            const targetMonth = currentMonthIndex % 12;
+
+            // Determine max days in target month
+            // Date(year, month + 1, 0).getDate() gives last day of month
+            const maxDaysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+            const finalDay = Math.min(startDay, maxDaysInMonth);
+
+            // Create date at noon UTC to avoid timezone rollback
+            const utcDate = new Date(Date.UTC(targetYear, targetMonth, finalDay, 12, 0, 0));
             const dateStr = utcDate.toISOString().split('T')[0];
 
             // Build SharedWith
@@ -116,16 +126,13 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 isInstallment: numInstallments > 1,
                 currentInstallment: i + 1,
                 totalInstallments: numInstallments,
+                seriesId: numInstallments > 1 ? seriesId : undefined, // Link transactions
                 originalAmount: totalAmount,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 syncStatus: SyncStatus.PENDING
             });
         }
-
-        // Optional Account if Payer is Me (Pending Debt)
-        // if (payerId === 'me' && !accountId) { ... } -> Removed Validation
-
 
         onImport(generatedTransactions);
     };
