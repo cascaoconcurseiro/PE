@@ -98,8 +98,8 @@ const generateReportHTML = (data: ReportData): string => {
                 <td style="padding: 6px; border-bottom: 1px solid #f1f5f9; font-size: 12px;">${new Date(t.date).toLocaleDateString('pt-BR')}</td>
                 <td style="padding: 6px; border-bottom: 1px solid #f1f5f9; font-size: 12px;">${t.description}</td>
                 <td style="padding: 6px; border-bottom: 1px solid #f1f5f9; font-size: 12px;">${t.category || '-'}</td>
-                <td style="padding: 6px; border-bottom: 1px solid #f1f5f9; font-size: 12px; text-align: right; color: ${t.type === 'INCOME' ? '#10b981' : '#64748b'};">
-                    ${t.type === 'INCOME' ? '+' : '-'}${formatCurrency(t.amount)}
+                <td style="padding: 6px; border-bottom: 1px solid #f1f5f9; font-size: 12px; text-align: right; color: ${t.type === TransactionType.INCOME ? '#10b981' : '#64748b'};">
+                    ${t.type === TransactionType.INCOME ? '+' : '-'}${formatCurrency(t.amount)}
                 </td>
             </tr>
         `).join('');
