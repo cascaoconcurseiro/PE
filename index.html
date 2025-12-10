@@ -3,6 +3,40 @@
 
 <head>
   <meta charset="UTF-8" />
+
+  <!-- CRITICAL: Storage Polyfill for Restricted Environments (Must be first script) -->
+  <script>
+    (function () {
+      try {
+        // Test if storage is working
+        var x = '__storage_test__';
+        localStorage.setItem(x, x);
+        localStorage.removeItem(x);
+      } catch (e) {
+        console.warn('Storage access blocked. Activating in-memory polyfill.');
+
+        function createStorage() {
+          var store = {};
+          return {
+            getItem: function (key) { return store[key] || null; },
+            setItem: function (key, value) { store[key] = String(value); },
+            removeItem: function (key) { delete store[key]; },
+            clear: function () { store = {}; },
+            key: function (n) { return Object.keys(store)[n]; },
+            get length() { return Object.keys(store).length; }
+          };
+        }
+
+        try {
+          Object.defineProperty(window, 'localStorage', { value: createStorage(), writable: true, configurable: true });
+          Object.defineProperty(window, 'sessionStorage', { value: createStorage(), writable: true, configurable: true });
+          console.log('Storage polyfill activated successfully.');
+        } catch (err) {
+          console.error('Failed to inject storage polyfill:', err);
+        }
+      }
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
   <!-- Error Suppression: Handle external storage access errors -->
