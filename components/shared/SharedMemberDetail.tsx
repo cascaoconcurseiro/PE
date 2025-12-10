@@ -219,93 +219,127 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">
-                    {items.length === 0 ? (
-                        <div className="p-12 text-center text-slate-500 dark:text-slate-400">
-                            <ShoppingBag className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                            <p className="font-medium">Nenhuma despesa compartilhada neste mês.</p>
-                        </div>
-                    ) : (
-                        items.map(item => {
-                            const CatIcon = getCategoryIcon(item.category as Category);
-                            const isInstallment = item.description.toLowerCase().includes('parcela') || (item.installmentNumber);
-                            // InvoiceItem usually has installment info? Yes, let's assume item has it.
-                            // item.description usually has "Parcela X/Y" appended in some views, but better to check props if available.
-                            // Looking at types.ts: InvoiceItem has `installmentNumber`, `totalInstallments`. 
+                {/* Date-Grouped Transaction List */}
+                {items.length === 0 ? (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-12 text-center text-slate-500 dark:text-slate-400">
+                        <ShoppingBag className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                        <p className="font-medium">Nenhuma despesa compartilhada neste mês.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {(() => {
+                            // Group items by date
+                            const grouped: Record<string, InvoiceItem[]> = {};
+                            items.forEach(item => {
+                                const dateKey = item.date.split('T')[0];
+                                if (!grouped[dateKey]) grouped[dateKey] = [];
+                                grouped[dateKey].push(item);
+                            });
+                            const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
-                            const isSelected = selectedItems.has(item.originalTxId);
+                            return sortedDates.map(dateStr => {
+                                const dateObj = new Date(dateStr + 'T12:00:00');
+                                const dayItems = grouped[dateStr];
 
-                            return (
-                                <div
-                                    key={item.originalTxId}
-                                    className={`group p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/10' : ''}`}
-                                    onClick={() => isSelectionMode && handleToggleSelect(item.originalTxId)}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        {isSelectionMode && (
-                                            <div className="text-indigo-600 dark:text-indigo-400">
-                                                {isSelected ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                                return (
+                                    <div key={dateStr}>
+                                        {/* Date Header */}
+                                        <div className="flex items-center gap-4 mb-3">
+                                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center shadow-sm shrink-0">
+                                                <span className="text-[10px] uppercase font-black text-slate-400 leading-none">{dateObj.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</span>
+                                                <span className="text-lg font-black text-slate-800 dark:text-white leading-none">{dateObj.getDate()}</span>
                                             </div>
-                                        )}
-
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.type === 'DEBIT' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                                            {item.type === 'DEBIT' ? <ArrowDownLeft className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
-                                                {item.description}
-                                            </p>
-                                            <div className="flex gap-2 text-xs text-slate-600 dark:text-slate-300 items-center mt-1">
-                                                <span className="text-slate-600 dark:text-slate-300">{new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-
-                                                {item.category && (
-                                                    <span className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide">
-                                                        {item.category}
-                                                    </span>
-                                                )}
-
-                                                {(item.installmentNumber && item.totalInstallments) ? (
-                                                    <span className="bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide text-slate-800 dark:text-slate-200">
-                                                        Parcela {item.installmentNumber}/{item.totalInstallments}
-                                                    </span>
-                                                ) : null}
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-slate-900 dark:text-white capitalize">
+                                                    {dateObj.toLocaleDateString('pt-BR', { weekday: 'long' })}
+                                                </span>
+                                                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                                    {dayItems.length} ite{dayItems.length !== 1 ? 'ns' : 'm'}
+                                                </span>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="flex items-center gap-3">
-                                        <span className={`font-bold ${item.type === 'DEBIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
-                                            {item.type === 'DEBIT' ? '-' : ''}{formatCurrency(item.amount, currency)}
-                                        </span>
+                                        {/* Day Transactions Card */}
+                                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">
+                                            {dayItems.map(item => {
+                                                const CatIcon = getCategoryIcon(item.category as Category);
+                                                const isSelected = selectedItems.has(item.originalTxId);
 
-                                        {!isSelectionMode && (
-                                            <div className="flex gap-1 sm:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                                                {/* Edit Button */}
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={(e) => { e.stopPropagation(); onEditTransaction(item.originalTxId); }}
-                                                    className="h-8 w-8 p-0 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600"
-                                                >
-                                                    <Edit2 className="w-3.5 h-3.5" />
-                                                </Button>
-                                                {/* Delete Button */}
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={(e) => { e.stopPropagation(); onDeleteTransaction(item.originalTxId); }}
-                                                    className="h-8 w-8 p-0 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </Button>
-                                            </div>
-                                        )}
+                                                return (
+                                                    <div
+                                                        key={item.originalTxId}
+                                                        className={`group p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/10' : ''}`}
+                                                        onClick={() => isSelectionMode && handleToggleSelect(item.originalTxId)}
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            {isSelectionMode && (
+                                                                <div className="text-indigo-600 dark:text-indigo-400">
+                                                                    {isSelected ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Category Icon */}
+                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${item.type === 'DEBIT' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                                                                {item.type === 'DEBIT' ? <ArrowDownLeft className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
+                                                            </div>
+
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                                                                    {item.description}
+                                                                </p>
+                                                                <div className="flex flex-wrap gap-2 text-xs items-center mt-1">
+                                                                    {item.category && (
+                                                                        <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-wide">
+                                                                            {item.category}
+                                                                        </span>
+                                                                    )}
+
+                                                                    {(item.installmentNumber && item.totalInstallments) && (
+                                                                        <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1">
+                                                                            <Clock className="w-3 h-3" />
+                                                                            {item.installmentNumber}/{item.totalInstallments}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-3">
+                                                            <span className={`font-bold text-base ${item.type === 'DEBIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                                                                {item.type === 'DEBIT' ? '-' : ''}{formatCurrency(item.amount, currency)}
+                                                            </span>
+
+                                                            {!isSelectionMode && (
+                                                                <div className="flex gap-1">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        onClick={(e) => { e.stopPropagation(); onEditTransaction(item.originalTxId); }}
+                                                                        className="h-8 w-8 p-0 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600"
+                                                                    >
+                                                                        <Edit2 className="w-3.5 h-3.5" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        onClick={(e) => { e.stopPropagation(); onDeleteTransaction(item.originalTxId); }}
+                                                                        className="h-8 w-8 p-0 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600"
+                                                                    >
+                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
+                                );
+                            });
+                        })()}
+                    </div>
+                )}
             </div>
 
         </div>
