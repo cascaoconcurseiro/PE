@@ -548,11 +548,13 @@ const root = createRoot(container!);
 root.render(
     <ErrorBoundary>
         <ThemeProvider>
-            <SettingsProvider>
-                <ServiceWorkerUpdater />
-                <App />
-            </SettingsProvider>
-        </ToastProvider>
-    </ThemeProvider>
+            <ToastProvider>
+                <SettingsProvider>
+                    <ServiceWorkerUpdater />
+                    <App />
+                </SettingsProvider>
+            </ToastProvider>
+        </ThemeProvider>
+    </ErrorBoundary>
     </ErrorBoundary >
 );
