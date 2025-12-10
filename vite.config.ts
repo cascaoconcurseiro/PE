@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => {
         jsxRuntime: 'automatic',
       }),
       VitePWA({
+        injectRegister: null, // Disable auto injection to handle registration errors manually
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
         manifest: {

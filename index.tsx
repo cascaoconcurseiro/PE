@@ -19,7 +19,7 @@ import { SettlementReviewModal } from './components/shared/SettlementReviewModal
 import { SettlementModal } from './components/shared/SettlementModal';
 import { GlobalSearch } from './components/GlobalSearch';
 import { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardShortcuts';
-import { SpeedInsights } from "@vercel/speed-insights/react";
+
 // ServiceWorkerUpdater removed - was causing storage access errors
 import './index.css';
 
@@ -568,7 +568,6 @@ const App = () => {
                 }}
             />
 
-            <SpeedInsights />
         </MainLayout>
     );
 };
@@ -589,3 +588,24 @@ root.render(
         </ThemeProvider>
     </ErrorBoundary>
 );
+
+// Safe Service Worker Registration
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    // Dynamic import to avoid build issues and wrap in try-catch
+    // @ts-ignore
+    import('virtual:pwa-register')
+        .then(({ registerSW }) => {
+            try {
+                registerSW({
+                    onRegisterError(error) {
+                        console.warn('SW registration error', error);
+                    }
+                });
+            } catch (e) {
+                console.warn('SW registration failed (storage restricted)', e);
+            }
+        })
+        .catch(() => {
+            // Ignore module load errors (e.g. if plugin disabled)
+        });
+}
