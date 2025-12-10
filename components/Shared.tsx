@@ -175,9 +175,16 @@ export const Shared: React.FC<SharedProps> = ({
                             totalsMap={totalsMap}
                             trips={trips}
                             onOpenSettleModal={handleOpenSettleModal}
-                            onTransactionClick={(txId) => {
+                            onEditClick={(txId) => {
                                 const tx = transactions.find(t => t.id === txId);
                                 if (tx) setEditingTransaction(tx);
+                            }}
+                            onDeleteClick={(txId) => {
+                                const tx = transactions.find(t => t.id === txId);
+                                if (tx) {
+                                    setTransactionToDelete(tx);
+                                    setIsDeleteModalOpen(true);
+                                }
                             }}
                         />
                     );
