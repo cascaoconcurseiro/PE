@@ -31,7 +31,7 @@ const Shared = lazy(() => import('./components/Shared').then(m => ({ default: m.
 const Family = lazy(() => import('./components/Family').then(m => ({ default: m.Family })));
 const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
 const Investments = lazy(() => import('./components/Investments').then(m => ({ default: m.Investments })));
-const Reports = lazy(() => import('./components/Reports').then(m => ({ default: m.Reports })));
+
 
 const App = () => {
     const [sessionUser, setSessionUser] = useState<any>(null);
@@ -441,8 +441,7 @@ const App = () => {
                 />
             case View.INVESTMENTS:
                 return <Investments accounts={calculatedAccounts} transactions={transactions} assets={assets} onAddAsset={handlers.handleAddAsset} onUpdateAsset={handlers.handleUpdateAsset} onDeleteAsset={handlers.handleDeleteAsset} onAddTransaction={handlers.handleAddTransaction} onAddAccount={handlers.handleAddAccount} currentDate={currentDate} showValues={showValues} />;
-            case View.REPORTS:
-                return <Reports accounts={calculatedAccounts} transactions={transactions} showValues={showValues} trips={trips} familyMembers={familyMembers} />;
+
             case View.SETTINGS:
                 return <Settings customCategories={customCategories} onAddCategory={handlers.handleAddCategory} onDeleteCategory={handlers.handleDeleteCategory} accounts={accounts} transactions={transactions} trips={trips} budgets={budgets} goals={goals} familyMembers={familyMembers} assets={assets} snapshots={snapshots} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onFactoryReset={handlers.handleFactoryReset} />;
             default:

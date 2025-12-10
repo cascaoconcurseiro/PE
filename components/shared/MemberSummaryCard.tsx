@@ -47,23 +47,48 @@ export const MemberSummaryCard: React.FC<MemberSummaryCardProps> = ({ member, it
             </div>
 
             <div className="bg-slate-50/50 dark:bg-slate-900/30 divide-y divide-slate-100 dark:divide-slate-700 max-h-60 overflow-y-auto">
-                {items.filter(i => !i.isPaid).map(item => {
+                {items.map(item => {
                     const trip = item.tripId ? trips.find(t => t.id === item.tripId) : null;
+                    const isPaid = item.isPaid;
+
                     return (
-                        <div key={item.id} className="px-6 py-4 flex justify-between items-center">
+                        <div key={item.id} className={`px-6 py-4 flex justify-between items-center ${isPaid ? 'opacity-60 bg-slate-50 dark:bg-slate-900/20' : ''}`}>
                             <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-lg ${item.type === 'CREDIT' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
-                                    {item.type === 'CREDIT' ? <ArrowRight className="w-4 h-4" /> : <ArrowRight className="w-4 h-4 transform rotate-180" />}
+                                <div className={`p-2 rounded-lg ${isPaid
+                                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                                        : item.type === 'CREDIT'
+                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600'
+                                            : 'bg-red-100 dark:bg-red-900/30 text-red-600'
+                                    }`}>
+                                    {isPaid ? (
+                                        <div className="w-4 h-4 flex items-center justify-center font-bold text-[10px]">OK</div>
+                                    ) : (
+                                        item.type === 'CREDIT' ? <ArrowRight className="w-4 h-4" /> : <ArrowRight className="w-4 h-4 transform rotate-180" />
+                                    )}
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-slate-800 dark:text-white">{item.description}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className={`text-sm font-bold ${isPaid ? 'text-slate-500 line-through decoration-slate-400' : 'text-slate-800 dark:text-white'}`}>
+                                            {item.description}
+                                        </p>
+                                        {isPaid && (
+                                            <span className="text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded">
+                                                PAGO
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="flex flex-wrap gap-2 mt-0.5">
                                         {trip && <span className="text-[10px] bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><Plane className="w-3 h-3" /> {trip.name}</span>}
                                         <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(item.date).toLocaleDateString()}</span>
                                     </div>
                                 </div>
                             </div>
-                            <span className={`font-bold text-sm ${item.type === 'CREDIT' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                            <span className={`font-bold text-sm ${isPaid
+                                    ? 'text-slate-400'
+                                    : item.type === 'CREDIT'
+                                        ? 'text-emerald-700 dark:text-emerald-400'
+                                        : 'text-red-700 dark:text-red-400'
+                                }`}>
                                 {formatCurrency(item.amount, item.currency || 'BRL')}
                             </span>
                         </div>

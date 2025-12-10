@@ -181,7 +181,7 @@ export enum View {
   FAMILY = 'Família',
   SETTINGS = 'Configurações',
   INVESTMENTS = 'Investimentos',
-  REPORTS = 'Relatórios',
+
   AI_ADVISOR = 'IA Advisor'
 }
 
