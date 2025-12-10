@@ -284,6 +284,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
                 monthlyExpense={monthlyExpense}
                 currentDate={currentDate}
                 showValues={showValues}
+                incomeSparkline={useMemo(() => {
+                    const days = 7;
+                    const data: number[] = [];
+                    for (let i = days - 1; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        const dateStr = d.toISOString().split('T')[0];
+                        const dayTotal = transactions
+                            .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.INCOME)
+                            .reduce((sum, t) => sum + t.amount, 0);
+                        data.push(dayTotal);
+                    }
+                    return data;
+                }, [transactions])}
+                expenseSparkline={useMemo(() => {
+                    const days = 7;
+                    const data: number[] = [];
+                    for (let i = days - 1; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        const dateStr = d.toISOString().split('T')[0];
+                        const dayTotal = transactions
+                            .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.EXPENSE)
+                            .reduce((sum, t) => sum + t.amount, 0);
+                        data.push(dayTotal);
+                    }
+                    return data;
+                }, [transactions])}
             />
 
             <Suspense fallback={<ChartSkeleton />}>

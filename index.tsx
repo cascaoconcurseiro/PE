@@ -4,9 +4,9 @@ import { Loader2 } from 'lucide-react';
 // import { migrateFromLocalStorage } from './services/db'; // Removed: Dexie migration no longer needed
 import { supabase } from './integrations/supabase/client';
 import { Auth } from './components/Auth';
-import { View, SyncStatus, TransactionType } from './types';
+import { View, SyncStatus, TransactionType, Transaction } from './types';
 import { calculateBalances } from './services/balanceEngine';
-import { ThemeProvider } from './components/ui/ThemeContext';
+import { ThemeProvider, useTheme } from './components/ui/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
 import { SettingsProvider } from './hooks/useSettings';
 import { DashboardSkeleton } from './components/ui/Skeleton';
@@ -17,6 +17,8 @@ import { InconsistenciesModal } from './components/ui/InconsistenciesModal';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { SettlementReviewModal } from './components/shared/SettlementReviewModal';
 import { SettlementModal } from './components/shared/SettlementModal';
+import { GlobalSearch } from './components/GlobalSearch';
+import { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardShortcuts';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 // ServiceWorkerUpdater removed - was causing storage access errors
 import './index.css';
@@ -115,6 +117,7 @@ const App = () => {
     const [activeView, setActiveView] = useState<View>(View.DASHBOARD);
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [isInconsistenciesModalOpen, setIsInconsistenciesModalOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [editTxId, setEditTxId] = useState<string | null>(null);
     const [navigatedAccountId, setNavigatedAccountId] = useState<string | null>(null);
     const [showValues, setShowValues] = useState<boolean>(() => {
@@ -128,7 +131,17 @@ const App = () => {
             return [];
         }
     });
-    // ... (previous imports)
+
+    // Keyboard Shortcuts
+    useKeyboardShortcuts(getDefaultShortcuts({
+        openNewTransaction: () => setIsTxModalOpen(true),
+        openSearch: () => setIsSearchOpen(true),
+        closeModal: () => {
+            if (isSearchOpen) setIsSearchOpen(false);
+            else if (isTxModalOpen) setIsTxModalOpen(false);
+        }
+    }), !!sessionUser);
+
     const [pendingSharedRequests, setPendingSharedRequests] = useState(0);
     const [pendingSettlements, setPendingSettlements] = useState<any[]>([]); // Store full objects
     const [activeSettlementRequest, setActiveSettlementRequest] = useState<any | null>(null);
@@ -540,6 +553,18 @@ const App = () => {
                             }, 3000);
                         }
                     }, 500);
+                }}
+            />
+
+            {/* Global Search Modal */}
+            <GlobalSearch
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                transactions={transactions}
+                onSelectTransaction={(tx) => {
+                    handleViewChange(View.TRANSACTIONS);
+                    setEditTxId(tx.id);
+                    setIsSearchOpen(false);
                 }}
             />
 

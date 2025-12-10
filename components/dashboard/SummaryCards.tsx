@@ -3,6 +3,7 @@ import { Card } from '../ui/Card';
 import { Wallet, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../utils';
 import { PrivacyBlur } from '../ui/PrivacyBlur';
+import { MiniSparkline } from './MiniSparkline';
 
 interface SummaryCardsProps {
     netWorth: number;
@@ -10,6 +11,8 @@ interface SummaryCardsProps {
     monthlyExpense: number;
     currentDate: Date;
     showValues: boolean;
+    incomeSparkline?: number[];
+    expenseSparkline?: number[];
 }
 
 export const SummaryCards: React.FC<SummaryCardsProps> = ({
@@ -17,7 +20,9 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
     monthlyIncome,
     monthlyExpense,
     currentDate,
-    showValues
+    showValues,
+    incomeSparkline = [],
+    expenseSparkline = []
 }) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -99,6 +104,13 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
                                 <TrendingUp className="w-6 h-6 text-white" />
                             </div>
                         </div>
+                        {/* Sparkline */}
+                        {incomeSparkline.length > 1 && (
+                            <div className="mt-3 opacity-80">
+                                <MiniSparkline data={incomeSparkline} color="emerald" width={120} height={28} showDots />
+                                <p className="text-[9px] text-emerald-200/60 mt-1">Últimos 7 dias</p>
+                            </div>
+                        )}
                     </Card>
                 </div>
 
@@ -121,6 +133,13 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
                                 <TrendingDown className="w-6 h-6 text-white" />
                             </div>
                         </div>
+                        {/* Sparkline */}
+                        {expenseSparkline.length > 1 && (
+                            <div className="mt-3 opacity-80">
+                                <MiniSparkline data={expenseSparkline} color="red" width={120} height={28} showDots />
+                                <p className="text-[9px] text-red-200/60 mt-1">Últimos 7 dias</p>
+                            </div>
+                        )}
                     </Card>
                 </div>
             </div>
