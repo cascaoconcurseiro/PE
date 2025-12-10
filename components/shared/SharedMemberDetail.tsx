@@ -89,29 +89,27 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
     };
 
     const handleExport = (format: 'CSV' | 'PDF') => {
-        // Map InvoiceItems back to a structure export knows?
-        // Or just map to CSV friendly object
-        const data = items.map(i => ({
-            Data: new Date(i.date).toLocaleDateString('pt-BR'),
-            Descrição: i.description,
-            Categoria: i.category,
-            Valor: formatCurrency(i.amount, currency),
-            Tipo: i.type === 'CREDIT' ? 'Despesa' : 'Reembolso'
-        }));
+        // Map InvoiceItems to CSV-compatible arrays
+        const headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Tipo'];
+        const data = items.map(i => [
+            new Date(i.date).toLocaleDateString('pt-BR'),
+            i.description,
+            i.category || '',
+            i.amount.toFixed(2).replace('.', ','),
+            i.type === 'DEBIT' ? 'Eu Devo' : 'Me Devem'
+        ]);
 
         if (format === 'CSV') {
-            exportToCSV(data, ['Data', 'Descrição', 'Categoria', 'Valor', 'Tipo'], `Fatura_${member.name}_${currentDate.getMonth() + 1}_${currentDate.getFullYear()}`);
+            exportToCSV(data, headers, `Fatura_${member.name}_${currentDate.getMonth() + 1}_${currentDate.getFullYear()}`);
         } else {
-            // Mocking print for now or reusing printAccountStatement if adaptable
             // printAccountStatement expects Account + Transactions.
-            // We can construct a fake account and tx list.
             printAccountStatement({ ...member, name: member.name, type: 'OTHER', currency } as any,
                 items.map(i => ({
                     id: i.originalTxId,
                     date: i.date,
                     description: i.description,
                     amount: i.amount,
-                    type: i.type === 'CREDIT' ? 'EXPENSE' : 'INCOME',
+                    type: i.type === 'DEBIT' ? 'EXPENSE' : 'INCOME',
                     category: i.category as Category,
                     accountId: 'shared',
                     isShared: true
@@ -211,8 +209,14 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                     </div>
 
                     <div className="flex gap-2">
-                        <Button onClick={() => handleExport('CSV')} variant="ghost" size="sm" className="h-8 w-8 p-0" title="Exportar CSV"><Download className="w-4 h-4" /></Button>
-                        <Button onClick={() => handleExport('PDF')} variant="ghost" size="sm" className="h-8 w-8 p-0" title="Imprimir"><Printer className="w-4 h-4" /></Button>
+                        <Button onClick={() => handleExport('CSV')} variant="secondary" size="sm" className="h-9 px-3 gap-2 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 border-0" title="Exportar CSV">
+                            <Download className="w-4 h-4" />
+                            <span className="text-xs font-bold">CSV</span>
+                        </Button>
+                        <Button onClick={() => handleExport('PDF')} variant="secondary" size="sm" className="h-9 px-3 gap-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-200 border-0" title="Imprimir">
+                            <Printer className="w-4 h-4" />
+                            <span className="text-xs font-bold">Imprimir</span>
+                        </Button>
                     </div>
                 </div>
             </div>
