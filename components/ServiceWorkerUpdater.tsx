@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { useToast } from '../ui/Toast';
+import { useToast } from './ui/Toast';
 
 export const ServiceWorkerUpdater: React.FC = () => {
     const { addToast } = useToast();
