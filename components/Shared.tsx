@@ -1,12 +1,4 @@
-import React, { useState, useMemo } from 'react';
-import { Transaction, Trip, FamilyMember, TransactionType, Account, SyncStatus, Category, InvoiceItem } from '../types';
-import { SharedInstallmentImport } from './shared/SharedInstallmentImport';
-import { useSharedFinances } from '../hooks/useSharedFinances';
-import { MemberSummaryCard } from './shared/MemberSummaryCard';
-import { SettlementModal } from './shared/SettlementModal';
-import { SharedFilters } from './shared/SharedFilters';
-import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal';
-import { TransactionDeleteModal } from './transactions/TransactionDeleteModal';
+import { SharedMemberDetail } from './shared/SharedMemberDetail';
 
 interface SharedProps {
     transactions: Transaction[];
@@ -39,6 +31,9 @@ export const Shared: React.FC<SharedProps> = ({
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
 
+    // Bulk Delete State
+    const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
+
     // Use Custom Hook for Calculation Logic
     const { getFilteredInvoice, getTotals } = useSharedFinances({
         transactions,
@@ -48,7 +43,6 @@ export const Shared: React.FC<SharedProps> = ({
     });
 
     const displayMembers = useMemo(() => {
-        const uniqueIds = new Set([...members.map(m => m.id)]); // Assuming all members are passed in props
         return members;
     }, [members]);
 
@@ -66,6 +60,7 @@ export const Shared: React.FC<SharedProps> = ({
 
     const handleOpenSettleModal = (memberId: string, type: 'PAY' | 'RECEIVE' | 'OFFSET', currency: string) => {
         const allItems = getFilteredInvoice(memberId);
+        // Only settle UNPAID items
         const items = allItems.filter(i => !i.isPaid && (i.currency || 'BRL') === currency);
 
         const totals = getTotals(items);
@@ -83,13 +78,9 @@ export const Shared: React.FC<SharedProps> = ({
 
     const handleConfirmSettlement = (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number, date?: string) => {
         if (!settleModal.memberId) return;
-
-        // Validation handled in Modal, but good to check
         if (settleModal.type !== 'OFFSET' && !accountId) return;
 
         const settlementDate = date || new Date().toISOString().split('T')[0];
-        // Ensure we preserve the time part if we want, or just T12:00:00 to avoid timezone shifts
-        // For settlementAt, ISO string is fine.
         const now = new Date().toISOString();
         const settledAtISO = new Date(settlementDate).toISOString();
 
@@ -99,59 +90,72 @@ export const Shared: React.FC<SharedProps> = ({
 
         // 1. Transaction Record (Money Movement)
         if (settleModal.type !== 'OFFSET') {
-            if (settleModal.type === 'PAY') {
-                onAddTransaction({
-                    amount: finalAmount,
-                    description: `Pagamento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`,
-                    date: settlementDate, // ✅ Use selected date
-                    type: TransactionType.EXPENSE,
-                    category: Category.TRANSFER,
-                    accountId: accountId,
-                    destinationAccountId: 'EXTERNAL',
-                    isShared: false,
-                    relatedMemberId: settleModal.memberId!,
-                    exchangeRate: isConverting ? rate : undefined,
-                    currency: isConverting ? 'BRL' : settleModal.currency,
-                    createdAt: now,
-                    updatedAt: now,
-                    syncStatus: SyncStatus.PENDING
-                });
-            } else {
-                onAddTransaction({
-                    amount: finalAmount,
-                    description: `Recebimento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`,
-                    date: settlementDate, // ✅ Use selected date
-                    type: TransactionType.INCOME,
-                    category: Category.INCOME,
-                    accountId: accountId,
-                    isShared: false,
-                    relatedMemberId: settleModal.memberId!,
-                    exchangeRate: isConverting ? rate : undefined,
-                    currency: isConverting ? 'BRL' : settleModal.currency,
-                    createdAt: now,
-                    updatedAt: now,
-                    syncStatus: SyncStatus.PENDING
-                });
-            }
+            const desc = settleModal.type === 'PAY'
+                ? `Pagamento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`
+                : `Recebimento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`;
+
+            onAddTransaction({
+                amount: finalAmount,
+                description: desc,
+                date: settlementDate,
+                type: settleModal.type === 'PAY' ? TransactionType.EXPENSE : TransactionType.INCOME,
+                category: settleModal.type === 'PAY' ? Category.TRANSFER : Category.INCOME,
+                accountId: accountId,
+                destinationAccountId: settleModal.type === 'PAY' ? 'EXTERNAL' : undefined,
+                isShared: false,
+                relatedMemberId: settleModal.memberId!,
+                exchangeRate: isConverting ? rate : undefined,
+                currency: isConverting ? 'BRL' : settleModal.currency,
+                createdAt: now,
+                updatedAt: now,
+                syncStatus: SyncStatus.PENDING
+            });
         }
 
         // 2. Settle Original Items
         settleModal.items.forEach(item => {
             const originalTx = transactions.find(t => t.id === item.originalTxId);
             if (originalTx) {
-                if (item.type === 'CREDIT') {
-                    const updatedSplits = originalTx.sharedWith?.map(s => {
+                // If it's a split (CREDIT), mark THAT split as settled.
+                if (item.type === 'CREDIT' && originalTx.sharedWith) {
+                    const updatedSplits = originalTx.sharedWith.map(s => {
                         if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: settledAtISO };
                         return s;
                     });
                     onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
                 } else {
-                    onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: settledAtISO });
+                    // If it's a DEBIT (Main TX), mark main as Settled? 
+                    // Careful: If I paid 100, and shared 50 with Fran. 
+                    // Fran owes me 50. When Fran pays me 50, "DEBIT" item is settled.
+                    // The main TX (100) is already Paid (by me).
+                    // So we are marking the "Receivable" as settled.
+                    // Implementation: We don't have a separate table for receivables. 
+                    // We check `isSettled` on the transaction? 
+                    // If type is DEBIT, it means *I* am the payer, and *Shared Member* is the participant.
+                    // The "Item" in filter is constructed from the split.
+                    // So we should find the split for the Member and mark IT as settled?
+                    // Actually, for DEBIT: it means I paid, they owe me.
+                    // The split is `sharedWith: [{memberId: 'Fran', ...}]`.
+                    // So YES, we settle the split in sharedWith.
+                    if (originalTx.sharedWith) {
+                        const updatedSplits = originalTx.sharedWith.map(s => {
+                            if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: settledAtISO };
+                            return s;
+                        });
+                        onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
+                    }
                 }
             }
         });
 
         setSettleModal({ isOpen: false, memberId: null, type: 'PAY', items: [], total: 0, currency: 'BRL' });
+    };
+
+    const handleBulkDelete = (ids: string[]) => {
+        if (!onDeleteTransaction) return;
+        if (confirm(`Tem certeza que deseja excluir ${ids.length} itens?`)) {
+            ids.forEach(id => onDeleteTransaction(id, 'SINGLE'));
+        }
     };
 
     return (
@@ -164,28 +168,31 @@ export const Shared: React.FC<SharedProps> = ({
 
             <div className="space-y-6">
                 {displayMembers.map(member => {
+                    // Filter items for this view (Month + Tab)
                     const items = getFilteredInvoice(member.id);
-                    const totalsMap = getTotals(items);
 
                     return (
-                        <MemberSummaryCard
+                        <SharedMemberDetail
                             key={member.id}
                             member={member}
                             items={items}
-                            totalsMap={totalsMap}
-                            trips={trips}
-                            onOpenSettleModal={handleOpenSettleModal}
-                            onEditClick={(txId) => {
-                                const tx = transactions.find(t => t.id === txId);
+                            currentDate={currentDate}
+                            showValues={true} // Using global setting? Should pass prop or assume true for detail view? Using true for now or access context.
+                            currency="BRL" // Default to BRL for now, improved logic would detect mix
+                            onSettle={(type, amount) => handleOpenSettleModal(member.id, type, 'BRL')}
+                            onImport={() => setIsImportModalOpen(true)}
+                            onEditTransaction={(id) => {
+                                const tx = transactions.find(t => t.id === id);
                                 if (tx) setEditingTransaction(tx);
                             }}
-                            onDeleteClick={(txId) => {
-                                const tx = transactions.find(t => t.id === txId);
+                            onDeleteTransaction={(id) => {
+                                const tx = transactions.find(t => t.id === id);
                                 if (tx) {
                                     setTransactionToDelete(tx);
                                     setIsDeleteModalOpen(true);
                                 }
                             }}
+                            onBulkDelete={handleBulkDelete}
                         />
                     );
                 })}
@@ -221,13 +228,10 @@ export const Shared: React.FC<SharedProps> = ({
                     members={members}
                     onUpdateTransaction={onUpdateTransaction}
                     onDeleteTransaction={(id, scope) => {
-                        // Forward to Delete Modal Logic
                         const txStr = transactions.find(t => t.id === id);
                         if (txStr) {
                             setTransactionToDelete(txStr);
                             setIsDeleteModalOpen(true);
-                            // Do NOT close editingTransaction here, wait for delete confirm? 
-                            // Usually better to close edit modal when opening delete modal
                             setEditingTransaction(null);
                         }
                     }}
@@ -244,13 +248,7 @@ export const Shared: React.FC<SharedProps> = ({
                     }}
                     onConfirm={(scope) => {
                         if (onDeleteTransaction && transactionToDelete) {
-                            if (scope === 'SERIES' && transactionToDelete.seriesId) {
-                                // Delete All in Series
-                                onDeleteTransaction(transactionToDelete.id, 'SERIES');
-                            } else {
-                                // Delete Single
-                                onDeleteTransaction(transactionToDelete.id, 'SINGLE');
-                            }
+                            onDeleteTransaction(transactionToDelete.id, scope);
                         }
                         setIsDeleteModalOpen(false);
                         setTransactionToDelete(null);
