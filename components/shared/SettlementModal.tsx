@@ -14,7 +14,7 @@ interface SettlementModalProps {
         currency: string;
     };
     accounts: Account[];
-    onConfirm: (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number, date?: string) => void;
+    onConfirm: (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number, date?: string, customAmount?: number) => void;
 }
 
 export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClose, settleData, accounts, onConfirm }) => {
@@ -23,6 +23,8 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClos
     const [exchangeRate, setExchangeRate] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isPartial, setIsPartial] = useState(false);
+    const [customAmount, setCustomAmount] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -30,21 +32,25 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClos
             setExchangeRate('');
             setDate(new Date().toISOString().split('T')[0]);
             setIsProcessing(false);
+            setIsPartial(false);
+            setCustomAmount(settleData.total.toFixed(2));
             const validAccount = accounts.find(a => a.type !== AccountType.CREDIT_CARD && a.currency === settleData.currency);
             setSelectedAccountId(validAccount ? validAccount.id : '');
         }
-    }, [isOpen, settleData.currency, accounts]);
+    }, [isOpen, settleData.currency, settleData.total, accounts]);
 
     if (!isOpen) return null;
+
+    const finalAmount = isPartial ? (parseFloat(customAmount) || 0) : settleData.total;
 
     const handleConfirm = () => {
         if (!selectedAccountId && settleData.type !== 'OFFSET') return;
         if (isProcessing) return;
+        if (finalAmount <= 0) return;
 
         setIsProcessing(true);
         const rate = settlementMethod === 'CONVERT' ? parseFloat(exchangeRate) : undefined;
-        onConfirm(selectedAccountId, settlementMethod, rate, date);
-        // Note: Modal will close from parent, isProcessing resets on next open
+        onConfirm(selectedAccountId, settlementMethod, rate, date, isPartial ? finalAmount : undefined);
     };
 
     const isExpense = settleData.type === 'PAY';
@@ -55,7 +61,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClos
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="bg-white dark:bg-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 animate-in slide-in-from-bottom-full">
+            <div className="bg-white dark:bg-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 animate-in slide-in-from-bottom-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6 border-b border-slate-100 dark:border-slate-700">
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white">Acerto de Contas</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Resolvendo {settleData.items.length} pendências em <strong>{settleData.currency}</strong>.</p>
@@ -66,6 +72,45 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClos
                     <div className={`text-center font-bold text-lg ${actionColor} bg-slate-50 dark:bg-slate-900 py-2 rounded-xl`}>
                         {actionLabel}
                     </div>
+
+                    {/* Partial Payment Toggle */}
+                    <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                        <div>
+                            <span className="text-sm font-bold text-amber-900 dark:text-amber-200">Acerto Parcial?</span>
+                            <p className="text-xs text-amber-700 dark:text-amber-400">Pagar apenas uma parte da fatura</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setIsPartial(!isPartial)}
+                            className={`w-12 h-6 rounded-full transition-colors ${isPartial ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                        >
+                            <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${isPartial ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                        </button>
+                    </div>
+
+                    {/* Custom Amount Input */}
+                    {isPartial && (
+                        <div className="animate-in fade-in slide-in-from-top-2">
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                                Valor do {isExpense ? 'Pagamento' : 'Recebimento'}
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-3 text-lg font-bold text-slate-400">R$</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    max={settleData.total}
+                                    value={customAmount}
+                                    onChange={e => setCustomAmount(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 dark:text-white font-bold text-lg"
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">
+                                Total pendente: {formatCurrency(settleData.total, settleData.currency)} |
+                                Restará: {formatCurrency(settleData.total - finalAmount, settleData.currency)}
+                            </p>
+                        </div>
+                    )}
 
                     {/* Foreign Currency Handling */}
                     {settleData.currency !== 'BRL' && (
@@ -140,11 +185,13 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClos
 
                     {/* Summary */}
                     <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-500">Valor Final</span>
-                        <span className="text-2xl font-black text-slate-900 dark:text-white">
+                        <span className="text-xs font-bold text-slate-500">
+                            {isPartial ? 'Valor Parcial' : 'Valor Final'}
+                        </span>
+                        <span className={`text-2xl font-black ${isPartial ? 'text-amber-600' : 'text-slate-900 dark:text-white'}`}>
                             {settlementMethod === 'CONVERT' && exchangeRate
-                                ? formatCurrency(settleData.total * parseFloat(exchangeRate), 'BRL')
-                                : formatCurrency(settleData.total, settleData.currency)
+                                ? formatCurrency(finalAmount * parseFloat(exchangeRate), 'BRL')
+                                : formatCurrency(finalAmount, settleData.currency)
                             }
                         </span>
                     </div>

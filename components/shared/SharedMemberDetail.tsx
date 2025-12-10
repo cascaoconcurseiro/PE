@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { FamilyMember, Transaction, Category, InvoiceItem } from '../../types';
 import { Button } from '../ui/Button';
-import { ArrowDownLeft, Clock, FileUp, ShoppingBag, CreditCard, Users, Trash2, Edit2, CheckSquare, Square, Download, Printer } from 'lucide-react';
+import { ArrowDownLeft, Clock, FileUp, ShoppingBag, CreditCard, Users, Trash2, Edit2, CheckSquare, Square, Download, Printer, RotateCcw, CheckCircle } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../../utils';
 import { exportToCSV, prepareTransactionsForExport } from '../../services/exportUtils';
 import { printAccountStatement } from '../../services/printUtils';
@@ -26,11 +26,12 @@ interface SharedMemberDetailProps {
     onEditTransaction: (id: string) => void;
     onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
     onBulkDelete?: (ids: string[]) => void;
+    onUndoSettlement?: (item: InvoiceItem) => void;
 }
 
 export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
     member, items, currentDate, showValues, currency,
-    onSettle, onImport, onEditTransaction, onDeleteTransaction, onBulkDelete
+    onSettle, onImport, onEditTransaction, onDeleteTransaction, onBulkDelete, onUndoSettlement
 }) => {
 
     // Selection Mode State (Preserving user feature)
@@ -311,22 +312,45 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
 
                                                             {!isSelectionMode && (
                                                                 <div className="flex gap-1">
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        onClick={(e) => { e.stopPropagation(); onEditTransaction(item.originalTxId); }}
-                                                                        className="h-8 w-8 p-0 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600"
-                                                                    >
-                                                                        <Edit2 className="w-3.5 h-3.5" />
-                                                                    </Button>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        onClick={(e) => { e.stopPropagation(); onDeleteTransaction(item.originalTxId); }}
-                                                                        className="h-8 w-8 p-0 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600"
-                                                                    >
-                                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                                    </Button>
+                                                                    {/* Settled indicator and undo button for history items */}
+                                                                    {item.isPaid ? (
+                                                                        <>
+                                                                            <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 px-2">
+                                                                                <CheckCircle className="w-3.5 h-3.5" />
+                                                                                Pago
+                                                                            </span>
+                                                                            {onUndoSettlement && (
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="ghost"
+                                                                                    onClick={(e) => { e.stopPropagation(); onUndoSettlement(item); }}
+                                                                                    className="h-8 w-8 p-0 rounded-full hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:text-amber-600"
+                                                                                    title="Desfazer acerto"
+                                                                                >
+                                                                                    <RotateCcw className="w-3.5 h-3.5" />
+                                                                                </Button>
+                                                                            )}
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="ghost"
+                                                                                onClick={(e) => { e.stopPropagation(); onEditTransaction(item.originalTxId); }}
+                                                                                className="h-8 w-8 p-0 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600"
+                                                                            >
+                                                                                <Edit2 className="w-3.5 h-3.5" />
+                                                                            </Button>
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="ghost"
+                                                                                onClick={(e) => { e.stopPropagation(); onDeleteTransaction(item.originalTxId); }}
+                                                                                className="h-8 w-8 p-0 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600"
+                                                                            >
+                                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                                            </Button>
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                         </div>

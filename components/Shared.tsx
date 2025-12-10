@@ -84,7 +84,7 @@ export const Shared: React.FC<SharedProps> = ({
         });
     };
 
-    const handleConfirmSettlement = (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number, date?: string) => {
+    const handleConfirmSettlement = (accountId: string, method: 'SAME_CURRENCY' | 'CONVERT', exchangeRate?: number, date?: string, customAmount?: number) => {
         if (!settleModal.memberId) return;
         if (settleModal.type !== 'OFFSET' && !accountId) return;
 
@@ -94,13 +94,18 @@ export const Shared: React.FC<SharedProps> = ({
 
         const isConverting = method === 'CONVERT';
         const rate = isConverting && exchangeRate ? exchangeRate : 1;
-        const finalAmount = settleModal.total * rate;
+
+        // Use custom amount for partial settlements, otherwise full amount
+        const baseAmount = customAmount !== undefined ? customAmount : settleModal.total;
+        const finalAmount = baseAmount * rate;
+        const isPartialSettlement = customAmount !== undefined && customAmount < settleModal.total;
 
         // 1. Transaction Record (Money Movement)
         if (settleModal.type !== 'OFFSET') {
+            const memberName = members.find(m => m.id === settleModal.memberId)?.name;
             const desc = settleModal.type === 'PAY'
-                ? `Pagamento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`
-                : `Recebimento Acerto - ${members.find(m => m.id === settleModal.memberId)?.name}`;
+                ? `Pagamento ${isPartialSettlement ? 'Parcial ' : ''}Acerto - ${memberName}`
+                : `Recebimento ${isPartialSettlement ? 'Parcial ' : ''}Acerto - ${memberName}`;
 
             onAddTransaction({
                 amount: finalAmount,
@@ -120,41 +125,35 @@ export const Shared: React.FC<SharedProps> = ({
             });
         }
 
-        // 2. Settle Original Items
-        settleModal.items.forEach(item => {
-            const originalTx = transactions.find(t => t.id === item.originalTxId);
-            if (originalTx) {
-                // If it's a split (CREDIT), mark THAT split as settled.
-                if (item.type === 'CREDIT' && originalTx.sharedWith) {
-                    const updatedSplits = originalTx.sharedWith.map(s => {
-                        if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: settledAtISO };
-                        return s;
-                    });
-                    onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
-                } else {
-                    // If it's a DEBIT (Main TX), mark main as Settled? 
-                    // Careful: If I paid 100, and shared 50 with Fran. 
-                    // Fran owes me 50. When Fran pays me 50, "DEBIT" item is settled.
-                    // The main TX (100) is already Paid (by me).
-                    // So we are marking the "Receivable" as settled.
-                    // Implementation: We don't have a separate table for receivables. 
-                    // We check `isSettled` on the transaction? 
-                    // If type is DEBIT, it means *I* am the payer, and *Shared Member* is the participant.
-                    // The "Item" in filter is constructed from the split.
-                    // So we should find the split for the Member and mark IT as settled?
-                    // Actually, for DEBIT: it means I paid, they owe me.
-                    // The split is `sharedWith: [{memberId: 'Fran', ...}]`.
-                    // So YES, we settle the split in sharedWith.
-                    if (originalTx.sharedWith) {
+        // 2. Settle Original Items (only if FULL settlement, not partial)
+        // For partial, we just record the payment but don't mark items as settled
+        if (!isPartialSettlement) {
+            settleModal.items.forEach(item => {
+                const originalTx = transactions.find(t => t.id === item.originalTxId);
+                if (originalTx) {
+                    // If it's a split (CREDIT), mark THAT split as settled.
+                    if (item.type === 'CREDIT' && originalTx.sharedWith) {
                         const updatedSplits = originalTx.sharedWith.map(s => {
                             if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: settledAtISO };
                             return s;
                         });
                         onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
+                    } else {
+                        // If type is DEBIT, it means payerId is set, we need to mark the transaction as settled
+                        if (originalTx.sharedWith) {
+                            const updatedSplits = originalTx.sharedWith.map(s => {
+                                if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: settledAtISO };
+                                return s;
+                            });
+                            onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
+                        } else {
+                            // Mark the transaction itself as settled
+                            onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: settledAtISO });
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
 
         setSettleModal({ isOpen: false, memberId: null, type: 'PAY', items: [], total: 0, currency: 'BRL' });
     };
@@ -163,6 +162,27 @@ export const Shared: React.FC<SharedProps> = ({
         if (!onDeleteTransaction) return;
         if (confirm(`Tem certeza que deseja excluir ${ids.length} itens?`)) {
             ids.forEach(id => onDeleteTransaction(id, 'SINGLE'));
+        }
+    };
+
+    const handleUndoSettlement = (item: InvoiceItem) => {
+        if (!confirm('Deseja desfazer o acerto deste item? Ele voltará a aparecer como pendente.')) return;
+
+        const originalTx = transactions.find(t => t.id === item.originalTxId);
+        if (!originalTx) return;
+
+        // If it has sharedWith, unsettle the specific split
+        if (originalTx.sharedWith && originalTx.sharedWith.length > 0) {
+            const updatedSplits = originalTx.sharedWith.map(s => {
+                if (s.memberId === item.memberId) {
+                    return { ...s, isSettled: false, settledAt: undefined };
+                }
+                return s;
+            });
+            onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
+        } else {
+            // Unsettle the transaction itself
+            onUpdateTransaction({ ...originalTx, isSettled: false, settledAt: undefined });
         }
     };
 
@@ -201,6 +221,7 @@ export const Shared: React.FC<SharedProps> = ({
                                 }
                             }}
                             onBulkDelete={handleBulkDelete}
+                            onUndoSettlement={handleUndoSettlement}
                         />
                     );
                 })}
