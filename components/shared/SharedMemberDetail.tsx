@@ -39,30 +39,26 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
     // 1. Calculate Totals
+    // InvoiceItem types based on useSharedFinances:
+    // CREDIT = I paid, they owe me (me devem) = positive for me
+    // DEBIT = They paid, I owe them (eu devo) = negative for me
     const { totalExpenses, totalIncome, netTotal } = useMemo(() => {
-        let expenses = 0; // I owe them (Credit) -> Positive in Debt
-        let income = 0;   // They owe me (Debit) -> Negative in Debt?
-        // Wait, "InvoiceItem" types:
-        // DEBIT = They owe me (I paid) -> Positive receiving?
-        // CREDIT = I owe them (They paid) -> Negative paying?
-
-        // Let's stick to the visual: "Fatura de X" = How much I have to PAY X.
-        // So Credit (I owe) is the main "Expense".
-        // Debit (They owe) reduces the bill.
+        let expenses = 0; // DEBIT items = I owe them
+        let income = 0;   // CREDIT items = They owe me
 
         let net = 0;
 
         items.forEach(i => {
             if (i.isPaid) return; // Ignore settled
 
-            // If Type CREDIT (I owe): Increases my bill.
-            if (i.type === 'CREDIT') {
+            if (i.type === 'DEBIT') {
+                // DEBIT = They paid, I owe them
                 expenses += i.amount;
-                net += i.amount;
+                net -= i.amount; // Negative for me
             } else {
-                // Type DEBIT (They owe me): Decreases my bill (Refund alike)
+                // CREDIT = I paid, they owe me
                 income += i.amount;
-                net -= i.amount;
+                net += i.amount; // Positive for me
             }
         });
 
@@ -305,12 +301,12 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                                 </div>
                                                             )}
 
-                                                            {/* Category Icon - CREDIT (eu devo) = red, DEBIT (ela me deve) = green */}
-                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${item.type === 'CREDIT'
+                                                            {/* Category Icon - DEBIT (eu devo, outro pagou) = red, CREDIT (me devem, eu paguei) = green */}
+                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${item.type === 'DEBIT'
                                                                 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                                                                 : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                                                                 }`}>
-                                                                {item.type === 'CREDIT' ? <CatIcon className="w-5 h-5" /> : <ArrowDownLeft className="w-5 h-5" />}
+                                                                {item.type === 'DEBIT' ? <CatIcon className="w-5 h-5" /> : <ArrowDownLeft className="w-5 h-5" />}
                                                             </div>
 
                                                             <div className="flex-1 min-w-0">
@@ -332,22 +328,22 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                                     )}
 
                                                                     {/* Type indicator badge */}
-                                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${item.type === 'CREDIT'
+                                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${item.type === 'DEBIT'
                                                                         ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                                                                         : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                                                                         }`}>
-                                                                        {item.type === 'CREDIT' ? 'EU DEVO' : 'ME DEVEM'}
+                                                                        {item.type === 'DEBIT' ? 'EU DEVO' : 'ME DEVEM'}
                                                                     </span>
                                                                 </div>
                                                             </div>
                                                         </div>
 
                                                         <div className="flex items-center gap-3">
-                                                            <span className={`font-bold text-base ${item.type === 'CREDIT'
+                                                            <span className={`font-bold text-base ${item.type === 'DEBIT'
                                                                 ? 'text-red-700 dark:text-red-400'
                                                                 : 'text-emerald-700 dark:text-emerald-400'
                                                                 }`}>
-                                                                {item.type === 'CREDIT' ? '-' : '+'}{formatCurrency(item.amount, currency)}
+                                                                {item.type === 'DEBIT' ? '-' : '+'}{formatCurrency(item.amount, currency)}
                                                             </span>
 
                                                             {!isSelectionMode && (
