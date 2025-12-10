@@ -18,6 +18,7 @@ import { LoadingScreen } from './components/ui/LoadingScreen';
 import { SettlementReviewModal } from './components/shared/SettlementReviewModal';
 import { SettlementModal } from './components/shared/SettlementModal';
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { ServiceWorkerUpdater } from './components/ServiceWorkerUpdater';
 import './index.css';
 
 // Lazy load heavy components
@@ -547,11 +548,11 @@ const root = createRoot(container!);
 root.render(
     <ErrorBoundary>
         <ThemeProvider>
-            <ToastProvider>
-                <SettingsProvider>
-                    <App />
-                </SettingsProvider>
-            </ToastProvider>
-        </ThemeProvider>
-    </ErrorBoundary>
+            <SettingsProvider>
+                <ServiceWorkerUpdater />
+                <App />
+            </SettingsProvider>
+        </ToastProvider>
+    </ThemeProvider>
+    </ErrorBoundary >
 );
