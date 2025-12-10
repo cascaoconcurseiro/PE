@@ -238,7 +238,7 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                             return (
                                 <div
                                     key={item.originalTxId}
-                                    className={`p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/10' : ''}`}
+                                    className={`group p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/10' : ''}`}
                                     onClick={() => isSelectionMode && handleToggleSelect(item.originalTxId)}
                                 >
                                     <div className="flex items-center gap-4">
@@ -279,7 +279,7 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                         </span>
 
                                         {!isSelectionMode && (
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex gap-1 sm:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                                                 {/* Edit Button */}
                                                 <Button
                                                     size="sm"
