@@ -157,13 +157,13 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                             {/* Action Buttons */}
                             {netTotal !== 0 && (
                                 <Button
-                                    onClick={() => onSettle(netTotal > 0 ? 'PAY' : 'RECEIVE', Math.abs(netTotal))}
+                                    onClick={() => onSettle(netTotal > 0 ? 'RECEIVE' : 'PAY', Math.abs(netTotal))}
                                     className={`w-full md:w-auto rounded-xl font-bold shadow-lg text-white min-w-[160px] ${netTotal > 0
-                                        ? 'shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700'
-                                        : 'shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700'
+                                        ? 'shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700'
+                                        : 'shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700'
                                         }`}
                                 >
-                                    {netTotal > 0 ? 'Pagar Fatura' : 'Receber Valor'}
+                                    {netTotal > 0 ? 'Receber Fatura' : 'Pagar Fatura'}
                                 </Button>
                             )}
                             <div className="flex gap-2">
