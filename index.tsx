@@ -18,7 +18,7 @@ import { LoadingScreen } from './components/ui/LoadingScreen';
 import { SettlementReviewModal } from './components/shared/SettlementReviewModal';
 import { SettlementModal } from './components/shared/SettlementModal';
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { ServiceWorkerUpdater } from './components/ServiceWorkerUpdater';
+// ServiceWorkerUpdater removed - was causing storage access errors
 import './index.css';
 
 // Lazy load heavy components
@@ -557,7 +557,7 @@ root.render(
         <ThemeProvider>
             <ToastProvider>
                 <SettingsProvider>
-                    <ServiceWorkerUpdater />
+
                     <App />
                 </SettingsProvider>
             </ToastProvider>
