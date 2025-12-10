@@ -98,16 +98,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
     const selectedTrip = trips.find(t => t.id === tripId);
 
-    // Filter accounts based on Trip Currency logic
-    const filteredAccountsForTrip = React.useMemo(() => {
-        if (!selectedTrip || selectedTrip.currency === 'BRL') {
-            return availableAccounts;
-        }
-        return availableAccounts.filter(acc =>
-            acc.currency === selectedTrip.currency ||
-            (acc.type === AccountType.CREDIT_CARD && acc.isInternational)
-        );
-    }, [availableAccounts, selectedTrip]);
+    // Allow all accounts for trip expenses - multi-currency is handled by exchange rate
+    const filteredAccountsForTrip = availableAccounts;
 
     if (accounts.length === 0) {
         return (
