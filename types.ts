@@ -306,6 +306,8 @@ export interface InvoiceItem {
   memberId: string;
   currency?: string;
   seriesId?: string;
+  installmentNumber?: number;
+  totalInstallments?: number;
 }
 
 export interface SettlementRequest extends BaseEntity {

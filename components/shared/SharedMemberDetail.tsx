@@ -159,8 +159,8 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                 <Button
                                     onClick={() => onSettle(netTotal > 0 ? 'PAY' : 'RECEIVE', Math.abs(netTotal))}
                                     className={`w-full md:w-auto rounded-xl font-bold shadow-lg text-white min-w-[160px] ${netTotal > 0
-                                            ? 'shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700'
-                                            : 'shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700'
+                                        ? 'shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700'
+                                        : 'shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700'
                                         }`}
                                 >
                                     {netTotal > 0 ? 'Pagar Fatura' : 'Receber Valor'}
@@ -206,7 +206,7 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                 <Button size="sm" variant="ghost" onClick={handleSelectAll} className="text-xs">
                                     {selectedItems.size === items.length ? 'Desmarcar Todos' : 'Marcar Todos'}
                                 </Button>
-                                <Button size="sm" variant="destructive" onClick={handleBulkDelete} disabled={selectedItems.size === 0}>
+                                <Button size="sm" variant="danger" onClick={handleBulkDelete} disabled={selectedItems.size === 0}>
                                     <Trash2 className="w-4 h-4 mr-2" /> Excluir ({selectedItems.size})
                                 </Button>
                                 <Button size="sm" variant="ghost" onClick={() => setIsSelectionMode(false)}>Cancelar</Button>

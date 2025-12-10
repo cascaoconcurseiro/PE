@@ -36,7 +36,9 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                         isPaid: !!split.isSettled,
                         tripId: t.tripId,
                         memberId: split.memberId,
-                        currency: txCurrency
+                        currency: txCurrency,
+                        installmentNumber: t.currentInstallment,
+                        totalInstallments: t.totalInstallments
                     });
                 });
             }
@@ -63,7 +65,9 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                         isPaid: !!t.isSettled,
                         tripId: t.tripId,
                         memberId: payerId,
-                        currency: txCurrency
+                        currency: txCurrency,
+                        installmentNumber: t.currentInstallment,
+                        totalInstallments: t.totalInstallments
                     });
                 }
             }
