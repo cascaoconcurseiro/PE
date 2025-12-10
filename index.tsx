@@ -42,18 +42,25 @@ const App = () => {
     // Initial Setup & Session Check
     useEffect(() => {
         const init = async () => {
-            // Check active session
-            const { data: { session } } = await supabase.auth.getSession();
-            startTransition(() => {
-                if (session) {
-                    setSessionUser({
-                        id: session.user.id,
-                        name: session.user.user_metadata.name || session.user.email?.split('@')[0],
-                        email: session.user.email
-                    });
-                }
+            try {
+                // Check active session
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) throw error;
+
+                startTransition(() => {
+                    if (session) {
+                        setSessionUser({
+                            id: session.user.id,
+                            name: session.user.user_metadata.name || session.user.email?.split('@')[0],
+                            email: session.user.email
+                        });
+                    }
+                    setIsSessionLoading(false);
+                });
+            } catch (err) {
+                console.warn("Session init error:", err);
                 setIsSessionLoading(false);
-            });
+            }
         };
         init();
 
