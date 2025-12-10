@@ -1,3 +1,11 @@
+import React, { useState, useMemo } from 'react';
+import { Transaction, Trip, FamilyMember, Account, TransactionType, Category, SyncStatus, InvoiceItem } from '../types';
+import { useSharedFinances } from '../hooks/useSharedFinances';
+import { SharedFilters } from './shared/SharedFilters';
+import { SettlementModal } from './shared/SettlementModal';
+import { SharedInstallmentImport } from './shared/SharedInstallmentImport';
+import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal';
+import { TransactionDeleteModal } from './transactions/TransactionDeleteModal';
 import { SharedMemberDetail } from './shared/SharedMemberDetail';
 
 interface SharedProps {
