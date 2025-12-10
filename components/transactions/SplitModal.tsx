@@ -127,6 +127,52 @@ export const SplitModal: React.FC<SplitModalProps> = ({
                         )}
                     </div>
 
+                    {/* 3. PRESETS DE DIVISÃO RÁPIDA */}
+                    {splits.length > 0 && familyMembers.length > 0 && (
+                        <div className="animate-in fade-in slide-in-from-top-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Divisão Rápida</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { label: '50/50', myPct: 50 },
+                                    { label: '60/40', myPct: 60 },
+                                    { label: '70/30', myPct: 70 },
+                                    { label: '80/20', myPct: 80 },
+                                    { label: 'Só eu', myPct: 100 },
+                                    { label: 'Só parceiro', myPct: 0 }
+                                ].map(preset => {
+                                    const otherPct = 100 - preset.myPct;
+                                    const isActive = splits.length > 0 &&
+                                        Math.round(splits[0].percentage) === otherPct;
+
+                                    return (
+                                        <button
+                                            key={preset.label}
+                                            onClick={() => {
+                                                const newSplits = splits.map(s => ({
+                                                    ...s,
+                                                    percentage: otherPct,
+                                                    assignedAmount: activeAmount * (otherPct / 100)
+                                                }));
+                                                setSplits(newSplits);
+                                            }}
+                                            className={`py-2 px-3 rounded-xl text-xs font-bold transition-all ${isActive
+                                                    ? 'bg-indigo-600 text-white shadow-lg'
+                                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            {preset.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-2 text-center">
+                                Parceiro paga: <span className="font-bold text-indigo-600">
+                                    {splits[0]?.percentage || 50}% = R$ {((activeAmount * (splits[0]?.percentage || 50)) / 100).toFixed(2)}
+                                </span>
+                            </p>
+                        </div>
+                    )}
+
                     <div className="p-4 bg-blue-50 rounded-xl text-xs text-blue-800 leading-relaxed border border-blue-100">
                         <p><strong>Nota:</strong> Se você selecionou que "Outro Pagou", o valor total da transação será registrado como uma dívida sua com essa pessoa, descontando a parte que você dividiu (se houver).</p>
                     </div>

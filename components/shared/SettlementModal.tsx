@@ -22,12 +22,14 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClos
     const [settlementMethod, setSettlementMethod] = useState<'SAME_CURRENCY' | 'CONVERT'>('SAME_CURRENCY');
     const [exchangeRate, setExchangeRate] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
             setSettlementMethod('SAME_CURRENCY');
             setExchangeRate('');
             setDate(new Date().toISOString().split('T')[0]);
+            setIsProcessing(false);
             const validAccount = accounts.find(a => a.type !== AccountType.CREDIT_CARD && a.currency === settleData.currency);
             setSelectedAccountId(validAccount ? validAccount.id : '');
         }
@@ -37,8 +39,12 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClos
 
     const handleConfirm = () => {
         if (!selectedAccountId && settleData.type !== 'OFFSET') return;
+        if (isProcessing) return;
+
+        setIsProcessing(true);
         const rate = settlementMethod === 'CONVERT' ? parseFloat(exchangeRate) : undefined;
         onConfirm(selectedAccountId, settlementMethod, rate, date);
+        // Note: Modal will close from parent, isProcessing resets on next open
     };
 
     const isExpense = settleData.type === 'PAY';
@@ -143,8 +149,12 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({ isOpen, onClos
                         </span>
                     </div>
 
-                    <Button onClick={handleConfirm} disabled={!selectedAccountId || (settlementMethod === 'CONVERT' && !exchangeRate)} className="w-full h-12 text-lg">
-                        Confirmar
+                    <Button
+                        onClick={handleConfirm}
+                        disabled={!selectedAccountId || (settlementMethod === 'CONVERT' && !exchangeRate) || isProcessing}
+                        className="w-full h-12 text-lg"
+                    >
+                        {isProcessing ? 'Processando...' : 'Confirmar'}
                     </Button>
                 </div>
             </div>

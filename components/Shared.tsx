@@ -31,7 +31,7 @@ export const Shared: React.FC<SharedProps> = ({
     onDeleteTransaction,
     onNavigateToTrips
 }) => {
-    const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
+    const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL' | 'HISTORY'>('REGULAR');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     // Edit & Delete State

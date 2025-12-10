@@ -6,7 +6,7 @@ interface UseSharedFinancesProps {
     transactions: Transaction[];
     members: FamilyMember[];
     currentDate: Date;
-    activeTab: 'REGULAR' | 'TRAVEL';
+    activeTab: 'REGULAR' | 'TRAVEL' | 'HISTORY';
 }
 
 export const useSharedFinances = ({ transactions, members, currentDate, activeTab }: UseSharedFinancesProps) => {
@@ -79,6 +79,9 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
         const allItems = invoices[memberId] || [];
         if (activeTab === 'TRAVEL') {
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        } else if (activeTab === 'HISTORY') {
+            // Show all SETTLED items, sorted by date descending
+            return allItems.filter(i => i.isPaid).sort((a, b) => b.date.localeCompare(a.date));
         } else {
             // Only show items from the current month (same as credit card logic)
             // Each installment appears only in its respective month
