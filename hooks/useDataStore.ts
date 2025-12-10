@@ -263,6 +263,10 @@ export const useDataStore = () => {
                 // Combine recent and history for the engine
                 const allTxs = [...recentTxs, ...historyTxs];
                 processRecurringTransactions(allTxs, handleAddTransaction, handleUpdateTransaction);
+
+                // Run Consistency Check
+                const issues = checkDataConsistency(accs, allTxs);
+                setDataInconsistencies(issues);
             }, 100);
 
             isInitialized.current = true;

@@ -122,11 +122,7 @@ export default defineConfig(({ mode }) => {
               './components/accounts/AccountForm.tsx',
               './components/accounts/CreditCardImportModal.tsx',
             ],
-            'components-reports': [
-              './components/Reports.tsx',
-              './components/reports/SharedExpensesReport.tsx',
-              './components/reports/TravelReport.tsx',
-            ],
+
           },
           // Performance: Optimize chunk file names
           chunkFileNames: 'assets/[name]-[hash].js',

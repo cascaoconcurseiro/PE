@@ -196,12 +196,21 @@ export const useTransactionForm = ({
             }
         }
 
-        // ✅ Verificar se há erros antes de prosseguir
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             // Scroll para o primeiro erro
             const firstErrorKey = Object.keys(newErrors)[0];
             console.error('❌ Erro de validação:', firstErrorKey, newErrors[firstErrorKey]);
+
+            // Tentativa de scroll suave até o elemento com erro
+            const element = document.getElementById(`input-${firstErrorKey}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.focus();
+            } else {
+                // Fallback: scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
             return;
         }
 

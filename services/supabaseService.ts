@@ -129,34 +129,29 @@ const mapToDB = (data: any, userId: string): any => {
 export const supabaseService = {
     // GENERIC CRUD
     async getAll(table: string) {
-        try {
-            const userId = await getUserId();
-            let query = supabase.from(table).select('*').eq('user_id', userId).eq('deleted', false);
+        const userId = await getUserId();
+        let query = supabase.from(table).select('*').eq('user_id', userId).eq('deleted', false);
 
-            if (table === 'transactions' || table === 'snapshots') {
-                query = query.order('date', { ascending: false });
-            } else if (table === 'assets') {
-                // Assets don't have a 'date' column, sort by ticker or creation
-                query = query.order('ticker', { ascending: true });
-            } else {
-                query = query.order('created_at', { ascending: true });
-            }
-
-            const { data, error } = await query;
-
-            if (error) {
-                console.error(`Supabase fetch error on ${table}:`, error);
-                if (error.code === '42703') { // Undefined column
-                    console.warn(`Column missing in ${table}. DB Schema might need update.`);
-                    return [];
-                }
-                throw error;
-            }
-            return mapToApp(data);
-        } catch (e) {
-            console.error(`Failed to fetch ${table}:`, e);
-            return [];
+        if (table === 'transactions' || table === 'snapshots') {
+            query = query.order('date', { ascending: false });
+        } else if (table === 'assets') {
+            // Assets don't have a 'date' column, sort by ticker or creation
+            query = query.order('ticker', { ascending: true });
+        } else {
+            query = query.order('created_at', { ascending: true });
         }
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error(`Supabase fetch error on ${table}:`, error);
+            if (error.code === '42703') { // Undefined column
+                console.warn(`Column missing in ${table}. DB Schema might need update.`);
+                return [];
+            }
+            throw error;
+        }
+        return mapToApp(data);
     },
 
     async create(table: string, item: any) {
@@ -254,40 +249,23 @@ export const supabaseService = {
         }
     },
 
-    async getTransactions(startDate?: string, endDate?: string) {
-        try {
-            const userId = await getUserId();
-            let query = supabase.from('transactions').select('*')
-                .eq('user_id', userId)
-                .eq('deleted', false)
-                .order('date', { ascending: false });
+    const userId = await getUserId();
+    let query = supabase.from('transactions').select('*')
+        .eq('user_id', userId)
+        .eq('deleted', false)
+        .order('date', { ascending: false });
 
-            if (startDate) {
-                query = query.gte('date', startDate);
-            }
-            if (endDate) {
-                query = query.lte('date', endDate);
-            }
-
-            // FETCH TRANSACTIONS + SHARED REQUESTS
-            // We need to join shared_transaction_requests to populate 'sharedWith'
-            // However, Supabase simple join might duplicate rows. 
-            // Better to fetch requests separately and map, or use a complex query.
-            // SImple approach: Fetch transactions, then fetch requests for those IDs.
+    if(startDate) {
+        query = query.gte('date', startDate);
+    }
+            if(endDate) {
+        query = query.lte('date', endDate);
+    }
 
             const { data: txData, error: txError } = await query;
-            if (txError) throw txError;
+    if(txError) throw txError;
 
-            const transactions = mapToApp(txData);
-
-
-
-            return transactions;
-        } catch (e) {
-            console.error("Failed to fetch transactions:", e);
-            return [];
-        }
-    },
+    return mapToApp(txData);
     async getAccounts() { return this.getAll('accounts'); },
     async getTrips() { return this.getAll('trips'); },
     async getFamilyMembers() { return this.getAll('family_members'); },

@@ -63,13 +63,36 @@ export const checkDataConsistency = (accounts: Account[], transactions: Transact
             issues.push(`Transação órfã encontrada: ${t.description} (ID da conta inválido)`);
         }
 
-        // Regra 2: Transferências devem ter conta de destino válida e diferente da origem
+        // Regra 2: Validar valores
+        if (!t.amount || t.amount <= 0) {
+            issues.push(`Transação com valor inválido: ${t.description} (Valor: ${t.amount})`);
+        }
+
+        // Regra 3: Validar Splits (Divisões)
+        if (t.sharedWith && t.sharedWith.length > 0) {
+            const splitsTotal = t.sharedWith.reduce((sum, s) => sum + s.assignedAmount, 0);
+            if (splitsTotal > t.amount + 0.01) { // margem de erro float
+                issues.push(`Divisão incorreta: ${t.description} (Soma das partes maior que o total)`);
+            }
+        }
+
+        // Regra 4: Transferências devem ter conta de destino válida e diferente da origem
         if (t.type === TransactionType.TRANSFER) {
             if (!t.destinationAccountId || !accountIds.has(t.destinationAccountId)) {
                 issues.push(`Transferência inconsistente: ${t.description} (Conta destino inválida)`);
             }
             if (t.accountId === t.destinationAccountId) {
                 issues.push(`Transferência circular detectada: ${t.description} (Origem igual ao Destino)`);
+            }
+
+            // Validar Multi-moeda
+            const sourceAcc = accounts.find(a => a.id === t.accountId);
+            const destAcc = accounts.find(a => a.id === t.destinationAccountId);
+
+            if (sourceAcc && destAcc && sourceAcc.currency !== destAcc.currency) {
+                if (!t.destinationAmount || t.destinationAmount <= 0) {
+                    issues.push(`Transferência multi-moeda incompleta: ${t.description} (Sem valor de destino)`);
+                }
             }
         }
     });
