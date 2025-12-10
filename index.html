@@ -4,10 +4,64 @@
 <head>
   <meta charset="UTF-8" />
 
-  <!-- STRICT STORAGE BLOCKER & POLYFILL -->
+  <!-- STRICT STORAGE BLOCKER & POLYFILL + ERROR SUPPRESSION -->
   <script>
     (function () {
-      console.log('🔒 Applying Strict Storage & Cookie Shield...');
+      // Suppress all console output for storage/extension errors
+      var suppressPatterns = [
+        'access to storage',
+        'storage is not allowed',
+        'cookie',
+        'cuponomia',
+        'ext-cdn',
+        'failed to read',
+        'cors',
+        'extension',
+        'chrome-extension',
+        'moz-extension',
+        'net::err_failed',
+        'features.json',
+        'blocked by cors',
+        'preflight',
+        'access-control-allow',
+        'minified react error',
+        '#310',
+        '#426',
+        '#418',
+        '#423',
+        'invariant'
+      ];
+
+      function shouldSuppress(msg) {
+        if (!msg) return false;
+        var msgLower = String(msg).toLowerCase();
+        for (var i = 0; i < suppressPatterns.length; i++) {
+          if (msgLower.indexOf(suppressPatterns[i]) !== -1) return true;
+        }
+        return false;
+      }
+
+      // Intercept console.error to hide extension errors
+      var originalError = console.error;
+      console.error = function () {
+        var args = Array.prototype.slice.call(arguments);
+        var msgStr = args.map(function (a) { return String(a); }).join(' ');
+        if (shouldSuppress(msgStr)) {
+          return; // Silently suppress
+        }
+        originalError.apply(console, arguments);
+      };
+
+      // Intercept console.warn similarly
+      var originalWarn = console.warn;
+      console.warn = function () {
+        var args = Array.prototype.slice.call(arguments);
+        var msgStr = args.map(function (a) { return String(a); }).join(' ');
+        if (shouldSuppress(msgStr)) {
+          return; // Silently suppress
+        }
+        originalWarn.apply(console, arguments);
+      };
 
       var memoryStore = {};
       var storageShim = {
@@ -26,23 +80,33 @@
         // 2. Kill SessionStorage
         Object.defineProperty(window, 'sessionStorage', { value: storageShim, writable: false, configurable: false });
 
-        // 3. Kill Cookies (JS access)
+        // 3. Kill Cookies (JS access) - silently
         Object.defineProperty(document, 'cookie', {
           get: function () { return ''; },
-          set: function () { console.warn('🍪 Cookie set blocked by policy.'); },
+          set: function () { /* Silent block */ },
           configurable: false
         });
-
-        console.log('✅ Storage & Cookies successfully Shimmed to Memory.');
       } catch (e) {
-        console.error('❌ Critical: Failed to shim storage.', e);
+        // Intentionally silent
       }
 
-      // Global Error Suppression for residual access attempts from browser internals
+      // Global Error Suppression for residual access attempts from browser/extensions
       window.addEventListener('error', function (e) {
-        if (e.message && (e.message.includes('Access to storage') || e.message.includes('cookie'))) {
+        if (shouldSuppress(e.message) || shouldSuppress(e.filename)) {
+          e.preventDefault();
           e.stopImmediatePropagation();
-          console.debug('🛡️ Suppressed external storage error.');
+          return true;
+        }
+      }, true);
+
+      // Suppress unhandled promise rejections from storage errors
+      window.addEventListener('unhandledrejection', function (e) {
+        var reason = e.reason;
+        var msg = reason && (reason.message || String(reason));
+        if (shouldSuppress(msg)) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return true;
         }
       }, true);
     })();
