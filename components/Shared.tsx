@@ -249,6 +249,27 @@ export const Shared: React.FC<SharedProps> = ({
                                 currency={currency}
                                 tripName={tripName}
                                 onSettle={(type, amount) => handleOpenSettleModal(member.id, type, currency)}
+                                onBulkSettle={(items) => {
+                                    // Calculate net of selected items
+                                    let net = 0;
+                                    items.forEach(i => {
+                                        if (i.type === 'DEBIT') net -= i.amount;
+                                        else net += i.amount;
+                                    });
+
+                                    const type = net > 0 ? 'RECEIVE' : 'PAY';
+                                    const absTotal = Math.abs(net);
+
+                                    setSettleModal({
+                                        isOpen: true,
+                                        memberId: member.id,
+                                        type,
+                                        items: items,
+                                        total: absTotal,
+                                        currency
+                                    });
+                                }}
+                                allowIndividualSettlement={activeTab === 'TRAVEL'}
                                 onImport={() => setIsImportModalOpen(true)}
                                 onEditTransaction={(id) => {
                                     const tx = transactions.find(t => t.id === id);

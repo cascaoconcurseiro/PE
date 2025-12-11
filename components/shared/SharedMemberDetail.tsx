@@ -23,6 +23,8 @@ interface SharedMemberDetailProps {
 
     // Actions
     onSettle: (type: 'PAY' | 'RECEIVE', amount: number) => void;
+    onBulkSettle?: (items: InvoiceItem[]) => void;
+    allowIndividualSettlement?: boolean;
     onImport: () => void;
     onEditTransaction: (id: string) => void;
     onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
@@ -32,7 +34,7 @@ interface SharedMemberDetailProps {
 
 export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
     member, items, currentDate, showValues, currency, tripName,
-    onSettle, onImport, onEditTransaction, onDeleteTransaction, onBulkDelete, onUndoSettlement
+    onSettle, onBulkSettle, allowIndividualSettlement, onImport, onEditTransaction, onDeleteTransaction, onBulkDelete, onUndoSettlement
 }) => {
 
     // Selection Mode State (Preserving user feature)
@@ -238,6 +240,24 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                 <Button size="sm" variant="ghost" onClick={handleSelectAll} className="text-xs">
                                     {selectedItems.size === items.length ? 'Desmarcar Todos' : 'Marcar Todos'}
                                 </Button>
+
+                                {allowIndividualSettlement && onBulkSettle && selectedItems.size > 0 && (
+                                    <Button
+                                        size="sm"
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 shadow-lg border-0"
+                                        onClick={() => {
+                                            const selectedInvoiceItems = items.filter(i => selectedItems.has(i.originalTxId));
+                                            if (onBulkSettle) {
+                                                onBulkSettle(selectedInvoiceItems);
+                                                setIsSelectionMode(false);
+                                                setSelectedItems(new Set());
+                                            }
+                                        }}
+                                    >
+                                        <CheckCircle className="w-4 h-4 mr-2" /> Acertar ({selectedItems.size})
+                                    </Button>
+                                )}
+
                                 <Button size="sm" variant="danger" onClick={handleBulkDelete} disabled={selectedItems.size === 0}>
                                     <Trash2 className="w-4 h-4 mr-2" /> Excluir ({selectedItems.size})
                                 </Button>
