@@ -71,46 +71,65 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, acco
                 </div>
             </div>
 
-            {/* Premium Header Card */}
-            <Card className="bg-gradient-to-br from-violet-700 to-indigo-900 text-white border-none shadow-xl relative overflow-hidden print:bg-white print:text-black print:border-black print:border p-8 rounded-[2rem]">
-                <div className="absolute top-0 right-0 p-8 opacity-10 no-print">
-                    <Plane className="w-48 h-48 text-white transform translate-x-10 -translate-y-10" />
-                </div>
+            {/* Premium Hero Section */}
+            <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl bg-slate-900 group select-none">
+                {/* Background Image / Abstract Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-violet-700 to-fuchsia-800 opacity-90 transition-transform duration-[20s] ease-linear group-hover:scale-110"></div>
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay opacity-30 grayscale hover:grayscale-0 transition-all duration-700"></div>
 
-                <div className="relative z-10 flex flex-col md:flex-row justify-between md:items-end gap-6">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2 text-violet-200">
-                            <span className="text-xs font-bold uppercase tracking-widest bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">{trip.currency}</span>
-                            <span className="text-xs font-bold uppercase tracking-widest flex items-center gap-1"><Calendar className="w-3 h-3" /> {parseDate(trip.startDate).getFullYear()}</span>
-                        </div>
-                        <h2 className="text-4xl font-black tracking-tight text-white mb-2 leading-none max-w-2xl">{trip.name}</h2>
-                        <div className="flex items-center space-x-4 text-violet-100 text-sm print:text-black mb-6">
-                            <span>{parseDate(trip.startDate).toLocaleDateString('pt-BR')} - {parseDate(trip.endDate).toLocaleDateString('pt-BR')}</span>
+                {/* Content Overlay */}
+                <div className="relative z-10 p-8 sm:p-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
+
+                    {/* Left Info */}
+                    <div className="flex-1 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-xs font-bold text-white uppercase tracking-widest shadow-lg flex items-center gap-1.5">
+                                <Plane className="w-3 h-3 text-indigo-200" />
+                                {trip.currency}
+                            </span>
+                            <span className="px-3 py-1 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-xs font-bold text-indigo-100 uppercase tracking-widest flex items-center gap-1.5">
+                                <Calendar className="w-3 h-3" />
+                                {Math.ceil((parseDate(trip.endDate).getTime() - parseDate(trip.startDate).getTime()) / (1000 * 60 * 60 * 24))} Dias
+                            </span>
                         </div>
 
-                        <div className="flex items-center -space-x-2">
-                            {trip.participants.slice(0, 5).map((p, i) => (
-                                <div key={p.id} className="w-8 h-8 rounded-full border-2 border-indigo-900 bg-violet-200 text-violet-800 flex items-center justify-center text-xs font-bold">
+                        <div>
+                            <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter drop-shadow-lg leading-none mb-2">
+                                {trip.name}
+                            </h1>
+                            <p className="text-indigo-100 font-medium text-lg flex items-center gap-2 opacity-90">
+                                {parseDate(trip.startDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                                <span className="w-1 h-1 bg-indigo-300 rounded-full"></span>
+                                {parseDate(trip.endDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                            </p>
+                        </div>
+
+                        <div className="flex items-center -space-x-3 pt-2">
+                            {trip.participants.map((p, i) => (
+                                <div key={p.id} className="w-10 h-10 rounded-full border-2 border-indigo-500 bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-black shadow-lg hover:translate-y-1 hover:border-white transition-all z-0 hover:z-10" title={p.name}>
                                     {p.name[0]}
                                 </div>
                             ))}
-                            {trip.participants.length > 5 && (
-                                <div className="w-8 h-8 rounded-full border-2 border-indigo-900 bg-slate-700 text-white flex items-center justify-center text-xs font-bold">
-                                    +{trip.participants.length - 5}
-                                </div>
-                            )}
+                            <div className="w-10 h-10 rounded-full border-2 border-dashed border-white/30 bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer">
+                                <Users className="w-4 h-4" />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/10 min-w-[200px]">
-                        <div className="flex items-center gap-2 mb-1 text-violet-200">
-                            <Wallet className="w-4 h-4" />
-                            <span className="text-xs font-bold uppercase tracking-widest">Total Gasto</span>
+                    {/* Right Metrics - Glass Cards */}
+                    <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                        <div className="bg-white/10 backdrop-blur-md border border-white/20 p-5 rounded-2xl flex-1 md:min-w-[200px] hover:bg-white/15 transition-colors group/card">
+                            <div className="flex items-center gap-2 mb-2 text-indigo-200 group-hover/card:text-white transition-colors">
+                                <Wallet className="w-4 h-4" />
+                                <span className="text-xs font-bold uppercase tracking-widest">Total Gasto</span>
+                            </div>
+                            <div className="text-3xl font-black text-white tracking-tight drop-shadow-md">
+                                {formatCurrency(totalSpent, trip.currency)}
+                            </div>
                         </div>
-                        <p className="text-3xl font-bold tracking-tight text-white">{formatCurrency(totalSpent, trip.currency)}</p>
                     </div>
                 </div>
-            </Card>
+            </div>
 
             {/* Premium Tab Navigation */}
             <div className="flex p-1.5 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-x-auto scrollbar-hide no-print gap-1 shadow-inner">

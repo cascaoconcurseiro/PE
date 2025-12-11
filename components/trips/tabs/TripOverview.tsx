@@ -56,127 +56,101 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
     };
 
     return (
-        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-            {/* BUDGET CARD */}
-            <Card className="border-violet-100 dark:border-violet-900">
-                <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-2 text-violet-800 dark:text-violet-300">
-                        <Target className="w-5 h-5" />
-                        <h3 className="font-bold">Orçamento da Viagem</h3>
-                    </div>
-                    {!isEditingBudget ? (
-                        <button onClick={startEditingBudget} className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-full transition-colors no-print">
-                            <Pencil className="w-4 h-4" />
-                        </button>
-                    ) : (
-                        <div className="flex gap-2">
-                            <button onClick={() => setIsEditingBudget(false)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full"><X className="w-4 h-4" /></button>
-                            <button onClick={handleSaveBudget} className="p-2 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-full"><Save className="w-4 h-4" /></button>
-                        </div>
-                    )}
-                </div>
-                {isEditingBudget ? (
-                    <div className="mb-4">
-                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Definir Limite Total</label>
-                        <input
-                            type="number"
-                            autoFocus
-                            className="w-full text-2xl font-bold text-slate-800 dark:text-white border-b-2 border-violet-200 dark:border-violet-700 outline-none py-1 focus:border-violet-500 bg-transparent"
-                            value={tempBudget}
-                            onChange={e => setTempBudget(e.target.value)}
-                            placeholder="0,00"
-                        />
-                    </div>
-                ) : (
-                    <>
-                        <div className="mb-3">
-                            <div className="flex justify-between text-sm font-medium mb-1">
-                                <span className={`${isOverBudget ? 'text-red-700 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>
-                                    {formatCurrency(totalSpent, trip.currency)} ({percentUsed.toFixed(0)}%)
-                                </span>
-                                <span className="text-slate-500 dark:text-slate-400">Meta: {formatCurrency(budget, trip.currency)}</span>
-                            </div>
-                            <div className="h-3 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                <div
-                                    className={`h-full rounded-full transition-all duration-1000 ${percentUsed > 100 ? 'bg-red-600' : percentUsed > 75 ? 'bg-amber-500' : 'bg-emerald-600'}`}
-                                    style={{ width: `${Math.min(percentUsed, 100)}%` }}
-                                ></div>
-                            </div>
-                        </div>
-                        {budget > 0 && (
-                            <div className={`text-xs font-bold p-2 rounded-lg text-center ${isOverBudget ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300'}`}>
-                                {isOverBudget ? `Orçamento excedido em ${formatCurrency(Math.abs(remaining), trip.currency)}` : `Resta ${formatCurrency(remaining, trip.currency)} disponível`}
-                            </div>
-                        )}
-                        {budget === 0 && (
-                            <div className="text-xs text-center text-slate-500 dark:text-slate-400 italic">Defina um orçamento para acompanhar seu progresso.</div>
-                        )}
-                    </>
-                )}
-            </Card>
+        {/* MODERN BUDGET WIDGET */ }
+        < div className = "grid grid-cols-1 gap-4" >
+            <Card className="border-none shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
 
-            {/* Transactions List */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden relative min-h-[400px]">
-                <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center">
-                    <h3 className="font-bold text-slate-700 dark:text-slate-300">Histórico de Gastos (Timeline)</h3>
-                </div>
-
-                <div className="p-4">
-                    <TransactionList
-                        groupedTxs={
-                            // Memo-like logic inline
-                            transactions.reduce((groups, t) => {
-                                const date = t.date;
-                                if (!groups[date]) groups[date] = [];
-                                groups[date].push(t);
-                                return groups;
-                            }, {} as Record<string, Transaction[]>)
-                        }
-                        accounts={accounts}
-                        familyMembers={familyMembers}
-                        showValues={true}
-                        onEdit={(t) => onEditTransaction && onEditTransaction(t.id)}
-                        onDelete={(id) => onDeleteTransaction && onDeleteTransaction(id)}
-                        onAddClick={() => { }} // Not used here, maybe add floating button later?
-                        emptyMessage="Nenhuma despesa nesta viagem ainda."
-                    />
-                </div>
-            </div>
-
-            {/* AI Settlement */}
-            <div className="space-y-4 no-print">
-                <Card className="bg-slate-900 text-white border-none shadow-xl">
-                    <div className="flex flex-col items-center text-center space-y-4 p-2">
-                        <div className="p-3 bg-white/10 rounded-full">
-                            <Sparkles className="w-8 h-8 text-yellow-400" />
-                        </div>
-                        <h3 className="text-xl font-bold">Divisão Inteligente</h3>
-                        <p className="text-slate-300 text-sm leading-relaxed">Calcular quem deve quanto a quem (Split).</p>
-                        <div className="w-full space-y-2">
-                            <Button className="w-full bg-white text-slate-900 hover:bg-slate-100 font-bold rounded-xl" onClick={handleSettlement} isLoading={loadingAi}>
-                                <Calculator className="w-4 h-4 mr-2" />Calcular Acerto Pendente
-                            </Button>
-                            {onNavigateToShared && (
-                                <Button variant="secondary" className="w-full bg-slate-800 text-slate-200 hover:bg-slate-700 font-bold rounded-xl border-slate-700" onClick={onNavigateToShared}>
-                                    Ver Detalhes no Compartilhado
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1 block">Orçamento Total</span>
+                        <div className="flex items-baseline gap-2">
+                            {isEditingBudget ? (
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        autoFocus
+                                        className="text-3xl font-black bg-transparent border-b-2 border-violet-500 w-48 outline-none text-slate-900 dark:text-white"
+                                        value={tempBudget}
+                                        onChange={e => setTempBudget(e.target.value)}
+                                        placeholder="0,00"
+                                    />
+                                    <button onClick={handleSaveBudget} className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"><Save className="w-4 h-4" /></button>
+                                    <button onClick={() => setIsEditingBudget(false)} className="p-2 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition-colors"><X className="w-4 h-4" /></button>
+                                </div>
+                            ) : (
+                                <>
+                                    <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                                        {formatCurrency(budget, trip.currency)}
+                                    </h2>
+                                    <button onClick={startEditingBudget} className="text-slate-300 hover:text-violet-500 transition-colors">
+                                        <Pencil className="w-4 h-4" />
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>
-                </Card>
-                {aiAnalysis && (
-                    <Card title="Resultado do Acerto (Pendentes)" className="border-violet-200 shadow-md bg-violet-50/50">
-                        <div className="prose prose-sm prose-violet max-w-none">
-                            {aiAnalysis.split('\n').map((line, i) => (
-                                <p key={i} className={`text-slate-700 text-sm mb-2 ${line.startsWith('#') ? 'font-bold mt-2 text-violet-900' : ''} ${line.startsWith('-') ? 'ml-4' : ''}`}>
-                                    {line.replace(/^#+\s/, '').replace(/^-\s/, '• ')}
-                                </p>
-                            ))}
-                        </div>
-                    </Card>
-                )}
-            </div>
-        </div>
+
+                    <div className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${isOverBudget
+                            ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-900'
+                            : remaining < (budget * 0.2)
+                                ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900'
+                                : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-900'
+                        }`}>
+                        <div className={`w-2 h-2 rounded-full ${isOverBudget ? 'bg-red-500' : remaining < (budget * 0.2) ? 'bg-amber-500' : 'bg-emerald-500'
+                            }`}></div>
+                        {isOverBudget ? 'ESTOUROU' : remaining < (budget * 0.2) ? 'ATENÇÃO' : 'DENTRO DA META'}
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm font-semibold">
+                        <span className="text-slate-600 dark:text-slate-400">Gasto: <span className="text-slate-900 dark:text-white">{formatCurrency(totalSpent, trip.currency)}</span></span>
+                        <span className={`${remaining < 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                            {remaining < 0 ? 'Excedente: ' : 'Disponível: '}
+                            {formatCurrency(Math.abs(remaining), trip.currency)}
+                        </span>
+                    </div>
+
+                    <div className="h-4 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden p-1">
+                        <div
+                            className={`h-full rounded-full transition-all duration-1000 shadow-sm ${percentUsed > 100 ? 'bg-gradient-to-r from-red-500 to-red-600' :
+                                    percentUsed > 75 ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
+                                        'bg-gradient-to-r from-emerald-400 to-emerald-600'
+                                }`}
+                            style={{ width: `${Math.min(percentUsed, 100)}%` }}
+                        ></div>
+                    </div>
+                    <p className="text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">{percentUsed.toFixed(1)}% USADO</p>
+                </div>
+            </Card>
+            </div >
+
+    {/* Transactions List - UNWRAPPED to look like Main Feed */ }
+    < div className = "pt-4" >
+                <div className="flex items-center gap-4 mb-6 px-2">
+                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">Linha do Tempo</h3>
+                    <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                </div>
+
+                <TransactionList
+                    groupedTxs={
+                        transactions.reduce((groups, t) => {
+                            const date = t.date;
+                            if (!groups[date]) groups[date] = [];
+                            groups[date].push(t);
+                            return groups;
+                        }, {} as Record<string, Transaction[]>)
+                    }
+                    accounts={accounts}
+                    familyMembers={familyMembers}
+                    showValues={true}
+                    onEdit={(t) => onEditTransaction && onEditTransaction(t.id)}
+                    onDelete={(id) => onDeleteTransaction && onDeleteTransaction(id)}
+                    onAddClick={() => { }} 
+                    emptyMessage="Nenhuma despesa nesta viagem ainda."
+                />
+            </div >
+        </div >
     );
 };
