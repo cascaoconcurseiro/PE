@@ -15,14 +15,48 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 // Robust Storage Adapter
-// Attempts to use localStorage to keep user logged in.
-// If valid storage access is blocked (e.g. strict rules), it silently falls back to in-memory storage.
-// This allows the app to function (session-only) without crashing.
+// Priority: LocalStorage -> Cookie -> Memory
+// This ensures persistence even if LocalStorage is blocked (common in embedded views/incognito).
 const robustStorageAdapter = (() => {
     let memoryStore: Record<string, string> = {};
     let isStorageAvailable = false;
 
-    // Initial check
+    // Cookie Helpers
+    const setCookie = (name: string, value: string, days = 365) => {
+        try {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + date.toUTCString();
+            document.cookie = name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/;SameSite=Lax";
+        } catch (e) {
+            // Ignore cookie errors
+        }
+    };
+
+    const getCookie = (name: string): string | null => {
+        try {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+            }
+        } catch (e) {
+            // Ignore
+        }
+        return null;
+    };
+
+    const removeCookie = (name: string) => {
+        try {
+            document.cookie = name + "=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        } catch (e) {
+            // Ignore
+        }
+    };
+
+    // Initial check for LocalStorage
     try {
         if (typeof window !== 'undefined' && window.localStorage) {
             const testKey = '__storage_test__';
@@ -31,42 +65,58 @@ const robustStorageAdapter = (() => {
             isStorageAvailable = true;
         }
     } catch (e) {
-        console.warn('⚠️ LocalStorage is blocked/unavailable. Session will not persist after refresh.');
+        console.warn('⚠️ LocalStorage is blocked. Falling back to Cookies/Memory.');
         isStorageAvailable = false;
     }
 
     return {
         getItem: (key: string): string | null => {
-            try {
-                if (isStorageAvailable) {
-                    return window.localStorage.getItem(key);
-                }
-            } catch (error) {
-                // Ignore
+            // 1. Try LocalStorage
+            if (isStorageAvailable) {
+                try {
+                    const item = window.localStorage.getItem(key);
+                    if (item) return item;
+                } catch (e) { /* Ignore */ }
             }
+
+            // 2. Try Cookie (Fallback)
+            const cookieItem = getCookie(key);
+            if (cookieItem) return cookieItem;
+
+            // 3. Memory (Last Resort)
             return memoryStore[key] || null;
         },
         setItem: (key: string, value: string): void => {
-            try {
-                if (isStorageAvailable) {
+            // 1. Try LocalStorage
+            if (isStorageAvailable) {
+                try {
                     window.localStorage.setItem(key, value);
+                    // Also set cookie as backup? No, duplication might be messy. 
+                    // But if LS fails randomly later, cookie is good. 
+                    // Let's stick to one primary source to avoid sync issues.
                     return;
+                } catch (error) {
+                    console.warn('LocalStorage write failed, switching to Cookie.');
                 }
-            } catch (error) {
-                // Determine if quota exceeded vs blocked
-                // But in any case, fallback
             }
+
+            // 2. Try Cookie
+            try {
+                setCookie(key, value);
+                return;
+            } catch (e) {
+                // Ignore
+            }
+
+            // 3. Memory
             memoryStore[key] = value;
         },
         removeItem: (key: string): void => {
-            try {
-                if (isStorageAvailable) {
-                    window.localStorage.removeItem(key);
-                    return;
-                }
-            } catch (error) {
-                // Ignore
+            // Aggressively clear EVERYTHING to ensure logout
+            if (isStorageAvailable) {
+                try { window.localStorage.removeItem(key); } catch (e) { }
             }
+            removeCookie(key);
             delete memoryStore[key];
         }
     };
