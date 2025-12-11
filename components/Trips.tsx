@@ -12,6 +12,8 @@ interface TripsProps {
     accounts: Account[];
     familyMembers: FamilyMember[];
     onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
+    onUpdateTransaction: (t: Transaction) => void;
+    onDeleteTransaction: (id: string) => void;
     onAddTrip: (t: Trip) => void;
     onUpdateTrip?: (t: Trip) => void;
     onDeleteTrip?: (id: string) => void;
@@ -19,7 +21,7 @@ interface TripsProps {
     onEditTransaction?: (id: string) => void;
 }
 
-export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared, onEditTransaction }) => {
+export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onUpdateTransaction, onDeleteTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared, onEditTransaction }) => {
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
     const [isCreatingTrip, setIsCreatingTrip] = useState(false);
     const [editingTripId, setEditingTripId] = useState<string | null>(null);
@@ -68,6 +70,8 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
             <TripDetail
                 trip={selectedTrip}
                 transactions={tripTransactions}
+                accounts={accounts}
+                familyMembers={familyMembers}
                 onBack={() => setSelectedTripId(null)}
                 onEdit={startEditingTrip}
                 onDelete={(id) => {
@@ -78,7 +82,9 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
                 }}
                 onUpdateTrip={(t) => onUpdateTrip && onUpdateTrip(t)}
                 onNavigateToShared={onNavigateToShared}
-                onEditTransaction={onEditTransaction}
+                onEditTransaction={onEditTransaction} // Keep this for legacy or specialized modal trigger if needed
+                onUpdateTransactionInternal={onUpdateTransaction}
+                onDeleteTransactionInternal={onDeleteTransaction}
             />
         );
     }

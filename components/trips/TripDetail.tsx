@@ -16,15 +16,19 @@ import { TripExchange } from './tabs/TripExchange';
 interface TripDetailProps {
     trip: Trip;
     transactions: Transaction[];
+    accounts: Account[];
+    familyMembers: FamilyMember[];
     onBack: () => void;
     onEdit: (trip: Trip) => void;
     onDelete: (id: string) => void;
     onUpdateTrip: (trip: Trip) => void;
     onNavigateToShared?: () => void;
-    onEditTransaction?: (id: string) => void;
+    onEditTransaction?: (id: string) => void; // Trigger modal/form
+    onUpdateTransactionInternal: (t: Transaction) => void;
+    onDeleteTransactionInternal: (id: string) => void;
 }
 
-export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, onBack, onEdit, onDelete, onUpdateTrip, onNavigateToShared, onEditTransaction }) => {
+export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, accounts, familyMembers, onBack, onEdit, onDelete, onUpdateTrip, onNavigateToShared, onEditTransaction, onUpdateTransactionInternal, onDeleteTransactionInternal }) => {
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'ITINERARY' | 'CHECKLIST' | 'STATS' | 'SHOPPING' | 'EXCHANGE'>('OVERVIEW');
 
     const totalSpent = transactions.reduce((acc, t) => acc + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0);
@@ -128,7 +132,18 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, onBa
 
             {/* TAB CONTENT */}
             <div className="animate-in slide-in-from-bottom-2 fade-in duration-300">
-                {activeTab === 'OVERVIEW' && <TripOverview trip={trip} transactions={transactions} onUpdateTrip={onUpdateTrip} onNavigateToShared={onNavigateToShared} onEditTransaction={onEditTransaction} />}
+                {activeTab === 'OVERVIEW' && (
+                    <TripOverview
+                        trip={trip}
+                        transactions={transactions}
+                        accounts={accounts}
+                        familyMembers={familyMembers}
+                        onUpdateTrip={onUpdateTrip}
+                        onNavigateToShared={onNavigateToShared}
+                        onEditTransaction={onEditTransaction}
+                        onDeleteTransaction={onDeleteTransactionInternal}
+                    />
+                )}
                 {activeTab === 'ITINERARY' && <TripItinerary trip={trip} onUpdateTrip={onUpdateTrip} />}
                 {activeTab === 'CHECKLIST' && <TripChecklist trip={trip} onUpdateTrip={onUpdateTrip} />}
                 {activeTab === 'STATS' && <TripStats trip={trip} transactions={transactions} />}

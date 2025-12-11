@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Trip, Transaction, TransactionType } from '../../../types';
+import { Trip, Transaction, TransactionType, Account, FamilyMember } from '../../../types';
+import { TransactionList } from '../../transactions/TransactionList';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Target, Pencil, X, Save, Sparkles, Calculator, ArrowRight } from 'lucide-react';
@@ -9,12 +10,15 @@ import { calculateTripDebts } from '../../../services/balanceEngine';
 interface TripOverviewProps {
     trip: Trip;
     transactions: Transaction[];
+    accounts: Account[];
+    familyMembers: FamilyMember[];
     onUpdateTrip?: (trip: Trip) => void;
     onNavigateToShared?: () => void;
     onEditTransaction?: (id: string) => void;
+    onDeleteTransaction?: (id: string) => void;
 }
 
-export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, onUpdateTrip, onNavigateToShared, onEditTransaction }) => {
+export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, accounts, familyMembers, onUpdateTrip, onNavigateToShared, onEditTransaction, onDeleteTransaction }) => {
     const [isEditingBudget, setIsEditingBudget] = useState(false);
     const [tempBudget, setTempBudget] = useState('');
     const [aiAnalysis, setAiAnalysis] = useState<string>('');
@@ -112,45 +116,30 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
             </Card>
 
             {/* Transactions List */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden relative min-h-[400px]">
                 <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center">
-                    <h3 className="font-bold text-slate-700 dark:text-slate-300">Histórico de Gastos</h3>
+                    <h3 className="font-bold text-slate-700 dark:text-slate-300">Histórico de Gastos (Timeline)</h3>
                 </div>
-                <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                    {transactions.length === 0 ? (
-                        <div className="p-8 text-center text-slate-500 dark:text-slate-400">
-                            <Sparkles className="w-8 h-8 text-violet-300 dark:text-violet-700 mx-auto mb-2" />
-                            <p className="text-sm font-medium">Nenhuma despesa registrada ainda.</p>
-                            <p className="text-xs text-slate-400 dark:text-slate-500">Comece a aproveitar sua viagem!</p>
-                        </div>
-                    ) : (
-                        transactions.map(t => {
-                            const CatIcon = getCategoryIcon(t.category);
 
-                            return (
-                                <div
-                                    key={t.id}
-                                    onClick={() => onEditTransaction && onEditTransaction(t.id)}
-                                    className="flex justify-between items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer active:bg-slate-100"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-full bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-violet-700 dark:text-violet-400 font-bold border border-violet-100 dark:border-violet-800">
-                                            <CatIcon className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-900 dark:text-white">{t.description}</p>
-                                            <div className="flex gap-2 text-xs text-slate-500 dark:text-slate-400">
-                                                <span>{parseDate(t.date).toLocaleDateString('pt-BR')}</span>
-                                                <span>•</span>
-                                                <span>{t.category}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(t.amount, trip.currency)}</span>
-                                </div>
-                            );
-                        })
-                    )}
+                <div className="p-4">
+                    <TransactionList
+                        groupedTxs={
+                            // Memo-like logic inline
+                            transactions.reduce((groups, t) => {
+                                const date = t.date;
+                                if (!groups[date]) groups[date] = [];
+                                groups[date].push(t);
+                                return groups;
+                            }, {} as Record<string, Transaction[]>)
+                        }
+                        accounts={accounts}
+                        familyMembers={familyMembers}
+                        showValues={true}
+                        onEdit={(t) => onEditTransaction && onEditTransaction(t.id)}
+                        onDelete={(id) => onDeleteTransaction && onDeleteTransaction(id)}
+                        onAddClick={() => { }} // Not used here, maybe add floating button later?
+                        emptyMessage="Nenhuma despesa nesta viagem ainda."
+                    />
                 </div>
             </div>
 

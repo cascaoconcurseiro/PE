@@ -65,7 +65,9 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const [formMode, setFormMode] = useState<TransactionType | null>(modalMode ? TransactionType.EXPENSE : null);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL'>('REGULAR');
+    const [searchTerm, setSearchTerm] = useState('');
+    // Active Tab removed - always REGULAR now
+    const activeTab = 'REGULAR';
 
     // Use Custom Hook for Filtering Logic
     const { filteredTxs, groupedTxs, income, expense, balance, currency } = useTransactionFilters({
@@ -187,8 +189,6 @@ export const Transactions: React.FC<TransactionsProps> = ({
     return (
         <div className="space-y-6 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <TransactionFilters
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
             />
