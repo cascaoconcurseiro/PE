@@ -166,36 +166,21 @@ export const calculateProjectedBalance = (
                 // Cenário 2: Entrou na liquidez vindo de não-liquidez (ex: Resgate)
                 // Deve contar como "Receita" na projeção
                 else if (!isSourceLiquid && isDestLiquid) {
-                    let amountIncoming = t.amount;
+                    // Check if we have an explicit destination amount (Multi-currency or Manual correction)
                     if (t.destinationAmount && t.destinationAmount > 0) {
-                        amountIncoming = t.destinationAmount;
-                        // Destination Amount is likely in Destination Currency.
-                        // If Destination is BRL, no conversion needed. Use 1.
-                        // If Destination is USD, use static rate? 
-                        // For simplicity, if destinationAmount exists, assume it's the target value. 
-                        // If the target account is BRL (Liquid), then destinationAmount IS BRL.
-                        // (Assuming we don't have Liquid USD accounts yet effectively).
-                        // Let's assume destinationAmount is in Destination Account Currency.
-                        // If Dest Account is BRL, it's BRL.
-                        // If we are projecting BRL balance, and Dest is BRL, we just add it.
-                        // If Dest is USD, we convert it?
-                        // For now, assume Liquid accounts are BRL or treated as such.
-                        // But wait! toBRL uses t.currency. 
-                        // For transfer, t.currency usually applies to Source Amount.
-                        // destinationAmount should be treated carefully.
-                        // If destinationAmount is present, it is the raw amount entering the destination.
-                        // Check destination account currency?
+                        // Trust the destination amount implicitly as it represents what HIT the account
                         const destAcc = accounts.find(a => a.id === t.destinationAccountId);
-                        if (destAcc) {
-                            // If destination is BRL, value is direct.
-                            if (destAcc.currency === 'BRL') pendingIncome += amountIncoming;
-                            else pendingIncome += convertToBRL(amountIncoming, destAcc.currency);
+
+                        if (destAcc && destAcc.currency !== 'BRL') {
+                            // If destination is NOT BRL, we must convert that amount to BRL
+                            pendingIncome += convertToBRL(t.destinationAmount, destAcc.currency);
                         } else {
-                            pendingIncome += toBRL(amountIncoming, t);
+                            // Destination is BRL (or assumed BRL basis for projection), so use raw value
+                            pendingIncome += t.destinationAmount;
                         }
                     } else {
-                        // Fallback to source amount converted
-                        pendingIncome += toBRL(amountIncoming, t);
+                        // Fallback: Convert source amount
+                        pendingIncome += toBRL(t.amount, t);
                     }
                 }
                 return;
