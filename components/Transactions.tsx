@@ -70,6 +70,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
     // Use Custom Hook for Filtering Logic
     const { filteredTxs, groupedTxs, income, expense, balance, currency } = useTransactionFilters({
         transactions,
+        accounts,
         currentDate,
         searchTerm,
         activeTab

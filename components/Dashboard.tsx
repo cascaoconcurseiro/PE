@@ -7,6 +7,7 @@ import { generateMonthlyReport, generateAnnualReport } from '../services/pdfServ
 import { shouldShowTransaction } from '../utils/transactionFilters';
 import { Loader2, PieChart, CreditCard, Layers, Printer } from 'lucide-react';
 import { Button } from './ui/Button';
+import { isForeignTransaction } from '../utils/transactionUtils';
 
 // Sub-components (Critical: Loaded immediately)
 import { FinancialProjectionCard } from './dashboard/FinancialProjectionCard';
@@ -50,8 +51,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
     // 0. GLOBAL FILTER: Dashboard is checking/local only.
     // Exclude Trip transactions and Foreign Currency transactions.
     const dashboardTransactions = useMemo(() =>
-        transactions.filter(t => !t.tripId && (!t.currency || t.currency === 'BRL')),
-        [transactions]);
+        transactions.filter(t => !isForeignTransaction(t, accounts)),
+        [transactions, accounts]);
 
     const dashboardAccounts = useMemo(() =>
         accounts.filter(a => !a.currency || a.currency === 'BRL'),
