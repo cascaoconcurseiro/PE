@@ -53,7 +53,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     };
 
     return (
-        <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans overflow-hidden">
+        <div className="flex h-screen sm:h-screen supports-[height:100dvh]:h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans overflow-hidden">
             {/* DESKTOP SIDEBAR */}
             <aside className="hidden md:flex flex-col w-72 h-full border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm z-20 shrink-0">
                 <Sidebar

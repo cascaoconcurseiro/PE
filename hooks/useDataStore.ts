@@ -78,7 +78,38 @@ export const useDataStore = () => {
         };
     }, []);
 
+    // Validation Logic
+    const validateTransaction = (tx: Partial<Transaction>) => {
+        if (!tx.amount || tx.amount <= 0) throw new Error('Valor da transação inválido.');
+        if (!tx.description?.trim()) throw new Error('Descrição obrigatória.');
+        if (!tx.date) throw new Error('Data obrigatória.');
+
+        // STRICT Double Entry Check for Transfers
+        if (tx.type === TransactionType.TRANSFER) {
+            if (!tx.accountId) throw new Error('Conta de origem obrigatória para transferência.');
+            if (!tx.destinationAccountId) throw new Error('Conta de destino obrigatória para transferência.');
+            if (tx.accountId === tx.destinationAccountId) throw new Error('Origem e destino não podem ser iguais.');
+
+            // Validate existence
+            const sourceExists = accounts.find(a => a.id === tx.accountId);
+            const destExists = accounts.find(a => a.id === tx.destinationAccountId);
+            if (!sourceExists) throw new Error('Conta de origem não encontrada.');
+            if (!destExists) throw new Error('Conta de destino não encontrada.');
+        } else {
+            // Expenses/Income must have at least one account (unless it's a shared pending request that implies external payment? 
+            // - Assuming standard transactions here. Shared logic handles payerId scenarios differently, 
+            // but usually eventually assigns an account or marks as debt.
+            // Let's enforce accountId for normal Income/Expense unless it's strictly external.)
+            // UPDATE: Shared Installments Import creates "Pending" items without account. We must allow this.
+            if (!tx.accountId && (!tx.payerId || tx.payerId === 'me') && !tx.isShared) {
+                throw new Error('Conta é obrigatória.');
+            }
+        }
+    };
+
     const handleAddTransaction = async (newTx: Omit<Transaction, 'id'>) => {
+        validateTransaction(newTx);
+
         // Prepare logic (Generate Installments vs Single)
         // We separate calculation from execution to support offline queuing
         const generateTransactions = (): any[] => {
@@ -186,6 +217,8 @@ export const useDataStore = () => {
     };
 
     const handleUpdateTransaction = async (updatedTx: Transaction) => {
+        validateTransaction(updatedTx);
+
         const originalTx = transactions.find(t => t.id === updatedTx.id);
 
         // Offline Check

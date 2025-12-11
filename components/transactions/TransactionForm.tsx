@@ -228,6 +228,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         <input
                             type="number"
                             inputMode="decimal"
+                            step="0.01"
                             value={amountStr}
                             onChange={(e) => setAmountStr(e.target.value)}
                             placeholder="0,00"
@@ -462,6 +463,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                                     <span className="font-bold text-slate-500 dark:text-slate-400 text-sm">1 {selectedAccountObj?.currency} = </span>
                                                     <input
                                                         type="number"
+                                                        inputMode="numeric"
+                                                        pattern="[0-9]*"
                                                         className="flex-1 bg-transparent text-center font-bold text-blue-700 dark:text-blue-300 text-lg outline-none placeholder-blue-300"
                                                         placeholder="0.00"
                                                         value={manualExchangeRate}
@@ -561,7 +564,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                 </select>
                             </div>
                             {frequency === Frequency.MONTHLY && (
-                                <div className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-xl p-4"><Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" /><label className="text-base font-bold text-blue-900 dark:text-blue-300 flex-1">Dia do mês:</label><input type="number" min="1" max="31" value={recurrenceDay} onChange={e => setRecurrenceDay(parseInt(e.target.value))} className="w-20 text-center bg-blue-50 dark:bg-blue-900/30 rounded-lg p-2 text-blue-900 dark:text-blue-300 font-bold outline-none text-lg" /></div>
+                                <div className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-xl p-4"><Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" /><label className="text-base font-bold text-blue-900 dark:text-blue-300 flex-1">Dia do mês:</label><input type="number" inputMode="numeric" pattern="[0-9]*" min="1" max="31" value={recurrenceDay} onChange={e => setRecurrenceDay(parseInt(e.target.value))} className="w-20 text-center bg-blue-50 dark:bg-blue-900/30 rounded-lg p-2 text-blue-900 dark:text-blue-300 font-bold outline-none text-lg" /></div>
                             )}
                         </div>
                     )}
