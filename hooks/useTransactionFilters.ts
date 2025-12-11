@@ -104,5 +104,5 @@ export const useTransactionFilters = ({ transactions, accounts, currentDate, sea
         return groups;
     }, [filteredTxs]);
 
-    return { filteredTxs, groupedTxs, income, expense, balance };
+    return { filteredTxs, groupedTxs, income, expense, balance, currency };
 };
