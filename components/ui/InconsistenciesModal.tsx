@@ -20,7 +20,7 @@ interface InconsistenciesModalProps {
 // Parse issue string to extract structured data
 const parseIssue = (issue: string): InconsistencyIssue => {
     // Extract transaction ID if present
-    const txIdMatch = issue.match(/transação ([a-f0-9-]{36})/i);
+    const txIdMatch = issue.match(/transação[:\s]+([a-f0-9-]{36})/i);
     const accountIdMatch = issue.match(/conta ([a-f0-9-]{36})/i);
 
     let type: InconsistencyIssue['type'] = 'other';

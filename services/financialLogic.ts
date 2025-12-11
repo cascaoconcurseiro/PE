@@ -62,29 +62,29 @@ export const checkDataConsistency = (accounts: Account[], transactions: Transact
         // EXCEÇÃO: Transações compartilhadas pendentes (onde eu pago ou outro paga e ainda não foi quitado/definido conta)
         const isSharedPending = t.isShared || (t.payerId && t.payerId !== 'me');
         if (!accountIds.has(t.accountId) && !isSharedPending) {
-            issues.push(`Transação órfã encontrada: ${t.description} (ID da conta inválido)`);
+            issues.push(`Transação órfã encontrada: ${t.description} (ID da conta inválido) - ID Transação: ${t.id}`);
         }
 
         // Regra 2: Validar valores
         if (!t.amount || t.amount <= 0) {
-            issues.push(`Transação com valor inválido: ${t.description} (Valor: ${t.amount})`);
+            issues.push(`Transação com valor inválido: ${t.description} (Valor: ${t.amount}) - ID Transação: ${t.id}`);
         }
 
         // Regra 3: Validar Splits (Divisões)
         if (t.sharedWith && t.sharedWith.length > 0) {
             const splitsTotal = t.sharedWith.reduce((sum, s) => sum + s.assignedAmount, 0);
             if (splitsTotal > t.amount + 0.01) { // margem de erro float
-                issues.push(`Divisão incorreta: ${t.description} (Soma das partes maior que o total)`);
+                issues.push(`Divisão incorreta: ${t.description} (Soma das partes maior que o total) - ID Transação: ${t.id}`);
             }
         }
 
         // Regra 4: Transferências devem ter conta de destino válida e diferente da origem
         if (t.type === TransactionType.TRANSFER) {
             if (!t.destinationAccountId || !accountIds.has(t.destinationAccountId)) {
-                issues.push(`Transferência inconsistente: ${t.description} (Conta destino inválida)`);
+                issues.push(`Transferência inconsistente: ${t.description} (Conta destino inválida) - ID Transação: ${t.id}`);
             }
             if (t.accountId === t.destinationAccountId) {
-                issues.push(`Transferência circular detectada: ${t.description} (Origem igual ao Destino)`);
+                issues.push(`Transferência circular detectada: ${t.description} (Origem igual ao Destino) - ID Transação: ${t.id}`);
             }
 
             // Validar Multi-moeda
@@ -93,7 +93,7 @@ export const checkDataConsistency = (accounts: Account[], transactions: Transact
 
             if (sourceAcc && destAcc && sourceAcc.currency !== destAcc.currency) {
                 if (!t.destinationAmount || t.destinationAmount <= 0) {
-                    issues.push(`Transferência multi-moeda incompleta: ${t.description} (Sem valor de destino)`);
+                    issues.push(`Transferência multi-moeda incompleta: ${t.description} (Sem valor de destino) - ID Transação: ${t.id}`);
                 }
             }
         }
