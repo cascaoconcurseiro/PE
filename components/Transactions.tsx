@@ -65,7 +65,6 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const [formMode, setFormMode] = useState<TransactionType | null>(modalMode ? TransactionType.EXPENSE : null);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
     // Active Tab removed - always REGULAR now
     const activeTab = 'REGULAR';
 
