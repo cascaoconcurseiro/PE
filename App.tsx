@@ -13,17 +13,19 @@ import { LoadingScreen } from './components/ui/LoadingScreen';
 import { GlobalSearch } from './components/GlobalSearch';
 import { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardShortcuts';
 
-// Lazy load heavy components
-const Dashboard = lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
-const Accounts = lazy(() => import('./components/Accounts').then(m => ({ default: m.Accounts })));
-const Transactions = lazy(() => import('./components/Transactions').then(m => ({ default: m.Transactions })));
-const Budgets = lazy(() => import('./components/Budgets').then(m => ({ default: m.Budgets })));
-const Goals = lazy(() => import('./components/Goals').then(m => ({ default: m.Goals })));
-const Trips = lazy(() => import('./components/Trips').then(m => ({ default: m.Trips })));
-const Shared = lazy(() => import('./components/Shared').then(m => ({ default: m.Shared })));
-const Family = lazy(() => import('./components/Family').then(m => ({ default: m.Family })));
-const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
-const Investments = lazy(() => import('./components/Investments').then(m => ({ default: m.Investments })));
+import { lazyImport } from './utils/lazyImport';
+
+// Lazy load heavy components with robust reload protection
+const Dashboard = lazyImport(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const Accounts = lazyImport(() => import('./components/Accounts').then(m => ({ default: m.Accounts })));
+const Transactions = lazyImport(() => import('./components/Transactions').then(m => ({ default: m.Transactions })));
+const Budgets = lazyImport(() => import('./components/Budgets').then(m => ({ default: m.Budgets })));
+const Goals = lazyImport(() => import('./components/Goals').then(m => ({ default: m.Goals })));
+const Trips = lazyImport(() => import('./components/Trips').then(m => ({ default: m.Trips })));
+const Shared = lazyImport(() => import('./components/Shared').then(m => ({ default: m.Shared })));
+const Family = lazyImport(() => import('./components/Family').then(m => ({ default: m.Family })));
+const Settings = lazyImport(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const Investments = lazyImport(() => import('./components/Investments').then(m => ({ default: m.Investments })));
 
 const App = () => {
     // 1. All Hooks Declarations
@@ -51,43 +53,8 @@ const App = () => {
     const [settlementToPay, setSettlementToPay] = useState<any | null>(null);
 
     // AUTO-UPDATE LOGIC (Zombie SW Killer)
-    useEffect(() => {
-        const checkVersion = async () => {
-            try {
-                const response = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' });
-                if (!response.ok) return;
-                const data = await response.json();
-                const latestVersion = data.version;
-                const currentVersion = '2.1'; // MUST MATCH version.json
+    // AUTO-UPDATE LOGIC REMOVED: Now relying on lazyImport retry mechanism.
 
-                if (latestVersion && latestVersion !== currentVersion) {
-                    console.warn(`⚠️ Version Mismatch! Current: ${currentVersion}, Latest: ${latestVersion}. Forcing Update...`);
-
-                    // 1. Unregister SW
-                    if ('serviceWorker' in navigator) {
-                        const regs = await navigator.serviceWorker.getRegistrations();
-                        for (const reg of regs) await reg.unregister();
-                    }
-
-                    // 2. Clear Caches
-                    if ('caches' in window) {
-                        const keys = await caches.keys();
-                        for (const key of keys) await caches.delete(key);
-                    }
-
-                    // 3. Force Reload
-                    window.location.reload();
-                }
-            } catch (e) {
-                console.error("Auto-update check failed:", e);
-            }
-        };
-
-        // Check immediately and every minute
-        checkVersion();
-        const interval = setInterval(checkVersion, 60000);
-        return () => clearInterval(interval);
-    }, []);
 
     // Initial Setup
     useEffect(() => {
