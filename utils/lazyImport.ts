@@ -20,14 +20,16 @@ export const lazyImport = <T extends ComponentType<any>>(
                 error.message.includes('missing') ||
                 error.name === 'ChunkLoadError'
             )) {
-                // Prevent infinite reload loop using sessionStorage
-                const storageKey = `lazy_reload_${window.location.pathname}`;
-                const reloadCount = parseInt(sessionStorage.getItem(storageKey) || '0');
+                // Prevent infinite reload loop using URL Search Params
+                // This is safer than sessionStorage which might be blocked in incognito/iframes
+                const url = new URL(window.location.href);
+                const hasRetried = url.searchParams.get('lazy_retry');
 
-                if (reloadCount < 1) {
+                if (!hasRetried) {
                     console.warn('Chunk missing. Reloading page to get fresh version...');
-                    sessionStorage.setItem(storageKey, '1');
-                    window.location.reload();
+                    url.searchParams.set('lazy_retry', 'true');
+                    window.location.replace(url.toString());
+
                     // Return a never-resolving promise to wait for reload
                     return new Promise(() => { });
                 } else {
