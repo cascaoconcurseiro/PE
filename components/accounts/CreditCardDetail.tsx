@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Account, Transaction, TransactionType } from '../../types';
 import { Button } from '../ui/Button';
 import { ArrowDownLeft, Clock, FileUp, ShoppingBag, CreditCard, Users } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../../utils';
 import { ActionType } from './ActionModal';
 import { getInvoiceData } from '../../services/accountUtils';
+import { TransactionList } from '../transactions/TransactionList';
+import { useDataStore } from '../../hooks/useDataStore';
 
 // Reusable Privacy Blur
 const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
@@ -26,11 +28,25 @@ interface CreditCardDetailProps {
 export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     account, transactions, currentDate, showValues, onAction, onAnticipateInstallments, onImportBills
 }) => {
+    // Get all accounts for correct name resolution (e.g. transfers)
+    const { accounts } = useDataStore();
+
     // Use getInvoiceData to get transactions for the invoice cycle
     const { invoiceTotal, transactions: filteredTransactions, closingDate } = getInvoiceData(account, transactions, currentDate);
-    
+
     // Calculate totals
     const finalTotal = invoiceTotal;
+
+    // Group transactions by date for the new list
+    const groupedTransactions = useMemo(() => {
+        const groups: Record<string, Transaction[]> = {};
+        filteredTransactions.forEach(tx => {
+            const dateKey = tx.date.split('T')[0];
+            if (!groups[dateKey]) groups[dateKey] = [];
+            groups[dateKey].push(tx);
+        });
+        return groups;
+    }, [filteredTransactions]);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
@@ -94,68 +110,17 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                 <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3 px-2">
                     Lançamentos
                 </h3>
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">
-                    {filteredTransactions.length === 0 ? (
-                        <div className="p-12 text-center text-slate-500 dark:text-slate-400">
-                            <ShoppingBag className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                            <p className="font-medium">Nenhuma compra importada para este mês.</p>
-                            <p className="text-sm opacity-70 mt-1">Verifique se você importou as faturas ou parcelas.</p>
-                        </div>
-                    ) : (
-                        filteredTransactions.map(t => {
-                            const CatIcon = getCategoryIcon(t.category);
-                            const isInstallment = !!t.isInstallment && !!t.totalInstallments && t.totalInstallments > 1;
-                            const isSettled = t.isSettled; // Only consider if the main transaction (Invoice) is paid
-
-                            return (
-                                <div key={t.id} className={`p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${isSettled ? 'opacity-60 grayscale' : ''}`}>
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.isRefund ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                                            {t.isRefund ? <ArrowDownLeft className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
-                                                {t.description}
-                                            </p>
-                                            <div className="flex gap-2 text-xs text-slate-600 dark:text-slate-300 items-center mt-1">
-                                                <span className="text-slate-600 dark:text-slate-300">{new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-                                                {(t.isShared || (t.sharedWith && t.sharedWith.length > 0)) && (
-                                                    <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 p-0.5 rounded" title="Compartilhado">
-                                                        <Users className="w-3 h-3" />
-                                                    </span>
-                                                )}
-                                                {isInstallment && (
-                                                    <span className="bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide text-slate-800 dark:text-slate-200">
-                                                        Parcela {t.currentInstallment}/{t.totalInstallments}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-3">
-                                        <span className={`font-bold ${t.isRefund ? 'text-amber-700 dark:text-amber-400' : 'text-slate-900 dark:text-white'}`}>
-                                            {t.isRefund ? '-' : ''}{formatCurrency(t.amount, account.currency)}
-                                        </span>
-                                        {isInstallment && (t.currentInstallment || 0) < (t.totalInstallments || 0) && (
-                                            <Button
-                                                size="sm"
-                                                variant="secondary"
-                                                onClick={(e) => { e.stopPropagation(); onAnticipateInstallments(t); }}
-                                                className="text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/40 hover:bg-purple-200 dark:hover:bg-purple-900/60 text-xs h-8 px-3 font-bold"
-                                                title="Antecipar parcelas"
-                                            >
-                                                <Clock className="w-3.5 h-3.5 sm:mr-1.5" />
-                                                <span className="hidden sm:inline">Antecipar</span>
-                                                <span className="sm:hidden">Ant.</span>
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
+                <TransactionList
+                    groupedTxs={groupedTransactions}
+                    accounts={accounts || []} // Use global accounts list here!
+                    familyMembers={[]}
+                    showValues={showValues}
+                    onEdit={() => { }} // View only 
+                    onDelete={() => { }}
+                    onAddClick={() => { }}
+                    onAnticipateInstallments={onAnticipateInstallments}
+                    emptyMessage="Nenhuma compra importada para este mês."
+                />
             </div>
         </div>
     );

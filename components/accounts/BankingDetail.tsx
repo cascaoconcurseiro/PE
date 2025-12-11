@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Account, Transaction, TransactionType } from '../../types';
 import { ArrowUpRight, ArrowDownLeft, Landmark, RefreshCcw } from 'lucide-react';
-import { formatCurrency, getCategoryIcon } from '../../utils';
+import { formatCurrency } from '../../utils';
 import { getBankExtract, calculateHistoricalBalance } from '../../services/accountUtils';
 import { ActionType } from './ActionModal';
+import { TransactionList } from '../transactions/TransactionList';
 
 // Reusable Privacy Blur
 const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
@@ -22,12 +23,26 @@ interface BankingDetailProps {
 export const BankingDetail: React.FC<BankingDetailProps> = ({
     account, transactions, showValues, currentDate, onAction
 }) => {
+    // Get all accounts for correct name resolution
+    const { accounts } = useDataStore();
+
     const extractTxs = getBankExtract(account.id, transactions, currentDate);
     const income = extractTxs.filter(t => t.type === TransactionType.INCOME).reduce((a, b) => a + (b.isRefund ? -b.amount : b.amount), 0);
     const expense = extractTxs.filter(t => t.type === TransactionType.EXPENSE).reduce((a, b) => a + (b.isRefund ? -b.amount : b.amount), 0);
 
     // Calculate historical balance for the end of the selected month
     const displayBalance = calculateHistoricalBalance(account, transactions, currentDate);
+
+    // Group transactions by date for the new list
+    const groupedTransactions = useMemo(() => {
+        const groups: Record<string, Transaction[]> = {};
+        extractTxs.forEach(tx => {
+            const dateKey = tx.date.split('T')[0];
+            if (!groups[dateKey]) groups[dateKey] = [];
+            groups[dateKey].push(tx);
+        });
+        return groups;
+    }, [extractTxs]);
 
     return (
         <div className="space-y-6">
@@ -62,23 +77,16 @@ export const BankingDetail: React.FC<BankingDetailProps> = ({
 
             <div>
                 <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3 px-2">Extrato Detalhado</h3>
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">
-                    {extractTxs.length === 0 ? <div className="p-8 text-center text-slate-500 dark:text-slate-400"><p className="text-sm">Nenhuma movimentação.</p></div> :
-                        extractTxs.map(t => {
-                            const CatIcon = getCategoryIcon(t.category);
-                            const isPositive = (t.type === TransactionType.INCOME && !t.isRefund) || (t.type === TransactionType.EXPENSE && t.isRefund);
-                            return (
-                                <div key={t.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPositive ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}><CatIcon className="w-5 h-5" /></div>
-                                        <div><p className="text-sm font-bold text-slate-800 dark:text-white">{t.description}</p><p className="text-xs text-slate-600 dark:text-slate-400">{new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}</p></div>
-                                    </div>
-                                    <span className={`font-bold ${isPositive ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-white'}`}>{isPositive ? '+' : '-'}<PrivacyBlur showValues={showValues}>{formatCurrency(t.amount, account.currency)}</PrivacyBlur></span>
-                                </div>
-                            );
-                        })
-                    }
-                </div>
+                <TransactionList
+                    groupedTxs={groupedTransactions}
+                    accounts={accounts || []}
+                    familyMembers={[]}
+                    showValues={showValues}
+                    onEdit={() => { }} // View only
+                    onDelete={() => { }}
+                    onAddClick={() => { }}
+                    emptyMessage="Nenhuma movimentação neste período."
+                />
             </div>
         </div>
     );
