@@ -50,6 +50,45 @@ const App = () => {
     const [activeSettlementRequest, setActiveSettlementRequest] = useState<any | null>(null);
     const [settlementToPay, setSettlementToPay] = useState<any | null>(null);
 
+    // AUTO-UPDATE LOGIC (Zombie SW Killer)
+    useEffect(() => {
+        const checkVersion = async () => {
+            try {
+                const response = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) return;
+                const data = await response.json();
+                const latestVersion = data.version;
+                const currentVersion = '2.1'; // MUST MATCH version.json
+
+                if (latestVersion && latestVersion !== currentVersion) {
+                    console.warn(`⚠️ Version Mismatch! Current: ${currentVersion}, Latest: ${latestVersion}. Forcing Update...`);
+
+                    // 1. Unregister SW
+                    if ('serviceWorker' in navigator) {
+                        const regs = await navigator.serviceWorker.getRegistrations();
+                        for (const reg of regs) await reg.unregister();
+                    }
+
+                    // 2. Clear Caches
+                    if ('caches' in window) {
+                        const keys = await caches.keys();
+                        for (const key of keys) await caches.delete(key);
+                    }
+
+                    // 3. Force Reload
+                    window.location.reload();
+                }
+            } catch (e) {
+                console.error("Auto-update check failed:", e);
+            }
+        };
+
+        // Check immediately and every minute
+        checkVersion();
+        const interval = setInterval(checkVersion, 60000);
+        return () => clearInterval(interval);
+    }, []);
+
     // Initial Setup
     useEffect(() => {
         const init = async () => {
