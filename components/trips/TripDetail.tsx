@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trip, Transaction, TransactionType } from '../../types';
+import { Trip, Transaction, TransactionType, Account, FamilyMember } from '../../types';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { ArrowLeft, Download, Printer, Pencil, Trash2, Plane, Users, Calendar, Wallet } from 'lucide-react';

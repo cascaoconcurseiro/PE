@@ -131,25 +131,38 @@ export const Shared: React.FC<SharedProps> = ({
             settleModal.items.forEach(item => {
                 const originalTx = transactions.find(t => t.id === item.originalTxId);
                 if (originalTx) {
-                    // If it's a split (CREDIT), mark THAT split as settled.
+                    const settledDate = settledAtISO;
+
+                    // CASE 1: CREDIT (I paid, they owe me) - Update Specific Split
                     if (item.type === 'CREDIT' && originalTx.sharedWith) {
                         const updatedSplits = originalTx.sharedWith.map(s => {
-                            if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: settledAtISO };
+                            if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: settledDate };
                             return s;
                         });
                         onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
-                    } else {
-                        // If type is DEBIT, it means payerId is set, we need to mark the transaction as settled
-                        if (originalTx.sharedWith) {
-                            const updatedSplits = originalTx.sharedWith.map(s => {
-                                if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: settledAtISO };
-                                return s;
-                            });
-                            onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
-                        } else {
-                            // Mark the transaction itself as settled
-                            onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: settledAtISO });
-                        }
+                    }
+                    // CASE 2: DEBIT (They paid, I owe them) - Update My Debt (Main Transaction OR Split Logic?)
+                    // Logic from useSharedFinances: 
+                    // - CREDIT comes from 'sharedWith' splits (others owe me).
+                    // - DEBIT comes from 'myShare' (remainder) OR explicit split?
+                    // Actually, DEBIT items in useSharedFinances are generated when "Other Paid -> I Owe".
+                    // The "I Owe" part is represented by the transaction itself (if I am not the payer).
+                    // So we MUST mark the transaction as settled.
+                    else if (item.type === 'DEBIT') {
+                        // Force update main transaction, even if sharedWith exists (because sharedWith tracks OTHERS, not ME in this case)
+                        // Wait, if I am one of the 'sharedWith' (e.g. 3 people split), then my debt is in sharedWith?
+                        // useSharedFinances says: if (!payerId || payerId === 'me') -> CREDIT logic.
+                        // else -> DEBIT logic. My share = amount - totalSplits.
+                        // This 'Implicit Share' is not in sharedWith. It's the remainder.
+                        // So to settle it, we must mark the WHOLE transaction as settled?
+                        // NO. If we mark the whole tx as settled, does it affect others?
+                        // If others are in sharedWith, their splits track their status.
+                        // My status is tracked by IS_SETTLED on the main tx?
+                        // Yes, for a transaction where I am NOT the payer, 'isSettled' on the main tx represents "My part is paid".
+                        // (Assuming the Payer doesn't need to track 'received' on the main tx, but rather on their CREDIT splits).
+
+                        // Fix: Always update isSettled on main tx for DEBIT items.
+                        onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: settledDate });
                     }
                 }
             });
