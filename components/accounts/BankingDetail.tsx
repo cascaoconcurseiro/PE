@@ -5,6 +5,7 @@ import { formatCurrency } from '../../utils';
 import { getBankExtract, calculateHistoricalBalance } from '../../services/accountUtils';
 import { ActionType } from './ActionModal';
 import { TransactionList } from '../transactions/TransactionList';
+import { useDataStore } from '../../hooks/useDataStore';
 
 // Reusable Privacy Blur
 const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
