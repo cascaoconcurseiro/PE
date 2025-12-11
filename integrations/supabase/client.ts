@@ -14,28 +14,69 @@ if (!supabaseUrl || !supabaseKey) {
     );
 }
 
-// Custom storage adapter to handle restricted environments (e.g. Incognito, strict privacy settings)
-// where accessing localStorage throws "Access to storage is not allowed"
-const memoryStore: Record<string, string> = {};
+// Robust Storage Adapter
+// Attempts to use localStorage to keep user logged in.
+// If valid storage access is blocked (e.g. strict rules), it silently falls back to in-memory storage.
+// This allows the app to function (session-only) without crashing.
+const robustStorageAdapter = (() => {
+    let memoryStore: Record<string, string> = {};
+    let isStorageAvailable = false;
 
-// LocalStorage references removed to prevent 'Access to storage is not allowed' errors in strict environments.
-const safeLocalStorage = {
-    getItem: (key: string): string | null => null,
-    setItem: (key: string, value: string): void => { },
-    removeItem: (key: string): void => { }
-};
+    // Initial check
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            const testKey = '__storage_test__';
+            window.localStorage.setItem(testKey, testKey);
+            window.localStorage.removeItem(testKey);
+            isStorageAvailable = true;
+        }
+    } catch (e) {
+        console.warn('⚠️ LocalStorage is blocked/unavailable. Session will not persist after refresh.');
+        isStorageAvailable = false;
+    }
 
-const memoryStorage = {
-    getItem: (key: string) => { return null; },
-    setItem: (key: string, value: string) => { },
-    removeItem: (key: string) => { }
-};
+    return {
+        getItem: (key: string): string | null => {
+            try {
+                if (isStorageAvailable) {
+                    return window.localStorage.getItem(key);
+                }
+            } catch (error) {
+                // Ignore
+            }
+            return memoryStore[key] || null;
+        },
+        setItem: (key: string, value: string): void => {
+            try {
+                if (isStorageAvailable) {
+                    window.localStorage.setItem(key, value);
+                    return;
+                }
+            } catch (error) {
+                // Determine if quota exceeded vs blocked
+                // But in any case, fallback
+            }
+            memoryStore[key] = value;
+        },
+        removeItem: (key: string): void => {
+            try {
+                if (isStorageAvailable) {
+                    window.localStorage.removeItem(key);
+                    return;
+                }
+            } catch (error) {
+                // Ignore
+            }
+            delete memoryStore[key];
+        }
+    };
+})();
 
 export const supabase = createClient(supabaseUrl || '', supabaseKey || '', {
     auth: {
-        storage: memoryStorage, // Force memory storage
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false
+        storage: robustStorageAdapter,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
     }
 });
