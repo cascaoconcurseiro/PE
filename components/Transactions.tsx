@@ -172,6 +172,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 formMode={formMode}
                 setFormMode={setFormMode}
                 accounts={accounts}
+                transactions={transactions}
                 trips={trips}
                 familyMembers={familyMembers}
                 customCategories={customCategories}

@@ -247,8 +247,22 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                         className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 shadow-lg border-0"
                                         onClick={() => {
                                             const selectedInvoiceItems = items.filter(i => selectedItems.has(i.originalTxId));
+
+                                            // VALIDATION: Filter out already paid items
+                                            const unpaidItems = selectedInvoiceItems.filter(i => !i.isPaid);
+                                            const paidCount = selectedInvoiceItems.length - unpaidItems.length;
+
+                                            if (paidCount > 0) {
+                                                alert(`${paidCount} item(s) selecionado(s) já está(ão) pago(s) e foi(ram) removido(s) do acerto.`);
+                                            }
+
+                                            if (unpaidItems.length === 0) {
+                                                if (paidCount === 0) alert("Nenhum item válido selecionado.");
+                                                return;
+                                            }
+
                                             if (onBulkSettle) {
-                                                onBulkSettle(selectedInvoiceItems);
+                                                onBulkSettle(unpaidItems);
                                                 setIsSelectionMode(false);
                                                 setSelectedItems(new Set());
                                             }

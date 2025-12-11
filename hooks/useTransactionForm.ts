@@ -5,6 +5,7 @@ interface UseTransactionFormProps {
     initialData?: Transaction | null;
     formMode: TransactionType;
     accounts: Account[];
+    transactions?: Transaction[];
     trips: Trip[];
     onSave: (data: any, isEdit: boolean, updateFuture: boolean) => void;
 }
@@ -13,6 +14,7 @@ export const useTransactionForm = ({
     initialData,
     formMode,
     accounts,
+    transactions,
     trips = [],
     onSave
 }: UseTransactionFormProps) => {
@@ -167,10 +169,18 @@ export const useTransactionForm = ({
         setIsSplitModalOpen(false);
     };
 
+    const [duplicateWarning, setDuplicateWarning] = useState(false);
+
+    // Reset warning when form changes
+    useEffect(() => {
+        setDuplicateWarning(false);
+    }, [amountStr, description, date, accountId]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const newErrors: { [key: string]: string } = {};
 
+        // ... (standard validations)
         if (!activeAmount || activeAmount <= 0) newErrors.amount = 'Valor inválido';
         if (!description.trim()) newErrors.description = 'Descrição obrigatória';
         if (!date) newErrors.date = 'Data obrigatória';
@@ -178,17 +188,14 @@ export const useTransactionForm = ({
 
         if (isTransfer) {
             if (!destinationAccountId) newErrors.destination = 'Conta destino obrigatória';
-            // ✅ VALIDAÇÃO CRÍTICA: Bloquear transferências circulares
             if (destinationAccountId === accountId) {
                 newErrors.destination = 'Não é possível transferir para a mesma conta';
             }
-
             if (isMultiCurrencyTransfer) {
                 const destAmt = parseFloat(destinationAmountStr);
                 if (!destAmt || destAmt <= 0) {
                     newErrors.destinationAmount = 'Informe o valor final na moeda de destino';
                 }
-                // ✅ VALIDAÇÃO CRÍTICA: Exchange rate obrigatório para multi-moeda
                 const rate = parseFloat(manualExchangeRate);
                 if (!rate || rate <= 0) {
                     newErrors.exchangeRate = 'Taxa de câmbio obrigatória para transferências entre moedas';
@@ -198,20 +205,38 @@ export const useTransactionForm = ({
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            // Scroll para o primeiro erro
             const firstErrorKey = Object.keys(newErrors)[0];
-            console.error('❌ Erro de validação:', firstErrorKey, newErrors[firstErrorKey]);
-
-            // Tentativa de scroll suave até o elemento com erro
             const element = document.getElementById(`input-${firstErrorKey}`);
             if (element) {
                 element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 element.focus();
             } else {
-                // Fallback: scroll to top
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
             return;
+        }
+
+        // DUPLICATE CHECK (Only for new transactions)
+        if (!initialData && transactions && !duplicateWarning) {
+            const potentialDuplicates = transactions.filter(t =>
+                !t.deleted &&
+                t.amount === activeAmount &&
+                t.date === date &&
+                t.description.toLowerCase().trim() === description.toLowerCase().trim() &&
+                t.accountId === accountId &&
+                t.type === formMode
+            );
+
+            if (potentialDuplicates.length > 0) {
+                setDuplicateWarning(true);
+                // Scroll to top to see warning (if we handle UI there, or just alert)
+                // Since hooks don't control UI directly, we rely on the parent or return error?
+                // Actually, let's inject a "error" into the description field or a general error
+                // Better: The Component should see 'duplicateWarning' state.
+                // For now, let's use the 'errors' object to block submission and show message
+                setErrors({ description: 'Atenção: Transação similar já existe! Clique em confirmar novamente para salvar mesmo assim.' });
+                return;
+            }
         }
 
         const finalSplits = splits
@@ -220,14 +245,6 @@ export const useTransactionForm = ({
                 ...s,
                 assignedAmount: (activeAmount * s.percentage) / 100
             }));
-
-        // ✅ VALIDAÇÃO CRÍTICA: Splits não podem somar mais que o total
-        if (finalSplits.length > 0) {
-            const splitsTotal = finalSplits.reduce((sum, s) => sum + s.assignedAmount, 0);
-            if (splitsTotal > activeAmount) {
-                newErrors.splits = `Divisão inválida: soma dos valores (${splitsTotal.toFixed(2)}) é maior que o total (${activeAmount.toFixed(2)})`;
-            }
-        }
 
         const isExternalPayer = payerId && payerId !== 'me';
         const shouldBeShared = formMode === TransactionType.EXPENSE && (isShared || finalSplits.length > 0 || isExternalPayer);
@@ -256,7 +273,6 @@ export const useTransactionForm = ({
             recurrenceDay: isRecurring ? recurrenceDay : undefined,
             lastGenerated: isRecurring ? date : undefined,
             frequency: isRecurring ? frequency : Frequency.ONE_TIME,
-            // Allow installments for: (1) Credit cards, (2) When someone else paid
             isInstallment: (isCreditCard || isExternalPayer) ? isInstallment : false,
             currentInstallment: isInstallment ? currentInstallment : undefined,
             totalInstallments: isInstallment ? totalInstallments : undefined,

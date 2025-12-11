@@ -16,6 +16,7 @@ interface TransactionFormProps {
     formMode: TransactionType;
     setFormMode: (mode: TransactionType | null) => void;
     accounts: Account[];
+    transactions?: Transaction[];
     trips: Trip[];
     familyMembers: FamilyMember[];
     customCategories: CustomCategory[];
@@ -31,6 +32,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     formMode,
     setFormMode,
     accounts,
+    transactions = [],
     trips = [],
     familyMembers = [],
     customCategories,
@@ -83,6 +85,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         initialData,
         formMode,
         accounts,
+        transactions,
         trips,
         onSave
     });
