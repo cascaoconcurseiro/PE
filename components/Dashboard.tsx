@@ -47,17 +47,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
     const selectedYear = currentDate.getFullYear();
 
     // --- FINANCIAL LOGIC INTEGRATION ---
+    // 0. GLOBAL FILTER: Dashboard is checking/local only.
+    // Exclude Trip transactions and Foreign Currency transactions.
+    const dashboardTransactions = useMemo(() =>
+        transactions.filter(t => !t.tripId && (!t.currency || t.currency === 'BRL')),
+        [transactions]);
+
+    const dashboardAccounts = useMemo(() =>
+        accounts.filter(a => !a.currency || a.currency === 'BRL'),
+        [accounts]);
+
     // 1. Calculate Projection
     const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() =>
-        calculateProjectedBalance(accounts, transactions, currentDate),
-        [accounts, transactions, currentDate]);
+        calculateProjectedBalance(dashboardAccounts, dashboardTransactions, currentDate),
+        [dashboardAccounts, dashboardTransactions, currentDate]);
 
     // 2. Filter Transactions for Charts
     const monthlyTransactions = useMemo(() =>
-        transactions
+        dashboardTransactions
             .filter(shouldShowTransaction) // Filter out unpaid debts (someone paid for me)
             .filter(t => isSameMonth(t.date, currentDate)),
-        [transactions, currentDate]);
+        [dashboardTransactions, currentDate]);
 
     // 3. Realized Totals (Using Effective Values to Reflect Splits)
     const monthlyIncome = useMemo(() => monthlyTransactions
@@ -84,7 +94,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
 
     // 5. Total Net Worth (All Accounts - Credit Card Debt)
     const netWorth = useMemo(() => {
-        const accountsTotal = accounts.reduce((acc, curr) => {
+        const accountsTotal = dashboardAccounts.reduce((acc, curr) => {
             // Subtract Credit Card Debt from Net Worth
             if (curr.type === AccountType.CREDIT_CARD) {
                 return acc - Math.abs(convertToBRL(curr.balance, curr.currency || 'BRL'));
@@ -93,7 +103,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
         }, 0);
 
         return accountsTotal;
-    }, [accounts]);
+    }, [dashboardAccounts]);
 
     // Annual Cash Flow Data (Calendar Year: Jan - Dec)
     const cashFlowData = useMemo(() => {
@@ -112,285 +122,287 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
             };
         });
 
-        transactions
-            .filter(shouldShowTransaction)
-            .forEach(t => {
-                const tDate = new Date(t.date);
-                // Filter strict by year
-                if (tDate.getFullYear() !== selectedYear) return;
+    });
 
-                // Exclude transfers from Cash Flow visualization (focus on In/Out)
-                if (t.type === TransactionType.TRANSFER) return;
+    dashboardTransactions
+        .filter(shouldShowTransaction)
+        .forEach(t => {
+            const tDate = new Date(t.date);
+            // Filter strict by year
+            if (tDate.getFullYear() !== selectedYear) return;
 
+            // Exclude transfers from Cash Flow visualization (focus on In/Out)
+            if (t.type === TransactionType.TRANSFER) return;
+
+            const account = accounts.find(a => a.id === t.accountId);
+
+            // Calculate Effective Amount in BRL
+            const effectiveAmount = calculateEffectiveTransactionValue(t);
+            const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
+
+            // Find correctly matching month bucket
+            const bucket = data.find(d => d.monthIndex === tDate.getMonth());
+
+            if (bucket) {
+                if (t.type === TransactionType.EXPENSE) {
+                    const value = t.isRefund ? -amountBRL : amountBRL;
+                    // Determine if it's actually an expense or positive
+                    if (value > 0) bucket.Despesas -= value; // Store as negative for chart
+                    else bucket.Receitas += Math.abs(value); // Refund becomes income visually
+                } else if (t.type === TransactionType.INCOME) {
+                    const value = t.isRefund ? -amountBRL : amountBRL;
+                    if (value > 0) bucket.Receitas += value;
+                    else bucket.Despesas -= Math.abs(value);
+                }
+            }
+        });
+
+    return data;
+}, [transactions, currentDate, accounts]);
+
+const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas < 0), [cashFlowData]);
+
+// Sparkline Data for Summary Cards
+const incomeSparkline = useMemo(() => {
+    const days = 7;
+    const data: number[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const dayTotal = dashboardTransactions
+            .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.INCOME)
+            .reduce((sum, t) => sum + t.amount, 0);
+        data.push(dayTotal);
+    }
+    return data;
+}, [dashboardTransactions]);
+
+const expenseSparkline = useMemo(() => {
+    const days = 7;
+    const data: number[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const dayTotal = dashboardTransactions
+            .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.EXPENSE)
+            .reduce((sum, t) => sum + t.amount, 0);
+        data.push(dayTotal);
+    }
+    return data;
+}, [dashboardTransactions]);
+
+// Upcoming Bills Logic
+const upcomingBills = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return dashboardTransactions
+        .filter(shouldShowTransaction) // Filter out unpaid debts
+        .filter(t => t.enableNotification && t.type === TransactionType.EXPENSE && !t.isRefund)
+        .filter(t => {
+            const targetDateStr = t.notificationDate || t.date;
+            const tDate = new Date(targetDateStr);
+            return tDate >= today || (tDate < today && isSameMonth(targetDateStr, today));
+        })
+        .sort((a, b) => {
+            const dateA = new Date(a.notificationDate || a.date).getTime();
+            const dateB = new Date(b.notificationDate || b.date).getTime();
+            return dateA - dateB;
+        })
+        .slice(0, 3);
+}, [dashboardTransactions]);
+
+// Spending Chart Data (Dynamic: Category or Source)
+const spendingChartData = useMemo(() => {
+    const chartTxs = monthlyTransactions
+        .filter(t => t.type === TransactionType.EXPENSE)
+        // Fix: Exclude Opening Balance / Adjustment from Spending Reports
+        .filter(t => t.category !== Category.OPENING_BALANCE);
+
+    if (spendingView === 'CATEGORY') {
+        return Object.entries(
+            chartTxs.reduce((acc, t) => {
                 const account = accounts.find(a => a.id === t.accountId);
-
-                // Calculate Effective Amount in BRL
                 const effectiveAmount = calculateEffectiveTransactionValue(t);
                 const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
+                const amount = t.isRefund ? -amountBRL : amountBRL;
+                acc[t.category] = (acc[t.category] || 0) + (amount as number);
+                return acc;
+            }, {} as Record<string, number>)
+        )
+            .filter(([_, val]) => (val as number) > 0)
+            .map(([name, value]) => ({ name, value: value as number }))
+            .sort((a, b) => b.value - a.value);
+    } else {
+        // SOURCE VIEW
+        return Object.entries(
+            chartTxs.reduce((acc, t) => {
+                const account = accounts.find(a => a.id === t.accountId);
+                const effectiveAmount = calculateEffectiveTransactionValue(t);
+                const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
+                const amount = t.isRefund ? -amountBRL : amountBRL;
 
-                // Find correctly matching month bucket
-                const bucket = data.find(d => d.monthIndex === tDate.getMonth());
-
-                if (bucket) {
-                    if (t.type === TransactionType.EXPENSE) {
-                        const value = t.isRefund ? -amountBRL : amountBRL;
-                        // Determine if it's actually an expense or positive
-                        if (value > 0) bucket.Despesas -= value; // Store as negative for chart
-                        else bucket.Receitas += Math.abs(value); // Refund becomes income visually
-                    } else if (t.type === TransactionType.INCOME) {
-                        const value = t.isRefund ? -amountBRL : amountBRL;
-                        if (value > 0) bucket.Receitas += value;
-                        else bucket.Despesas -= Math.abs(value);
-                    }
+                // Determine Source Label
+                let sourceLabel = 'Outros';
+                if (account) {
+                    if (account.type === AccountType.CREDIT_CARD) sourceLabel = 'Cartão de Crédito';
+                    else if (account.type === AccountType.CHECKING || account.type === AccountType.SAVINGS) sourceLabel = 'Conta Bancária';
+                    else if (account.type === AccountType.CASH) sourceLabel = 'Dinheiro';
+                    else sourceLabel = account.type; // Fallback
                 }
-            });
 
-        return data;
-    }, [transactions, currentDate, accounts]);
-
-    const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas < 0), [cashFlowData]);
-
-    // Sparkline Data for Summary Cards
-    const incomeSparkline = useMemo(() => {
-        const days = 7;
-        const data: number[] = [];
-        for (let i = days - 1; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
-            const dayTotal = transactions
-                .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.INCOME)
-                .reduce((sum, t) => sum + t.amount, 0);
-            data.push(dayTotal);
-        }
-        return data;
-    }, [transactions]);
-
-    const expenseSparkline = useMemo(() => {
-        const days = 7;
-        const data: number[] = [];
-        for (let i = days - 1; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
-            const dayTotal = transactions
-                .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.EXPENSE)
-                .reduce((sum, t) => sum + t.amount, 0);
-            data.push(dayTotal);
-        }
-        return data;
-    }, [transactions]);
-
-    // Upcoming Bills Logic
-    const upcomingBills = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        return transactions
-            .filter(shouldShowTransaction) // Filter out unpaid debts
-            .filter(t => t.enableNotification && t.type === TransactionType.EXPENSE && !t.isRefund)
-            .filter(t => {
-                const targetDateStr = t.notificationDate || t.date;
-                const tDate = new Date(targetDateStr);
-                return tDate >= today || (tDate < today && isSameMonth(targetDateStr, today));
-            })
-            .sort((a, b) => {
-                const dateA = new Date(a.notificationDate || a.date).getTime();
-                const dateB = new Date(b.notificationDate || b.date).getTime();
-                return dateA - dateB;
-            })
-            .slice(0, 3);
-    }, [transactions]);
-
-    // Spending Chart Data (Dynamic: Category or Source)
-    const spendingChartData = useMemo(() => {
-        const chartTxs = monthlyTransactions
-            .filter(t => t.type === TransactionType.EXPENSE)
-            // Fix: Exclude Opening Balance / Adjustment from Spending Reports
-            .filter(t => t.category !== Category.OPENING_BALANCE);
-
-        if (spendingView === 'CATEGORY') {
-            return Object.entries(
-                chartTxs.reduce((acc, t) => {
-                    const account = accounts.find(a => a.id === t.accountId);
-                    const effectiveAmount = calculateEffectiveTransactionValue(t);
-                    const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
-                    const amount = t.isRefund ? -amountBRL : amountBRL;
-                    acc[t.category] = (acc[t.category] || 0) + (amount as number);
-                    return acc;
-                }, {} as Record<string, number>)
-            )
-                .filter(([_, val]) => (val as number) > 0)
-                .map(([name, value]) => ({ name, value: value as number }))
-                .sort((a, b) => b.value - a.value);
-        } else {
-            // SOURCE VIEW
-            return Object.entries(
-                chartTxs.reduce((acc, t) => {
-                    const account = accounts.find(a => a.id === t.accountId);
-                    const effectiveAmount = calculateEffectiveTransactionValue(t);
-                    const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
-                    const amount = t.isRefund ? -amountBRL : amountBRL;
-
-                    // Determine Source Label
-                    let sourceLabel = 'Outros';
-                    if (account) {
-                        if (account.type === AccountType.CREDIT_CARD) sourceLabel = 'Cartão de Crédito';
-                        else if (account.type === AccountType.CHECKING || account.type === AccountType.SAVINGS) sourceLabel = 'Conta Bancária';
-                        else if (account.type === AccountType.CASH) sourceLabel = 'Dinheiro';
-                        else sourceLabel = account.type; // Fallback
-                    }
-
-                    acc[sourceLabel] = (acc[sourceLabel] || 0) + (amount as number);
-                    return acc;
-                }, {} as Record<string, number>)
-            )
-                .filter(([_, val]) => (val as number) > 0)
-                .map(([name, value]) => ({ name, value: value as number }))
-                .sort((a, b) => b.value - a.value);
-        }
-    }, [monthlyTransactions, accounts, spendingView]);
-
-    if (isLoading) {
-        return <DashboardSkeleton />;
+                acc[sourceLabel] = (acc[sourceLabel] || 0) + (amount as number);
+                return acc;
+            }, {} as Record<string, number>)
+        )
+            .filter(([_, val]) => (val as number) > 0)
+            .map(([name, value]) => ({ name, value: value as number }))
+            .sort((a, b) => b.value - a.value);
     }
+}, [monthlyTransactions, accounts, spendingView]);
 
-    return (
-        <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
+if (isLoading) {
+    return <DashboardSkeleton />;
+}
 
-            {/* Pending Actions Section */}
-            {(pendingSharedRequestsCount > 0 || (pendingSettlements && pendingSettlements.length > 0)) && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-2xl p-4 animate-in slide-in-from-top-4">
-                    <h3 className="font-bold text-amber-900 dark:text-amber-100 mb-3 flex items-center gap-2">
-                        <Layers className="w-5 h-5" /> Ações Pendentes
-                    </h3>
-                    <div className="space-y-3">
-                        {pendingSharedRequestsCount > 0 && (
-                            <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-amber-100 dark:border-amber-900 flex justify-between items-center shadow-sm">
-                                <div>
-                                    <p className="font-bold text-slate-800 dark:text-slate-200">Convites Compartilhados</p>
-                                    <p className="text-sm text-slate-500">{pendingSharedRequestsCount} solicitações aguardando aceite.</p>
-                                </div>
-                                <Button size="sm" onClick={onOpenShared} className="bg-amber-100 text-amber-900 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-100">
-                                    Ver Todos
-                                </Button>
+return (
+    <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
+
+        {/* Pending Actions Section */}
+        {(pendingSharedRequestsCount > 0 || (pendingSettlements && pendingSettlements.length > 0)) && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-2xl p-4 animate-in slide-in-from-top-4">
+                <h3 className="font-bold text-amber-900 dark:text-amber-100 mb-3 flex items-center gap-2">
+                    <Layers className="w-5 h-5" /> Ações Pendentes
+                </h3>
+                <div className="space-y-3">
+                    {pendingSharedRequestsCount > 0 && (
+                        <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-amber-100 dark:border-amber-900 flex justify-between items-center shadow-sm">
+                            <div>
+                                <p className="font-bold text-slate-800 dark:text-slate-200">Convites Compartilhados</p>
+                                <p className="text-sm text-slate-500">{pendingSharedRequestsCount} solicitações aguardando aceite.</p>
                             </div>
-                        )}
-                        {pendingSettlements?.map(s => (
-                            <div key={s.id} className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-amber-100 dark:border-amber-900 flex justify-between items-center shadow-sm">
-                                <div>
-                                    <p className="font-bold text-slate-800 dark:text-slate-200">
-                                        {s.type === 'CHARGE' ? 'Cobrança Recebida' : 'Pagamento Recebido'}
-                                    </p>
-                                    <p className="text-sm text-slate-500">
-                                        {s.other_user_name} {s.type === 'CHARGE' ? 'te cobrou' : 'pagou'} <strong>{s.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>
-                                    </p>
-                                </div>
-                                <Button
-                                    size="sm"
-                                    onClick={() => onOpenSettlement && onOpenSettlement(s)}
-                                    className={s.type === 'CHARGE' ? "bg-red-100 text-red-900 hover:bg-red-200" : "bg-emerald-100 text-emerald-900 hover:bg-emerald-200"}
-                                >
-                                    {s.type === 'CHARGE' ? 'Pagar' : 'Confirmar'}
-                                </Button>
+                            <Button size="sm" onClick={onOpenShared} className="bg-amber-100 text-amber-900 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-100">
+                                Ver Todos
+                            </Button>
+                        </div>
+                    )}
+                    {pendingSettlements?.map(s => (
+                        <div key={s.id} className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-amber-100 dark:border-amber-900 flex justify-between items-center shadow-sm">
+                            <div>
+                                <p className="font-bold text-slate-800 dark:text-slate-200">
+                                    {s.type === 'CHARGE' ? 'Cobrança Recebida' : 'Pagamento Recebido'}
+                                </p>
+                                <p className="text-sm text-slate-500">
+                                    {s.other_user_name} {s.type === 'CHARGE' ? 'te cobrou' : 'pagou'} <strong>{s.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>
+                                </p>
                             </div>
-                        ))}
-                    </div>
+                            <Button
+                                size="sm"
+                                onClick={() => onOpenSettlement && onOpenSettlement(s)}
+                                className={s.type === 'CHARGE' ? "bg-red-100 text-red-900 hover:bg-red-200" : "bg-emerald-100 text-emerald-900 hover:bg-emerald-200"}
+                            >
+                                {s.type === 'CHARGE' ? 'Pagar' : 'Confirmar'}
+                            </Button>
+                        </div>
+                    ))}
                 </div>
-            )}
+            </div>
+        )}
 
-            <FinancialProjectionCard
-                projectedBalance={projectedBalance}
-                currentBalance={currentBalance}
-                pendingIncome={pendingIncome}
-                pendingExpenses={pendingExpenses}
-                healthStatus={healthStatus}
-                currentDate={currentDate}
+        <FinancialProjectionCard
+            projectedBalance={projectedBalance}
+            currentBalance={currentBalance}
+            pendingIncome={pendingIncome}
+            pendingExpenses={pendingExpenses}
+            healthStatus={healthStatus}
+            currentDate={currentDate}
+            showValues={showValues}
+        />
+
+        <SummaryCards
+            netWorth={netWorth}
+            monthlyIncome={monthlyIncome}
+            monthlyExpense={monthlyExpense}
+            currentDate={currentDate}
+            showValues={showValues}
+            incomeSparkline={incomeSparkline}
+            expenseSparkline={expenseSparkline}
+        />
+
+        <Suspense fallback={<ChartSkeleton />}>
+            <CashFlowChart
+                data={cashFlowData}
+                hasData={hasCashFlowData}
+                periodLabel={`Visão anual de ${selectedYear}`}
                 showValues={showValues}
             />
+        </Suspense>
 
-            <SummaryCards
-                netWorth={netWorth}
-                monthlyIncome={monthlyIncome}
-                monthlyExpense={monthlyExpense}
-                currentDate={currentDate}
-                showValues={showValues}
-                incomeSparkline={incomeSparkline}
-                expenseSparkline={expenseSparkline}
-            />
+        <UpcomingBills
+            bills={upcomingBills}
+            accounts={accounts}
+            showValues={showValues}
+            onEditRequest={onEditRequest}
+        />
+
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="font-bold text-slate-700 dark:text-slate-300">
+                    {spendingView === 'CATEGORY' ? 'Gastos por Categoria' : 'Fontes de Gasto'}
+                </h3>
+
+                <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-1 gap-1">
+                    <button
+                        onClick={() => setSpendingView('CATEGORY')}
+                        className={`p-2 rounded-md transition-all ${spendingView === 'CATEGORY' ? 'bg-white dark:bg-slate-800 shadow text-violet-600 dark:text-violet-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'}`}
+                        title="Ver por Categoria"
+                    >
+                        <PieChart className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => setSpendingView('SOURCE')}
+                        className={`p-2 rounded-md transition-all ${spendingView === 'SOURCE' ? 'bg-white dark:bg-slate-800 shadow text-violet-600 dark:text-violet-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'}`}
+                        title="Ver por Fonte (Cartão, Dinheiro...)"
+                    >
+                        <CreditCard className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
 
             <Suspense fallback={<ChartSkeleton />}>
-                <CashFlowChart
-                    data={cashFlowData}
-                    hasData={hasCashFlowData}
-                    periodLabel={`Visão anual de ${selectedYear}`}
+                <CategorySpendingChart
+                    data={spendingChartData}
+                    totalExpense={monthlyExpense}
                     showValues={showValues}
                 />
             </Suspense>
-
-            <UpcomingBills
-                bills={upcomingBills}
-                accounts={accounts}
-                showValues={showValues}
-                onEditRequest={onEditRequest}
-            />
-
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-bold text-slate-700 dark:text-slate-300">
-                        {spendingView === 'CATEGORY' ? 'Gastos por Categoria' : 'Fontes de Gasto'}
-                    </h3>
-
-                    <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-1 gap-1">
-                        <button
-                            onClick={() => setSpendingView('CATEGORY')}
-                            className={`p-2 rounded-md transition-all ${spendingView === 'CATEGORY' ? 'bg-white dark:bg-slate-800 shadow text-violet-600 dark:text-violet-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'}`}
-                            title="Ver por Categoria"
-                        >
-                            <PieChart className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={() => setSpendingView('SOURCE')}
-                            className={`p-2 rounded-md transition-all ${spendingView === 'SOURCE' ? 'bg-white dark:bg-slate-800 shadow text-violet-600 dark:text-violet-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300'}`}
-                            title="Ver por Fonte (Cartão, Dinheiro...)"
-                        >
-                            <CreditCard className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-
-                <Suspense fallback={<ChartSkeleton />}>
-                    <CategorySpendingChart
-                        data={spendingChartData}
-                        totalExpense={monthlyExpense}
-                        showValues={showValues}
-                    />
-                </Suspense>
-            </div>
-
-            {/* Report Buttons - Bottom of Page */}
-            <div className="flex justify-center gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => generateMonthlyReport(transactions, accounts, currentDate)}
-                    className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
-                    title="Imprimir Relatório Mensal"
-                >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Relatório Mensal
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => generateAnnualReport(transactions, accounts, selectedYear)}
-                    className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
-                    title="Imprimir Relatório Anual"
-                >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Relatório Anual
-                </Button>
-            </div>
         </div>
-    );
+
+        {/* Report Buttons - Bottom of Page */}
+        <div className="flex justify-center gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => generateMonthlyReport(transactions, accounts, currentDate)}
+                className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                title="Imprimir Relatório Mensal"
+            >
+                <Printer className="w-4 h-4 mr-2" />
+                Relatório Mensal
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => generateAnnualReport(transactions, accounts, selectedYear)}
+                className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                title="Imprimir Relatório Anual"
+            >
+                <Printer className="w-4 h-4 mr-2" />
+                Relatório Anual
+            </Button>
+        </div>
+    </div>
+);
 };

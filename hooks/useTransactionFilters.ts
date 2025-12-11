@@ -25,10 +25,12 @@ export const useTransactionFilters = ({ transactions, currentDate, searchTerm, a
                 const isForeign = t.currency && t.currency !== 'BRL';
 
                 if (activeTab === 'REGULAR') {
-                    return matchesDate && matchesSearch && !isForeign;
+                    // Regular: Must match date, search, NOT be foreign, AND NOT be part of a trip.
+                    return matchesDate && matchesSearch && !isForeign && !t.tripId;
                 } else {
-                    // Travel Tab: Show foreign currency transactions.
-                    return matchesDate && matchesSearch && isForeign;
+                    // Travel Tab: Show foreign currency transactions OR transactions linked to a trip.
+                    // If local currency but has tripId, show here? Yes, user says "any trip transaction".
+                    return matchesDate && matchesSearch && (isForeign || !!t.tripId);
                 }
             })
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
