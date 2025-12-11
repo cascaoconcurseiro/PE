@@ -21,7 +21,7 @@ export const useAccountActions = ({ selectedAccount, onAddTransaction, currentDa
         setActionModal(prev => ({ ...prev, isOpen: false }));
     };
 
-    const handleActionSubmit = (amount: number, description: string, sourceId: string) => {
+    const handleActionSubmit = (amount: number, description: string, sourceId: string, destinationAmount?: number) => {
         if (!selectedAccount) return;
 
         // Validation: Account must have ID
@@ -71,7 +71,14 @@ export const useAccountActions = ({ selectedAccount, onAddTransaction, currentDa
                     addToast('Erro: Origem e destino não podem ser iguais', 'error');
                     return;
                 }
-                onAddTransaction({ ...commonProps, description: description || 'Transferência', type: TransactionType.TRANSFER, category: Category.TRANSFER, destinationAccountId: sourceId });
+                onAddTransaction({
+                    ...commonProps,
+                    description: description || 'Transferência',
+                    type: TransactionType.TRANSFER,
+                    category: Category.TRANSFER,
+                    destinationAccountId: sourceId,
+                    destinationAmount: destinationAmount // Pass the converted amount if it exists
+                });
                 addToast('Transferência realizada!', 'success');
                 break;
             case 'PAY_INVOICE':
