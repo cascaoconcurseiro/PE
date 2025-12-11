@@ -43,8 +43,7 @@ export const ActionModal: React.FC<ActionModalProps> = ({
         setExchangeRate('');
     }, [type]);
 
-    if (!isOpen) return null;
-
+    // Check if we are in a multi-currency scenario BEFORE early return
     const sourceAccountObj = accounts.find(a => a.id === sourceId);
 
     // Check if we are in a multi-currency scenario
@@ -52,7 +51,7 @@ export const ActionModal: React.FC<ActionModalProps> = ({
     // let's clarify: 'account' is the active one (Origin). 'sourceId' is selected in the dropdown (Destination).
     const isInternationalTransfer = type === 'TRANSFER' && sourceAccountObj && account.currency !== sourceAccountObj.currency;
 
-    // Auto-calculate destination amount based on rate
+    // Auto-calculate destination amount based on rate (HOOK MOVED UP)
     useEffect(() => {
         if (isInternationalTransfer && amount && exchangeRate) {
             const val = parseFloat(amount.replace(',', '.'));
@@ -65,6 +64,8 @@ export const ActionModal: React.FC<ActionModalProps> = ({
             }
         }
     }, [amount, exchangeRate, isInternationalTransfer, account.currency, sourceAccountObj?.currency]);
+
+    if (!isOpen) return null;
 
     const handleSubmit = () => {
         const val = parseFloat(amount.replace(',', '.'));
