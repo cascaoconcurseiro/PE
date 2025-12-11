@@ -6,7 +6,7 @@ const supabaseUrl = 'https://mlqzeihukezlozooqhko.supabase.co';
 const supabaseKey = 'sb_secret_MdMVxu-OTJAvbpxsoh44Xg_-lcY_v1U';
 
 async function run() {
-    const sqlPath = path.join(process.cwd(), 'SHARED_EXPENSES_MIGRATION.sql');
+    const sqlPath = path.join(process.cwd(), 'supabase', 'migrations', '20250109_force_fix_rpc.sql');
     console.log('Reading:', sqlPath);
     const query = fs.readFileSync(sqlPath, 'utf8');
 

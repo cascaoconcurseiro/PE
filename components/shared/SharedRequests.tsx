@@ -131,13 +131,30 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, a
                             if (!window.confirm("Aceitar todas as solicitações pendentes?")) return;
 
                             try {
+                                const defaultAccount = accounts.find(a => a.type === AccountType.CHECKING || a.type === AccountType.CASH) || accounts[0];
+                                if (!defaultAccount) {
+                                    addToast("Erro: Nenhuma conta encontrada para registrar as despesas.", "error");
+                                    return;
+                                }
+
                                 const updates = requests.map(r =>
-                                    supabase.from('shared_transaction_requests')
-                                        .update({ status: 'ACCEPTED', responded_at: new Date().toISOString() })
-                                        .eq('id', r.id)
+                                    supabase.rpc('respond_to_shared_request', {
+                                        p_request_id: r.id,
+                                        p_status: 'ACCEPTED',
+                                        p_account_id: defaultAccount.id
+                                    })
                                 );
-                                await Promise.all(updates);
-                                addToast("Todas as solicitações foram aceitas!", 'success');
+
+                                const results = await Promise.all(updates);
+                                const failures = results.filter(r => r.error);
+
+                                if (failures.length > 0) {
+                                    console.error('Some requests failed:', failures);
+                                    addToast(`${failures.length} solicitações falharam. Verifique o console.`, 'warning');
+                                } else {
+                                    addToast("Todas as solicitações foram aceitas!", 'success');
+                                }
+
                                 setRequests([]);
                                 onStatusChange();
                             } catch (e) {

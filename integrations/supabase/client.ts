@@ -15,11 +15,11 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 // Robust Storage Adapter
-// Priority: LocalStorage -> Cookie -> Memory
-// This ensures persistence even if LocalStorage is blocked (common in embedded views/incognito).
+// Priority: Cookie -> Memory
+// LocalStorage is explicitly EXCLUDED by system audit.
 const robustStorageAdapter = (() => {
     let memoryStore: Record<string, string> = {};
-    let isStorageAvailable = false;
+
 
     // Cookie Helpers
     const setCookie = (name: string, value: string, days = 365) => {
@@ -56,66 +56,33 @@ const robustStorageAdapter = (() => {
         }
     };
 
-    // Initial check for LocalStorage
-    try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-            const testKey = '__storage_test__';
-            window.localStorage.setItem(testKey, testKey);
-            window.localStorage.removeItem(testKey);
-            isStorageAvailable = true;
-        }
-    } catch (e) {
-        console.warn('⚠️ LocalStorage is blocked. Falling back to Cookies/Memory.');
-        isStorageAvailable = false;
-    }
+    // LocalStorage Logic Removed by Audit Request
 
     return {
         getItem: (key: string): string | null => {
-            // 1. Try LocalStorage
-            if (isStorageAvailable) {
-                try {
-                    const item = window.localStorage.getItem(key);
-                    if (item) return item;
-                } catch (e) { /* Ignore */ }
-            }
+            // Priority: Cookie -> Memory (NO LocalStorage)
 
-            // 2. Try Cookie (Fallback)
+            // 1. Try Cookie
             const cookieItem = getCookie(key);
             if (cookieItem) return cookieItem;
 
-            // 3. Memory (Last Resort)
+            // 2. Memory
             return memoryStore[key] || null;
         },
         setItem: (key: string, value: string): void => {
-            // 1. Try LocalStorage
-            if (isStorageAvailable) {
-                try {
-                    window.localStorage.setItem(key, value);
-                    // Also set cookie as backup? No, duplication might be messy. 
-                    // But if LS fails randomly later, cookie is good. 
-                    // Let's stick to one primary source to avoid sync issues.
-                    return;
-                } catch (error) {
-                    console.warn('LocalStorage write failed, switching to Cookie.');
-                }
-            }
+            // Priority: Cookie -> Memory
 
-            // 2. Try Cookie
+            // 1. Try Cookie
             try {
                 setCookie(key, value);
-                return;
             } catch (e) {
                 // Ignore
             }
 
-            // 3. Memory
+            // 2. Memory
             memoryStore[key] = value;
         },
         removeItem: (key: string): void => {
-            // Aggressively clear EVERYTHING to ensure logout
-            if (isStorageAvailable) {
-                try { window.localStorage.removeItem(key); } catch (e) { }
-            }
             removeCookie(key);
             delete memoryStore[key];
         }

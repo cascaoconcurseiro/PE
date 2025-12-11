@@ -47,7 +47,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     const {
         amountStr, setAmountStr,
         destinationAmountStr, setDestinationAmountStr,
-        manualExchangeRate,
+        manualExchangeRate, setManualExchangeRate,
         description, setDescription,
         date, setDate,
         category, setCategory,
