@@ -111,28 +111,66 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                 }
                             }
 
+                            // Determine Styles
+                            let rowBg = 'bg-white dark:bg-slate-800 border-l-4 border-transparent';
+                            let textMain = 'text-slate-900 dark:text-white';
+                            let badge = null;
+
+                            if (isPositive) {
+                                // INCOME (Green)
+                                rowBg = 'bg-emerald-50/60 dark:bg-emerald-900/10 border-l-4 border-emerald-500';
+                                textMain = 'text-emerald-900 dark:text-emerald-50';
+                                badge = (
+                                    <span className="ml-2 px-1.5 py-0.5 rounded-[4px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-[9px] font-black uppercase tracking-wider">
+                                        RECEITA
+                                    </span>
+                                );
+                            } else if (t.type === TransactionType.EXPENSE) {
+                                // EXPENSE (Red)
+                                rowBg = 'bg-red-50/60 dark:bg-red-900/10 border-l-4 border-red-500';
+                                textMain = 'text-red-900 dark:text-red-50';
+                                badge = (
+                                    <span className="ml-2 px-1.5 py-0.5 rounded-[4px] bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-[9px] font-black uppercase tracking-wider">
+                                        DESPESA
+                                    </span>
+                                );
+                            } else {
+                                // TRANSFER (Blue/Neutral)
+                                rowBg = 'bg-blue-50/30 dark:bg-blue-900/5 border-l-4 border-blue-400';
+                                badge = (
+                                    <span className="ml-2 px-1.5 py-0.5 rounded-[4px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[9px] font-black uppercase tracking-wider">
+                                        TRANSF.
+                                    </span>
+                                );
+                            }
+
+                            if (isSettled) {
+                                rowBg += ' opacity-60 grayscale';
+                            }
+
                             return (
                                 <div
                                     key={t.id}
-                                    className={`relative p-4 sm:p-5 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all group ${isSettled ? 'opacity-60 grayscale' : ''}`}
+                                    className={`relative p-4 sm:p-5 flex justify-between items-center transition-all group ${rowBg}`}
                                 >
                                     {/* Left Side: Icon & Info */}
                                     <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => onEdit(t)}>
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${isPositive
-                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm bg-white/80 dark:bg-black/20 ${isPositive
+                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                            : t.type === TransactionType.EXPENSE ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'
                                             }`}>
                                             {t.type === TransactionType.TRANSFER ? <RefreshCcw className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
                                         </div>
 
                                         <div className="flex-1 min-w-0 pr-4">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                                            <div className="flex items-center flex-wrap gap-y-1 mb-1">
+                                                <h4 className={`text-sm font-bold truncate mr-2 ${textMain}`}>
                                                     {t.description}
                                                 </h4>
+                                                {badge}
                                                 {/* Mini Badges */}
-                                                {isTrip && <span className="bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 p-0.5 rounded-[4px]"><Plane className="w-3 h-3" /></span>}
-                                                {isShared && <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 p-0.5 rounded-[4px]"><Users className="w-3 h-3" /></span>}
+                                                {isTrip && <span className="ml-1 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 p-0.5 rounded-[4px]"><Plane className="w-3 h-3" /></span>}
+                                                {isShared && <span className="ml-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 p-0.5 rounded-[4px]"><Users className="w-3 h-3" /></span>}
                                             </div>
 
                                             <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -154,7 +192,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                     {/* Right Side: Amount & Actions */}
                                     <div className="flex flex-col items-end gap-1">
                                         <div className="text-right cursor-pointer" onClick={() => onEdit(t)}>
-                                            <span className={`block font-black text-sm sm:text-base ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                                            <span className={`block font-black text-sm sm:text-base ${isPositive ? 'text-emerald-700 dark:text-emerald-400' : t.type === TransactionType.EXPENSE ? 'text-red-700 dark:text-red-400 ml-1' : 'text-blue-700 dark:text-blue-400'}`}>
                                                 {isPositive ? '+' : ''} <BlurValue value={formatCurrency(displayAmount, t.currency || 'BRL')} show={showValues} />
                                             </span>
                                         </div>

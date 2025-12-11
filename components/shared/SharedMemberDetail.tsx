@@ -5,6 +5,7 @@ import { ArrowDownLeft, Clock, FileUp, ShoppingBag, CreditCard, Users, Trash2, E
 import { formatCurrency, getCategoryIcon } from '../../utils';
 import { exportToCSV, prepareTransactionsForExport } from '../../services/exportUtils';
 import { printAccountStatement } from '../../services/printUtils';
+import { useToast } from '../ui/Toast';
 
 // Reusable Privacy Blur
 const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
@@ -36,6 +37,7 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
     member, items, currentDate, showValues, currency, tripName,
     onSettle, onBulkSettle, allowIndividualSettlement, onImport, onEditTransaction, onDeleteTransaction, onBulkDelete, onUndoSettlement
 }) => {
+    const { addToast } = useToast();
 
     // Selection Mode State (Preserving user feature)
     const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -253,11 +255,11 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                             const paidCount = selectedInvoiceItems.length - unpaidItems.length;
 
                                             if (paidCount > 0) {
-                                                alert(`${paidCount} item(s) selecionado(s) já está(ão) pago(s) e foi(ram) removido(s) do acerto.`);
+                                                addToast(`${paidCount} item(s) selecionado(s) já está(ão) pago(s) e foi(ram) removido(s) do acerto.`, 'warning');
                                             }
 
                                             if (unpaidItems.length === 0) {
-                                                if (paidCount === 0) alert("Nenhum item válido selecionado.");
+                                                if (paidCount === 0) addToast("Nenhum item válido selecionado.", 'error');
                                                 return;
                                             }
 

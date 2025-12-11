@@ -20,10 +20,9 @@ export default defineConfig(({ mode }) => {
         // Performance: Optimize JSX runtime
         jsxRuntime: 'automatic',
       }),
-      /*
       VitePWA({
-        injectRegister: null, // Disable auto injection to handle registration errors manually
-        registerType: 'autoUpdate',
+        injectRegister: 'auto', // Auto injection
+        registerType: 'autoUpdate', // Explicitly auto update
         includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
         manifest: {
           name: 'Pé de Meia - Finanças Pessoais',
@@ -48,17 +47,16 @@ export default defineConfig(({ mode }) => {
         workbox: {
           clientsClaim: true,
           skipWaiting: true,
-          cleanupOutdatedCaches: true,
-          globPatterns: ['**\/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          cleanupOutdatedCaches: true, // Clean old caches
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/.*\.supabase\.co\/.* /i,
-              handler: 'NetworkOnly',
+              handler: 'NetworkOnly', // Ensure Supabase is never cached by SW
             }
           ]
         }
       }),
-      */
       viteCompression({
         algorithm: 'brotliCompress',
         ext: '.br',

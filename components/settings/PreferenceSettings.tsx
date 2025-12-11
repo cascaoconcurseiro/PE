@@ -94,8 +94,8 @@ export const PreferenceSettings: React.FC = () => {
                     <button
                         onClick={() => handleTimeFormatChange('24h')}
                         className={`px-4 py-3 rounded-xl font-bold transition-all ${settings.preferences.timeFormat === '24h'
-                                ? 'bg-purple-600 text-white shadow-lg'
-                                : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                            ? 'bg-purple-600 text-white shadow-lg'
+                            : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                             }`}
                     >
                         24 horas
@@ -103,8 +103,8 @@ export const PreferenceSettings: React.FC = () => {
                     <button
                         onClick={() => handleTimeFormatChange('12h')}
                         className={`px-4 py-3 rounded-xl font-bold transition-all ${settings.preferences.timeFormat === '12h'
-                                ? 'bg-purple-600 text-white shadow-lg'
-                                : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                            ? 'bg-purple-600 text-white shadow-lg'
+                            : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                             }`}
                     >
                         12 horas (AM/PM)
@@ -127,8 +127,8 @@ export const PreferenceSettings: React.FC = () => {
                     <button
                         onClick={() => handleWeekStartChange('monday')}
                         className={`px-4 py-3 rounded-xl font-bold transition-all ${settings.preferences.weekStartsOn === 'monday'
-                                ? 'bg-orange-600 text-white shadow-lg'
-                                : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                            ? 'bg-orange-600 text-white shadow-lg'
+                            : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                             }`}
                     >
                         Segunda-feira
@@ -136,8 +136,8 @@ export const PreferenceSettings: React.FC = () => {
                     <button
                         onClick={() => handleWeekStartChange('sunday')}
                         className={`px-4 py-3 rounded-xl font-bold transition-all ${settings.preferences.weekStartsOn === 'sunday'
-                                ? 'bg-orange-600 text-white shadow-lg'
-                                : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                            ? 'bg-orange-600 text-white shadow-lg'
+                            : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                             }`}
                     >
                         Domingo
@@ -172,6 +172,36 @@ export const PreferenceSettings: React.FC = () => {
                     <option value="CNY">Yuan Chinês (CNY - ¥)</option>
                     <option value="ARS">Peso Argentino (ARS - $)</option>
                 </select>
+            </Card>
+
+            {/* TROUBLESHOOTING / CACHE */}
+            <Card className="p-6 md:col-span-2 border-red-200 dark:border-red-900 bg-red-50/10 dark:bg-red-900/5">
+                <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-2">Solução de Problemas</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                    Versão Atual: <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">{new Date().toLocaleDateString()} (Build {Math.floor(Date.now() / 1000)})</span>
+                </p>
+                <button
+                    onClick={async () => {
+                        if (confirm('Isso irá recarregar a aplicação e limpar o cache do navegador. Deseja continuar?')) {
+                            // Unregister Service Workers
+                            if ('serviceWorker' in navigator) {
+                                const registrations = await navigator.serviceWorker.getRegistrations();
+                                for (const registration of registrations) {
+                                    await registration.unregister();
+                                }
+                            }
+                            // Clear Local/Session Storage (Optional, strictly we only need to clear SW and HTTP cache)
+                            // localStorage.clear(); // CAREFUL: might wipe settings not synced.
+                            // sessionStorage.clear();
+
+                            // Force Reload ignoring cache
+                            window.location.reload();
+                        }
+                    }}
+                    className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all"
+                >
+                    Forçar Atualização (Limpar Cache)
+                </button>
             </Card>
         </div>
     );

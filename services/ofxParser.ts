@@ -6,6 +6,7 @@ export interface OFXTransaction {
     amount: number;
     description: string;
     type: TransactionType;
+    externalId?: string;
 }
 
 export const parseOFX = async (file: File): Promise<OFXTransaction[]> => {
@@ -37,12 +38,13 @@ export const parseOFX = async (file: File): Promise<OFXTransaction[]> => {
             if (amount > 0) type = TransactionType.INCOME;
 
             transactions.push({
-                id, // Use FITID as temporary ID to check duplicates
+                id, // Temporary ID for frontend key
                 date,
                 amount: Math.abs(amount),
                 description,
-                type
-            });
+                type,
+                externalId: id // Persistent External ID
+            } as any); // Cast because OFXTransaction interface might update or just use partial Transaction
         }
     });
 

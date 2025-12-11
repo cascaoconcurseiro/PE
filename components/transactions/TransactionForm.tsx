@@ -110,6 +110,54 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         return availableAccounts.filter(acc => acc.currency === selectedTrip.currency);
     }, [availableAccounts, selectedTrip]);
 
+    // NEW: Strict Transfer Logic
+    const [isConversion, setIsConversion] = React.useState(false);
+
+    // Reset conversion toggle if account changes
+    useEffect(() => {
+        setIsConversion(false);
+    }, [accountId]);
+
+    const filteredDestinationAccounts = React.useMemo(() => {
+        if (!isTransfer || !selectedAccountObj) return [];
+
+        return accounts.filter(acc => {
+            // Cannot transfer to itself
+            if (acc.id === accountId) return false;
+            // NEVER transfer TO credit card
+            if (acc.type === AccountType.CREDIT_CARD || (acc.type as string) === 'CREDIT_CARD') return false;
+
+            // Conversion Logic
+            if (selectedAccountObj.isInternational) {
+                // Sender is International
+                if (isConversion) {
+                    // Converting to BRL: Show only BRL
+                    return !acc.isInternational && acc.currency === 'BRL';
+                } else {
+                    // Not converting: Show only matching currency (e.g. USD -> USD)
+                    return acc.currency === selectedAccountObj.currency;
+                }
+            } else {
+                // Sender is BRL
+                if (isConversion) {
+                    // International Transfer: Show only international
+                    return acc.isInternational;
+                } else {
+                    // Local Transfer: Show only BRL
+                    return !acc.isInternational && acc.currency === 'BRL';
+                }
+            }
+        });
+    }, [accounts, accountId, selectedAccountObj, isTransfer, isConversion]);
+
+    // Reset dest account if filtered out
+    useEffect(() => {
+        if (destinationAccountId && filteredDestinationAccounts.length > 0) {
+            const exists = filteredDestinationAccounts.find(a => a.id === destinationAccountId);
+            if (!exists) setDestinationAccountId('');
+        }
+    }, [filteredDestinationAccounts, destinationAccountId]);
+
     if (accounts.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -365,7 +413,36 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
                         {isTransfer && (
                             <>
-                                <AccountSelector label="Vai para (Destino)" accounts={accounts.filter(a => a.id !== accountId)} selectedId={destinationAccountId} onSelect={setDestinationAccountId} filterType="NO_CREDIT" />
+                                {/* Conversion Toggle for International/Cross-Currency */}
+                                {selectedAccountObj && (
+                                    <div className="flex justify-end mb-2">
+                                        <label className={`flex items-center gap-2 text-xs font-bold cursor-pointer transition-colors ${isConversion
+                                            ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800'
+                                            : 'text-slate-500 hover:text-slate-700'
+                                            }`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={isConversion}
+                                                onChange={(e) => setIsConversion(e.target.checked)}
+                                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                                            />
+                                            <div className="flex items-center gap-1.5">
+                                                <Globe className="w-3.5 h-3.5" />
+                                                {selectedAccountObj.isInternational
+                                                    ? (isConversion ? 'Convertendo para Real (BRL)' : 'Converter para Real (BRL)?')
+                                                    : (isConversion ? 'Enviando para Internacional' : 'Enviar para Internacional (Câmbio)?')}
+                                            </div>
+                                        </label>
+                                    </div>
+                                )}
+
+                                <AccountSelector
+                                    label="Vai para (Destino)"
+                                    accounts={filteredDestinationAccounts}
+                                    selectedId={destinationAccountId}
+                                    onSelect={setDestinationAccountId}
+                                // filterType="NO_CREDIT" -> Already filtered in filteredDestinationAccounts
+                                />
 
                                 {/* Multi-currency Transfer UI */}
                                 {isMultiCurrencyTransfer && (

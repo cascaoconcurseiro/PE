@@ -115,7 +115,8 @@ const mapToDB = (data: any, userId: string): any => {
         createdAt: 'created_at',
         updatedAt: 'updated_at',
         deleted: 'deleted',
-        syncStatus: 'sync_status'
+        syncStatus: 'sync_status',
+        externalId: 'external_id'
     };
 
     for (const [appKey, dbKey] of Object.entries(keys)) {

@@ -25,7 +25,7 @@ export const AccountSelector: React.FC<AccountSelectorProps> = ({
 
     const filteredAccounts = useMemo(() => {
         if (filterType === 'NO_CREDIT') {
-            return accounts.filter(a => a.type !== AccountType.CREDIT_CARD);
+            return accounts.filter(a => a.type !== AccountType.CREDIT_CARD && (a.type as string) !== 'CREDIT_CARD');
         }
         return accounts;
     }, [accounts, filterType]);
