@@ -18,16 +18,15 @@ if (!container) {
 // before React takes control. This prevents hydration mismatches.
 container.innerHTML = '';
 
-// 🚨 FORCE UNREGISTER SERVICE WORKERS 🚨
-// Previous versions might have installed a SW that is now blocked by storage policies
+// VERSION MARKER - DEBUGGING
+console.log('🚀 APP VERSION: v2.0 (STRICT FILTERING + PWA ENABLED) - Loaded at ' + new Date().toLocaleTimeString());
+
+// NOTE: PWA Auto-Update is handled by vite-plugin-pwa. Do not manually unregister workers here,
+// as it conflicts with the auto-update strategy.
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function (registrations) {
-        for (let registration of registrations) {
-            console.log('🗑️ Desregistrando Service Worker obsoleto:', registration);
-            registration.unregister();
-        }
-    }).catch(function (err) {
-        console.error('Erro ao limpar Service Workers:', err);
+    // Just log for debugging
+    navigator.serviceWorker.getRegistrations().then(regs => {
+        console.log('📱 Active Service Workers:', regs.length);
     });
 }
 
