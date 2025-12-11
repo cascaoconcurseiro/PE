@@ -1,4 +1,4 @@
-```typescript
+
 import { useMemo } from 'react';
 import { Transaction, TransactionType, Account } from '../types';
 import { isSameMonth } from '../utils';
@@ -24,7 +24,16 @@ export const useTransactionFilters = ({ transactions, accounts, currentDate, sea
                 const matchesDate = isSameMonth(t.date, currentDate);
                 const matchesSearch = searchTerm ? t.description.toLowerCase().includes(searchTerm.toLowerCase()) : true;
 
-                const isForeign = isForeignTransaction(t, accounts);
+                // 1. Check Helper
+                let isForeign = isForeignTransaction(t, accounts);
+
+                // 2. Redundant Inline Check (Safety Net)
+                if (!isForeign && t.accountId) {
+                    const acc = accounts.find(a => a.id === t.accountId);
+                    if (acc && acc.currency && acc.currency !== 'BRL') {
+                        isForeign = true;
+                    }
+                }
 
                 if (activeTab === 'REGULAR') {
                     // Regular: Must match date, search, AND NOT be foreign
@@ -37,63 +46,63 @@ export const useTransactionFilters = ({ transactions, accounts, currentDate, sea
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [transactions, accounts, currentDate, searchTerm, activeTab]);
 
-const { income, expense, balance, currency } = useMemo(() => {
-    let inc = 0;
-    let exp = 0;
+    const { income, expense, balance, currency } = useMemo(() => {
+        let inc = 0;
+        let exp = 0;
 
-    // Determine dominant currency
-    // If all filtered transactions have the same currency (and it's not empty), use it.
-    // Otherwise default to BRL.
-    const currencies = new Set(filteredTxs.map(t => t.currency || 'BRL'));
-    const dominantCurrency = currencies.size === 1 ? Array.from(currencies)[0] : 'BRL';
+        // Determine dominant currency
+        // If all filtered transactions have the same currency (and it's not empty), use it.
+        // Otherwise default to BRL.
+        const currencies = new Set(filteredTxs.map(t => t.currency || 'BRL'));
+        const dominantCurrency = currencies.size === 1 ? Array.from(currencies)[0] : 'BRL';
 
-    // Only switch display currency if not BRL and we are in TRAVEL mode or searching explicitly
-    // Actually, if we have a single currency context, we should respect it.
-    const displayCurrency = dominantCurrency;
+        // Only switch display currency if not BRL and we are in TRAVEL mode or searching explicitly
+        // Actually, if we have a single currency context, we should respect it.
+        const displayCurrency = dominantCurrency;
 
-    const toBRL = (val: number, t: Transaction) => {
-        if (t.exchangeRate && t.exchangeRate > 0) return val * t.exchangeRate;
-        return convertToBRL(val, t.currency || 'BRL');
-    };
+        const toBRL = (val: number, t: Transaction) => {
+            if (t.exchangeRate && t.exchangeRate > 0) return val * t.exchangeRate;
+            return convertToBRL(val, t.currency || 'BRL');
+        };
 
-    filteredTxs.forEach(t => {
-        let val = 0;
+        filteredTxs.forEach(t => {
+            let val = 0;
 
-        if (displayCurrency !== 'BRL' && (t.currency || 'BRL') === displayCurrency) {
-            // Same currency, no conversion needed
-            val = t.amount;
-        } else {
-            // Different currency or BRL target, force conversion (fallback)
-            // If we are in USD mode but have a BRL transaction, we need to convert BRL to USD? 
-            // Complex. simpler: if mixed, force BRL (handled by dominantCurrency check above).
-            // So if we are here, dominantCurrency IS BRL.
-            val = toBRL(t.amount, t);
-        }
+            if (displayCurrency !== 'BRL' && (t.currency || 'BRL') === displayCurrency) {
+                // Same currency, no conversion needed
+                val = t.amount;
+            } else {
+                // Different currency or BRL target, force conversion (fallback)
+                // If we are in USD mode but have a BRL transaction, we need to convert BRL to USD? 
+                // Complex. simpler: if mixed, force BRL (handled by dominantCurrency check above).
+                // So if we are here, dominantCurrency IS BRL.
+                val = toBRL(t.amount, t);
+            }
 
-        if (t.type === TransactionType.INCOME) {
-            inc += t.isRefund ? -val : val;
-        } else if (t.type === TransactionType.EXPENSE) {
-            const myVal = calculateMyExpense(t);
-            // IF we are displaying in foreign currency, calculateMyExpense logic (splits) 
-            // might need to ensure it returns portion in ORIGINAL currency.
-            // calculateMyExpense usually returns proportion of t.amount. YES.
+            if (t.type === TransactionType.INCOME) {
+                inc += t.isRefund ? -val : val;
+            } else if (t.type === TransactionType.EXPENSE) {
+                const myVal = calculateMyExpense(t);
+                // IF we are displaying in foreign currency, calculateMyExpense logic (splits) 
+                // might need to ensure it returns portion in ORIGINAL currency.
+                // calculateMyExpense usually returns proportion of t.amount. YES.
 
-            exp += t.isRefund ? -myVal : myVal;
-        }
-    });
+                exp += t.isRefund ? -myVal : myVal;
+            }
+        });
 
-    return { income: inc, expense: exp, balance: inc - exp, currency: displayCurrency };
-}, [filteredTxs]);
+        return { income: inc, expense: exp, balance: inc - exp, currency: displayCurrency };
+    }, [filteredTxs]);
 
-const groupedTxs = useMemo(() => {
-    const groups: Record<string, Transaction[]> = {};
-    filteredTxs.forEach(t => {
-        const dateStr = t.date;
-        if (!groups[dateStr]) groups[dateStr] = [];
-        groups[dateStr].push(t);
-    });
-    return groups;
-}, [filteredTxs]);
+    const groupedTxs = useMemo(() => {
+        const groups: Record<string, Transaction[]> = {};
+        filteredTxs.forEach(t => {
+            const dateStr = t.date;
+            if (!groups[dateStr]) groups[dateStr] = [];
+            groups[dateStr].push(t);
+        });
+        return groups;
+    }, [filteredTxs]);
 
-return { filteredTxs, groupedTxs, income, expense, balance };
+    return { filteredTxs, groupedTxs, income, expense, balance };
 };

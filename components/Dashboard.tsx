@@ -51,7 +51,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
     // 0. GLOBAL FILTER: Dashboard is checking/local only.
     // Exclude Trip transactions and Foreign Currency transactions.
     const dashboardTransactions = useMemo(() =>
-        transactions.filter(t => !isForeignTransaction(t, accounts)),
+        transactions.filter(t => {
+            if (isForeignTransaction(t, accounts)) return false;
+
+            // Redundant Safety Check
+            if (t.accountId) {
+                const acc = accounts.find(a => a.id === t.accountId);
+                if (acc && acc.currency && acc.currency !== 'BRL') return false;
+            }
+            return true;
+        }),
         [transactions, accounts]);
 
     const dashboardAccounts = useMemo(() =>
