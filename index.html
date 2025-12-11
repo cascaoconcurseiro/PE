@@ -94,7 +94,7 @@
         originalWarn.apply(console, arguments);
       };
 
-      // MEMORY STORAGE SHIM
+      // MEMORY STORAGE SHIM - AGGRESSIVE
       var memoryStore = {};
       var storageShim = {
         getItem: function (key) { return memoryStore[key] || null; },
@@ -106,13 +106,27 @@
       };
 
       try {
-        Object.defineProperty(window, 'localStorage', { value: storageShim, writable: false, configurable: false });
-        Object.defineProperty(window, 'sessionStorage', { value: storageShim, writable: false, configurable: false });
-        Object.defineProperty(document, 'cookie', {
-          get: function () { return ''; },
-          set: function () { },
-          configurable: false
-        });
+        // Force override - if it fails, we catch it, but this usually prevents the browser from 
+        // even trying to access the real storage which triggers the SecurityError.
+
+        // 1. Storage
+        try {
+          Object.defineProperty(window, 'localStorage', { value: storageShim, writable: false, configurable: false });
+          Object.defineProperty(window, 'sessionStorage', { value: storageShim, writable: false, configurable: false });
+        } catch (e) {
+          // Fallback if defineProperty fails (e.g. some browsers block redefining)
+          console.warn('Could not redefine storage, suppressing errors instead.');
+        }
+
+        // 2. Cookies (Often triggers the same error)
+        try {
+          Object.defineProperty(document, 'cookie', {
+            get: function () { return ''; },
+            set: function () { },
+            configurable: false
+          });
+        } catch (e) { }
+
       } catch (e) { }
 
       // AGGRESSIVE ERROR SUPPRESSION - Capture phase

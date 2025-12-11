@@ -18,31 +18,11 @@ if (!supabaseUrl || !supabaseKey) {
 // where accessing localStorage throws "Access to storage is not allowed"
 const memoryStore: Record<string, string> = {};
 
+// LocalStorage references removed to prevent 'Access to storage is not allowed' errors in strict environments.
 const safeLocalStorage = {
-    getItem: (key: string): string | null => {
-        try {
-            return localStorage.getItem(key);
-        } catch (error) {
-            console.warn('LocalStorage access restricted, using memory store (read)');
-            return memoryStore[key] || null;
-        }
-    },
-    setItem: (key: string, value: string): void => {
-        try {
-            localStorage.setItem(key, value);
-        } catch (error) {
-            console.warn('LocalStorage access restricted, using memory store (write)');
-            memoryStore[key] = value;
-        }
-    },
-    removeItem: (key: string): void => {
-        try {
-            localStorage.removeItem(key);
-        } catch (error) {
-            console.warn('LocalStorage access restricted, using memory store (remove)');
-            delete memoryStore[key];
-        }
-    }
+    getItem: (key: string): string | null => null,
+    setItem: (key: string, value: string): void => { },
+    removeItem: (key: string): void => { }
 };
 
 const memoryStorage = {
