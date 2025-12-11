@@ -16,9 +16,11 @@ import { UpcomingBills } from './dashboard/UpcomingBills';
 
 import { DashboardSkeleton } from '../components/ui/Skeleton';
 
-// Performance: Lazy Load Charts to improve LCP
-const CashFlowChart = lazy(() => import('./dashboard/CashFlowChart').then(m => ({ default: m.CashFlowChart })));
-const CategorySpendingChart = lazy(() => import('./dashboard/CategorySpendingChart').then(m => ({ default: m.CategorySpendingChart })));
+// Performance: Robust Lazy Load Charts (Handles Deployment Updates)
+import { lazyImport } from '../utils/lazyImport';
+
+const CashFlowChart = lazyImport(() => import('./dashboard/CashFlowChart').then(m => ({ default: m.CashFlowChart })));
+const CategorySpendingChart = lazyImport(() => import('./dashboard/CategorySpendingChart').then(m => ({ default: m.CategorySpendingChart })));
 
 interface DashboardProps {
     accounts: Account[];
