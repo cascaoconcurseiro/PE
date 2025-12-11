@@ -52,6 +52,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         );
     }
 
+    // Helper to get account name safely
+    const getAccountName = (id?: string) => {
+        if (!id) return 'Desconhecido';
+        const acc = accounts.find(a => a.id === id);
+        return acc ? acc.name : 'Conta Excluída';
+    };
+
     return (
         <div className="relative space-y-8">
             {/* Vertical Timeline Line */}
@@ -59,14 +66,21 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
             {visibleDates.map((dateStr) => (
                 <div key={dateStr} className="relative">
-                    {/* Date Header */}
+                    {/* Date Header: "dez 11" style */}
                     <div className="sticky top-0 z-10 flex items-center gap-4 mb-4 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm py-2">
+                        {/* Box with "dez 11" */}
                         <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center shadow-sm shrink-0 z-20">
-                            <span className="text-[10px] uppercase font-black text-slate-400 leading-none">{parseDate(dateStr).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</span>
-                            <span className="text-lg font-black text-slate-800 dark:text-white leading-none">{parseDate(dateStr).getDate()}</span>
+                            <span className="text-[10px] lowercase font-black text-slate-400 leading-none mb-0.5">
+                                {parseDate(dateStr).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}
+                            </span>
+                            <span className="text-lg font-black text-slate-800 dark:text-white leading-none">
+                                {parseDate(dateStr).getDate()}
+                            </span>
                         </div>
+
+                        {/* Weekday & Count */}
                         <div className="flex flex-col">
-                            <span className="text-sm font-bold text-slate-900 dark:text-white capitalize">
+                            <span className="text-sm font-bold text-slate-900 dark:text-white lowercase first-letter:capitalize">
                                 {parseDate(dateStr).toLocaleDateString('pt-BR', { weekday: 'long' })}
                             </span>
                             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
@@ -75,21 +89,29 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         </div>
                     </div>
 
-                    {/* Transactions Card Group */}
+                    {/* Transactions List */}
                     <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50 md:ml-14">
                         {groupedTxs[dateStr].map(t => {
                             const CatIcon = getCategoryIcon(t.category);
                             const isPositive = (t.type === TransactionType.INCOME && !t.isRefund) || (t.type === TransactionType.EXPENSE && t.isRefund);
+                            const isTransfer = t.type === TransactionType.TRANSFER;
+
+                            // Account Logic
                             const account = accounts.find(a => a.id === t.accountId);
                             const accountName = account?.name || 'Conta';
                             const isCreditCard = account?.type === AccountType.CREDIT_CARD;
 
+                            // Transfer Logic: "Para: Nubank"
+                            let transferDestName = '';
+                            if (isTransfer && t.destinationAccountId) {
+                                transferDestName = getAccountName(t.destinationAccountId);
+                            }
+
                             const isShared = t.isShared || (t.sharedWith && t.sharedWith.length > 0);
-                            const isTrip = !!t.tripId;
                             const isInstallment = !!t.isInstallment && !!t.currentInstallment;
                             const isSettled = t.isSettled;
 
-                            // Amount & Payer Logic
+                            // Amount & Payer display
                             let displayAmount = t.amount;
                             let subText = '';
                             let payerName = 'Você';
@@ -102,138 +124,123 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                 const splitsTotal = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
                                 if (payerName === 'Você') {
                                     displayAmount = t.amount - splitsTotal;
-                                    if (splitsTotal > 0) subText = `Você pagou o total (${formatCurrency(t.amount, t.currency || 'BRL')})`;
+                                    if (splitsTotal > 0) subText = `(Sua parte)`;
                                 } else {
                                     displayAmount = t.amount - splitsTotal;
                                     subText = `Pago por ${payerName}`;
                                 }
                             }
 
-                            // Determine Styles
-                            // NEUTRAL ROW BACKGROUND (as requested)
-                            const rowBg = 'bg-white dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800';
-                            let textMain = 'text-slate-900 dark:text-white';
-                            let badge = null;
-
+                            // BADGES
+                            let typeBadge = null;
                             if (isPositive) {
-                                // INCOME (Green Badge)
-                                badge = (
-                                    <span className="ml-2 px-2 py-0.5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider border border-emerald-500/20">
-                                        CRÉDITO
-                                    </span>
-                                );
-                            } else if (t.type === TransactionType.EXPENSE) {
-                                // EXPENSE (Red Badge)
-                                badge = (
-                                    <span className="ml-2 px-2 py-0.5 rounded-md bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-wider border border-red-500/20">
-                                        DÉBITO
-                                    </span>
-                                );
+                                typeBadge = <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-500/20">CRÉDITO</span>;
+                            } else if (isTransfer) {
+                                typeBadge = <span className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-500/20">TRANSF.</span>;
                             } else {
-                                // TRANSFER (Blue Badge)
-                                badge = (
-                                    <span className="ml-2 px-2 py-0.5 rounded-md bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-wider border border-blue-500/20">
-                                        TRANSF.
-                                    </span>
-                                );
-                            }
-
-                            if (isSettled) {
-                                // rowBg += ' opacity-60 grayscale'; // Removed opacity to keep it readable
+                                typeBadge = <span className="text-[10px] font-black uppercase text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded border border-red-100 dark:border-red-500/20">DÉBITO</span>;
                             }
 
                             return (
                                 <div
                                     key={t.id}
-                                    className={`relative p-4 flex justify-between items-center transition-all group hover:bg-slate-50 dark:hover:bg-slate-800/80 ${rowBg}`}
+                                    className="relative p-4 flex justify-between items-start transition-all group hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer"
+                                    onClick={() => onEdit(t)}
                                 >
-                                    {/* Left Side: Icon & Info */}
-                                    <div className="flex items-center gap-4 flex-1 cursor-pointer min-w-0" onClick={() => onEdit(t)}>
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm ${isPositive
-                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-                                            : t.type === TransactionType.EXPENSE ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                    {/* Left: Icon + Text Block */}
+                                    <div className="flex gap-4 flex-1 min-w-0">
+                                        {/* Icon Box */}
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm mt-0.5 ${isPositive
+                                                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                                                : isTransfer
+                                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                                    : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
                                             }`}>
-                                            {t.type === TransactionType.TRANSFER ? <RefreshCcw className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
+                                            {isTransfer ? <RefreshCcw className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
                                         </div>
 
-                                        <div className="flex-1 min-w-0 pr-2">
-                                            <div className="flex items-center flex-wrap gap-y-1 mb-1.5">
-                                                <h4 className={`text-sm font-bold truncate mr-2 ${textMain}`}>
-                                                    {t.description}
-                                                </h4>
+                                        {/* Text Info */}
+                                        <div className="flex-1 min-w-0 space-y-1">
+                                            {/* Line 1: Description */}
+                                            <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">
+                                                {t.description}
+                                            </h4>
+
+                                            {/* Line 2: Category • Account OR "Para: Dest" */}
+                                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                                <span>{t.category}</span>
+                                                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+
+                                                {/* Account logic */}
+                                                <span className="flex items-center gap-1">
+                                                    {isCreditCard ? <CreditCard className="w-3 h-3" /> : <Wallet className="w-3 h-3" />}
+                                                    <span className="truncate max-w-[120px]">
+                                                        {isTransfer ?
+                                                            <>
+                                                                <span className="opacity-75">{accountName}</span>
+                                                                <ArrowRight className="w-3 h-3 inline mx-0.5" />
+                                                                <span className="text-slate-800 dark:text-slate-200 font-bold">{transferDestName}</span>
+                                                            </>
+                                                            : accountName
+                                                        }
+                                                    </span>
+                                                </span>
                                             </div>
 
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                {/* Category Badge */}
-                                                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wide border border-slate-200 dark:border-slate-700">
-                                                    {t.category}
-                                                </span>
+                                            {/* Line 3: Badges row */}
+                                            <div className="flex items-center gap-2 pt-0.5">
+                                                {typeBadge}
 
-                                                {/* Type Badge (Visible logic) */}
-                                                {badge}
-
-                                                {/* Installment Badge */}
                                                 {isInstallment && (
-                                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-bold border border-purple-500/20">
+                                                    <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded border border-purple-100 dark:border-purple-500/20 flex items-center gap-1">
                                                         <Clock className="w-3 h-3" />
                                                         {t.currentInstallment}/{t.totalInstallments}
                                                     </span>
                                                 )}
 
-                                                {/* Account Info */}
-                                                <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400 dark:text-slate-500 ml-1">
-                                                    {isCreditCard ? <CreditCard className="w-3 h-3" /> : <Wallet className="w-3 h-3" />}
-                                                    <span className="truncate max-w-[80px] sm:max-w-[120px]">{accountName}</span>
-                                                </span>
+                                                {isShared && (
+                                                    <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 flex items-center gap-1">
+                                                        <Users className="w-3 h-3" />
+                                                        {subText || 'Compartilhado'}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Right Side: Amount & Actions */}
-                                    <div className="flex flex-col items-end gap-1 pl-2">
-                                        <div className="text-right cursor-pointer" onClick={() => onEdit(t)}>
-                                            <span className={`block font-black text-sm sm:text-base ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : t.type === TransactionType.EXPENSE ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                                                {isPositive ? '+' : ''} <BlurValue value={formatCurrency(displayAmount, t.currency || 'BRL')} show={showValues} />
-                                            </span>
-                                        </div>
+                                    {/* Right: Amount & Actions */}
+                                    <div className="flex flex-col items-end pl-2 gap-1">
+                                        <span className={`font-black text-sm sm:text-base ${isPositive ? 'text-emerald-600 dark:text-emerald-400'
+                                                : isTransfer ? 'text-blue-600 dark:text-blue-400'
+                                                    : 'text-red-600 dark:text-red-400'
+                                            }`}>
+                                            {isPositive ? '+ ' : ''}
+                                            <BlurValue value={formatCurrency(displayAmount, t.currency || 'BRL')} show={showValues} />
+                                        </span>
 
-                                        {/* Subtext Logic (Payer, etc) */}
-                                        {isInstallment && t.originalAmount && !subText && (
-                                            <div className="text-[10px] font-medium text-slate-400">
+                                        {isInstallment && t.originalAmount && (
+                                            <span className="text-[10px] text-slate-400">
                                                 Total: {formatCurrency(t.originalAmount, t.currency || 'BRL')}
-                                            </div>
+                                            </span>
                                         )}
 
-                                        {subText ? (
-                                            <div className="flex items-center justify-end gap-1 text-[10px] font-bold text-slate-400">
-                                                {payerName !== 'Você' ? (
-                                                    <>
-                                                        <ArrowDownLeft className="w-3 h-3 text-red-400" />
-                                                        <span>{subText}</span>
-                                                    </>
-                                                ) : null}
-                                            </div>
-                                        ) : (
-                                            t.isSettled && <span className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-wider">PAGO</span>
-                                        )}
-
-                                        {/* Hover Actions */}
-                                        <div className="flex items-center gap-2 mt-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {/* Hover Actions (Desktop) */}
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 bottom-4 bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 rounded-lg p-0.5">
                                             {isInstallment && (t.currentInstallment || 0) < (t.totalInstallments || 0) && onAnticipateInstallments && (
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); onAnticipateInstallments(t); }}
-                                                    className="p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded transition-colors"
                                                     title="Antecipar"
                                                 >
-                                                    <Clock className="w-4 h-4" />
+                                                    <Clock className="w-3.5 h-3.5" />
                                                 </button>
                                             )}
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); if (confirm('Excluir transação?')) onDelete(t.id); }}
-                                                className="p-1.5 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); if (confirm('Excluir?')) onDelete(t.id); }}
+                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
                                                 title="Excluir"
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                <Trash2 className="w-3.5 h-3.5" />
                                             </button>
                                         </div>
                                     </div>
