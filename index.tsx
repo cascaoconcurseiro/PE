@@ -18,6 +18,19 @@ if (!container) {
 // before React takes control. This prevents hydration mismatches.
 container.innerHTML = '';
 
+// 🚨 FORCE UNREGISTER SERVICE WORKERS 🚨
+// Previous versions might have installed a SW that is now blocked by storage policies
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+            console.log('🗑️ Desregistrando Service Worker obsoleto:', registration);
+            registration.unregister();
+        }
+    }).catch(function (err) {
+        console.error('Erro ao limpar Service Workers:', err);
+    });
+}
+
 const root = createRoot(container);
 root.render(
     <ErrorTrackerProvider>
