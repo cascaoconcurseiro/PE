@@ -57,8 +57,6 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             {/* Vertical Timeline Line */}
             <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-slate-200 dark:bg-slate-800 hidden md:block"></div>
 
-
-
             {visibleDates.map((dateStr) => (
                 <div key={dateStr} className="relative">
                     {/* Date Header */}
@@ -112,92 +110,94 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             }
 
                             // Determine Styles
-                            let rowBg = 'bg-white dark:bg-slate-800 border-l-4 border-transparent';
+                            // NEUTRAL ROW BACKGROUND (as requested)
+                            const rowBg = 'bg-white dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800';
                             let textMain = 'text-slate-900 dark:text-white';
                             let badge = null;
 
                             if (isPositive) {
-                                // INCOME (Green)
-                                rowBg = 'bg-emerald-50/60 dark:bg-emerald-900/10 border-l-4 border-emerald-500';
-                                textMain = 'text-emerald-900 dark:text-emerald-50';
+                                // INCOME (Green Badge)
                                 badge = (
-                                    <span className="ml-2 px-1.5 py-0.5 rounded-[4px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-[9px] font-black uppercase tracking-wider">
-                                        RECEITA
+                                    <span className="ml-2 px-2 py-0.5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider border border-emerald-500/20">
+                                        CRÉDITO
                                     </span>
                                 );
                             } else if (t.type === TransactionType.EXPENSE) {
-                                // EXPENSE (Red)
-                                rowBg = 'bg-red-50/60 dark:bg-red-900/10 border-l-4 border-red-500';
-                                textMain = 'text-red-900 dark:text-red-50';
+                                // EXPENSE (Red Badge)
                                 badge = (
-                                    <span className="ml-2 px-1.5 py-0.5 rounded-[4px] bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-[9px] font-black uppercase tracking-wider">
-                                        DESPESA
+                                    <span className="ml-2 px-2 py-0.5 rounded-md bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-wider border border-red-500/20">
+                                        DÉBITO
                                     </span>
                                 );
                             } else {
-                                // TRANSFER (Blue/Neutral)
-                                rowBg = 'bg-blue-50/30 dark:bg-blue-900/5 border-l-4 border-blue-400';
+                                // TRANSFER (Blue Badge)
                                 badge = (
-                                    <span className="ml-2 px-1.5 py-0.5 rounded-[4px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[9px] font-black uppercase tracking-wider">
+                                    <span className="ml-2 px-2 py-0.5 rounded-md bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-wider border border-blue-500/20">
                                         TRANSF.
                                     </span>
                                 );
                             }
 
                             if (isSettled) {
-                                rowBg += ' opacity-60 grayscale';
+                                // rowBg += ' opacity-60 grayscale'; // Removed opacity to keep it readable
                             }
 
                             return (
                                 <div
                                     key={t.id}
-                                    className={`relative p-4 sm:p-5 flex justify-between items-center transition-all group ${rowBg}`}
+                                    className={`relative p-4 flex justify-between items-center transition-all group hover:bg-slate-50 dark:hover:bg-slate-800/80 ${rowBg}`}
                                 >
                                     {/* Left Side: Icon & Info */}
-                                    <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => onEdit(t)}>
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm bg-white/80 dark:bg-black/20 ${isPositive
-                                            ? 'text-emerald-600 dark:text-emerald-400'
-                                            : t.type === TransactionType.EXPENSE ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'
+                                    <div className="flex items-center gap-4 flex-1 cursor-pointer min-w-0" onClick={() => onEdit(t)}>
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm ${isPositive
+                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                                            : t.type === TransactionType.EXPENSE ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                                             }`}>
                                             {t.type === TransactionType.TRANSFER ? <RefreshCcw className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
                                         </div>
 
-                                        <div className="flex-1 min-w-0 pr-4">
-                                            <div className="flex items-center flex-wrap gap-y-1 mb-1">
+                                        <div className="flex-1 min-w-0 pr-2">
+                                            <div className="flex items-center flex-wrap gap-y-1 mb-1.5">
                                                 <h4 className={`text-sm font-bold truncate mr-2 ${textMain}`}>
                                                     {t.description}
                                                 </h4>
-                                                {badge}
-                                                {/* Mini Badges */}
-                                                {isTrip && <span className="ml-1 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 p-0.5 rounded-[4px]"><Plane className="w-3 h-3" /></span>}
-                                                {isShared && <span className="ml-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 p-0.5 rounded-[4px]"><Users className="w-3 h-3" /></span>}
                                             </div>
 
-                                            <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                                <span className="truncate max-w-[120px]">{t.category}</span>
-                                                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 hidden sm:block"></span>
-                                                <span className="flex items-center gap-1 truncate max-w-[140px] text-slate-400">
-                                                    {isCreditCard ? <CreditCard className="w-3 h-3" /> : <Wallet className="w-3 h-3" />}
-                                                    {accountName}
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                {/* Category Badge */}
+                                                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wide border border-slate-200 dark:border-slate-700">
+                                                    {t.category}
                                                 </span>
+
+                                                {/* Type Badge (Visible logic) */}
+                                                {badge}
+
+                                                {/* Installment Badge */}
                                                 {isInstallment && (
-                                                    <span className="ml-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-bold border border-purple-500/20">
+                                                        <Clock className="w-3 h-3" />
                                                         {t.currentInstallment}/{t.totalInstallments}
                                                     </span>
                                                 )}
+
+                                                {/* Account Info */}
+                                                <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400 dark:text-slate-500 ml-1">
+                                                    {isCreditCard ? <CreditCard className="w-3 h-3" /> : <Wallet className="w-3 h-3" />}
+                                                    <span className="truncate max-w-[80px] sm:max-w-[120px]">{accountName}</span>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Right Side: Amount & Actions */}
-                                    <div className="flex flex-col items-end gap-1">
+                                    <div className="flex flex-col items-end gap-1 pl-2">
                                         <div className="text-right cursor-pointer" onClick={() => onEdit(t)}>
-                                            <span className={`block font-black text-sm sm:text-base ${isPositive ? 'text-emerald-700 dark:text-emerald-400' : t.type === TransactionType.EXPENSE ? 'text-red-700 dark:text-red-400 ml-1' : 'text-blue-700 dark:text-blue-400'}`}>
+                                            <span className={`block font-black text-sm sm:text-base ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : t.type === TransactionType.EXPENSE ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
                                                 {isPositive ? '+' : ''} <BlurValue value={formatCurrency(displayAmount, t.currency || 'BRL')} show={showValues} />
                                             </span>
                                         </div>
 
-                                        {/* Subtext Logic */}
+                                        {/* Subtext Logic (Payer, etc) */}
                                         {isInstallment && t.originalAmount && !subText && (
                                             <div className="text-[10px] font-medium text-slate-400">
                                                 Total: {formatCurrency(t.originalAmount, t.currency || 'BRL')}
@@ -217,8 +217,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                             t.isSettled && <span className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-wider">PAGO</span>
                                         )}
 
-                                        {/* Hover Actions (Desktop) or Persistent (Mobile potentially) */}
-                                        <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 bottom-2 sm:static sm:opacity-100 sm:mt-0">
+                                        {/* Hover Actions */}
+                                        <div className="flex items-center gap-2 mt-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                             {isInstallment && (t.currentInstallment || 0) < (t.totalInstallments || 0) && onAnticipateInstallments && (
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); onAnticipateInstallments(t); }}

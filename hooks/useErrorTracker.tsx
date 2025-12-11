@@ -31,7 +31,7 @@ export const useErrorTracker = () => {
 const decodeReactError = (message: string): string => {
     const match = message.match(/Minified React error #(\d+)/);
     if (!match) return message;
-    
+
     const errorCodes: Record<string, string> = {
         '310': 'Rendered more hooks than during the previous render. Hooks must be called in the same order every render.',
         '300': 'Invalid hook call. Hooks can only be called inside of the body of a function component.',
@@ -40,7 +40,7 @@ const decodeReactError = (message: string): string => {
         '423': 'Rendered fewer hooks than expected. This may be caused by an accidental early return statement.',
         '31': 'Objects are not valid as a React child. Use an array or wrap the object using createFragment.',
     };
-    
+
     const code = match[1];
     return errorCodes[code] || `React Error #${code} - Check https://reactjs.org/docs/error-decoder.html?invariant=${code}`;
 };
@@ -48,15 +48,15 @@ const decodeReactError = (message: string): string => {
 // Extract component name from stack
 const extractComponentFromStack = (stack?: string): string | null => {
     if (!stack) return null;
-    
+
     // Look for component names in the stack
     const componentMatch = stack.match(/at (\w+) \(/);
     if (componentMatch) return componentMatch[1];
-    
+
     // Look for file names
     const fileMatch = stack.match(/\/([A-Z][a-zA-Z]+)\.(tsx?|jsx?):/);
     if (fileMatch) return fileMatch[1];
-    
+
     return null;
 };
 
@@ -74,7 +74,7 @@ export const ErrorTrackerProvider: React.FC<{ children: ReactNode }> = ({ childr
             url: window.location.href,
             type
         };
-        
+
         setErrors(prev => {
             // Avoid duplicates
             if (prev.some(e => e.message === newError.message && Date.now() - e.timestamp.getTime() < 5000)) {
@@ -82,7 +82,7 @@ export const ErrorTrackerProvider: React.FC<{ children: ReactNode }> = ({ childr
             }
             return [newError, ...prev].slice(0, 20); // Keep last 20 errors
         });
-        
+
         // Auto-show panel on new error
         setShowPanel(true);
     }, []);
@@ -95,14 +95,51 @@ export const ErrorTrackerProvider: React.FC<{ children: ReactNode }> = ({ childr
     // Global error handlers
     useEffect(() => {
         const handleError = (event: ErrorEvent) => {
-            addError(event.error || new Error(event.message), 'runtime');
+            const error = event.error || new Error(event.message);
+            addError(error, 'runtime');
+
+            // Enhanced Console Logging
+            console.group('%c🚨 ERRO CRÍTICO DETECTADO', 'background: #ef4444; color: white; padding: 4px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+            console.log('%cMensagem:', 'font-weight: bold', error.message);
+            console.log('%cStack:', 'font-weight: bold', error.stack);
+            console.log('%cLocal:', 'font-weight: bold', window.location.href);
+            console.groupEnd();
         };
 
         const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-            const error = event.reason instanceof Error 
-                ? event.reason 
+            const error = event.reason instanceof Error
+                ? event.reason
                 : new Error(String(event.reason));
             addError(error, 'promise');
+
+            // Enhanced Console Logging
+            console.group('%c⚠️ UNHANDLED PROMISE REJECTION', 'background: #f59e0b; color: black; padding: 4px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+            console.log('%cReason:', 'font-weight: bold', error.message);
+            console.log('%cStack:', 'font-weight: bold', error.stack);
+            console.groupEnd();
+        };
+
+        // Intercept console.error to capture non-throwing errors (common in React/Supabase)
+        const originalConsoleError = console.error;
+        console.error = (...args: any[]) => {
+            // Call original first to preserve default behavior
+            originalConsoleError.apply(console, args);
+
+            // Filter out React strict mode double-logging or known harmless warnings if needed
+            // Construct a "fake" error from the console args
+            try {
+                const message = args.map(a => (a instanceof Error ? a.message : String(a))).join(' ');
+
+                // Avoid logging the same error we just caught in onerror
+                // Only track if it doesn't look like a standard error object already caught
+                if (!args[0]?.stack) {
+                    const error = new Error(message);
+                    error.stack = new Error().stack; // Capture call stack of console.error
+                    addError(error, 'runtime', 'Console Error Intercept');
+                }
+            } catch (e) {
+                // Failsafe
+            }
         };
 
         window.addEventListener('error', handleError);
@@ -111,6 +148,7 @@ export const ErrorTrackerProvider: React.FC<{ children: ReactNode }> = ({ childr
         return () => {
             window.removeEventListener('error', handleError);
             window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+            console.error = originalConsoleError; // Restore original
         };
     }, [addError]);
 
@@ -177,10 +215,10 @@ Stack: ${e.stack || 'N/A'}
                 {errors.map((error) => {
                     const component = extractComponentFromStack(error.stack || error.componentStack);
                     const isExpanded = expanded === error.id;
-                    
+
                     return (
-                        <div 
-                            key={error.id} 
+                        <div
+                            key={error.id}
                             className="border-b border-slate-100 dark:border-slate-800 last:border-0"
                         >
                             <button
@@ -191,11 +229,10 @@ Stack: ${e.stack || 'N/A'}
                                     <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                                                error.type === 'react' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                                                error.type === 'promise' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                                                'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                            }`}>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${error.type === 'react' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                                    error.type === 'promise' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                                        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                }`}>
                                                 {error.type.toUpperCase()}
                                             </span>
                                             {component && (
@@ -213,7 +250,7 @@ Stack: ${e.stack || 'N/A'}
                                     </div>
                                 </div>
                             </button>
-                            
+
                             {isExpanded && (
                                 <div className="px-3 pb-3 animate-in fade-in">
                                     {error.componentStack && (

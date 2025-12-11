@@ -323,6 +323,7 @@ export const useTransactionForm = ({
         isIncome,
         isTransfer,
         handleConfirmSplit,
-        handleSubmit
+        handleSubmit,
+        setManualExchangeRate // Export setter
     };
 };

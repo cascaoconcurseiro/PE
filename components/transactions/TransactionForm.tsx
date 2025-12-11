@@ -449,31 +449,55 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
                                         <div className="flex items-center gap-2 mb-3 text-blue-800 dark:text-blue-300">
                                             <Globe className="w-4 h-4" />
-                                            <span className="text-xs font-bold uppercase">Conversão de Moeda</span>
+                                            <span className="text-xs font-bold uppercase">Conversão Internacional</span>
                                         </div>
-                                        <div className="flex gap-3 items-center">
-                                            <div className="flex-1">
-                                                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Saiu ({selectedAccountObj?.currency})</label>
-                                                <div className="text-lg font-bold text-slate-700 dark:text-slate-300">{activeAmount.toFixed(2)}</div>
+
+                                        <div className="space-y-4">
+                                            {/* Exchange Rate Input */}
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
+                                                    Cotação do Dia
+                                                </label>
+                                                <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-3 rounded-xl border border-blue-200 dark:border-blue-800">
+                                                    <span className="font-bold text-slate-500 dark:text-slate-400 text-sm">1 {selectedAccountObj?.currency} = </span>
+                                                    <input
+                                                        type="number"
+                                                        className="flex-1 bg-transparent text-center font-bold text-blue-700 dark:text-blue-300 text-lg outline-none placeholder-blue-300"
+                                                        placeholder="0.00"
+                                                        value={manualExchangeRate}
+                                                        onChange={(e) => {
+                                                            const rate = e.target.value;
+                                                            setManualExchangeRate(rate);
+                                                            // Auto-calculate Destination Amount
+                                                            if (activeAmount && parseFloat(rate) > 0) {
+                                                                // Logic: If transferring Account A (USD) -> Account B (BRL)
+                                                                // Rate is typically X BRL per 1 USD.
+                                                                // So Amount * Rate = Dest Amount.
+                                                                // If transferring Account A (BRL) -> Account B (USD)
+                                                                // Rule: "1 BRL = X USD"? No, usually "1 USD = X BRL".
+                                                                // Standard convention: Base currency is usually the stronger one or the source.
+
+                                                                // For simplicity in this UI: "1 SourceCurrency = X DestCurrency".
+                                                                // The user defines the direct multiplier.
+                                                                setDestinationAmountStr((activeAmount * parseFloat(rate)).toFixed(2));
+                                                            }
+                                                        }}
+                                                    />
+                                                    <span className="font-bold text-slate-500 dark:text-slate-400 text-sm">{selectedDestAccountObj?.currency}</span>
+                                                </div>
                                             </div>
-                                            <ArrowRight className="w-4 h-4 text-slate-400" />
-                                            <div className="flex-1">
-                                                <label className="text-[10px] font-bold text-blue-600 dark:text-blue-400 block mb-1">Entrou ({selectedDestAccountObj?.currency})</label>
-                                                <input
-                                                    type="number"
-                                                    placeholder="0.00"
-                                                    className="w-full bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 rounded-lg px-2 py-1 text-lg font-bold text-blue-700 dark:text-blue-300 outline-none focus:ring-2 focus:ring-blue-500"
-                                                    value={destinationAmountStr}
-                                                    onChange={(e) => setDestinationAmountStr(e.target.value)}
-                                                />
+
+                                            {/* Final Value Display */}
+                                            <div className="bg-slate-900 p-4 rounded-xl flex items-center justify-between border border-slate-700 shadow-inner">
+                                                <span className="text-xs font-bold text-slate-400">Valor Final a Receber</span>
+                                                <span className="text-xl font-black text-white">
+                                                    {selectedDestAccountObj?.currency} {destinationAmountStr || '0.00'}
+                                                </span>
                                             </div>
                                         </div>
-                                        {manualExchangeRate && (
-                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 text-center">
-                                                Taxa Implícita: 1 {selectedAccountObj?.currency} = {manualExchangeRate} {selectedDestAccountObj?.currency}
-                                            </p>
-                                        )}
+
                                         {errors.destinationAmount && <p className="text-red-500 text-xs font-bold mt-2">{errors.destinationAmount}</p>}
+                                        {errors.exchangeRate && <p className="text-red-500 text-xs font-bold mt-2">{errors.exchangeRate}</p>}
                                     </div>
                                 )}
                             </>
