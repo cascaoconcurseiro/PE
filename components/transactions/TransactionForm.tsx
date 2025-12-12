@@ -133,9 +133,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 if (isConversion) {
                     // Converting to BRL: Show only BRL
                     return !acc.isInternational && acc.currency === 'BRL';
-                } else {
-                    // Not converting: Allow ANY International account (to enable USD -> EUR etc or just finding the other account)
-                    return acc.isInternational;
+                    // Not converting: Allow ANY International account (flagged OR foreign currency)
+                    return acc.isInternational || acc.currency !== 'BRL';
                 }
             } else {
                 // Sender is BRL
