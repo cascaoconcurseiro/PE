@@ -150,18 +150,47 @@ const App = () => {
     const handleViewChange = (view: View) => startTransition(() => setActiveView(view));
 
     const calculatedAccounts = useMemo(() => {
-        if (!accounts || !transactions) return [];
-        // CURRENT BALANCE: As of TODAY (Classic "Bank Balance")
-        const today = new Date();
-        today.setHours(23, 59, 59, 999);
-        return calculateBalances(accounts, transactions, today);
-    }, [accounts, transactions]); // Removed currentDate dependency to keep it stable "Today"
+        return accounts || [];
+    }, [accounts]);
 
     const projectedAccounts = useMemo(() => {
         if (!accounts || !transactions) return [];
-        // PROJECTED BALANCE: End of SELECTED view month.
-        const cutOffDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-        return calculateBalances(accounts, transactions, cutOffDate);
+        // COMPUTE PROJECTED BALANCE (Optimized: Current DB Balance + Future Txs)
+        // Complexity: O(M) where M is transactions in current view (small)
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        return accounts.map(acc => {
+            const futureTxs = transactions.filter(t =>
+                t.accountId === acc.id &&
+                new Date(t.date) >= now &&
+                new Date(t.date) <= endOfMonth &&
+                !t.isSettled // Only count unresolved/unpaid items for projection? 
+                // depends on definition. Usually projection includes everything scheduled.
+                // If it's settled, it's already in the balance?
+                // Yes, if settled (paid), it effectively updated the "Current Balance" via Trigger/Update?
+                // Actually, "isSettled" is often used for "Paid".
+                // If I paid it today, it's in stored balance.
+                // If it's scheduled for tomorrow, it's not in stored balance.
+                // So checking date > now is correct.
+            );
+
+            const futureImpact = futureTxs.reduce((sum, t) => {
+                let amount = t.amount;
+                // Handle Transfers? 
+                // If I transfer out tomorrow, balance decreases.
+                if (t.type === TransactionType.INCOME) return sum + amount;
+                if (t.type === TransactionType.EXPENSE) return sum - amount;
+                if (t.type === TransactionType.TRANSFER) {
+                    // Outgoing transfer
+                    return sum - amount;
+                }
+                return sum;
+            }, 0);
+
+            return { ...acc, balance: (acc.balance || 0) + futureImpact };
+        });
     }, [accounts, transactions, currentDate]);
 
     const activeNotifications = useMemo(() => {
@@ -186,12 +215,12 @@ const App = () => {
     const renderContent = () => {
         switch (activeView) {
             case View.DASHBOARD: return <Dashboard accounts={calculatedAccounts} projectedAccounts={projectedAccounts} transactions={transactions} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={() => { }} onNotificationPay={() => { }} isLoading={isDataLoading} pendingSharedRequestsCount={pendingSharedRequests} pendingSettlements={pendingSettlements} onOpenShared={() => handleViewChange(View.SHARED)} onOpenSettlement={() => { }} />;
-            case View.ACCOUNTS: return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} initialAccountId={navigatedAccountId} onClearInitialAccount={() => setNavigatedAccountId(null)} />;
+            case View.ACCOUNTS: return <Accounts accounts={calculatedAccounts} transactions={transactions} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onAddTransaction={handlers.handleAddTransaction} onAddTransactions={handlers.handleAddTransactions} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} initialAccountId={navigatedAccountId} onClearInitialAccount={() => setNavigatedAccountId(null)} />;
             case View.TRANSACTIONS: return <Transactions transactions={transactions} accounts={calculatedAccounts} trips={trips} familyMembers={familyMembers} customCategories={customCategories} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAnticipate={handlers.handleAnticipateInstallments} currentDate={currentDate} showValues={showValues} initialEditId={editTxId} onClearEditId={() => setEditTxId(null)} onNavigateToAccounts={() => handleViewChange(View.ACCOUNTS)} onNavigateToTrips={() => handleViewChange(View.TRIPS)} onNavigateToFamily={() => handleViewChange(View.FAMILY)} />;
             case View.BUDGETS: return <Budgets budgets={budgets} transactions={transactions} onAddBudget={handlers.handleAddBudget} onUpdateBudget={handlers.handleUpdateBudget} onDeleteBudget={handlers.handleDeleteBudget} currentDate={currentDate} />;
             case View.GOALS: return <Goals goals={goals} accounts={calculatedAccounts} onAddGoal={handlers.handleAddGoal} onUpdateGoal={handlers.handleUpdateGoal} onDeleteGoal={handlers.handleDeleteGoal} onAddTransaction={handlers.handleAddTransaction} />;
-            case View.TRIPS: return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onNavigateToShared={() => handleViewChange(View.SHARED)} onEditTransaction={(id) => { setEditTxId(id); setIsTxModalOpen(true); }} />;
-            case View.SHARED: return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} />;
+            case View.TRIPS: return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onNavigateToShared={() => handleViewChange(View.SHARED)} onEditTransaction={(id) => { setEditTxId(id); setIsTxModalOpen(true); }} onLoadHistory={handlers.loadHistoryWindow} />;
+            case View.SHARED: return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onAddTransactions={handlers.handleAddTransactions} onUpdateTransaction={handlers.handleUpdateTransaction} onBatchUpdateTransactions={handlers.handleBatchUpdateTransactions} onDeleteTransaction={handlers.handleDeleteTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} />;
             case View.FAMILY: return <Family members={familyMembers} onAddMember={(m) => handlers.handleAddMember(m as any)} onUpdateMember={(m) => handlers.handleUpdateMember(m as any)} onDeleteMember={handlers.handleDeleteMember} onInviteMember={async () => { alert("Local only"); }} />;
             case View.INVESTMENTS: return <Investments accounts={calculatedAccounts} transactions={transactions} assets={assets} onAddAsset={handlers.handleAddAsset} onUpdateAsset={handlers.handleUpdateAsset} onDeleteAsset={handlers.handleDeleteAsset} onAddTransaction={handlers.handleAddTransaction} onAddAccount={handlers.handleAddAccount} currentDate={currentDate} showValues={showValues} />;
             case View.SETTINGS: return <Settings customCategories={customCategories} onAddCategory={handlers.handleAddCategory} onDeleteCategory={handlers.handleDeleteCategory} accounts={accounts} transactions={transactions} trips={trips} budgets={budgets} goals={goals} familyMembers={familyMembers} assets={assets} snapshots={snapshots} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onFactoryReset={handlers.handleFactoryReset} />;

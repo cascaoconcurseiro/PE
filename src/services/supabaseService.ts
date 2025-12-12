@@ -3,6 +3,7 @@ import {
     Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset,
     CustomCategory, SyncStatus, UserProfile, Snapshot
 } from '../types';
+import { DBTransaction, DBAccount, DBTrip, DBBudget, DBGoal, DBFamilyMember, DBAsset, DBSnapshot, DBCustomCategory } from '../types/db';
 
 // Helper to get current user
 const getUserId = async () => {
@@ -12,8 +13,8 @@ const getUserId = async () => {
 };
 
 // Generic Mapper (DB snake_case -> App camelCase)
-const mapToApp = (data: any): any => {
-    if (Array.isArray(data)) return data.map(mapToApp);
+const mapToApp = <T>(data: any): T => {
+    if (Array.isArray(data)) return data.map(mapToApp) as any;
     if (data === null || typeof data !== 'object') return data;
 
     const newObj: any = {};
@@ -26,7 +27,7 @@ const mapToApp = (data: any): any => {
         else if (key === 'destination_account_id') newObj['destinationAccountId'] = data[key];
         else newObj[camelKey] = data[key];
     }
-    return newObj;
+    return newObj as T;
 };
 
 // Mapper for Saving (App camelCase -> DB snake_case)
@@ -34,7 +35,7 @@ const mapToDB = (data: any, userId: string): any => {
     const newObj: any = { user_id: userId };
 
     // Copia propriedades básicas e converte para snake_case
-    const keys = {
+    const keys: Record<string, string> = {
         id: 'id',
         name: 'name',
         amount: 'amount',
@@ -231,6 +232,22 @@ export const supabaseService = {
         }
     },
 
+    async recreateTransactionSeries(oldSeriesId: string, newTransactions: any[]) {
+        const userId = await getUserId();
+        // Prepare DB items
+        const dbItems = newTransactions.map(t => mapToDB(t, userId));
+
+        const { error } = await supabase.rpc('recreate_transaction_series', {
+            p_old_series_id: oldSeriesId,
+            p_new_transactions: dbItems
+        });
+
+        if (error) {
+            console.error('Failed to recreate transaction series atomically:', error);
+            throw error;
+        }
+    },
+
     // SPECIFIC FETCHERS
     async getAccountBalances() {
         try {
@@ -247,8 +264,10 @@ export const supabaseService = {
 
     async getTransactions(startDate?: string, endDate?: string, includeDeleted = false): Promise<Transaction[]> {
         const userId = await getUserId();
-        let query = supabase.from('transactions').select('*')
-            .eq('user_id', userId)
+        let query = supabase
+            .from('transactions')
+            .select('*')
+            .eq('user_id', userId);
 
         if (!includeDeleted) {
             query = query.eq('deleted', false);
@@ -263,10 +282,52 @@ export const supabaseService = {
             query = query.lte('date', endDate);
         }
 
-        const { data: txData, error: txError } = await query;
-        if (txError) throw txError;
+        const { data, error } = await query;
 
-        return mapToApp(txData);
+        if (error) {
+            console.error('Error fetching transactions:', error);
+            return [];
+        }
+        return mapToApp<Transaction[]>(data);
+    },
+
+    // PHASE 4: CONTEXT-AWARE FETCHING (Rescue orphaned shared debts)
+    async getUnsettledSharedTransactions(olderThan?: string): Promise<Transaction[]> {
+        const userId = await getUserId();
+        let query = supabase
+            .from('transactions')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('deleted', false)
+            .eq('is_settled', false) // Only active debts
+            .or('is_shared.eq.true,shared_with.neq.null'); // Context: Shared
+
+        if (olderThan) {
+            query = query.lt('date', olderThan);
+        }
+
+        const { data, error } = await query.order('date', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching unsettled shared transactions:', error);
+            return [];
+        }
+        return mapToApp<Transaction[]>(data);
+    },
+
+    // PHASE 5: REPORTING & HYDRATION
+    async getMonthlyCashflow(year: number): Promise<{ month: number, income: number, expense: number }[]> {
+        const userId = await getUserId();
+        const { data, error } = await supabase.rpc('get_monthly_cashflow', {
+            p_year: year,
+            p_user_id: userId
+        });
+
+        if (error) {
+            console.error('Error fetching monthly cashflow:', error);
+            return [];
+        }
+        return data || [];
     },
     async getAccounts(): Promise<Account[]> { return this.getAll<Account>('accounts'); },
     async getTrips(): Promise<Trip[]> { return this.getAll<Trip>('trips'); },

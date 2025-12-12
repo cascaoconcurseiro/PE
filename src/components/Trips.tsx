@@ -19,14 +19,23 @@ interface TripsProps {
     onDeleteTrip?: (id: string) => void;
     onNavigateToShared?: () => void;
     onEditTransaction?: (id: string) => void;
+    onLoadHistory: (start: string, end: string) => Promise<void>;
 }
 
-export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onUpdateTransaction, onDeleteTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared, onEditTransaction }) => {
+export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onUpdateTransaction, onDeleteTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared, onEditTransaction, onLoadHistory }) => {
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
     const [isCreatingTrip, setIsCreatingTrip] = useState(false);
     const [editingTripId, setEditingTripId] = useState<string | null>(null);
 
     const selectedTrip = trips.find(t => String(t.id) === String(selectedTripId));
+
+    // PHASE 5: Smart Hydration (Load history when trip selected)
+    React.useEffect(() => {
+        if (selectedTrip) {
+            onLoadHistory(selectedTrip.startDate, selectedTrip.endDate);
+        }
+    }, [selectedTripId, trips]); // trips dependency in case we load trips late? ID is simpler.
+
     const tripTransactions = transactions.filter(t => t.tripId && String(t.tripId) === String(selectedTripId)).sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime());
 
     const handleCreateOrUpdateTrip = (tripData: any) => {

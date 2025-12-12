@@ -12,7 +12,8 @@ if (-not $vercelInstalled) {
     Write-Host "❌ Vercel CLI não encontrado. Instalando..." -ForegroundColor Red
     npm install -g vercel
     Write-Host "✅ Vercel CLI instalado!" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "✅ Vercel CLI já instalado!" -ForegroundColor Green
 }
 
@@ -51,28 +52,28 @@ Write-Host "⚙️ Adicionando variáveis de ambiente..." -ForegroundColor Yello
 # Adicionar VITE_SUPABASE_URL
 Write-Host ""
 Write-Host "Adicionando VITE_SUPABASE_URL..." -ForegroundColor Cyan
-echo $supabaseUrl | vercel env add VITE_SUPABASE_URL production
+Write-Output $supabaseUrl | vercel env add VITE_SUPABASE_URL production
 
 Write-Host ""
 Write-Host "Adicionando VITE_SUPABASE_URL (Preview)..." -ForegroundColor Cyan
-echo $supabaseUrl | vercel env add VITE_SUPABASE_URL preview
+Write-Output $supabaseUrl | vercel env add VITE_SUPABASE_URL preview
 
 Write-Host ""
 Write-Host "Adicionando VITE_SUPABASE_URL (Development)..." -ForegroundColor Cyan
-echo $supabaseUrl | vercel env add VITE_SUPABASE_URL development
+Write-Output $supabaseUrl | vercel env add VITE_SUPABASE_URL development
 
 # Adicionar VITE_SUPABASE_ANON_KEY
 Write-Host ""
 Write-Host "Adicionando VITE_SUPABASE_ANON_KEY..." -ForegroundColor Cyan
-echo $supabaseKey | vercel env add VITE_SUPABASE_ANON_KEY production
+Write-Output $supabaseKey | vercel env add VITE_SUPABASE_ANON_KEY production
 
 Write-Host ""
 Write-Host "Adicionando VITE_SUPABASE_ANON_KEY (Preview)..." -ForegroundColor Cyan
-echo $supabaseKey | vercel env add VITE_SUPABASE_ANON_KEY preview
+Write-Output $supabaseKey | vercel env add VITE_SUPABASE_ANON_KEY preview
 
 Write-Host ""
 Write-Host "Adicionando VITE_SUPABASE_ANON_KEY (Development)..." -ForegroundColor Cyan
-echo $supabaseKey | vercel env add VITE_SUPABASE_ANON_KEY development
+Write-Output $supabaseKey | vercel env add VITE_SUPABASE_ANON_KEY development
 
 Write-Host ""
 Write-Host "✅ Variáveis configuradas com sucesso!" -ForegroundColor Green

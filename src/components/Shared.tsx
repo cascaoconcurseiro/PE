@@ -15,7 +15,9 @@ interface SharedProps {
     accounts: Account[];
     currentDate: Date;
     onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
+    onAddTransactions?: (ts: Omit<Transaction, 'id'>[]) => void;
     onUpdateTransaction: (t: Transaction) => void;
+    onBatchUpdateTransactions?: (ts: Transaction[]) => void;
     onDeleteTransaction?: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
     onNavigateToTrips: () => void;
 }
@@ -27,7 +29,9 @@ export const Shared: React.FC<SharedProps> = ({
     accounts,
     currentDate,
     onAddTransaction,
+    onAddTransactions,
     onUpdateTransaction,
+    onBatchUpdateTransactions,
     onDeleteTransaction,
     onNavigateToTrips
 }) => {
@@ -128,6 +132,8 @@ export const Shared: React.FC<SharedProps> = ({
         // 2. Settle Original Items (only if FULL settlement, not partial)
         // For partial, we just record the payment but don't mark items as settled
         if (!isPartialSettlement) {
+            const txsToUpdate: Transaction[] = [];
+
             settleModal.items.forEach(item => {
                 const originalTx = transactions.find(t => t.id === item.originalTxId);
                 if (originalTx) {
@@ -139,7 +145,7 @@ export const Shared: React.FC<SharedProps> = ({
                             if (s.memberId === item.memberId) return { ...s, isSettled: true, settledAt: settledDate };
                             return s;
                         });
-                        onUpdateTransaction({ ...originalTx, sharedWith: updatedSplits });
+                        txsToUpdate.push({ ...originalTx, sharedWith: updatedSplits });
                     }
                     // CASE 2: DEBIT (They paid, I owe them) - Update My Debt (Main Transaction OR Split Logic?)
                     // Logic from useSharedFinances: 
@@ -148,24 +154,20 @@ export const Shared: React.FC<SharedProps> = ({
                     // Actually, DEBIT items in useSharedFinances are generated when "Other Paid -> I Owe".
                     // The "I Owe" part is represented by the transaction itself (if I am not the payer).
                     // So we MUST mark the transaction as settled.
+                    // Fix: Always update isSettled on main tx for DEBIT items.
                     else if (item.type === 'DEBIT') {
-                        // Force update main transaction, even if sharedWith exists (because sharedWith tracks OTHERS, not ME in this case)
-                        // Wait, if I am one of the 'sharedWith' (e.g. 3 people split), then my debt is in sharedWith?
-                        // useSharedFinances says: if (!payerId || payerId === 'me') -> CREDIT logic.
-                        // else -> DEBIT logic. My share = amount - totalSplits.
-                        // This 'Implicit Share' is not in sharedWith. It's the remainder.
-                        // So to settle it, we must mark the WHOLE transaction as settled?
-                        // NO. If we mark the whole tx as settled, does it affect others?
-                        // If others are in sharedWith, their splits track their status.
-                        // My status is tracked by IS_SETTLED on the main tx?
-                        // Yes, for a transaction where I am NOT the payer, 'isSettled' on the main tx represents "My part is paid".
-                        // (Assuming the Payer doesn't need to track 'received' on the main tx, but rather on their CREDIT splits).
-
-                        // Fix: Always update isSettled on main tx for DEBIT items.
-                        onUpdateTransaction({ ...originalTx, isSettled: true, settledAt: settledDate });
+                        txsToUpdate.push({ ...originalTx, isSettled: true, settledAt: settledDate });
                     }
                 }
             });
+
+            if (txsToUpdate.length > 0) {
+                if (onBatchUpdateTransactions) {
+                    onBatchUpdateTransactions(txsToUpdate);
+                } else {
+                    txsToUpdate.forEach(t => onUpdateTransaction(t));
+                }
+            }
         }
 
         setSettleModal({ isOpen: false, memberId: null, type: 'PAY', items: [], total: 0, currency: 'BRL' });
@@ -302,7 +304,11 @@ export const Shared: React.FC<SharedProps> = ({
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
                 onImport={(txs) => {
-                    txs.forEach(t => onAddTransaction(t));
+                    if (onAddTransactions) {
+                        onAddTransactions(txs);
+                    } else {
+                        txs.forEach(t => onAddTransaction(t));
+                    }
                     setIsImportModalOpen(false);
                 }}
                 members={members}

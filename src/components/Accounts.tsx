@@ -28,6 +28,7 @@ interface AccountsProps {
     onUpdateAccount: (account: Account) => void;
     onDeleteAccount: (id: string) => void;
     onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+    onAddTransactions?: (transactions: Omit<Transaction, 'id'>[]) => void;
     showValues: boolean;
     currentDate?: Date;
     onAnticipate: (ids: string[], date: string, accountId: string) => void;
@@ -35,7 +36,7 @@ interface AccountsProps {
     onClearInitialAccount?: () => void;
 }
 
-export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, showValues, currentDate = new Date(), onAnticipate, initialAccountId, onClearInitialAccount }) => {
+export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, onAddTransactions, showValues, currentDate = new Date(), onAnticipate, initialAccountId, onClearInitialAccount }) => {
     const [viewState, setViewState] = useState<'LIST' | 'DETAIL'>('LIST');
     const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS' | 'INTERNATIONAL'>('BANKING');
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -133,21 +134,48 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
 
     const handleImportConfirm = (importedTxs: OFXTransaction[]) => {
         if (!selectedAccount) return;
+
+        const txsToImport: Omit<Transaction, 'id'>[] = [];
         let count = 0;
+
         importedTxs.forEach(tx => {
             const isDuplicate = transactions.some(t => t.accountId === selectedAccount.id && t.amount === tx.amount && t.date === tx.date && t.type === tx.type);
             if (!isDuplicate) {
-                onAddTransaction({ amount: tx.amount, description: tx.description, date: tx.date, type: tx.type, category: Category.OTHER, accountId: selectedAccount.id, isRecurring: false });
+                txsToImport.push({
+                    amount: tx.amount,
+                    description: tx.description,
+                    date: tx.date,
+                    type: tx.type,
+                    category: Category.OTHER,
+                    accountId: selectedAccount.id,
+                    isRecurring: false
+                });
                 count++;
             }
         });
-        addToast(`${count} transações importadas!`, count > 0 ? 'success' : 'info');
+
+        if (txsToImport.length > 0) {
+            if (onAddTransactions) {
+                onAddTransactions(txsToImport);
+            } else {
+                txsToImport.forEach(t => onAddTransaction(t));
+                addToast(`${count} transações importadas!`, 'success');
+            }
+        } else {
+            addToast(`Nenhuma transação nova para importar.`, 'info');
+        }
+
         setImportModal({ isOpen: false, transactions: [] });
     };
 
     const handleImportBills = (txs: Omit<Transaction, 'id'>[]) => {
-        txs.forEach(tx => onAddTransaction(tx));
-        addToast(`${txs.length} faturas importadas com sucesso!`, 'success');
+        if (onAddTransactions) {
+            onAddTransactions(txs);
+        } else {
+            // Fallback for compatibility
+            txs.forEach(tx => onAddTransaction(tx));
+            addToast(`${txs.length} faturas importadas com sucesso!`, 'success');
+        }
         setImportBillModal({ isOpen: false, account: null });
     };
 

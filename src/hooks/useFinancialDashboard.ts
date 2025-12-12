@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Account, Transaction, TransactionType, AccountType, Category } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
 import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue } from '../services/financialLogic';
 import { shouldShowTransaction } from '../utils/transactionFilters';
 import { isForeignTransaction } from '../utils/transactionUtils';
+import { supabaseService } from '../services/supabaseService';
 
 interface UseFinancialDashboardProps {
     accounts: Account[];
@@ -23,6 +24,7 @@ export const useFinancialDashboard = ({
 }: UseFinancialDashboardProps) => {
 
     const selectedYear = currentDate.getFullYear();
+    const [rpcCashflow, setRpcCashflow] = useState<{ month: number, income: number, expense: number }[]>([]);
 
     // 0. GLOBAL FILTER: Dashboard is checking/local only.
     const dashboardTransactions = useMemo(() =>
@@ -45,6 +47,21 @@ export const useFinancialDashboard = ({
     const dashboardProjectedAccounts = useMemo(() =>
         (projectedAccounts || accounts).filter(a => !a.currency || a.currency === 'BRL'),
         [projectedAccounts, accounts]);
+
+    // Fetch Monthly Cashflow (RPC) for Annual Chart
+    useEffect(() => {
+        let active = true;
+        const fetchCashflow = async () => {
+            try {
+                const data = await supabaseService.getMonthlyCashflow(selectedYear);
+                if (active) setRpcCashflow(data);
+            } catch (error) {
+                console.error("Failed to fetch cashflow", error);
+            }
+        };
+        fetchCashflow();
+        return () => { active = false; };
+    }, [selectedYear, transactions]); // Re-fetch on transaction updates
 
     // 1. Calculate Projection
     const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() =>
@@ -89,47 +106,24 @@ export const useFinancialDashboard = ({
         }, 0);
     }, [dashboardAccounts]);
 
-    // Annual Cash Flow Data
+    // Annual Cash Flow Data (FROM RPC)
     const cashFlowData = useMemo(() => {
         const data = Array.from({ length: 12 }, (_, i) => {
             const date = new Date(selectedYear, i, 1);
+            const monthNum = i + 1;
+            const rpcData = rpcCashflow.find(r => r.month === monthNum);
+
             return {
                 date: date,
                 month: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
                 year: selectedYear,
                 monthIndex: i,
-                Receitas: 0,
-                Despesas: 0
+                Receitas: rpcData ? Number(rpcData.income) : 0,
+                Despesas: rpcData ? Number(rpcData.expense) : 0
             };
         });
-
-        dashboardTransactions
-            .filter(shouldShowTransaction)
-            .forEach(t => {
-                const tDate = new Date(t.date);
-                if (tDate.getFullYear() !== selectedYear) return;
-                if (t.type === TransactionType.TRANSFER) return;
-
-                const account = accounts.find(a => a.id === t.accountId);
-                const effectiveAmount = calculateEffectiveTransactionValue(t);
-                const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
-                const bucket = data.find(d => d.monthIndex === tDate.getMonth());
-
-                if (bucket) {
-                    if (t.type === TransactionType.EXPENSE) {
-                        const value = t.isRefund ? -amountBRL : amountBRL;
-                        if (value > 0) bucket.Despesas -= value;
-                        else bucket.Receitas += Math.abs(value);
-                    } else if (t.type === TransactionType.INCOME) {
-                        const value = t.isRefund ? -amountBRL : amountBRL;
-                        if (value > 0) bucket.Receitas += value;
-                        else bucket.Despesas -= Math.abs(value);
-                    }
-                }
-            });
-
         return data;
-    }, [dashboardTransactions, selectedYear, accounts]);
+    }, [rpcCashflow, selectedYear]);
 
     const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas < 0), [cashFlowData]);
 
