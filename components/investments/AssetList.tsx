@@ -56,21 +56,21 @@ export const AssetList: React.FC<AssetListProps> = ({
 
                         return (
                             <div key={asset.id} className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all group relative overflow-hidden">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="flex items-center gap-4">
+                                <div className="flex flex-col sm:flex-row justify-between items-start mb-6 gap-4">
+                                    <div className="flex items-center gap-4 w-full sm:w-auto">
                                         <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-2xl shrink-0 shadow-sm border border-slate-100 dark:border-slate-600">
                                             {getAssetIcon(asset.type)}
                                         </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h4 className="font-black text-slate-900 dark:text-white text-xl tracking-tight">{asset.ticker}</h4>
-                                                <span className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full font-bold border border-slate-200 dark:border-slate-600 uppercase tracking-wider">{asset.type}</span>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h4 className="font-black text-slate-900 dark:text-white text-xl tracking-tight truncate">{asset.ticker}</h4>
+                                                <span className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full font-bold border border-slate-200 dark:border-slate-600 uppercase tracking-wider whitespace-nowrap">{asset.type}</span>
                                             </div>
                                             <div className="text-sm text-slate-500 dark:text-slate-400 font-medium truncate max-w-[200px]">{asset.name}</div>
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex gap-2 w-full sm:w-auto justify-end opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button onClick={() => onEdit(asset)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Editar"><Edit2 className="w-4 h-4" /></button>
                                         <button onClick={() => onHistory(asset)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors" title="Histórico"><History className="w-4 h-4" /></button>
                                         <button onClick={() => onDelete(asset.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="Excluir"><Trash2 className="w-4 h-4" /></button>
@@ -96,16 +96,16 @@ export const AssetList: React.FC<AssetListProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="mt-4 flex justify-between items-center">
-                                    <div className={`text-sm font-bold ${assetProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'} flex items-center gap-1 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full shadow-sm border border-slate-100 dark:border-slate-700`}>
+                                <div className="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <div className={`text-sm font-bold ${assetProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'} flex items-center gap-1 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full shadow-sm border border-slate-100 dark:border-slate-700 w-full sm:w-auto justify-center sm:justify-start`}>
                                         {assetProfit >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                                         <span>{showValues ? formatCurrency(assetProfit, asset.currency) : '•••'}</span>
                                         <span className="opacity-75 ml-1">({assetProfitPercent.toFixed(2)}%)</span>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => onAction(asset)} className="px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">Evento</button>
-                                        <button onClick={() => onSell(asset)} className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">Vender</button>
-                                        <button onClick={() => onBuy(asset)} className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">Comprar</button>
+                                    <div className="flex gap-2 w-full sm:w-auto">
+                                        <button onClick={() => onAction(asset)} className="flex-1 sm:flex-none px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">Evento</button>
+                                        <button onClick={() => onSell(asset)} className="flex-1 sm:flex-none px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">Vender</button>
+                                        <button onClick={() => onBuy(asset)} className="flex-1 sm:flex-none px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">Comprar</button>
                                     </div>
                                 </div>
                             </div>

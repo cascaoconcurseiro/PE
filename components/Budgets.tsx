@@ -135,7 +135,7 @@ export const Budgets: React.FC<BudgetsProps> = ({ transactions, budgets, onAddBu
                                 </div>
                             )}
 
-                            <div className={`flex items-center justify-between mb-3 ${isOver || percentage > 80 ? 'mt-6' : ''}`}>
+                            <div className={`flex flex-wrap items-center justify-between mb-3 gap-3 ${isOver || percentage > 80 ? 'mt-6' : ''}`}>
                                 <div className="flex items-center gap-3">
                                     <div className={`p-2 rounded-xl ${isOver ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}><CatIcon className="w-6 h-6" /></div>
                                     <div><h3 className="font-bold text-slate-800 dark:text-white">{budget.categoryId}</h3><div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium"><span>Limite: {formatCurrency(budget.amount)}</span>{rollover !== 0 && (<span className={`px-1.5 py-0.5 rounded ${rollover > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>{rollover > 0 ? '+' : ''}{formatCurrency(rollover)}</span>)}</div></div>

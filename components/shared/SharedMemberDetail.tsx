@@ -383,8 +383,8 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                             </div>
                                                         </div>
 
-                                                        <div className="flex items-center gap-3">
-                                                            <span className={`font-bold text-base ${item.type === 'DEBIT'
+                                                        <div className="flex items-center gap-3 pl-2">
+                                                            <span className={`font-bold text-base whitespace-nowrap ${item.type === 'DEBIT'
                                                                 ? 'text-red-700 dark:text-red-400'
                                                                 : 'text-emerald-700 dark:text-emerald-400'
                                                                 }`}>
@@ -396,9 +396,9 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                                     {/* Settled indicator and undo button for history items */}
                                                                     {item.isPaid ? (
                                                                         <>
-                                                                            <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 px-2">
+                                                                            <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
                                                                                 <CheckCircle className="w-3.5 h-3.5" />
-                                                                                Pago
+                                                                                <span className="hidden sm:inline">Pago</span>
                                                                             </span>
                                                                             {onUndoSettlement && (
                                                                                 <Button
@@ -413,7 +413,7 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                                             )}
                                                                         </>
                                                                     ) : (
-                                                                        <>
+                                                                        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                                                             <Button
                                                                                 size="sm"
                                                                                 variant="ghost"
@@ -432,7 +432,7 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                                             >
                                                                                 <Trash2 className="w-4 h-4" />
                                                                             </Button>
-                                                                        </>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             )}

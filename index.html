@@ -102,40 +102,9 @@
         originalWarn.apply(console, arguments);
       };
 
-      // MEMORY STORAGE SHIM - AGGRESSIVE
-      var memoryStore = {};
-      var storageShim = {
-        getItem: function (key) { return memoryStore[key] || null; },
-        setItem: function (key, value) { memoryStore[key] = String(value); },
-        removeItem: function (key) { delete memoryStore[key]; },
-        clear: function () { memoryStore = {}; },
-        key: function (n) { return Object.keys(memoryStore)[n]; },
-        get length() { return Object.keys(memoryStore).length; }
-      };
-
-      try {
-        // Force override - if it fails, we catch it, but this usually prevents the browser from 
-        // even trying to access the real storage which triggers the SecurityError.
-
-        // 1. Storage
-        try {
-          Object.defineProperty(window, 'localStorage', { value: storageShim, writable: false, configurable: false });
-          Object.defineProperty(window, 'sessionStorage', { value: storageShim, writable: false, configurable: false });
-        } catch (e) {
-          // Fallback if defineProperty fails (e.g. some browsers block redefining)
-          console.warn('Could not redefine storage, suppressing errors instead.');
-        }
-
-        // 2. Cookies (Often triggers the same error)
-        try {
-          Object.defineProperty(document, 'cookie', {
-            get: function () { return ''; },
-            set: function () { },
-            configurable: false
-          });
-        } catch (e) { }
-
-      } catch (e) { }
+      // STORAGE SHIM REMOVED TO RESTORE 'REMEMBER ME' FUNCTIONALITY
+      // Previous shim forced in-memory storage, causing session loss on refresh.
+      // We now rely on client.ts to handle storage errors safely (try-catch).
 
       // AGGRESSIVE ERROR SUPPRESSION - Capture phase
       window.addEventListener('error', function (e) {
