@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Calendar, DollarSign } from 'lucide-react';
+import { X, Save, Calendar, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Account, Transaction, TransactionType, Category } from '../../types';
 import { Button } from '../ui/Button';
 
@@ -11,45 +11,26 @@ interface CreditCardImportModalProps {
 }
 
 export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ isOpen, onClose, account, onImport }) => {
+    const [year, setYear] = useState(new Date().getFullYear());
     const [months, setMonths] = useState<{ date: string; label: string; amount: string }[]>([]);
 
     useEffect(() => {
         if (isOpen) {
             const nextMonths = [];
-            const today = new Date();
-
-            // Usar o dia de fechamento como referência
-            const closingDay = account.closingDay || 1;
 
             for (let i = 0; i < 12; i++) {
-                // Calcular o mês/ano correto
-                const targetMonth = today.getMonth() + i;
-                const targetYear = today.getFullYear() + Math.floor(targetMonth / 12);
-                const finalMonth = targetMonth % 12;
+                // Criar data com dia 1 do mês i do ano selecionado
+                const targetDate = new Date(year, i, 1);
 
-                // Criar data com dia 1 primeiro para o label
-                const d = new Date(targetYear, finalMonth, 1);
-
-                // Format label (e.g., "Novembro 2025")
-                const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
-                // FIX: Usar uma data NO MEIO do ciclo da fatura, não no limite
-                // Se fecha dia 5, o ciclo é do dia 6 do mês anterior até dia 5 deste mês
-                // Então usamos dia 1 do mês da fatura (que está dentro do ciclo)
-                // Exemplo: Fatura de Dezembro fecha dia 5/12, ciclo 6/11 a 5/12
-                // Usamos dia 1/12 que está dentro do ciclo
-                const daysInMonth = new Date(targetYear, finalMonth + 1, 0).getDate();
-
-                // Usar dia 1 do mês da fatura (sempre dentro do ciclo)
-                // Ou se o fechamento for dia 1, usar dia 1 mesmo
-                const safeDay = Math.min(1, daysInMonth);
-                const targetDate = new Date(targetYear, finalMonth, safeDay);
+                // Format label (e.g., "Janeiro")
+                const monthName = targetDate.toLocaleDateString('pt-BR', { month: 'long' });
+                const label = `${monthName} ${year}`;
 
                 // Formatar data manualmente para evitar problemas de timezone
-                const year = targetDate.getFullYear();
-                const month = String(targetDate.getMonth() + 1).padStart(2, '0');
-                const day = String(targetDate.getDate()).padStart(2, '0');
-                const dateStr = `${year}-${month}-${day}`;
+                const y = targetDate.getFullYear();
+                const m = String(targetDate.getMonth() + 1).padStart(2, '0');
+                const d = String(targetDate.getDate()).padStart(2, '0');
+                const dateStr = `${y}-${m}-${d}`;
 
                 nextMonths.push({
                     date: dateStr,
@@ -57,9 +38,17 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                     amount: ''
                 });
             }
+            // Tentar preservar valores se o usuário apenas trocou de ano? 
+            // Por simplicidade, limpamos ao trocar de ano ou resetamos ao abrir.
+            // Se quiséssemos preservar, precisaríamos de um state complexo { "2024-01": "100", ... }
+            // Como o uso comum é preencher, salvar e fechar, vamos resetar apenas se fechar e abrir.
+            // Mas aqui o useEffect depende de 'year', então vai resetar a cada troca de ano se não cuidarmos.
+            // Vamos deixar resetar por enquanto ao trocar de ano para evitar complexidade desnecessária, 
+            // ou melhor, apenas inicializar vazio.
+
             setMonths(nextMonths);
         }
-    }, [isOpen, account]);
+    }, [isOpen, year, account]);
 
     const handleAmountChange = (index: number, value: string) => {
         const newMonths = [...months];
@@ -95,10 +84,29 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
                     <div>
                         <h2 className="text-xl font-bold text-slate-800 dark:text-white">Importar Faturas</h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Preencha os valores das faturas futuras para {account.name}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Preencha os valores para {account.name}</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
                         <X className="w-5 h-5 text-slate-500" />
+                    </button>
+                </div>
+
+                {/* Year Selector */}
+                <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-center gap-4 border-b border-slate-100 dark:border-slate-800">
+                    <button
+                        onClick={() => setYear(y => y - 1)}
+                        className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                    >
+                        <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    </button>
+                    <span className="text-lg font-bold text-slate-800 dark:text-white tabular-nums">
+                        {year}
+                    </span>
+                    <button
+                        onClick={() => setYear(y => y + 1)}
+                        className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                    >
+                        <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                     </button>
                 </div>
 
