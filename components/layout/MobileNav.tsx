@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, FileText, Wallet, TrendingUp, Plus } from 'lucide-react';
+import { Home, FileText, Wallet, TrendingUp, Plus, Users } from 'lucide-react';
 import { View } from '../../types';
 
 interface MobileNavProps {
@@ -50,7 +50,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ activeView, setActiveView,
 
                     <div className="flex items-center justify-around w-[40%]">
                         <NavItem view={View.ACCOUNTS} icon={Wallet} label="Contas" activeColor="text-violet-600 dark:text-violet-400" />
-                        <NavItem view={View.INVESTMENTS} icon={TrendingUp} label="Invest." activeColor="text-indigo-600 dark:text-indigo-400" />
+                        <NavItem view={View.SHARED} icon={Users} label="Compart." activeColor="text-indigo-600 dark:text-indigo-400" />
                     </div>
                 </div>
             </div>

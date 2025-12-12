@@ -35,9 +35,11 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
                     )}
                 </div>
             </div>
-            <div className="h-60 md:h-72 w-full px-2">
+            <div className="h-60 md:h-72 w-full px-2 overflow-x-auto">
                 {hasData ? (
-                    <DivergingBarChart data={chartData} height={250} />
+                    <div className="h-full min-w-[600px]">
+                        <DivergingBarChart data={chartData} height={250} />
+                    </div>
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
                         <BarChart3 className="w-8 h-8 mb-2 opacity-50" />
