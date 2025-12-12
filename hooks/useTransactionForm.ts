@@ -97,7 +97,7 @@ export const useTransactionForm = ({
     }, [activeAmount, destinationAmountStr, isMultiCurrencyTransfer]);
 
     // Logic for Currency: If trip selected, assume transaction is in Trip Currency (for Expense)
-    const activeCurrency = selectedTrip ? selectedTrip.currency : (selectedAccountObj?.currency || 'BRL');
+    const activeCurrency = (formMode === TransactionType.EXPENSE && selectedTrip) ? selectedTrip.currency : (selectedAccountObj?.currency || 'BRL');
 
     const isCreditCard = selectedAccountObj?.type === AccountType.CREDIT_CARD;
     const isExpense = formMode === TransactionType.EXPENSE;
@@ -265,7 +265,7 @@ export const useTransactionForm = ({
             accountId: (payerId && payerId !== 'me') ? undefined : (accountId || undefined),
             destinationAccountId: isTransfer ? destinationAccountId : undefined,
             destinationAmount: (isTransfer && isMultiCurrencyTransfer) ? parseFloat(destinationAmountStr) : undefined,
-            tripId: tripId || undefined,
+            tripId: (formMode === TransactionType.EXPENSE && tripId) ? tripId : undefined,
             isShared: shouldBeShared,
             sharedWith: finalSplits,
             payerId: payerId === 'me' ? undefined : payerId,
