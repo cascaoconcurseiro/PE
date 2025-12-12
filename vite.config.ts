@@ -66,7 +66,7 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './'),
+        '@': path.resolve(__dirname, './src'),
         react: path.resolve(__dirname, './node_modules/react'),
         'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
       }
@@ -110,21 +110,21 @@ export default defineConfig(({ mode }) => {
 
             // Feature chunks
             'components-dashboard': [
-              './components/Dashboard.tsx',
-              './components/dashboard/FinancialProjectionCard.tsx',
-              './components/dashboard/SummaryCards.tsx',
-              './components/dashboard/UpcomingBills.tsx',
+              './src/components/Dashboard.tsx',
+              './src/components/dashboard/FinancialProjectionCard.tsx',
+              './src/components/dashboard/SummaryCards.tsx',
+              './src/components/dashboard/UpcomingBills.tsx',
             ],
             'components-transactions': [
-              './components/Transactions.tsx',
-              './components/transactions/TransactionList.tsx',
-              './components/transactions/TransactionForm.tsx',
-              './components/transactions/TransactionSummary.tsx',
+              './src/components/Transactions.tsx',
+              './src/components/transactions/TransactionList.tsx',
+              './src/components/transactions/TransactionForm.tsx',
+              './src/components/transactions/TransactionSummary.tsx',
             ],
             'components-accounts': [
-              './components/Accounts.tsx',
-              './components/accounts/AccountForm.tsx',
-              './components/accounts/CreditCardImportModal.tsx',
+              './src/components/Accounts.tsx',
+              './src/components/accounts/AccountForm.tsx',
+              './src/components/accounts/CreditCardImportModal.tsx',
             ],
 
           },
