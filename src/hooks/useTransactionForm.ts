@@ -121,9 +121,13 @@ export const useTransactionForm = ({
 
     // Reset Category when Form Mode changes
     useEffect(() => {
-        // If we are editing and the mode matches the original transaction, preserve the original category
-        if (initialData && initialData.type === formMode) return;
+        // If we are editing and returning to the original type, restore the original category
+        if (initialData && initialData.type === formMode) {
+            setCategory(initialData.category);
+            return;
+        }
 
+        // Otherwise set defaults based on mode
         if (formMode === TransactionType.INCOME) {
             setCategory(Category.INCOME);
         } else if (formMode === TransactionType.EXPENSE) {
@@ -131,7 +135,7 @@ export const useTransactionForm = ({
         } else if (formMode === TransactionType.TRANSFER) {
             setCategory(Category.TRANSFER);
         }
-    }, [formMode]);
+    }, [formMode, initialData]);
 
     // Load Data
     useEffect(() => {
