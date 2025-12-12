@@ -33,6 +33,7 @@ interface DashboardProps {
     isLoading?: boolean;
     pendingSharedRequestsCount?: number;
     pendingSettlements?: any[];
+    projectedAccounts?: Account[]; // NEW: Explicit set of accounts for end-of-month projection
     onOpenShared?: () => void;
     onOpenSettlement?: (request: any) => void;
 }
@@ -43,7 +44,7 @@ const ChartSkeleton = () => (
     </div>
 );
 
-export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, goals = [], currentDate = new Date(), showValues, onEditRequest, onNotificationPay, isLoading = false, pendingSharedRequestsCount = 0, pendingSettlements = [], onOpenShared, onOpenSettlement }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccounts, transactions, goals = [], currentDate = new Date(), showValues, onEditRequest, onNotificationPay, isLoading = false, pendingSharedRequestsCount = 0, pendingSettlements = [], onOpenShared, onOpenSettlement }) => {
     const [spendingView, setSpendingView] = useState<'CATEGORY' | 'SOURCE'>('CATEGORY');
 
 
@@ -69,10 +70,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, transactions, go
         accounts.filter(a => !a.currency || a.currency === 'BRL'),
         [accounts]);
 
+    // PREPARE PROJECTED ACCOUNTS (If provided, filter them similarly)
+    const dashboardProjectedAccounts = useMemo(() =>
+        (projectedAccounts || accounts).filter(a => !a.currency || a.currency === 'BRL'),
+        [projectedAccounts, accounts]);
+
     // 1. Calculate Projection
+    // CRITICAL FIX: Use 'dashboardProjectedAccounts' (End of Month) for this specific card
     const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() =>
-        calculateProjectedBalance(dashboardAccounts, dashboardTransactions, currentDate),
-        [dashboardAccounts, dashboardTransactions, currentDate]);
+        calculateProjectedBalance(dashboardProjectedAccounts, dashboardTransactions, currentDate),
+        [dashboardProjectedAccounts, dashboardTransactions, currentDate]);
 
     // 2. Filter Transactions for Charts
     const monthlyTransactions = useMemo(() =>
