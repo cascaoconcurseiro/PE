@@ -17,7 +17,6 @@ export const lazyImport = <T extends ComponentType<any>>(
             if (error.message && (
                 error.message.includes('Failed to fetch dynamically imported module') ||
                 error.message.includes('Importing a module script failed') ||
-                error.message.includes('missing') ||
                 error.name === 'ChunkLoadError'
             )) {
                 // Prevent infinite reload loop using URL Search Params

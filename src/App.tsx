@@ -11,6 +11,7 @@ import { MainLayout } from './components/MainLayout';
 import { InconsistenciesModal } from './components/ui/InconsistenciesModal';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { GlobalSearch } from './components/GlobalSearch';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardShortcuts';
 
 import { lazyImport } from './utils/lazyImport';
@@ -272,9 +273,11 @@ const App = () => {
             dataInconsistencies={dataInconsistencies}
             onOpenInconsistenciesModal={() => setIsInconsistenciesModalOpen(true)}
         >
-            <Suspense fallback={<LoadingScreen />}>
-                {renderContent()}
-            </Suspense>
+            <ErrorBoundary>
+                <Suspense fallback={<LoadingScreen />}>
+                    {renderContent()}
+                </Suspense>
+            </ErrorBoundary>
 
             {isTxModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
