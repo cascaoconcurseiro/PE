@@ -9,8 +9,6 @@ import { useToast } from '../components/ui/Toast';
 import { supabase } from '../integrations/supabase/client';
 import { processRecurringTransactions } from '../services/recurrenceEngine';
 import { checkDataConsistency } from '../services/financialLogic';
-import { CacheService } from '../services/cacheService';
-import { SyncService } from '../services/syncService';
 
 export const useDataStore = () => {
     const { addToast } = useToast();
@@ -30,16 +28,13 @@ export const useDataStore = () => {
     const [dataInconsistencies, setDataInconsistencies] = useState<string[]>([]);
     const isInitialized = useRef(false);
 
-    // --- ACTIONS DEFINED EARLY FOR USAGE IN FETCH ---
-    // We need to define these before fetchData so we can pass them to recurrence engine,
-    // BUT fetchData is called by these. Circular dependency?
-    // Solution: Define internal handlers that don't call fetchData, or just let the cycle happen (it breaks naturally).
-    // Actually, processRecurringTransactions calls onAdd/onUpdate.
-    // If we pass the public handlers, they call refresh() -> fetchData().
-    // This is safe as long as recurrence engine doesn't generate infinitely.
-
     // Wrapper for async operations to handle errors
     const performOperation = async (operation: () => Promise<void>, successMessage?: string) => {
+        if (!isOnline) {
+            addToast('Funcionalidade indisponível offline.', 'error');
+            return;
+        }
+
         try {
             await operation();
             if (successMessage) addToast(successMessage, 'success');
@@ -50,24 +45,16 @@ export const useDataStore = () => {
         }
     };
 
-    // Network Status Listener & Sync
+    // Network Status Listener
     useEffect(() => {
         const handleOnline = () => {
             setIsOnline(true);
-            addToast('Você está online. Sincronizando...', 'success');
-            SyncService.processQueue().then(({ success, failed }) => {
-                if (success > 0) {
-                    addToast(`${success} itens sincronizados!`, 'success');
-                    // refresh(); // Refresh after sync to get latest data from DB
-                }
-                if (failed > 0) {
-                    addToast(`${failed} itens falharam na sincronização.`, 'error');
-                }
-            });
+            addToast('Você está online.', 'success');
+            refresh(); // Refresh when back online
         };
         const handleOffline = () => {
             setIsOnline(false);
-            addToast('Você está offline. As alterações serão salvas localmente.', 'warning');
+            addToast('Você está offline. Funcionalidades limitadas.', 'warning');
         };
 
         window.addEventListener('online', handleOnline);
@@ -185,31 +172,12 @@ export const useDataStore = () => {
             return txs;
         };
 
-        if (!isOnline) {
-            try {
-                const txsToCreate = generateTransactions();
-                // Queue and Optimistic Update
-                txsToCreate.forEach(tx => {
-                    SyncService.addToQueue({ type: 'ADD_TRANSACTION', payload: tx });
-                });
-
-                // Update Local State Optimistically
-                setTransactions(prev => {
-                    const updated = [...txsToCreate, ...prev];
-                    return updated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                });
-
-                addToast('Transação salva offline. Será sincronizada quando houver conexão.', 'warning');
-            } catch (e) {
-                console.error("Offline Error", e);
-                addToast('Erro ao salvar offline.', 'error');
-            }
-            return;
-        }
-
         // Online execution using normal flow
         await performOperation(async () => {
             const txsToCreate = generateTransactions();
+
+            // Sequential insert to respect order if needed, or parallelize?
+            // Sequential is safer for rate limits and errors
             for (const tx of txsToCreate) {
                 await supabaseService.create('transactions', tx);
             }
@@ -219,25 +187,9 @@ export const useDataStore = () => {
     const handleUpdateTransaction = async (updatedTx: Transaction) => {
         validateTransaction(updatedTx);
 
-        const originalTx = transactions.find(t => t.id === updatedTx.id);
-
-        // Offline Check
-        if (!isOnline) {
-            // Block complex series regeneration offline
-            if (updatedTx.seriesId && originalTx && updatedTx.totalInstallments !== originalTx.totalInstallments) {
-                addToast('Edição de parcelamento requer internet.', 'error');
-                return;
-            }
-
-            SyncService.addToQueue({ type: 'UPDATE_TRANSACTION', payload: updatedTx });
-            setTransactions(prev => prev.map(t => t.id === updatedTx.id ? updatedTx : t).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-            addToast('Atualização salva offline.', 'warning');
-            return;
-        }
-
         await performOperation(async () => {
             // CHECK FOR SERIES REGENERATION (Change in Total Installments)
-            // const originalTx = transactions.find(t => t.id === updatedTx.id); // Already found above
+            const originalTx = transactions.find(t => t.id === updatedTx.id);
             if (updatedTx.seriesId && originalTx && updatedTx.totalInstallments !== originalTx.totalInstallments) {
                 // 1. Validation: Check if any installment is settled
                 const seriesTxs = transactions.filter(t => t.seriesId === updatedTx.seriesId);
@@ -251,16 +203,9 @@ export const useDataStore = () => {
                 await supabaseService.deleteTransactionSeries(updatedTx.seriesId);
 
                 // 3. Re-Create New Series
-                // We use the UPDATED amount and UPDATED totalInstallments
-                // We base the start date on the ORIGINAL start date (from the first installment of the old series)
-                // OR we use the date of the transaction being edited as the anchor?
-                // Ideally, we find the first installment of the old series to get the start date.
                 const firstOldTx = seriesTxs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
                 const baseDateStr = firstOldTx ? firstOldTx.date : updatedTx.date;
 
-                // Call handleAddTransaction logic (duplicated here for safety/closure access or extracted)
-                // Since handleAddTransaction is complex, let's call it!
-                // But we need to omit ID.
                 const newSeriesTx: any = {
                     ...updatedTx,
                     date: baseDateStr, // Reset to start date
@@ -295,26 +240,6 @@ export const useDataStore = () => {
         }
 
         try {
-            const userId = session.user.id;
-
-            // --- CACHE LAYER (Offline First) ---
-            if (!isInitialized.current && !forceLoading) {
-                const cachedData = CacheService.get<any>(`data_${userId}`);
-                if (cachedData) {
-                    console.log("Loading from cache...");
-                    setAccounts(cachedData.accounts || []);
-                    setTransactions(cachedData.transactions || []);
-                    setTrips(cachedData.trips || []);
-                    setBudgets(cachedData.budgets || []);
-                    setGoals(cachedData.goals || []);
-                    setFamilyMembers(cachedData.familyMembers || []);
-                    setAssets(cachedData.assets || []);
-                    setSnapshots(cachedData.snapshots || []);
-                    setCustomCategories(cachedData.customCategories || []);
-                    setIsLoading(false); // Immediate visual feedback
-                }
-            }
-
             // --- TIER 1: CRITICAL DATA (Dashboard Immediate Render) ---
             // Fetch Accounts + Balances (RPC) + Recent Transactions (Current Month)
             // This allows the user to see their "Checking Account Balance" instantly.
@@ -325,9 +250,6 @@ export const useDataStore = () => {
             // FIX: Format dates locally to avoid timezone issues
             const startOfMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
             const startOfMonth = `${startOfMonthDate.getFullYear()}-${String(startOfMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
-
-            const endOfMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-            const endOfMonth = `${endOfMonthDate.getFullYear()}-${String(endOfMonthDate.getMonth() + 1).padStart(2, '0')}-${String(endOfMonthDate.getDate()).padStart(2, '0')}`;
 
             // Parallel Request for Critical Data
             // NOTE: RPC get_account_totals removed - using balance engine instead
@@ -345,7 +267,10 @@ export const useDataStore = () => {
             // Update State IMMEDIATE (First Paint)
             setAccounts(initialAccountsState);
             setTransactions(recentTxs);
-            setIsLoading(false); // Unblock UI!
+            // Don't disable loading yet if we want to block until full load, OR allow progressive.
+            // Let's allow progressive render but keep global isLoading true for major shifts?
+            // No, good UX is to show dashboard ASAP.
+            setIsLoading(false);
             console.timeEnd("Tier1_Load");
 
 
@@ -393,20 +318,6 @@ export const useDataStore = () => {
             setAssets(assts);
             setSnapshots(snaps);
             setCustomCategories(cats);
-
-            // SAVE TO CACHE (Full Dataset)
-            CacheService.set(`data_${userId}`, {
-                accounts: accs,
-                // Combine recent and history for full cache
-                transactions: [...recentTxs, ...historyTxs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-                trips: trps,
-                budgets: bdgts,
-                goals: gls,
-                familyMembers: fam,
-                assets: assts,
-                snapshots: snaps,
-                customCategories: cats
-            });
 
             console.timeEnd("Tier2_Load");
 
@@ -463,18 +374,6 @@ export const useDataStore = () => {
     const handleDeleteTransaction = async (id: string, deleteScope: 'SINGLE' | 'SERIES' = 'SINGLE') => {
         const txToDelete = transactions.find(t => t.id === id);
         if (!txToDelete) return; // Should not happen
-
-        if (!isOnline) {
-            if (deleteScope === 'SERIES') {
-                addToast('Exclusão em série requer internet.', 'error');
-                return;
-            }
-
-            SyncService.addToQueue({ type: 'DELETE_TRANSACTION', payload: id });
-            setTransactions(prev => prev.filter(t => t.id !== id));
-            addToast('Exclusão salva offline.', 'warning');
-            return;
-        }
 
         // Optimistic Update for Series
         if (deleteScope === 'SERIES' && txToDelete.seriesId) {
@@ -602,9 +501,6 @@ export const useDataStore = () => {
             handleAddSnapshot: snapshotsHandler.add,
 
             handleFactoryReset: async () => performOperation(async () => {
-
-
-                // 2. Local Wipe
                 await supabaseService.dangerouslyWipeAllData();
                 setAccounts([]);
                 setTransactions([]);
