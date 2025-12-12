@@ -186,11 +186,16 @@ export const useTransactionForm = ({
         if (!date) newErrors.date = 'Data obrigatória';
         if (!accountId && payerId === 'me' && !isShared) newErrors.account = 'Conta obrigatória';
 
+        // STRICT TRANSFER VALIDATION
         if (isTransfer) {
             if (!destinationAccountId) newErrors.destination = 'Conta destino obrigatória';
             if (destinationAccountId === accountId) {
                 newErrors.destination = 'Não é possível transferir para a mesma conta';
             }
+            // Ensure destination exists in available accounts (prevent stale IDs)
+            const destExists = accounts.find(a => a.id === destinationAccountId);
+            if (!destExists) newErrors.destination = 'Conta destino inválida ou inexistente';
+
             if (isMultiCurrencyTransfer) {
                 const destAmt = parseFloat(destinationAmountStr);
                 if (!destAmt || destAmt <= 0) {
@@ -200,6 +205,15 @@ export const useTransactionForm = ({
                 if (!rate || rate <= 0) {
                     newErrors.exchangeRate = 'Taxa de câmbio obrigatória para transferências entre moedas';
                 }
+            }
+        }
+
+        // STRICT SPLIT VALIDATION
+        if (splits.length > 0) {
+            const totalSplitAmount = splits.reduce((sum, s) => sum + s.assignedAmount, 0);
+            // Allow 0.05 margin for float errors
+            if (totalSplitAmount > activeAmount + 0.05) {
+                newErrors.amount = `Erro: A soma das divisões (R$ ${totalSplitAmount.toFixed(2)}) excede o valor da transação!`;
             }
         }
 
@@ -213,6 +227,8 @@ export const useTransactionForm = ({
             } else {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
+            // Explicitly warn user as requested
+            alert(`Não foi possível salvar a transação:\n\n${newErrors[firstErrorKey]}`);
             return;
         }
 

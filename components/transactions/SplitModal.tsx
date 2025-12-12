@@ -40,12 +40,46 @@ export const SplitModal: React.FC<SplitModalProps> = ({
     if (!isOpen) return null;
 
     const toggleSplitMember = (memberId: string) => {
-        const exists = splits.find(s => s.memberId === memberId);
+        let newSplits = [...splits];
+        const exists = newSplits.find(s => s.memberId === memberId);
+
         if (exists) {
-            setSplits(splits.filter(s => s.memberId !== memberId));
+            // Remove member
+            newSplits = newSplits.filter(s => s.memberId !== memberId);
         } else {
-            setSplits([...splits, { memberId, percentage: 50, assignedAmount: activeAmount * 0.5 }]);
+            // Add member with placeholder, will be recalculated
+            newSplits.push({ memberId, percentage: 0, assignedAmount: 0 });
         }
+
+        // Auto-redistribute evenly
+        if (newSplits.length > 0) {
+            // If I am payer, I am implicitly one of the parts usually? 
+            // Logic: "Splits" usually implies "Other People's Share". 
+            // If I pad 100, and split with Bob. Bob pays 50. I pay 50.
+            // So if `splits` array has 1 person (Bob), it means 50% for Bob.
+            // If `splits` array has 2 people (Bob, Alice), it means 33% Bob, 33% Alice, 33% Me?
+            // OR checks "Rapid Split" logic below: 
+            // "50/50" button -> otherPct = 50. So `splits[0].percentage` = 50.
+
+            // Let's assume standard behavior: n people involved (Me + Splits).
+            // Total People = Splits.length + 1 (Me).
+            // Share = 100 / (Splits.length + 1).
+
+            const totalPeople = newSplits.length + 1;
+            const sharePct = 100 / totalPeople;
+
+            newSplits = newSplits.map(s => ({
+                ...s,
+                percentage: Number(sharePct.toFixed(1)), // 33.3
+                assignedAmount: Number((activeAmount * (sharePct / 100)).toFixed(2))
+            }));
+
+            // Adjust rounding on first element so sum of assigned amounts + my share = Total?
+            // Actually `assignedAmount` is what THEY owe.
+            // My share is implicit remainder.
+        }
+
+        setSplits(newSplits);
     };
 
     return (
