@@ -15,59 +15,96 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 // Robust Storage Adapter
-// Priority: Cookie -> Memory
-// LocalStorage Logic Restored for 'Remember Me'
-// We wrap in try-catch to avoid "Access denied" crashes in restrictive environments.
-const safeLocalStorage = {
-    getItem: (key: string): string | null => {
-        try { return localStorage.getItem(key); } catch (e) { return null; }
-    },
-    setItem: (key: string, value: string): void => {
-        try { localStorage.setItem(key, value); } catch (e) { }
-    },
-    removeItem: (key: string): void => {
-        try { localStorage.removeItem(key); } catch (e) { }
-    }
-};
+// Priority: LocalStorage -> Cookie -> Memory
+const robustStorageAdapter = (() => {
+    let memoryStore: Record<string, string> = {};
 
-return {
-    getItem: (key: string): string | null => {
-        // Priority: LocalStorage -> Cookie -> Memory
-
-        // 1. LocalStorage
-        const localItem = safeLocalStorage.getItem(key);
-        if (localItem) return localItem;
-
-        // 2. Cookie (Fallback)
-        const cookieItem = getCookie(key);
-        if (cookieItem) return cookieItem;
-
-        // 3. Memory (Last Resort)
-        return memoryStore[key] || null;
-    },
-    setItem: (key: string, value: string): void => {
-        // Priority: LocalStorage -> Cookie -> Memory
-
-        // 1. LocalStorage
-        safeLocalStorage.setItem(key, value);
-
-        // 2. Cookie
+    // Cookie Helpers
+    const setCookie = (name: string, value: string, days = 365) => {
         try {
-            setCookie(key, value);
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + date.toUTCString();
+            document.cookie = name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/;SameSite=Lax";
+        } catch (e) {
+            // Ignore cookie errors
+        }
+    };
+
+    const getCookie = (name: string): string | null => {
+        try {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+            }
         } catch (e) {
             // Ignore
         }
+        return null;
+    };
 
-        // 3. Memory
-        memoryStore[key] = value;
-    },
-    removeItem: (key: string): void => {
-        safeLocalStorage.removeItem(key);
-        removeCookie(key);
-        delete memoryStore[key];
-    }
-};
-}) ();
+    const removeCookie = (name: string) => {
+        try {
+            document.cookie = name + "=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        } catch (e) {
+            // Ignore
+        }
+    };
+
+    // Safe LocalStorage
+    const safeLocalStorage = {
+        getItem: (key: string): string | null => {
+            try { return localStorage.getItem(key); } catch (e) { return null; }
+        },
+        setItem: (key: string, value: string): void => {
+            try { localStorage.setItem(key, value); } catch (e) { }
+        },
+        removeItem: (key: string): void => {
+            try { localStorage.removeItem(key); } catch (e) { }
+        }
+    };
+
+    return {
+        getItem: (key: string): string | null => {
+            // Priority: LocalStorage -> Cookie -> Memory
+
+            // 1. LocalStorage
+            const localItem = safeLocalStorage.getItem(key);
+            if (localItem) return localItem;
+
+            // 2. Cookie (Fallback)
+            const cookieItem = getCookie(key);
+            if (cookieItem) return cookieItem;
+
+            // 3. Memory (Last Resort)
+            return memoryStore[key] || null;
+        },
+        setItem: (key: string, value: string): void => {
+            // Priority: LocalStorage -> Cookie -> Memory
+
+            // 1. LocalStorage
+            safeLocalStorage.setItem(key, value);
+
+            // 2. Cookie
+            try {
+                setCookie(key, value);
+            } catch (e) {
+                // Ignore
+            }
+
+            // 3. Memory
+            memoryStore[key] = value;
+        },
+        removeItem: (key: string): void => {
+            safeLocalStorage.removeItem(key);
+            removeCookie(key);
+            delete memoryStore[key];
+        }
+    };
+})();
 
 export const supabase = createClient(supabaseUrl || '', supabaseKey || '', {
     auth: {
