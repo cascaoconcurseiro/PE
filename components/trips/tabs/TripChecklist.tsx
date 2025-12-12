@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trip, TripChecklistItem } from '../../../types';
 import { Button } from '../../ui/Button';
 import { ListChecks, Save, Plus, X, Check, Pencil } from 'lucide-react';
@@ -12,15 +12,33 @@ export const TripChecklist: React.FC<TripChecklistProps> = ({ trip, onUpdateTrip
     const [checkItem, setCheckItem] = useState('');
     const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
 
+    // OPTIMISTIC STATE: Initialize with prop data
+    const [localChecklist, setLocalChecklist] = useState<TripChecklistItem[]>(trip.checklist || []);
+
+    // Sync with prop updates (from server)
+    useEffect(() => {
+        setLocalChecklist(trip.checklist || []);
+    }, [trip.checklist]);
+
+    // Helper to sync local state to server
+    const syncToServer = (newChecklist: TripChecklistItem[]) => {
+        onUpdateTrip({ ...trip, checklist: newChecklist });
+    };
+
     const handleSaveChecklistItem = () => {
         if (!checkItem.trim()) return;
-        let updatedChecklist = [...(trip.checklist || [])];
+        let updatedChecklist = [...localChecklist];
+
         if (editingChecklistId) {
             updatedChecklist = updatedChecklist.map(item => item.id === editingChecklistId ? { ...item, text: checkItem } : item);
         } else {
             updatedChecklist.push({ id: Math.random().toString(36).substr(2, 9), text: checkItem, isCompleted: false });
         }
-        onUpdateTrip({ ...trip, checklist: updatedChecklist });
+
+        // Optimistic Update
+        setLocalChecklist(updatedChecklist);
+        syncToServer(updatedChecklist); // Persist
+
         setCheckItem('');
         setEditingChecklistId(null);
     };
@@ -31,17 +49,19 @@ export const TripChecklist: React.FC<TripChecklistProps> = ({ trip, onUpdateTrip
     };
 
     const toggleChecklistItem = (itemId: string) => {
-        onUpdateTrip({
-            ...trip,
-            checklist: (trip.checklist || []).map(i => i.id === itemId ? { ...i, isCompleted: !i.isCompleted } : i)
-        });
+        // Optimistic Update
+        const updatedChecklist = localChecklist.map(i => i.id === itemId ? { ...i, isCompleted: !i.isCompleted } : i);
+        setLocalChecklist(updatedChecklist);
+
+        // Persist (Debounce could be added here if needed, but not strictly necessary for simple toggles)
+        syncToServer(updatedChecklist);
     };
 
     const deleteChecklistItem = (itemId: string) => {
-        onUpdateTrip({
-            ...trip,
-            checklist: (trip.checklist || []).filter(i => i.id !== itemId)
-        });
+        const updatedChecklist = localChecklist.filter(i => i.id !== itemId);
+        setLocalChecklist(updatedChecklist);
+        syncToServer(updatedChecklist);
+
         if (editingChecklistId === itemId) {
             setCheckItem('');
             setEditingChecklistId(null);
@@ -69,23 +89,24 @@ export const TripChecklist: React.FC<TripChecklistProps> = ({ trip, onUpdateTrip
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
-                {(!trip.checklist || trip.checklist.length === 0) && (
+                {(!localChecklist || localChecklist.length === 0) && (
                     <div className="p-8 text-center text-slate-500 dark:text-slate-400">
                         <ListChecks className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
                         <p className="text-sm">Sua lista está vazia.</p>
                     </div>
                 )}
-                {trip.checklist?.map(item => (
+                {localChecklist.map(item => (
                     <div key={item.id} className={`p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${editingChecklistId === item.id ? 'bg-violet-50 dark:bg-violet-900/20' : ''}`}>
-                        <div className="flex items-center gap-3 flex-1">
-                            <button onClick={() => toggleChecklistItem(item.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${item.isCompleted ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                        <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleChecklistItem(item.id)}>
+                            {/* Click anywhere on row to toggle is better UX */}
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${item.isCompleted ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
                                 {item.isCompleted && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
-                            </button>
-                            <span className={`text-sm font-medium ${item.isCompleted ? 'text-slate-400 line-through' : 'text-slate-900 dark:text-white'}`}>
+                            </div>
+                            <span className={`text-sm font-medium select-none ${item.isCompleted ? 'text-slate-400 line-through' : 'text-slate-900 dark:text-white'}`}>
                                 {item.text}
                             </span>
                         </div>
-                        <div className="flex gap-2 no-print">
+                        <div className="flex gap-2 no-print" onClick={e => e.stopPropagation()}>
                             <button onClick={() => startEditingChecklist(item)} className="text-slate-300 dark:text-slate-600 hover:text-violet-600 dark:hover:text-violet-400">
                                 <Pencil className="w-4 h-4" />
                             </button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trip, TripShoppingItem } from '../../../types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
@@ -15,9 +15,20 @@ export const TripShopping: React.FC<TripShoppingProps> = ({ trip, onUpdateTrip }
     const [shopEstCost, setShopEstCost] = useState('');
     const [editingShoppingId, setEditingShoppingId] = useState<string | null>(null);
 
+    // OPTIMISTIC STATE
+    const [localShoppingList, setLocalShoppingList] = useState<TripShoppingItem[]>(trip.shoppingList || []);
+
+    useEffect(() => {
+        setLocalShoppingList(trip.shoppingList || []);
+    }, [trip.shoppingList]);
+
+    const syncToServer = (newList: TripShoppingItem[]) => {
+        onUpdateTrip({ ...trip, shoppingList: newList });
+    };
+
     const handleSaveShoppingItem = () => {
         if (!shopItem.trim()) return;
-        let updatedList = [...(trip.shoppingList || [])];
+        let updatedList = [...localShoppingList];
         const estCost = shopEstCost ? parseFloat(shopEstCost) : 0;
 
         if (editingShoppingId) {
@@ -26,7 +37,10 @@ export const TripShopping: React.FC<TripShoppingProps> = ({ trip, onUpdateTrip }
             updatedList.push({ id: Math.random().toString(36).substr(2, 9), item: shopItem, estimatedCost: estCost, purchased: false });
         }
 
-        onUpdateTrip({ ...trip, shoppingList: updatedList });
+        // Optimistic
+        setLocalShoppingList(updatedList);
+        syncToServer(updatedList);
+
         setShopItem('');
         setShopEstCost('');
         setEditingShoppingId(null);
@@ -39,17 +53,16 @@ export const TripShopping: React.FC<TripShoppingProps> = ({ trip, onUpdateTrip }
     };
 
     const toggleShoppingItem = (itemId: string) => {
-        onUpdateTrip({
-            ...trip,
-            shoppingList: (trip.shoppingList || []).map(i => i.id === itemId ? { ...i, purchased: !i.purchased } : i)
-        });
+        const updatedList = localShoppingList.map(i => i.id === itemId ? { ...i, purchased: !i.purchased } : i);
+        setLocalShoppingList(updatedList);
+        syncToServer(updatedList);
     };
 
     const deleteShoppingItem = (itemId: string) => {
-        onUpdateTrip({
-            ...trip,
-            shoppingList: (trip.shoppingList || []).filter(i => i.id !== itemId)
-        });
+        const updatedList = localShoppingList.filter(i => i.id !== itemId);
+        setLocalShoppingList(updatedList);
+        syncToServer(updatedList);
+
         if (editingShoppingId === itemId) {
             setShopItem('');
             setShopEstCost('');
@@ -63,7 +76,7 @@ export const TripShopping: React.FC<TripShoppingProps> = ({ trip, onUpdateTrip }
                 <div className="bg-violet-50 dark:bg-violet-900/20 p-4 rounded-xl mb-4 border border-violet-100 dark:border-violet-800 flex justify-between items-center">
                     <span className="text-sm font-bold text-violet-700 dark:text-violet-400">Previsão Total de Gastos</span>
                     <span className="text-lg font-black text-violet-900 dark:text-violet-300">
-                        {formatCurrency((trip.shoppingList || []).reduce((acc, item) => acc + (item.estimatedCost || 0), 0), trip.currency)}
+                        {formatCurrency(localShoppingList.reduce((acc, item) => acc + (item.estimatedCost || 0), 0), trip.currency)}
                     </span>
                 </div>
 
@@ -73,6 +86,7 @@ export const TripShopping: React.FC<TripShoppingProps> = ({ trip, onUpdateTrip }
                         placeholder="Item (ex: iPhone, Perfume)"
                         value={shopItem}
                         onChange={e => setShopItem(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleSaveShoppingItem()}
                     />
                     <input
                         type="number"
@@ -80,6 +94,7 @@ export const TripShopping: React.FC<TripShoppingProps> = ({ trip, onUpdateTrip }
                         placeholder="Valor Est."
                         value={shopEstCost}
                         onChange={e => setShopEstCost(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleSaveShoppingItem()}
                     />
                     <Button onClick={handleSaveShoppingItem} disabled={!shopItem}>
                         {editingShoppingId ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
@@ -92,24 +107,24 @@ export const TripShopping: React.FC<TripShoppingProps> = ({ trip, onUpdateTrip }
                 </div>
 
                 <div className="space-y-2">
-                    {(!trip.shoppingList || trip.shoppingList.length === 0) && (
+                    {(!localShoppingList || localShoppingList.length === 0) && (
                         <div className="p-8 text-center text-slate-500 dark:text-slate-400">
                             <ShoppingBag className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
                             <p className="text-sm">Lista vazia.</p>
                         </div>
                     )}
-                    {trip.shoppingList?.map(item => (
+                    {localShoppingList.map(item => (
                         <div key={item.id} className={`flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 ${editingShoppingId === item.id ? 'ring-2 ring-violet-200 dark:ring-violet-800' : ''}`}>
-                            <div className="flex items-center gap-3 flex-1">
-                                <button onClick={() => toggleShoppingItem(item.id)} className={`w-5 h-5 rounded border flex items-center justify-center ${item.purchased ? 'bg-emerald-500 border-emerald-500' : 'border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-900'}`}>
+                            <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleShoppingItem(item.id)}>
+                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${item.purchased ? 'bg-emerald-500 border-emerald-500' : 'border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-900'}`}>
                                     {item.purchased && <Check className="w-3 h-3 text-white" />}
-                                </button>
-                                <div>
+                                </div>
+                                <div className="select-none">
                                     <p className={`font-bold text-sm ${item.purchased ? 'text-slate-400 line-through' : 'text-slate-800 dark:text-white'}`}>{item.item}</p>
                                     {item.estimatedCost ? <p className="text-xs text-slate-500 dark:text-slate-400">Est: {formatCurrency(item.estimatedCost, trip.currency)}</p> : null}
                                 </div>
                             </div>
-                            <div className="flex gap-2 no-print">
+                            <div className="flex gap-2 no-print" onClick={e => e.stopPropagation()}>
                                 <button onClick={() => startEditingShopping(item)} className="text-slate-300 dark:text-slate-600 hover:text-violet-600 dark:hover:text-violet-400">
                                     <Pencil className="w-4 h-4" />
                                 </button>

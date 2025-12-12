@@ -78,10 +78,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                     </div>
                 </div>
 
-                <div>
-                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Preço Atual (Cotação)</label>
-                    <input name="currentPrice" type="number" step="any" required defaultValue={editingAsset?.currentPrice} placeholder="0.00" className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white" />
-                </div>
+
 
                 {/* Brokerage Account Selection */}
                 <div>

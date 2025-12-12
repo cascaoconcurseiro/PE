@@ -461,15 +461,11 @@ export const useDataStore = () => {
     const refresh = () => fetchData(false);
 
     const handleDeleteTransaction = async (id: string, deleteScope: 'SINGLE' | 'SERIES' = 'SINGLE') => {
+        const txToDelete = transactions.find(t => t.id === id);
+        if (!txToDelete) return; // Should not happen
+
         if (!isOnline) {
             if (deleteScope === 'SERIES') {
-                // Deleting series offline is risky if we don't know all IDs. 
-                // But logic says: deleteTransactionSeries(seriesId).
-                // SyncService supports DELETE_TRANSACTION payload string. Using it for series?
-                // No, payload is ID. We don't have DELETE_SERIES op yet.
-                // Let's block series delete offline for safety or implement loop.
-                // Actually, we can just queue multiple deletes if we find them in local state?
-                // Simpler: Block series delete offline.
                 addToast('Exclusão em série requer internet.', 'error');
                 return;
             }
@@ -480,22 +476,27 @@ export const useDataStore = () => {
             return;
         }
 
+        // Optimistic Update for Series
+        if (deleteScope === 'SERIES' && txToDelete.seriesId) {
+            // Remove instantaneamente da UI todas da mesma série
+            setTransactions(prev => prev.filter(t => t.seriesId !== txToDelete.seriesId));
+        } else {
+            // Remove instantaneamente da UI a única
+            setTransactions(prev => prev.filter(t => t.id !== id));
+        }
+
         await performOperation(async () => {
             if (deleteScope === 'SERIES') {
-                const tx = transactions.find(t => t.id === id);
-                if (tx && tx.seriesId) {
-                    await supabaseService.deleteTransactionSeries(tx.seriesId);
-                } else if (tx) {
-                    // Fallback if no seriesId but scope requests series (shouldn't happen logic wise but safe fallback)
-                    await supabaseService.update('transactions', { ...tx, deleted: true, updatedAt: new Date().toISOString() });
+                if (txToDelete.seriesId) {
+                    await supabaseService.deleteTransactionSeries(txToDelete.seriesId);
+                } else {
+                    // Fallback: If no seriesId, delete just this one (or handle cascade if we implement logic for it later)
+                    await supabaseService.update('transactions', { ...txToDelete, deleted: true, updatedAt: new Date().toISOString() });
                 }
             } else {
-                const tx = transactions.find(t => t.id === id);
-                if (tx) {
-                    await supabaseService.update('transactions', { ...tx, deleted: true, updatedAt: new Date().toISOString() });
-                }
+                await supabaseService.update('transactions', { ...txToDelete, deleted: true, updatedAt: new Date().toISOString() });
             }
-        }, 'Transação excluída.');
+        }, deleteScope === 'SERIES' ? 'Série excluída.' : 'Transação excluída.');
     };
 
     const handleAnticipateInstallments = async (ids: string[], targetDate: string, targetAccountId?: string) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trip, TripExchangeEntry } from '../../../types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
@@ -15,6 +15,17 @@ export const TripExchange: React.FC<TripExchangeProps> = ({ trip, onUpdateTrip }
     const [exchangeBRL, setExchangeBRL] = useState('');
     const [exchangeForeign, setExchangeForeign] = useState('');
     const [editingExchangeId, setEditingExchangeId] = useState<string | null>(null);
+
+    // OPTIMISTIC STATE
+    const [localExchangeEntries, setLocalExchangeEntries] = useState<TripExchangeEntry[]>(trip.exchangeEntries || []);
+
+    useEffect(() => {
+        setLocalExchangeEntries(trip.exchangeEntries || []);
+    }, [trip.exchangeEntries]);
+
+    const syncToServer = (newEntries: TripExchangeEntry[]) => {
+        onUpdateTrip({ ...trip, exchangeEntries: newEntries });
+    };
 
     const handleSaveExchangeEntry = () => {
         if (!exchangeBRL || !exchangeForeign) return;
@@ -34,7 +45,7 @@ export const TripExchange: React.FC<TripExchangeProps> = ({ trip, onUpdateTrip }
         }
 
         const rate = brl / foreign;
-        let updatedEntries = [...(trip.exchangeEntries || [])];
+        let updatedEntries = [...localExchangeEntries];
 
         if (editingExchangeId) {
             updatedEntries = updatedEntries.map(entry => entry.id === editingExchangeId ? { ...entry, date: exchangeDate, amountBRL: brl, amountForeign: foreign, exchangeRate: rate } : entry);
@@ -42,7 +53,10 @@ export const TripExchange: React.FC<TripExchangeProps> = ({ trip, onUpdateTrip }
             updatedEntries.push({ id: Math.random().toString(36).substr(2, 9), date: exchangeDate, amountBRL: brl, amountForeign: foreign, exchangeRate: rate, currency: trip.currency });
         }
 
-        onUpdateTrip({ ...trip, exchangeEntries: updatedEntries });
+        // Optimistic
+        setLocalExchangeEntries(updatedEntries);
+        syncToServer(updatedEntries);
+
         setExchangeBRL('');
         setExchangeForeign('');
         setEditingExchangeId(null);
@@ -56,10 +70,10 @@ export const TripExchange: React.FC<TripExchangeProps> = ({ trip, onUpdateTrip }
     };
 
     const deleteExchangeEntry = (itemId: string) => {
-        onUpdateTrip({
-            ...trip,
-            exchangeEntries: (trip.exchangeEntries || []).filter(i => i.id !== itemId)
-        });
+        const updatedEntries = localExchangeEntries.filter(i => i.id !== itemId);
+        setLocalExchangeEntries(updatedEntries);
+        syncToServer(updatedEntries);
+
         if (editingExchangeId === itemId) {
             setExchangeBRL('');
             setExchangeForeign('');
@@ -76,7 +90,7 @@ export const TripExchange: React.FC<TripExchangeProps> = ({ trip, onUpdateTrip }
                             <p className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase">Média Ponderada</p>
                             <h3 className="text-2xl font-black text-violet-900 dark:text-violet-300">
                                 {(() => {
-                                    const entries = trip.exchangeEntries || [];
+                                    const entries = localExchangeEntries || [];
                                     const totalBRL = entries.reduce((acc, e) => acc + e.amountBRL, 0);
                                     const totalForeign = entries.reduce((acc, e) => acc + e.amountForeign, 0);
                                     const avg = totalForeign > 0 ? totalBRL / totalForeign : 0;
@@ -87,7 +101,7 @@ export const TripExchange: React.FC<TripExchangeProps> = ({ trip, onUpdateTrip }
                         <div className="text-right">
                             <p className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase">Total Comprado</p>
                             <p className="text-lg font-bold text-violet-800 dark:text-violet-300">
-                                {formatCurrency((trip.exchangeEntries || []).reduce((acc, e) => acc + e.amountForeign, 0), trip.currency)}
+                                {formatCurrency((localExchangeEntries || []).reduce((acc, e) => acc + e.amountForeign, 0), trip.currency)}
                             </p>
                         </div>
                     </div>
@@ -131,7 +145,7 @@ export const TripExchange: React.FC<TripExchangeProps> = ({ trip, onUpdateTrip }
                 </div>
 
                 <div className="space-y-2">
-                    {trip.exchangeEntries?.map(entry => (
+                    {localExchangeEntries.map(entry => (
                         <div key={entry.id} className={`flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-sm ${editingExchangeId === entry.id ? 'ring-2 ring-violet-200 dark:ring-violet-800' : ''}`}>
                             <div>
                                 <p className="font-bold text-slate-800 dark:text-white">{parseDate(entry.date).toLocaleDateString('pt-BR')}</p>
