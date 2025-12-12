@@ -80,6 +80,7 @@ const App = () => {
         init();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            console.log(`Auth state changed: ${_event}`, session ? 'User present' : 'No session');
             startTransition(() => {
                 if (session) {
                     setSessionUser({
@@ -88,6 +89,7 @@ const App = () => {
                         email: session.user.email
                     });
                 } else {
+                    console.warn("User signed out or session invalid.");
                     setSessionUser(null);
                 }
             });

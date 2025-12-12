@@ -25,9 +25,12 @@ const robustStorageAdapter = (() => {
             const date = new Date();
             date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
             const expires = "expires=" + date.toUTCString();
-            document.cookie = name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/;SameSite=Lax";
+            const isSecure = window.location.protocol === 'https:';
+            // Use SameSite=None; Secure for broader compatibility in iframes/safari, fallback to Lax
+            const sameSite = isSecure ? "SameSite=None; Secure" : "SameSite=Lax";
+            document.cookie = `${name}=${encodeURIComponent(value)};${expires};path=/;${sameSite}`;
         } catch (e) {
-            // Ignore cookie errors
+            console.warn("Cookie storage failed:", e);
         }
     };
 
@@ -60,7 +63,9 @@ const robustStorageAdapter = (() => {
             try { return localStorage.getItem(key); } catch (e) { return null; }
         },
         setItem: (key: string, value: string): void => {
-            try { localStorage.setItem(key, value); } catch (e) { }
+            try { localStorage.setItem(key, value); } catch (e) {
+                console.warn("LocalStorage setItem failed (using fallback):", e);
+            }
         },
         removeItem: (key: string): void => {
             try { localStorage.removeItem(key); } catch (e) { }

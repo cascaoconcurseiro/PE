@@ -10,6 +10,7 @@ interface AuthProps {
 }
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
+    // Initialize state - checks are done in useEffect to avoid hydration mismatch if SSR (though this is SPA)
     const [isLoading, setIsLoading] = useState(false);
     const [isSignUp, setIsSignUp] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -19,10 +20,26 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     const [error, setError] = useState<string | null>(null);
     const { addToast } = useToast();
 
+    // Check for saved email on mount
+    React.useEffect(() => {
+        const savedEmail = localStorage.getItem('saved_email');
+        if (savedEmail) {
+            setEmail(savedEmail);
+            setRememberMe(true);
+        }
+    }, []);
+
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError(null);
+
+        // Save or Remove Email based on "Remember Me"
+        if (rememberMe && email) {
+            localStorage.setItem('saved_email', email);
+        } else {
+            localStorage.removeItem('saved_email');
+        }
 
         try {
             if (isSignUp) {
