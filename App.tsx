@@ -218,7 +218,12 @@ const App = () => {
             showValues={showValues}
             togglePrivacy={() => setShowValues(!showValues)}
             currentDate={currentDate}
-            onDateChange={(e) => e.target.value && setCurrentDate(new Date(e.target.value))}
+            onDateChange={(e) => {
+                if (e.target.value) {
+                    const [year, month] = e.target.value.split('-');
+                    setCurrentDate(new Date(parseInt(year), parseInt(month) - 1, 1));
+                }
+            }}
             onMonthChange={(dir) => {
                 const d = new Date(currentDate);
                 d.setDate(1);
