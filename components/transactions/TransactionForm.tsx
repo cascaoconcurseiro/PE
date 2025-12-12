@@ -128,21 +128,26 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             if (acc.type === AccountType.CREDIT_CARD || (acc.type as string) === 'CREDIT_CARD') return false;
 
             // Conversion Logic
-            if (selectedAccountObj.isInternational) {
-                // Sender is International
+            // Conversion Logic
+            const isSourceInternational = selectedAccountObj.isInternational || selectedAccountObj.currency !== 'BRL';
+
+            if (isSourceInternational) {
+                // Sender is International (or Foreign Currency)
                 if (isConversion) {
-                    // Converting to BRL: Show only BRL
+                    // Câmbio: sending from USD to BRL -> Show BRL accounts
                     return !acc.isInternational && acc.currency === 'BRL';
-                    // Not converting: Allow ANY International account (flagged OR foreign currency)
+                } else {
+                    // Transfer: sending from USD to USD (or other Int) -> Show International accounts
+                    // Allow ANY International account (flagged OR foreign currency)
                     return acc.isInternational || acc.currency !== 'BRL';
                 }
             } else {
                 // Sender is BRL
                 if (isConversion) {
-                    // International Transfer: Show only international
-                    return acc.isInternational;
+                    // Câmbio: sending from BRL to USD -> Show International accounts
+                    return acc.isInternational || acc.currency !== 'BRL';
                 } else {
-                    // Local Transfer: Show only BRL
+                    // Transfer: sending from BRL to BRL -> Show BRL accounts
                     return !acc.isInternational && acc.currency === 'BRL';
                 }
             }
