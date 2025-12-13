@@ -12,21 +12,31 @@ interface CreditCardImportModalProps {
 
 export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ isOpen, onClose, account, onImport }) => {
     const [year, setYear] = useState(new Date().getFullYear());
-    const [months, setMonths] = useState<{ date: string; label: string; amount: string }[]>([]);
+    // Add isPast to state structure
+    const [months, setMonths] = useState<{ date: string; label: string; amount: string; isPast: boolean }[]>([]);
 
     useEffect(() => {
         if (isOpen) {
             const nextMonths = [];
+            const today = new Date();
+            // Create a date for the 1st of the current month to compare against
+            // Anything strictly smaller than this is "past month"
+            const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
             for (let i = 0; i < 12; i++) {
                 // Criar data com dia 1 do mês i do ano selecionado
                 const targetDate = new Date(year, i, 1);
 
+                // Check if past
+                // Note: We compare timestamps or date objects. 
+                // targetDate is 00:00:00 of the 1st of that month.
+                const isPast = targetDate < currentMonthStart;
+
                 // Format label (e.g., "Janeiro")
                 const monthName = targetDate.toLocaleDateString('pt-BR', { month: 'long' });
                 const label = `${monthName} ${year}`;
 
-                // Formatar data manualmente para evitar problemas de timezone
+                // Formatar data manualmente
                 const y = targetDate.getFullYear();
                 const m = String(targetDate.getMonth() + 1).padStart(2, '0');
                 const d = String(targetDate.getDate()).padStart(2, '0');
@@ -35,7 +45,8 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                 nextMonths.push({
                     date: dateStr,
                     label: label.charAt(0).toUpperCase() + label.slice(1),
-                    amount: ''
+                    amount: '',
+                    isPast
                 });
             }
 
@@ -44,6 +55,9 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
     }, [isOpen, year, account]);
 
     const handleAmountChange = (index: number, value: string) => {
+        // Prevent editing if somehow triggered
+        if (months[index].isPast) return;
+
         const newMonths = [...months];
         newMonths[index].amount = value;
         setMonths(newMonths);
@@ -136,14 +150,20 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                                     </div>
                                 </div>
                                 <div className="flex-1 relative">
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        type="number"
-                                        placeholder="0,00"
-                                        value={month.amount}
-                                        onChange={(e) => handleAmountChange(index, e.target.value)}
-                                        className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold outline-none focus:ring-2 focus:ring-violet-500 transition-all"
-                                    />
+                                    <DollarSign className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${month.isPast ? 'text-slate-200 dark:text-slate-700' : 'text-slate-400'}`} />
+                                    {month.isPast ? (
+                                        <div className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 font-bold text-sm flex items-center select-none">
+                                            Mês encerrado
+                                        </div>
+                                    ) : (
+                                        <input
+                                            type="number"
+                                            placeholder="0,00"
+                                            value={month.amount}
+                                            onChange={(e) => handleAmountChange(index, e.target.value)}
+                                            className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+                                        />
+                                    )}
                                 </div>
                             </div>
                         ))}

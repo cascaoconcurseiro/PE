@@ -473,15 +473,18 @@ export const useDataStore = () => {
     };
 
     const handleAddTransactions = async (newTxs: Omit<Transaction, 'id'>[]) => {
-        await performOperation(async () => {
-            const txsToCreate = newTxs.map(tx => ({
-                ...tx,
-                id: crypto.randomUUID(),
-                isSettled: tx.isSettled ?? false,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            }));
+        const txsToCreate = newTxs.map(tx => ({
+            ...tx,
+            id: crypto.randomUUID(),
+            isSettled: tx.isSettled ?? false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        })) as Transaction[];
 
+        // Optimistic Update: Add immediately to UI
+        setTransactions(prev => [...prev, ...txsToCreate]);
+
+        await performOperation(async () => {
             await supabaseService.bulkCreate('transactions', txsToCreate);
         }, `${newTxs.length} transações adicionadas!`);
     };
