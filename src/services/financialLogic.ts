@@ -198,9 +198,17 @@ export const calculateProjectedBalance = (
                 // (Pois elas só afetam o caixa no dia do pagamento da fatura, que geralmente é uma Transferência)
                 const accId = t.accountId;
                 if (accId && liquidityAccountIds.has(accId)) {
-                    // ✅ Usar valor efetivo para despesas (considera splits)
-                    const effectiveAmount = calculateEffectiveTransactionValue(t);
-                    pendingExpenses += toBRL(effectiveAmount, t);
+                    // ✅ CORREÇÃO CRÍTICA (Fluxo de Caixa): Usar valor integral se fui eu que paguei.
+                    // A regra "Effective Value" (minha parte) só vale para Análise de Gastos, não para Projeção de Saldo.
+                    // Para o saldo, o dinheiro SAIU da conta. O reembolso é uma entrada futura separada.
+
+                    let expenseValue = t.amount;
+                    if (t.isShared && t.payerId && t.payerId !== 'me') {
+                        // Se outra pessoa pagou, aí sim uso apenas minha parte (pois só isso sairá da minha conta eventualmente)
+                        expenseValue = calculateEffectiveTransactionValue(t);
+                    }
+
+                    pendingExpenses += toBRL(expenseValue, t);
                 }
             }
         }

@@ -24,7 +24,7 @@ export const useFinancialDashboard = ({
 }: UseFinancialDashboardProps) => {
 
     const selectedYear = currentDate.getFullYear();
-    const [rpcCashflow, setRpcCashflow] = useState<{ month: number, income: number, expense: number }[]>([]);
+
 
     // 0. GLOBAL FILTER: Dashboard is checking/local only.
     const dashboardTransactions = useMemo(() =>
@@ -48,20 +48,7 @@ export const useFinancialDashboard = ({
         (projectedAccounts || accounts).filter(a => !a.currency || a.currency === 'BRL'),
         [projectedAccounts, accounts]);
 
-    // Fetch Monthly Cashflow (RPC) for Annual Chart
-    useEffect(() => {
-        let active = true;
-        const fetchCashflow = async () => {
-            try {
-                const data = await supabaseService.getMonthlyCashflow(selectedYear);
-                if (active) setRpcCashflow(data);
-            } catch (error) {
-                console.error("Failed to fetch cashflow", error);
-            }
-        };
-        fetchCashflow();
-        return () => { active = false; };
-    }, [selectedYear, transactions]); // Re-fetch on transaction updates
+
 
     // 1. Calculate Projection
     const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() =>
@@ -88,8 +75,14 @@ export const useFinancialDashboard = ({
         .filter(t => t.type === TransactionType.EXPENSE)
         .reduce((acc, t) => {
             const account = accounts.find(a => a.id === t.accountId);
-            const effectiveAmount = calculateEffectiveTransactionValue(t);
-            const amount = t.isRefund ? -effectiveAmount : effectiveAmount;
+
+            // CASH FLOW LOGIC: If I paid, count FULL amount. Only check effective/split if I didn't pay.
+            let expenseValue = t.amount;
+            if (t.isShared && t.payerId && t.payerId !== 'me') {
+                expenseValue = calculateEffectiveTransactionValue(t);
+            }
+
+            const amount = t.isRefund ? -expenseValue : expenseValue;
             return acc + convertToBRL(amount, account?.currency || 'BRL');
         }, 0), [monthlyTransactions, accounts]);
 
@@ -106,26 +99,71 @@ export const useFinancialDashboard = ({
         }, 0);
     }, [dashboardAccounts]);
 
-    // Annual Cash Flow Data (FROM RPC)
+    // Annual Cash Flow Data (LOCAL CALCULATION - Ensures consistency with Widgets)
     const cashFlowData = useMemo(() => {
+        // Initialize 12 months
         const data = Array.from({ length: 12 }, (_, i) => {
             const date = new Date(selectedYear, i, 1);
-            const monthNum = i + 1;
-            const rpcData = rpcCashflow.find(r => r.month === monthNum);
-
             return {
                 date: date,
                 month: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
                 year: selectedYear,
                 monthIndex: i,
-                Receitas: rpcData ? Number(rpcData.income) : 0,
-                Despesas: rpcData ? Number(rpcData.expense) : 0
+                Receitas: 0,
+                Despesas: 0
             };
         });
-        return data;
-    }, [rpcCashflow, selectedYear]);
 
-    const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas < 0), [cashFlowData]);
+        // Aggregate locally
+        dashboardTransactions.forEach(t => {
+            const tYear = new Date(t.date).getFullYear();
+            if (tYear !== selectedYear) return;
+            if (t.category === Category.OPENING_BALANCE) return; // Exclude Opening Balance
+            if (!shouldShowTransaction(t)) return;
+
+            const monthIndex = new Date(t.date).getMonth();
+            const account = accounts.find(a => a.id === t.accountId);
+
+            // CASH FLOW LOGIC
+            let amount = t.amount;
+            // For Expenses, handle Split Logic (Payer = Full)
+            if (t.type === TransactionType.EXPENSE) {
+                if (t.isShared && t.payerId && t.payerId !== 'me') {
+                    // I didn't pay, so only count my effective share
+                    amount = calculateEffectiveTransactionValue(t);
+                }
+                // If I paid, amount remains t.amount (FULL)
+            }
+
+            const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
+
+            if (t.type === TransactionType.INCOME) {
+                // Refunds subtract from Income? No, usually Refunds are positive Income or negative Expense.
+                // In this app, Refund is usually flagged on Expense to reverse it, or Income.
+                // Let's stick to standard Type check. 
+                // If it is a Refund Transaction (type=INCOME?), add to Income.
+                // If it is Expense Refund, it reduces Expense.
+                if (t.isRefund) {
+                    data[monthIndex].Despesas -= amountBRL; // Refund reduces expense
+                } else {
+                    data[monthIndex].Receitas += amountBRL;
+                }
+            } else if (t.type === TransactionType.EXPENSE) {
+                if (t.isRefund) {
+                    data[monthIndex].Receitas -= amountBRL; // Negative Expense? Treat as Income deduction or just negative expense.
+                    // Actually isRefund on Expense usually means money back.
+                    // Let's assume standard behavior: Expense = Outflow.
+                    data[monthIndex].Despesas -= amountBRL;
+                } else {
+                    data[monthIndex].Despesas += amountBRL;
+                }
+            }
+        });
+
+        return data;
+    }, [dashboardTransactions, selectedYear, accounts]);
+
+    const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0), [cashFlowData]);
 
     // Sparkline Data
     const incomeSparkline = useMemo(() => {
@@ -189,8 +227,14 @@ export const useFinancialDashboard = ({
             return Object.entries(
                 chartTxs.reduce((acc, t) => {
                     const account = accounts.find(a => a.id === t.accountId);
-                    const effectiveAmount = calculateEffectiveTransactionValue(t);
-                    const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
+
+                    // CASH FLOW CHART LOGIC:
+                    let expenseValue = t.amount;
+                    if (t.isShared && t.payerId && t.payerId !== 'me') {
+                        expenseValue = calculateEffectiveTransactionValue(t);
+                    }
+
+                    const amountBRL = convertToBRL(expenseValue, account?.currency || 'BRL');
                     const amount = t.isRefund ? -amountBRL : amountBRL;
                     // Use 'category' string key, assuming t.category is string
                     const catKey = String(t.category);
@@ -205,8 +249,14 @@ export const useFinancialDashboard = ({
             return Object.entries(
                 chartTxs.reduce((acc, t) => {
                     const account = accounts.find(a => a.id === t.accountId);
-                    const effectiveAmount = calculateEffectiveTransactionValue(t);
-                    const amountBRL = convertToBRL(effectiveAmount, account?.currency || 'BRL');
+
+                    // CASH FLOW CHART LOGIC:
+                    let expenseValue = t.amount;
+                    if (t.isShared && t.payerId && t.payerId !== 'me') {
+                        expenseValue = calculateEffectiveTransactionValue(t);
+                    }
+
+                    const amountBRL = convertToBRL(expenseValue, account?.currency || 'BRL');
                     const amount = t.isRefund ? -amountBRL : amountBRL;
 
                     let sourceLabel = 'Outros';

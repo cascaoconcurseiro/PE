@@ -41,8 +41,12 @@ export const Budgets: React.FC<BudgetsProps> = ({ transactions, budgets, onAddBu
                     const tYear = tDate.getFullYear();
                     if (tYear === currentYear) {
                         const tMonth = tDate.getMonth();
-                        // ✅ FIX: Usar valor efetivo para despesas compartilhadas
-                        const effectiveAmount = calculateEffectiveTransactionValue(t);
+                        // ✅ FIX: Fluxo de Caixa nos Orçamentos
+                        // Se eu paguei 100, consumi 100 do meu orçamento de fluxo de caixa momentaneamente.
+                        let effectiveAmount = t.amount;
+                        if (t.isShared && t.payerId && t.payerId !== 'me') {
+                            effectiveAmount = calculateEffectiveTransactionValue(t);
+                        }
                         const key = `${t.category}|${tYear}|${tMonth}`;
                         spendingMap.set(key, (spendingMap.get(key) || 0) + effectiveAmount);
                         if (tMonth === currentMonth) {

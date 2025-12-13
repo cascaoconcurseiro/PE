@@ -123,9 +123,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             if (t.type === TransactionType.EXPENSE && isShared) {
                                 const splitsTotal = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
                                 if (payerName === 'Você') {
-                                    displayAmount = t.amount - splitsTotal;
-                                    if (splitsTotal > 0) subText = `(Sua parte)`;
+                                    // Payer sees FULL amount (Cash Flow view)
+                                    displayAmount = t.amount;
+                                    if (splitsTotal > 0) subText = `(Você recebe ${formatCurrency(splitsTotal, t.currency || 'BRL')})`;
                                 } else {
+                                    // Non-payer sees only THEIR share (Expense view)
                                     displayAmount = t.amount - splitsTotal;
                                     subText = `Pago por ${payerName}`;
                                 }
@@ -151,10 +153,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                     <div className="flex gap-4 flex-1 min-w-0">
                                         {/* Icon Box */}
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm mt-0.5 ${isPositive
-                                                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-                                                : isTransfer
-                                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                                    : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                                            : isTransfer
+                                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                                : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
                                             }`}>
                                             {isTransfer ? <RefreshCcw className="w-5 h-5" /> : <CatIcon className="w-5 h-5" />}
                                         </div>
@@ -211,8 +213,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                     {/* Right: Amount & Actions */}
                                     <div className="flex flex-col items-end pl-2 gap-1">
                                         <span className={`font-black text-sm sm:text-base ${isPositive ? 'text-emerald-600 dark:text-emerald-400'
-                                                : isTransfer ? 'text-blue-600 dark:text-blue-400'
-                                                    : 'text-red-600 dark:text-red-400'
+                                            : isTransfer ? 'text-blue-600 dark:text-blue-400'
+                                                : 'text-red-600 dark:text-red-400'
                                             }`}>
                                             {isPositive ? '+ ' : ''}
                                             <BlurValue value={formatCurrency(displayAmount, t.currency || 'BRL')} show={showValues} />
