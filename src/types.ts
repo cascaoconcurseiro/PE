@@ -282,6 +282,7 @@ export interface Trip extends BaseEntity {
   checklist?: TripChecklistItem[];
   shoppingList?: TripShoppingItem[];
   exchangeEntries?: TripExchangeEntry[];
+  sourceTripId?: string;
 }
 
 export enum AssetType {

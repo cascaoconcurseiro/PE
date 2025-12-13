@@ -74,6 +74,7 @@ export interface DBTrip extends DBBaseEntity {
     checklist?: any; // JSONB
     shopping_list?: any; // JSONB
     exchange_entries?: any; // JSONB
+    source_trip_id?: string;
 }
 
 export interface DBBudget extends DBBaseEntity {
