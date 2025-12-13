@@ -188,7 +188,7 @@ export const SplitModal: React.FC<SplitModalProps> = ({
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {familyMembers.map(member => {
+                                {familyMembers.filter(m => m.id !== payerId).map(member => {
                                     const split = splits.find(s => s.memberId === member.id);
                                     const isSelected = !!split;
                                     return (

@@ -219,35 +219,41 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">Compartilhado com (Participantes)</label>
                         <div className="grid grid-cols-2 gap-2">
-                            {/* Removed "Eu" button here to fix redundancy as requested. 
-                                Logic remains: 'me' is in participantIds by default and cannot be unchecked via UI here. 
-                                Effectively "Me + Others".
-                            */}
-                            {members.map(m => (
-                                <button
-                                    key={m.id}
-                                    onClick={() => handleToggleParticipant(m.id)}
-                                    className={`px-4 py-3 rounded-xl text-sm font-bold border flex items-center justify-between transition-all ${participantIds.includes(m.id) ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
-                                >
-                                    <span>{m.name}</span>
-                                    {participantIds.includes(m.id) && <Check className="w-4 h-4" />}
-                                </button>
-                            ))}
+                            {/* Dynamic Participant List */}
+                            {(() => {
+                                const displayList = payerId === 'me'
+                                    ? members // If I paid, show everyone else
+                                    : [
+                                        { id: 'me', name: currentUserName || 'Eu (Você)' }, // If someone else paid, I am a participant
+                                        ...members.filter(m => m.id !== payerId) // Everyone else except the payer
+                                    ];
+
+                                return displayList.map(m => (
+                                    <button
+                                        key={m.id}
+                                        onClick={() => handleToggleParticipant(m.id)}
+                                        className={`px-4 py-3 rounded-xl text-sm font-bold border flex items-center justify-between transition-all ${participantIds.includes(m.id) ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
+                                    >
+                                        <span>{m.name}</span>
+                                        {participantIds.includes(m.id) && <Check className="w-4 h-4" />}
+                                    </button>
+                                ));
+                            })()}
                         </div>
-                        {participantIds.length > 0 && amount && (
-                            <p className="text-xs text-right mt-1 text-slate-400">
-                                {formatCurrency(parseFloat(amount) / participantIds.length)} por pessoa (Total: {participantIds.length})
-                            </p>
-                        )}
                     </div>
-
+                    {participantIds.length > 0 && amount && (
+                        <p className="text-xs text-right mt-1 text-slate-400">
+                            {formatCurrency(parseFloat(amount) / participantIds.length)} por pessoa (Total: {participantIds.length})
+                        </p>
+                    )}
                 </div>
 
-                <div className="p-6 pt-0">
-                    <Button onClick={handleConfirm} className="w-full h-12 text-lg">
-                        Gerar {installments} Lançamentos
-                    </Button>
-                </div>
+            </div>
+
+            <div className="p-6 pt-0">
+                <Button onClick={handleConfirm} className="w-full h-12 text-lg">
+                    Gerar {installments} Lançamentos
+                </Button>
             </div>
         </div>
     );
