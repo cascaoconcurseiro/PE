@@ -32,7 +32,19 @@ BEGIN
     END IF;
 END $$;
 
--- 3. RPC: Invite User to Family (Handle Notification)
+-- 3. RPC: Check User By Email (Privacy Preserved)
+-- Returns ID only if exists, useful for invites.
+CREATE OR REPLACE FUNCTION public.check_user_by_email(email_to_check TEXT)
+RETURNS UUID AS $$
+DECLARE
+    found_id UUID;
+BEGIN
+    SELECT id INTO found_id FROM auth.users WHERE email = email_to_check;
+    RETURN found_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 4. RPC: Invite User to Family (Handle Notification)
 CREATE OR REPLACE FUNCTION public.invite_user_to_family(p_member_id UUID, p_email TEXT)
 RETURNS JSONB AS $$
 DECLARE
@@ -40,11 +52,6 @@ DECLARE
     inviter_name TEXT;
 BEGIN
     -- 1. Find the target user by email
-    -- Note: This requires access to auth.users (usually restricted). 
-    -- If this fails due to permissions, we'd need a privileged view or RPC.
-    -- Assuming we can select id from auth.users or a public profiles table.
-    -- Ideally, we'd use a public_profiles table. Let's try auth.users but handle null.
-    
     SELECT id INTO target_user_id FROM auth.users WHERE email = p_email LIMIT 1;
 
     IF target_user_id IS NULL THEN
@@ -58,7 +65,6 @@ BEGIN
     WHERE id = p_member_id AND user_id = auth.uid(); -- Only if I own this member record
 
     -- 3. Get Inviter Name (for the message)
-    -- We can get it from metadata or just say "Alguém".
     SELECT raw_user_meta_data->>'name' INTO inviter_name FROM auth.users WHERE id = auth.uid();
     
     -- 4. Send Notification to Target
@@ -71,11 +77,11 @@ BEGIN
         jsonb_build_object('inviter_id', auth.uid(), 'member_id', p_member_id)
     );
 
-    RETURN jsonb_build_object('success', true, 'message', 'Convite enviado e usuário notificado.');
+    RETURN jsonb_build_object('success', true, 'message', 'Convite vinculado e usuário notificado!');
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 4. Trigger for SHARED TRANSACTION Notifications
+-- 5. Trigger for SHARED TRANSACTION Notifications
 CREATE OR REPLACE FUNCTION public.handle_shared_notification()
 RETURNS TRIGGER AS $$
 BEGIN
