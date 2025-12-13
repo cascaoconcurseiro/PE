@@ -15,6 +15,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     const [isSignUp, setIsSignUp] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [email, setEmail] = useState('');
+    const [name, setName] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -46,6 +47,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
+                    options: {
+                        data: {
+                            name: name || email.split('@')[0],
+                        }
+                    }
                 });
                 if (error) throw error;
                 addToast('Conta criada! Verifique seu e-mail para confirmar.', 'success');
@@ -88,6 +94,26 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                         </h2>
 
                         <form onSubmit={handleAuth} className="space-y-4">
+                            {isSignUp && (
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1">Nome</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <PiggyBank className="h-5 w-5 text-slate-400" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-slate-900 dark:text-white font-medium transition-all"
+                                            placeholder="Seu Nome"
+                                            autoComplete="name"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1">E-mail</label>
                                 <div className="relative">

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Tag, Plus, X, Key, Eye, EyeOff, Settings as SettingsIcon, Database, Globe, Moon, Sun, Monitor, Bell, Shield, Sliders, Lock, Palette } from 'lucide-react';
+import { Tag, Plus, X, Key, Eye, EyeOff, Settings as SettingsIcon, Database, Globe, Moon, Sun, Monitor, Bell, Shield, Sliders, Lock, Palette, User, Edit2, Check } from 'lucide-react';
+import { supabase } from '../integrations/supabase/client';
 import { Account, Budget, CustomCategory, FamilyMember, Transaction, Trip, Asset, Goal, Snapshot } from '../types';
 import { useToast } from './ui/Toast';
 import { ConfirmModal } from './ui/ConfirmModal';
@@ -31,6 +32,8 @@ interface SettingsProps {
     onUpdateTrip: (trip: Trip) => void;
     onDeleteTrip: (id: string) => void;
     onFactoryReset: () => void;
+    currentUserName?: string;
+    currentUserEmail?: string;
 }
 
 export const Settings: React.FC<SettingsProps> = ({
@@ -45,13 +48,38 @@ export const Settings: React.FC<SettingsProps> = ({
     familyMembers,
     assets,
     snapshots,
-    onFactoryReset
+    onFactoryReset,
+    currentUserName,
+    currentUserEmail
 }) => {
     const [activeTab, setActiveTab] = useState<'GENERAL' | 'CATEGORIES' | 'DATA' | 'SYSTEM' | 'NOTIFICATIONS' | 'SECURITY' | 'PREFERENCES' | 'PRIVACY' | 'APPEARANCE'>('GENERAL');
     const [newCategoryName, setNewCategoryName] = useState('');
     const [globalCurrency, setGlobalCurrency] = useState('BRL');
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [newName, setNewName] = useState(currentUserName || '');
     const { addToast } = useToast();
     const { theme, toggleTheme } = useTheme();
+
+    // Update newName when prop changes (if not editing)
+    React.useEffect(() => {
+        if (!isEditingName) {
+            setNewName(currentUserName || '');
+        }
+    }, [currentUserName, isEditingName]);
+
+    const handleUpdateName = async () => {
+        if (!newName.trim()) return;
+        try {
+            const { error } = await supabase.auth.updateUser({
+                data: { name: newName.trim() }
+            });
+            if (error) throw error;
+            setIsEditingName(false);
+            addToast('Nome atualizado com sucesso!', 'success');
+        } catch (error: any) {
+            addToast('Erro ao atualizar nome: ' + error.message, 'error');
+        }
+    };
 
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void }>({
         isOpen: false, title: '', message: '', onConfirm: () => { }
@@ -149,6 +177,56 @@ export const Settings: React.FC<SettingsProps> = ({
             <div className="space-y-6">
                 {activeTab === 'GENERAL' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-right-4 duration-300">
+                        {/* PROFILE CARD */}
+                        <Card className="p-6 md:col-span-2">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                                    <User className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">Perfil do Usuário</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie suas informações pessoais.</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nome de Exibição</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newName}
+                                            onChange={(e) => setNewName(e.target.value)}
+                                            disabled={!isEditingName}
+                                            className={`flex-1 px-4 py-3 bg-slate-50 dark:bg-slate-900 border ${isEditingName ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-700'} rounded-xl focus:outline-none text-slate-900 dark:text-white font-medium transition-all`}
+                                            placeholder="Seu nome"
+                                        />
+                                        {isEditingName ? (
+                                            <>
+                                                <Button onClick={handleUpdateName} className="w-12 h-12 flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700">
+                                                    <Check className="w-5 h-5" />
+                                                </Button>
+                                                <Button onClick={() => { setIsEditingName(false); setNewName(currentUserName || ''); }} variant="secondary" className="w-12 h-12 flex items-center justify-center rounded-xl">
+                                                    <X className="w-5 h-5" />
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button onClick={() => setIsEditingName(true)} variant="secondary" className="w-12 h-12 flex items-center justify-center rounded-xl">
+                                                <Edit2 className="w-5 h-5" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-2">Esse nome será exibido em transações compartilhadas.</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">E-mail</label>
+                                    <div className="px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 dark:text-slate-400 font-medium cursor-not-allowed">
+                                        {currentUserEmail || 'Carregando...'}
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-2">O e-mail não pode ser alterado.</p>
+                                </div>
+                            </div>
+                        </Card>
+
                         <Card className="p-6">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
