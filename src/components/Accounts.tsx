@@ -34,9 +34,12 @@ interface AccountsProps {
     onAnticipate: (ids: string[], date: string, accountId: string) => void;
     initialAccountId?: string | null;
     onClearInitialAccount?: () => void;
+    members?: any[]; // Using any[] temporarily to avoid circular dependency issues if FamilyMember isn't imported, but ideally import it. 
+    // Actually Account defines FamilyMember import usually.
 }
 
-export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, onAddTransactions, showValues, currentDate = new Date(), onAnticipate, initialAccountId, onClearInitialAccount }) => {
+export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, onAddTransactions, showValues, currentDate = new Date(), onAnticipate, initialAccountId, onClearInitialAccount }) => {
+    const accountsProps = { accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, onAddTransactions, showValues, currentDate, onAnticipate, initialAccountId, onClearInitialAccount };
     const [viewState, setViewState] = useState<'LIST' | 'DETAIL'>('LIST');
     const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS' | 'INTERNATIONAL'>('BANKING');
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -228,7 +231,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, onAd
                 <ActionModal isOpen={actionModal.isOpen} type={actionModal.type} account={selectedAccount} accounts={accounts} initialAmount={actionModal.amount} onClose={closeActionModal} onConfirm={handleActionSubmit} />
                 <ImportModal isOpen={importModal.isOpen} onClose={() => setImportModal({ ...importModal, isOpen: false })} onImport={handleImportConfirm} importedTransactions={importModal.transactions} />
                 {anticipateModal.isOpen && anticipateModal.transaction && (<InstallmentAnticipationModal isOpen={anticipateModal.isOpen} onClose={() => setAnticipateModal({ isOpen: false, transaction: null })} transaction={anticipateModal.transaction} allInstallments={transactions} accounts={accounts} onConfirm={handleConfirmAnticipation} />)}
-                {importBillModal.isOpen && importBillModal.account && (<CreditCardImportModal isOpen={importBillModal.isOpen} onClose={() => setImportBillModal({ isOpen: false, account: null })} account={importBillModal.account} onImport={handleImportBills} />)}
+                {importBillModal.isOpen && importBillModal.account && (<CreditCardImportModal isOpen={importBillModal.isOpen} onClose={() => setImportBillModal({ isOpen: false, account: null })} account={importBillModal.account} members={accountsProps.members || []} onImport={handleImportBills} />)}
             </div>
         );
     }

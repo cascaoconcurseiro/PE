@@ -38,13 +38,6 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                     amount: ''
                 });
             }
-            // Tentar preservar valores se o usuário apenas trocou de ano? 
-            // Por simplicidade, limpamos ao trocar de ano ou resetamos ao abrir.
-            // Se quiséssemos preservar, precisaríamos de um state complexo { "2024-01": "100", ... }
-            // Como o uso comum é preencher, salvar e fechar, vamos resetar apenas se fechar e abrir.
-            // Mas aqui o useEffect depende de 'year', então vai resetar a cada troca de ano se não cuidarmos.
-            // Vamos deixar resetar por enquanto ao trocar de ano para evitar complexidade desnecessária, 
-            // ou melhor, apenas inicializar vazio.
 
             setMonths(nextMonths);
         }
@@ -74,6 +67,25 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
 
         onImport(transactionsToCreate);
         onClose();
+    };
+
+    // Helper to format date string (yyyy-mm-dd) to pt-BR (dd/mm/yyyy) without timezone shift
+    const formatDisplayDate = (dateStr: string) => {
+        const [y, m, d] = dateStr.split('-');
+        // Map m to month name
+        const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        return date.toLocaleDateString('pt-BR');
+    };
+
+    // Helper: Manual day check since formatDisplayDate might still shift if new Date() is used with implied midnight
+    // We already have Y M D.
+    // Let's just use a map for month names if we want "31 de Março".
+    // Or just "01/01/2026"
+    // The previous code had "Vence em 31/12/2025" because of timezone.
+    // Our dateStr IS "2026-01-01". We want to show "01/01/2026".
+    const formatDateSimple = (dateStr: string) => {
+        const [y, m, d] = dateStr.split('-');
+        return `${d}/${m}/${y}`;
     };
 
     if (!isOpen) return null;
@@ -120,7 +132,7 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                                     </div>
                                     <div className="flex-1">
                                         <p className="font-bold text-slate-700 dark:text-slate-300 capitalize text-sm">{month.label}</p>
-                                        <p className="text-[10px] text-slate-500 dark:text-slate-400">Vence em {new Date(month.date).toLocaleDateString('pt-BR')}</p>
+                                        <p className="text-[10px] text-slate-500 dark:text-slate-400">Vence em {formatDateSimple(month.date)}</p>
                                     </div>
                                 </div>
                                 <div className="flex-1 relative">

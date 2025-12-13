@@ -29,7 +29,7 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     account, transactions, currentDate, showValues, onAction, onAnticipateInstallments, onImportBills
 }) => {
     // Get all accounts for correct name resolution (e.g. transfers)
-    const { accounts } = useDataStore();
+    const { accounts, familyMembers } = useDataStore();
 
     // Use getInvoiceData to get transactions for the invoice cycle
     const { invoiceTotal, transactions: filteredTransactions, closingDate } = getInvoiceData(account, transactions, currentDate);
@@ -113,7 +113,7 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                 <TransactionList
                     groupedTxs={groupedTransactions}
                     accounts={accounts || []} // Use global accounts list here!
-                    familyMembers={[]}
+                    familyMembers={familyMembers || []}
                     showValues={showValues}
                     onEdit={() => { }} // View only 
                     onDelete={() => { }}
