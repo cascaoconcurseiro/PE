@@ -1,15 +1,11 @@
-import React, { useRef, useEffect } from 'react';
-import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, CustomCategory, Frequency, AccountType } from '../../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Transaction, TransactionType, Category, Account, AccountType, Frequency, Trip, FamilyMember, CustomCategory, SyncStatus } from '../../types';
+import { CreditCard, Calendar, Repeat, ArrowUpRight, ArrowDownLeft, RefreshCcw, Bell, BellRing, Plane, Users, Plus, X, Pencil, Globe, ChevronDown, User, DollarSign, Undo2 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import {
-    Plane, Users, ChevronDown, Calendar, ArrowUpRight, ArrowDownLeft,
-    RefreshCcw, Bell, BellRing, Repeat, Undo2, DollarSign, CreditCard, X,
-    Pencil, User, Plus, AlertCircle, Globe, ArrowRight
-} from 'lucide-react';
-import { getCategoryIcon } from '../../utils';
-import { SplitModal } from './SplitModal';
 import { AccountSelector } from './AccountSelector';
 import { useTransactionForm } from '../../hooks/useTransactionForm';
+import { SplitModal } from './SplitModal';
+import { getCategoryIcon } from '../../utils';
 
 interface TransactionFormProps {
     initialData?: Transaction | null;
@@ -25,6 +21,7 @@ interface TransactionFormProps {
     onNavigateToAccounts?: () => void;
     onNavigateToTrips?: () => void;
     onNavigateToFamily?: () => void;
+    currentUserName?: string;
 }
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({
@@ -40,7 +37,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     onCancel,
     onNavigateToAccounts,
     onNavigateToTrips,
-    onNavigateToFamily
+    onNavigateToFamily,
+    currentUserName
 }) => {
     const topRef = useRef<HTMLDivElement>(null);
 
@@ -648,6 +646,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 setIsInstallment={setIsInstallment}
                 totalInstallments={totalInstallments}
                 setTotalInstallments={setTotalInstallments}
+                currentUserName={currentUserName}
             />
         </div>
     );

@@ -16,10 +16,11 @@ interface SharedInstallmentImportProps {
     members: FamilyMember[];
     accounts: Account[];
     currentUserId: string;
+    currentUserName?: string;
 }
 
 export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = ({
-    isOpen, onClose, onImport, members, accounts, currentUserId
+    isOpen, onClose, onImport, members, accounts, currentUserId, currentUserName
 }) => {
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
@@ -54,8 +55,13 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
     };
 
     const handleConfirm = () => {
-        if (!description || !amount || !date || participantIds.length === 0) {
-            alert('Preencha todos os campos obrigatórios e selecione pelo menos um participante.');
+        if (!description || !amount || !date) {
+            alert('Preencha todos os campos obrigatórios.');
+            return;
+        }
+
+        if (participantIds.length < 2) {
+            alert('Para importar uma despesa compartilhada é necessário selecionar pelo menos mais uma pessoa.');
             return;
         }
 
@@ -193,7 +199,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                                 onClick={() => setPayerId('me')}
                                 className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${payerId === 'me' ? 'bg-indigo-100 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
                             >
-                                Eu
+                                {currentUserName || 'Eu (Você)'}
                             </button>
                             {members.map(m => (
                                 <button
@@ -213,13 +219,10 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">Compartilhado com (Participantes)</label>
                         <div className="grid grid-cols-2 gap-2">
-                            <button
-                                onClick={() => handleToggleParticipant('me')}
-                                className={`px-4 py-3 rounded-xl text-sm font-bold border flex items-center justify-between transition-all ${participantIds.includes('me') ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
-                            >
-                                <span>Eu</span>
-                                {participantIds.includes('me') && <Check className="w-4 h-4" />}
-                            </button>
+                            {/* Removed "Eu" button here to fix redundancy as requested. 
+                                Logic remains: 'me' is in participantIds by default and cannot be unchecked via UI here. 
+                                Effectively "Me + Others".
+                            */}
                             {members.map(m => (
                                 <button
                                     key={m.id}
@@ -233,7 +236,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         </div>
                         {participantIds.length > 0 && amount && (
                             <p className="text-xs text-right mt-1 text-slate-400">
-                                {formatCurrency(parseFloat(amount) / participantIds.length)} por pessoa/total
+                                {formatCurrency(parseFloat(amount) / participantIds.length)} por pessoa (Total: {participantIds.length})
                             </p>
                         )}
                     </div>

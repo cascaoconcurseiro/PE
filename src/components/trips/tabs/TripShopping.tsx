@@ -80,30 +80,32 @@ export const TripShopping: React.FC<TripShoppingProps> = ({ trip, onUpdateTrip }
                     </span>
                 </div>
 
-                <div className="flex gap-2 mb-4 no-print">
+                <div className="flex flex-col sm:flex-row gap-2 mb-4 no-print">
                     <input
-                        className="flex-[2] rounded-xl border border-slate-300 dark:border-slate-600 p-3 text-sm font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-900 focus:ring-2 focus:ring-violet-500 outline-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                        className="w-full sm:flex-[2] rounded-xl border border-slate-300 dark:border-slate-600 p-3 text-sm font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-900 focus:ring-2 focus:ring-violet-500 outline-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
                         placeholder="Item (ex: iPhone, Perfume)"
                         value={shopItem}
                         onChange={e => setShopItem(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleSaveShoppingItem()}
                     />
-                    <input
-                        type="number"
-                        className="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 p-3 text-sm font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-900 focus:ring-2 focus:ring-violet-500 outline-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
-                        placeholder="Valor Est."
-                        value={shopEstCost}
-                        onChange={e => setShopEstCost(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleSaveShoppingItem()}
-                    />
-                    <Button onClick={handleSaveShoppingItem} disabled={!shopItem}>
-                        {editingShoppingId ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                    </Button>
-                    {editingShoppingId && (
-                        <Button onClick={() => { setEditingShoppingId(null); setShopItem(''); setShopEstCost(''); }} variant="secondary">
-                            <X className="w-5 h-5" />
+                    <div className="flex gap-2">
+                        <input
+                            type="number"
+                            className="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 p-3 text-sm font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-900 focus:ring-2 focus:ring-violet-500 outline-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                            placeholder="Valor Est."
+                            value={shopEstCost}
+                            onChange={e => setShopEstCost(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleSaveShoppingItem()}
+                        />
+                        <Button onClick={handleSaveShoppingItem} disabled={!shopItem} className="shrink-0">
+                            {editingShoppingId ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                         </Button>
-                    )}
+                        {editingShoppingId && (
+                            <Button onClick={() => { setEditingShoppingId(null); setShopItem(''); setShopEstCost(''); }} variant="secondary" className="shrink-0">
+                                <X className="w-5 h-5" />
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="space-y-2">

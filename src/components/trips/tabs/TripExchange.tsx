@@ -109,30 +109,30 @@ export const TripExchange: React.FC<TripExchangeProps> = ({ trip, onUpdateTrip }
 
                 <div className="flex flex-col gap-3 mb-6 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm no-print">
                     <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">{editingExchangeId ? "Editar Entrada" : "Nova Compra de Moeda"}</h4>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                         <input
                             type="date"
-                            className="w-32 p-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                            className="w-full sm:w-32 p-3 sm:p-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
                             value={exchangeDate}
                             onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
                             onChange={e => setExchangeDate(e.target.value)}
                         />
                         <input
                             type="number"
-                            className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                            className="w-full sm:flex-1 p-3 sm:p-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 font-bold"
                             placeholder="Valor em R$ (BRL)"
                             value={exchangeBRL}
                             onChange={e => setExchangeBRL(e.target.value)}
                         />
                         <input
                             type="number"
-                            className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                            className="w-full sm:flex-1 p-3 sm:p-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 font-bold"
                             placeholder={`Valor em ${trip.currency}`}
                             value={exchangeForeign}
                             onChange={e => setExchangeForeign(e.target.value)}
                         />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-2 sm:mt-0">
                         <Button onClick={handleSaveExchangeEntry} disabled={!exchangeBRL || !exchangeForeign} className="w-full">
                             {editingExchangeId ? <><Save className="w-4 h-4 mr-2" /> Salvar</> : <><Plus className="w-4 h-4 mr-2" /> Registrar Câmbio</>}
                         </Button>

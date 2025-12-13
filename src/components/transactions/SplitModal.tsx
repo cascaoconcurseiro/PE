@@ -19,6 +19,7 @@ interface SplitModalProps {
     setIsInstallment?: (value: boolean) => void;
     totalInstallments?: number;
     setTotalInstallments?: (value: number) => void;
+    currentUserName?: string;
 }
 
 export const SplitModal: React.FC<SplitModalProps> = ({
@@ -35,7 +36,8 @@ export const SplitModal: React.FC<SplitModalProps> = ({
     isInstallment = false,
     setIsInstallment,
     totalInstallments = 2,
-    setTotalInstallments
+    setTotalInstallments,
+    currentUserName
 }) => {
     if (!isOpen) return null;
 
@@ -63,7 +65,7 @@ export const SplitModal: React.FC<SplitModalProps> = ({
 
             // Let's assume standard behavior: n people involved (Me + Splits).
             // Total People = Splits.length + 1 (Me).
-            // Share = 100 / (Splits.length + 1).
+            // Share = 100 / (Total People).
 
             const totalPeople = newSplits.length + 1;
             const sharePct = 100 / totalPeople;
@@ -73,10 +75,6 @@ export const SplitModal: React.FC<SplitModalProps> = ({
                 percentage: Number(sharePct.toFixed(1)), // 33.3
                 assignedAmount: Number((activeAmount * (sharePct / 100)).toFixed(2))
             }));
-
-            // Adjust rounding on first element so sum of assigned amounts + my share = Total?
-            // Actually `assignedAmount` is what THEY owe.
-            // My share is implicit remainder.
         }
 
         setSplits(newSplits);
@@ -100,7 +98,7 @@ export const SplitModal: React.FC<SplitModalProps> = ({
                                 onClick={() => setPayerId('me')}
                                 className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-colors ${payerId === 'me' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                Eu Paguei
+                                {currentUserName ? `${currentUserName} Pagou` : 'Eu Paguei'}
                             </button>
                             <button
                                 onClick={() => setPayerId(familyMembers.length > 0 ? familyMembers[0].id : 'other')}
@@ -216,7 +214,7 @@ export const SplitModal: React.FC<SplitModalProps> = ({
                                     { label: '60/40', myPct: 60 },
                                     { label: '70/30', myPct: 70 },
                                     { label: '80/20', myPct: 80 },
-                                    { label: 'Só eu', myPct: 100 },
+                                    { label: currentUserName ? `Só ${currentUserName}` : 'Só eu', myPct: 100 },
                                     { label: 'Só parceiro', myPct: 0 }
                                 ].map(preset => {
                                     const otherPct = 100 - preset.myPct;

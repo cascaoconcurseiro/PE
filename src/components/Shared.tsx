@@ -20,6 +20,7 @@ interface SharedProps {
     onBatchUpdateTransactions?: (ts: Transaction[]) => void;
     onDeleteTransaction?: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
     onNavigateToTrips: () => void;
+    currentUserName?: string;
 }
 
 export const Shared: React.FC<SharedProps> = ({
@@ -33,7 +34,8 @@ export const Shared: React.FC<SharedProps> = ({
     onUpdateTransaction,
     onBatchUpdateTransactions,
     onDeleteTransaction,
-    onNavigateToTrips
+    onNavigateToTrips,
+    currentUserName
 }) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL' | 'HISTORY'>('REGULAR');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -314,6 +316,7 @@ export const Shared: React.FC<SharedProps> = ({
                 members={members}
                 accounts={accounts}
                 currentUserId="me"
+                currentUserName={currentUserName}
             />
 
             {editingTransaction && (
