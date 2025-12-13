@@ -27,55 +27,35 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
     const [installments, setInstallments] = useState('1');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [category, setCategory] = useState<Category>(Category.OTHER);
-    const [payerId, setPayerId] = useState('me');
-    const [splitMode, setSplitMode] = useState<'EQUAL' | 'CUSTOM'>('EQUAL');
-    const [customAllocations, setCustomAllocations] = useState<Record<string, number>>({});
 
-    // Participants selection (IDs). 'me' is current user.
-    const [participantIds, setParticipantIds] = useState<string[]>(['me']);
+    // Simplification: Implicit 'me' as payer, select only the debtor (assignee)
+    const [assigneeId, setAssigneeId] = useState<string>('');
+    const [accountId, setAccountId] = useState('');
 
-    const [accountId, setAccountId] = useState(''); // Optional, mainly for tracking where money came from if 'me' paid.
+    // Filter out "Me" from assignee list (I can't assign debt to myself in this context if I am payer)
+    const availableMembers = React.useMemo(() => members.filter(m => m.id !== 'me'), [members]);
 
     useEffect(() => {
         if (isOpen) {
-            // Reset form on open
             setDescription('');
             setAmount('');
             setInstallments('1');
             setDate(new Date().toISOString().split('T')[0]);
             setCategory(Category.OTHER);
-            setPayerId('me');
-            setParticipantIds(['me']);
             setAccountId('');
+            // Default to first available member
+            if (availableMembers.length > 0) setAssigneeId(availableMembers[0].id);
         }
-    }, [isOpen]);
-
-    const handleAllocationChange = (id: string, val: string) => {
-        const num = parseFloat(val);
-        if (!isNaN(num)) {
-            setCustomAllocations(prev => ({ ...prev, [id]: num }));
-        }
-    };
-
-    const handleToggleParticipant = (id: string) => {
-        setParticipantIds(prev =>
-            prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-        );
-    };
-
-
+    }, [isOpen, availableMembers]);
 
     const handleConfirm = () => {
+        if (!amount || !description || !assigneeId) {
+            alert('Preencha todos os campos obrigatórios.');
+            return;
+        }
+
         const installmentValue = parseFloat(amount);
         const numInstallments = parseInt(installments);
-
-        if (splitMode === 'CUSTOM') {
-            const totalPct = participantIds.reduce((sum, id) => sum + (customAllocations[id] || 0), 0);
-            if (Math.abs(totalPct - 100) > 0.1) {
-                alert(`A soma das porcentagens deve ser 100%. Atual: ${totalPct.toFixed(1)}%`);
-                return;
-            }
-        }
 
         const generatedTransactions: Omit<Transaction, 'id'>[] = [];
         const [yearStr, monthStr, dayStr] = date.split('-');
@@ -88,43 +68,21 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
         for (let i = 0; i < numInstallments; i++) {
             const currentInstallmentAmount = installmentValue;
-
             const currentMonthIndex = startMonth + i;
             const targetYear = startYear + Math.floor(currentMonthIndex / 12);
             const targetMonth = currentMonthIndex % 12;
-
             const maxDaysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
             const finalDay = Math.min(startDay, maxDaysInMonth);
-
             const utcDate = new Date(Date.UTC(targetYear, targetMonth, finalDay, 12, 0, 0));
             const dateStr = utcDate.toISOString().split('T')[0];
 
-            let sharedWith: TransactionSplit[] = [];
-
-            if (splitMode === 'EQUAL') {
-                const sharePerPerson = round2dec(currentInstallmentAmount / participantIds.length);
-                const pctPerPerson = round2dec((1 / participantIds.length) * 100);
-
-                sharedWith = participantIds
-                    .filter(pid => pid !== 'me')
-                    .map(pid => ({
-                        memberId: pid,
-                        assignedAmount: sharePerPerson,
-                        percentage: pctPerPerson
-                    }));
-            } else {
-                sharedWith = participantIds
-                    .filter(pid => pid !== 'me')
-                    .map(pid => {
-                        const pct = customAllocations[pid] || 0;
-                        const amt = round2dec((pct / 100) * currentInstallmentAmount);
-                        return {
-                            memberId: pid,
-                            assignedAmount: amt,
-                            percentage: pct
-                        };
-                    });
-            }
+            // 100% Assignment to Selected Member
+            const sharedWith: TransactionSplit[] = [{
+                memberId: assigneeId,
+                assignedAmount: currentInstallmentAmount,
+                percentage: 100,
+                isSettled: false
+            }];
 
             generatedTransactions.push({
                 description: `${description} (${i + 1}/${numInstallments})`,
@@ -133,9 +91,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 category: category,
                 date: dateStr,
                 accountId: accountId || undefined,
-                payerId: payerId === 'me' ? undefined : payerId,
+                payerId: 'me', // Implicit: I paid
                 isShared: true,
-                sharedWith: sharedWith,
+                sharedWith: sharedWith, // They owe me
                 isInstallment: numInstallments > 1,
                 currentInstallment: i + 1,
                 totalInstallments: numInstallments,
@@ -197,102 +155,30 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         </select>
                     </div>
 
-                    {/* Who Paid */}
+                    {/* Assignee Selection (Simplified) */}
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">Quem Pagou?</label>
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                onClick={() => setPayerId('me')}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${payerId === 'me' ? 'bg-indigo-100 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
-                            >
-                                {currentUserName || 'Eu (Você)'}
-                            </button>
-                            {members.map(m => (
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Quem vai pagar a parcela? (Responsável)</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {availableMembers.map(m => (
                                 <button
                                     key={m.id}
-                                    onClick={() => setPayerId(m.id)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${payerId === m.id ? 'bg-indigo-100 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
+                                    onClick={() => setAssigneeId(m.id)}
+                                    className={`px-4 py-3 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2 ${assigneeId === m.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'}`}
                                 >
+                                    {assigneeId === m.id && <Check className="w-4 h-4" />}
                                     {m.name}
                                 </button>
                             ))}
                         </div>
-                    </div>
-
-
-
-                    {/* Shared With & Splits */}
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="block text-xs font-bold text-slate-500">Participantes</label>
-
-                            {/* Split Mode Toggle */}
-                            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
-                                <button
-                                    onClick={() => setSplitMode('EQUAL')}
-                                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${splitMode === 'EQUAL' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}
-                                >
-                                    Igual
-                                </button>
-                                <button
-                                    onClick={() => setSplitMode('CUSTOM')}
-                                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${splitMode === 'CUSTOM' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}
-                                >
-                                    %
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-2">
-                            {(() => {
-                                const displayList = payerId === 'me'
-                                    ? members
-                                    : [
-                                        { id: 'me', name: currentUserName || 'Eu (Você)' },
-                                        ...members.filter(m => m.id !== payerId)
-                                    ];
-
-                                return displayList.map(m => (
-                                    <div key={m.id} className={`p-3 rounded-xl border flex items-center justify-between transition-all ${participantIds.includes(m.id) ? 'bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700' : 'bg-transparent border-slate-100 dark:border-slate-800 opacity-60'}`}>
-
-                                        <button
-                                            onClick={() => handleToggleParticipant(m.id)}
-                                            className="flex items-center gap-3 flex-1"
-                                        >
-                                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${participantIds.includes(m.id) ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-slate-300'}`}>
-                                                {participantIds.includes(m.id) && <Check className="w-3 h-3" />}
-                                            </div>
-                                            <span className="font-bold text-sm text-slate-700 dark:text-slate-300">{m.name}</span>
-                                        </button>
-
-                                        {participantIds.includes(m.id) && splitMode === 'CUSTOM' && (
-                                            <div className="flex items-center gap-1">
-                                                <input
-                                                    type="number"
-                                                    className="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-right text-sm font-bold focus:ring-2 focus:ring-indigo-500"
-                                                    placeholder="0"
-                                                    value={customAllocations[m.id] || ''}
-                                                    onChange={(e) => handleAllocationChange(m.id, e.target.value)}
-                                                />
-                                                <span className="text-xs font-bold text-slate-500">%</span>
-                                            </div>
-                                        )}
-
-                                        {participantIds.includes(m.id) && splitMode === 'EQUAL' && amount && (
-                                            <span className="text-xs font-bold text-slate-500">
-                                                {formatCurrency(parseFloat(amount) / participantIds.length)}
-                                            </span>
-                                        )}
-                                    </div>
-                                ));
-                            })()}
-                        </div>
+                        {availableMembers.length === 0 && (
+                            <p className="text-sm text-red-500 mt-2">Nenhum membro disponível para atribuir.</p>
+                        )}
                     </div>
                 </div>
 
                 <div className="p-6 pt-0">
-                    <Button onClick={handleConfirm} className="w-full h-12 text-lg">
-                        Gerar {installments} Lançamentos
+                    <Button onClick={handleConfirm} className="w-full h-12 text-lg rounded-xl shadow-xl shadow-indigo-500/20">
+                        Confirmar {installments}x de {amount && !isNaN(parseFloat(amount)) ? (parseFloat(amount)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '...'}
                     </Button>
                 </div>
             </div>

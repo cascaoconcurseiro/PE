@@ -26,13 +26,10 @@ export const useFinancialDashboard = ({
     const selectedYear = currentDate.getFullYear();
     const [rpcCashflow, setRpcCashflow] = useState<{ month: number, income: number, expense: number }[]>([]);
 
-    // 0. GLOBAL FILTER: Dashboard is checking/local only + EXCLUDE Opening Balances (System Adjustments)
+    // 0. GLOBAL FILTER: Dashboard is checking/local only.
     const dashboardTransactions = useMemo(() =>
         transactions.filter(t => {
             if (isForeignTransaction(t, accounts)) return false;
-            // Exclude Opening Balance / Invoice Imports from Dashboard Views
-            if (t.category === Category.OPENING_BALANCE) return false;
-
             // Redundant Safety Check
             if (t.accountId) {
                 const acc = accounts.find(a => a.id === t.accountId);
