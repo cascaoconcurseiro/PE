@@ -198,6 +198,34 @@ export const supabaseService = {
         if (error) throw error;
     },
 
+    async deleteTripCascade(tripId: string) {
+        const userId = await getUserId();
+
+        // 1. Soft delete the TRIP
+        const { error: tripError } = await supabase
+            .from('trips')
+            .update({ deleted: true, updated_at: new Date().toISOString() })
+            .eq('id', tripId)
+            .eq('user_id', userId);
+
+        if (tripError) throw tripError;
+
+        // 2. Soft delete associated TRANSACTIONS
+        // This triggers the mirror logic for shared transactions naturally
+        const { error: txError } = await supabase
+            .from('transactions')
+            .update({ deleted: true, updated_at: new Date().toISOString() })
+            .eq('trip_id', tripId)
+            .eq('user_id', userId);
+
+        if (txError) {
+            console.error("Failed to cascade delete transactions for trip:", tripId, txError);
+            // We don't throw here to avoid "Zombie Trip" state (Trip deleted but txs failed), 
+            // but ideally we should have used a transaction. 
+            // Given Supabase client limitations on transactions without RPC, this is best effort.
+        }
+    },
+
     async softDeleteAccount(accountId: string) {
         const userId = await getUserId();
 

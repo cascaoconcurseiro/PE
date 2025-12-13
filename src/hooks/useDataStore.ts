@@ -10,6 +10,8 @@ import { supabase } from '../integrations/supabase/client';
 import { processRecurringTransactions } from '../services/recurrenceEngine';
 import { checkDataConsistency } from '../services/financialLogic';
 
+
+
 export const useDataStore = () => {
     const { addToast } = useToast();
     const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -297,28 +299,31 @@ export const useDataStore = () => {
 
         try {
             // --- TIER 1: CRITICAL DATA (Dashboard Immediate Render) ---
-            console.time("Tier1_Load");
-
-            const today = new Date();
-            const startOfMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
-            const startOfMonth = `${startOfMonthDate.getFullYear()}-${String(startOfMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
-
-            const [accs, recentTxs] = await Promise.all([
-                supabaseService.getAccounts(),
-                supabaseService.getTransactions(startOfMonth)
-            ]);
-
+            // OPTIMIZATION: Fetch Accounts FIRST to unlock UI.
+            console.time("Tier1_Accounts");
+            const accs = await supabaseService.getAccounts();
             if (signal.aborted) return;
 
             const initialAccountsState = accs.map(account => ({
                 ...account,
                 balance: account.balance ?? account.initialBalance ?? 0
             }));
-
             setAccounts(initialAccountsState);
+            // If this is first load, we can set loading false here to show something basic
+            if (!isInitialized.current) setIsLoading(false);
+            console.timeEnd("Tier1_Accounts");
+
+
+            // --- TIER 1.5: TRANSACTIONS ---
+            console.time("Tier1_Transactions");
+            const today = new Date();
+            const startOfMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            const startOfMonth = `${startOfMonthDate.getFullYear()}-${String(startOfMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
+
+            const recentTxs = await supabaseService.getTransactions(startOfMonth);
+            if (signal.aborted) return;
             setTransactions(recentTxs);
-            setIsLoading(false);
-            console.timeEnd("Tier1_Load");
+            console.timeEnd("Tier1_Transactions");
 
 
             // --- TIER 2: EXTENDED DATA (Recent History & Metadata) ---
@@ -392,6 +397,36 @@ export const useDataStore = () => {
     // Initial Load
     useEffect(() => {
         fetchData();
+
+        // --- REALTIME SUBSCRIPTIONS (TURBO MODE) ---
+        const channel = supabase.channel('global_changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public' },
+                (payload) => {
+                    console.log('⚡ Realtime Change Detected:', payload.table);
+                    // Debounced refresh could be better, but for now simple recall
+                    // Filter meaningful tables to avoid spam
+                    const relevantTables = ['transactions', 'accounts', 'trips', 'family_members'];
+                    if (relevantTables.includes(payload.table)) {
+                        // Soft Refresh (no global loading spinner)
+                        fetchData(false);
+                    }
+                }
+            )
+            .subscribe();
+
+        // --- FOCUS REVALIDATION ---
+        const onFocus = () => {
+            console.log('👀 Window Focused - Revalidating Data...');
+            fetchData(false);
+        };
+        window.addEventListener('focus', onFocus);
+
+        return () => {
+            supabase.removeChannel(channel);
+            window.removeEventListener('focus', onFocus);
+        };
     }, [fetchData]);
 
     // --- ACTIONS ---
@@ -562,6 +597,14 @@ export const useDataStore = () => {
 
     const handleAddCategory = async (name: string) => categoriesHandler.add({ name });
 
+    // CASCADING DELETE FOR TRIPS
+    const handleDeleteTrip = async (id: string) => performOperation(async () => {
+        await supabaseService.deleteTripCascade(id);
+        // UI Update: Remove trip and related transactions from state optimistically
+        setTrips(prev => prev.filter(t => t.id !== id));
+        setTransactions(prev => prev.filter(t => t.tripId !== id)); // Remove transactions linked to this trip
+    }, 'Viagem e despesas excluídas.');
+
     return {
         user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading, dataInconsistencies, isOnline,
         handlers: {
@@ -570,7 +613,9 @@ export const useDataStore = () => {
             handleAddAccount, handleUpdateAccount, handleDeleteAccount,
             loadHistoryWindow,
 
-            handleAddTrip: tripsHandler.add, handleUpdateTrip: tripsHandler.update, handleDeleteTrip: tripsHandler.delete,
+            handleAddTrip: tripsHandler.add, handleUpdateTrip: tripsHandler.update,
+            handleDeleteTrip: handleDeleteTrip, // Using the new cascading handler
+
             handleAddMember: membersHandler.add, handleUpdateMember: membersHandler.update, handleDeleteMember: membersHandler.delete,
             handleAddCategory, handleDeleteCategory: categoriesHandler.delete,
             handleAddBudget: budgetsHandler.add, handleUpdateBudget: budgetsHandler.update, handleDeleteBudget: budgetsHandler.delete,
