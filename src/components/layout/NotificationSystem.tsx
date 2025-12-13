@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
 import { Bell, BellRing, Sparkles, AlertTriangle } from 'lucide-react';
-import { Transaction } from '../../types';
+interface NotificationItem {
+    id: string;
+    title?: string;
+    description: string;
+    date: string;
+    amount?: number;
+    type: string; // Generic string to support both TransactionType and System Types
+    enableNotification?: boolean;
+    notificationDate?: string;
+}
 
 interface NotificationSystemProps {
-    notifications: Transaction[];
+    notifications: NotificationItem[];
     onNotificationClick: (id: string) => void;
     onNotificationDismiss: (id: string) => void;
     onNotificationPay?: (id: string) => void;
@@ -44,7 +53,9 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
                             ) : (
                                 <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
                                     {notifications.map(n => {
-                                        const isOverdue = !n.enableNotification;
+                                        const isOverdue = n.type === 'REMINDER' && !n.enableNotification;
+                                        const isSystem = n.type === 'TRANSACTION' || n.type === 'ALERT' || n.type === 'INVITE';
+
                                         const dueDate = new Date(n.notificationDate || n.date);
                                         const today = new Date();
                                         today.setHours(0, 0, 0, 0);
@@ -55,9 +66,10 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
                                             <div key={n.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors flex gap-3">
                                                 <div className={`mt-1 p-1.5 rounded-lg h-fit ${isOverdue
                                                     ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                                                    : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
+                                                    : isSystem ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400'
+                                                        : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
                                                     }`}>
-                                                    <AlertTriangle className="w-3 h-3" />
+                                                    {isSystem ? <BellRing className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
                                                 </div>
                                                 <div className="flex-1">
                                                     <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{n.description}</p>

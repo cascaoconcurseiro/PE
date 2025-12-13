@@ -28,6 +28,8 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [category, setCategory] = useState<Category>(Category.OTHER);
     const [payerId, setPayerId] = useState('me');
+    const [splitMode, setSplitMode] = useState<'EQUAL' | 'CUSTOM'>('EQUAL');
+    const [customAllocations, setCustomAllocations] = useState<Record<string, number>>({});
 
     // Participants selection (IDs). 'me' is current user.
     const [participantIds, setParticipantIds] = useState<string[]>(['me']);
@@ -48,76 +50,81 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         }
     }, [isOpen]);
 
+    const handleAllocationChange = (id: string, val: string) => {
+        const num = parseFloat(val);
+        if (!isNaN(num)) {
+            setCustomAllocations(prev => ({ ...prev, [id]: num }));
+        }
+    };
+
     const handleToggleParticipant = (id: string) => {
         setParticipantIds(prev =>
             prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
         );
     };
 
+
+
     const handleConfirm = () => {
-        if (!description || !amount || !date) {
-            alert('Preencha todos os campos obrigatórios.');
-            return;
-        }
-
-        if (participantIds.length < 2) {
-            alert('Para importar uma despesa compartilhada é necessário selecionar pelo menos mais uma pessoa.');
-            return;
-        }
-
         const installmentValue = parseFloat(amount);
         const numInstallments = parseInt(installments);
 
-        if (isNaN(installmentValue) || installmentValue <= 0) {
-            alert('Valor inválido.');
-            return;
-        }
-        if (isNaN(numInstallments) || numInstallments < 1) {
-            alert('Número de parcelas inválido.');
-            return;
+        if (splitMode === 'CUSTOM') {
+            const totalPct = participantIds.reduce((sum, id) => sum + (customAllocations[id] || 0), 0);
+            if (Math.abs(totalPct - 100) > 0.1) {
+                alert(`A soma das porcentagens deve ser 100%. Atual: ${totalPct.toFixed(1)}%`);
+                return;
+            }
         }
 
-        // Generate Transactions
         const generatedTransactions: Omit<Transaction, 'id'>[] = [];
         const [yearStr, monthStr, dayStr] = date.split('-');
         const startYear = parseInt(yearStr);
-        const startMonth = parseInt(monthStr) - 1; // 0-indexed
+        const startMonth = parseInt(monthStr) - 1;
         const startDay = parseInt(dayStr);
 
-        const seriesId = crypto.randomUUID(); // Unique ID for this installment series
+        const seriesId = crypto.randomUUID();
         const totalAmount = installmentValue * numInstallments;
 
         for (let i = 0; i < numInstallments; i++) {
             const currentInstallmentAmount = installmentValue;
 
-            // Robust Date Calculation (Credit Card Style)
-            // Ensures we stick to the original day if possible, or clamp to end of month
             const currentMonthIndex = startMonth + i;
             const targetYear = startYear + Math.floor(currentMonthIndex / 12);
             const targetMonth = currentMonthIndex % 12;
 
-            // Determine max days in target month
-            // Date(year, month + 1, 0).getDate() gives last day of month
             const maxDaysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
             const finalDay = Math.min(startDay, maxDaysInMonth);
 
-            // Create date at noon UTC to avoid timezone rollback
             const utcDate = new Date(Date.UTC(targetYear, targetMonth, finalDay, 12, 0, 0));
             const dateStr = utcDate.toISOString().split('T')[0];
 
-            // Build SharedWith
-            // Logic: sharedWith includes everyone in participantIds EXCEPT 'me'.
-            // Their share is (currentInstallmentAmount / participantIds.length).
+            let sharedWith: TransactionSplit[] = [];
 
-            const sharePerPerson = round2dec(currentInstallmentAmount / participantIds.length);
+            if (splitMode === 'EQUAL') {
+                const sharePerPerson = round2dec(currentInstallmentAmount / participantIds.length);
+                const pctPerPerson = round2dec((1 / participantIds.length) * 100);
 
-            const sharedWith: TransactionSplit[] = participantIds
-                .filter(pid => pid !== 'me')
-                .map(pid => ({
-                    memberId: pid,
-                    assignedAmount: sharePerPerson,
-                    percentage: round2dec((1 / participantIds.length) * 100)
-                }));
+                sharedWith = participantIds
+                    .filter(pid => pid !== 'me')
+                    .map(pid => ({
+                        memberId: pid,
+                        assignedAmount: sharePerPerson,
+                        percentage: pctPerPerson
+                    }));
+            } else {
+                sharedWith = participantIds
+                    .filter(pid => pid !== 'me')
+                    .map(pid => {
+                        const pct = customAllocations[pid] || 0;
+                        const amt = round2dec((pct / 100) * currentInstallmentAmount);
+                        return {
+                            memberId: pid,
+                            assignedAmount: amt,
+                            percentage: pct
+                        };
+                    });
+            }
 
             generatedTransactions.push({
                 description: `${description} (${i + 1}/${numInstallments})`,
@@ -125,21 +132,20 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 type: TransactionType.EXPENSE,
                 category: category,
                 date: dateStr,
-                accountId: accountId || undefined, // Allow undefined for pending shared transactions
+                accountId: accountId || undefined,
                 payerId: payerId === 'me' ? undefined : payerId,
                 isShared: true,
                 sharedWith: sharedWith,
                 isInstallment: numInstallments > 1,
                 currentInstallment: i + 1,
                 totalInstallments: numInstallments,
-                seriesId: numInstallments > 1 ? seriesId : undefined, // Link transactions
+                seriesId: numInstallments > 1 ? seriesId : undefined,
                 originalAmount: totalAmount,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 syncStatus: SyncStatus.PENDING
             });
         }
-
         onImport(generatedTransactions);
     };
 
@@ -215,37 +221,73 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
 
 
-                    {/* Shared With */}
+                    {/* Shared With & Splits */}
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">Compartilhado com (Participantes)</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {/* Dynamic Participant List */}
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="block text-xs font-bold text-slate-500">Participantes</label>
+
+                            {/* Split Mode Toggle */}
+                            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                                <button
+                                    onClick={() => setSplitMode('EQUAL')}
+                                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${splitMode === 'EQUAL' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}
+                                >
+                                    Igual
+                                </button>
+                                <button
+                                    onClick={() => setSplitMode('CUSTOM')}
+                                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${splitMode === 'CUSTOM' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}
+                                >
+                                    %
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2">
                             {(() => {
                                 const displayList = payerId === 'me'
-                                    ? members // If I paid, show everyone else
+                                    ? members
                                     : [
-                                        { id: 'me', name: currentUserName || 'Eu (Você)' }, // If someone else paid, I am a participant
-                                        ...members.filter(m => m.id !== payerId) // Everyone else except the payer
+                                        { id: 'me', name: currentUserName || 'Eu (Você)' },
+                                        ...members.filter(m => m.id !== payerId)
                                     ];
 
                                 return displayList.map(m => (
-                                    <button
-                                        key={m.id}
-                                        onClick={() => handleToggleParticipant(m.id)}
-                                        className={`px-4 py-3 rounded-xl text-sm font-bold border flex items-center justify-between transition-all ${participantIds.includes(m.id) ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}
-                                    >
-                                        <span>{m.name}</span>
-                                        {participantIds.includes(m.id) && <Check className="w-4 h-4" />}
-                                    </button>
+                                    <div key={m.id} className={`p-3 rounded-xl border flex items-center justify-between transition-all ${participantIds.includes(m.id) ? 'bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700' : 'bg-transparent border-slate-100 dark:border-slate-800 opacity-60'}`}>
+
+                                        <button
+                                            onClick={() => handleToggleParticipant(m.id)}
+                                            className="flex items-center gap-3 flex-1"
+                                        >
+                                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${participantIds.includes(m.id) ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-slate-300'}`}>
+                                                {participantIds.includes(m.id) && <Check className="w-3 h-3" />}
+                                            </div>
+                                            <span className="font-bold text-sm text-slate-700 dark:text-slate-300">{m.name}</span>
+                                        </button>
+
+                                        {participantIds.includes(m.id) && splitMode === 'CUSTOM' && (
+                                            <div className="flex items-center gap-1">
+                                                <input
+                                                    type="number"
+                                                    className="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-right text-sm font-bold focus:ring-2 focus:ring-indigo-500"
+                                                    placeholder="0"
+                                                    value={customAllocations[m.id] || ''}
+                                                    onChange={(e) => handleAllocationChange(m.id, e.target.value)}
+                                                />
+                                                <span className="text-xs font-bold text-slate-500">%</span>
+                                            </div>
+                                        )}
+
+                                        {participantIds.includes(m.id) && splitMode === 'EQUAL' && amount && (
+                                            <span className="text-xs font-bold text-slate-500">
+                                                {formatCurrency(parseFloat(amount) / participantIds.length)}
+                                            </span>
+                                        )}
+                                    </div>
                                 ));
                             })()}
                         </div>
                     </div>
-                    {participantIds.length > 0 && amount && (
-                        <p className="text-xs text-right mt-1 text-slate-400">
-                            {formatCurrency(parseFloat(amount) / participantIds.length)} por pessoa (Total: {participantIds.length})
-                        </p>
-                    )}
                 </div>
 
                 <div className="p-6 pt-0">

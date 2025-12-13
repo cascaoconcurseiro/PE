@@ -13,6 +13,7 @@ import { LoadingScreen } from './components/ui/LoadingScreen';
 import { GlobalSearch } from './components/GlobalSearch';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardShortcuts';
+import { useSystemNotifications } from './hooks/useSystemNotifications';
 
 import { lazyImport } from './utils/lazyImport';
 
@@ -47,6 +48,7 @@ const App = () => {
     const [showValues, setShowValues] = useState<boolean>(true);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
+    const { systemNotifications, markAsRead } = useSystemNotifications(sessionUser?.id);
 
     const [pendingSharedRequests, setPendingSharedRequests] = useState(0);
     const [pendingSettlements, setPendingSettlements] = useState<any[]>([]);
@@ -201,17 +203,44 @@ const App = () => {
         const todayStr = today.toISOString().split('T')[0];
         const notifs: any[] = [];
         return notifs;
-    }, [transactions, accounts, pendingSharedRequests, dismissedNotifications]);
+        if (systemNotifications) {
+            const mapped = systemNotifications.map(sn => ({
+                id: sn.id,
+                title: sn.title,
+                description: sn.message,
+                type: sn.type,
+                date: sn.created_at,
+                isLocal: false
+            }));
+            notifs.push(...mapped);
+        }
+        return notifs;
+    }, [transactions, accounts, pendingSharedRequests, dismissedNotifications, systemNotifications]);
 
     // Re-implementing critical handlers
     const handleLogout = useCallback(async () => {
         await supabase.auth.signOut();
         await handlers.handleLogout();
+        // SECURITY: Force reload to clear all memory states/caches
+        window.location.reload();
     }, [handlers]);
 
     const handleNotificationPay = useCallback(() => { }, []);
-    const handleNotificationClick = useCallback(() => { }, []);
-    const handleDismissNotification = useCallback(() => { }, []);
+    const handleNotificationClick = useCallback(async (id: string) => {
+        const isLocal = !systemNotifications.find(n => n.id === id);
+        if (!isLocal) {
+            await markAsRead(id);
+        }
+    }, [markAsRead, systemNotifications]);
+
+    const handleDismissNotification = useCallback(async (id: string) => {
+        const isLocal = !systemNotifications.find(n => n.id === id);
+        if (isLocal) {
+            setDismissedNotifications(prev => [...prev, id]);
+        } else {
+            await markAsRead(id);
+        }
+    }, [markAsRead, systemNotifications]);
 
     const renderContent = () => {
         switch (activeView) {
