@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Transaction, TransactionType, Account, Trip, FamilyMember, CustomCategory } from '../types';
+import { Transaction, TransactionType, Account, Trip, FamilyMember, CustomCategory, Category } from '../types';
 import { parseDate } from '../utils';
 
 import { TransactionList } from './transactions/TransactionList';
@@ -72,7 +72,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
     // Use Custom Hook for Filtering Logic
     const { filteredTxs, groupedTxs, income, expense, balance, currency } = useTransactionFilters({
-        transactions: transactions.filter(t => t.category !== 'Saldo Inicial' && t.category !== 'OPENING_BALANCE'), // Filter out Opening Balance/Imported Invoices from Main View
+        transactions: transactions.filter(t => t.category !== Category.OPENING_BALANCE), // Filter out Opening Balance/Imported Invoices from Main View
         accounts,
         currentDate,
         searchTerm,
