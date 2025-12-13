@@ -248,12 +248,11 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     )}
                 </div>
 
-            </div>
-
-            <div className="p-6 pt-0">
-                <Button onClick={handleConfirm} className="w-full h-12 text-lg">
-                    Gerar {installments} Lançamentos
-                </Button>
+                <div className="p-6 pt-0">
+                    <Button onClick={handleConfirm} className="w-full h-12 text-lg">
+                        Gerar {installments} Lançamentos
+                    </Button>
+                </div>
             </div>
         </div>
     );
