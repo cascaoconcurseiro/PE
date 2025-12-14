@@ -371,23 +371,20 @@ export const Settings: React.FC<SettingsProps> = ({
                                 <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Banco de Dados</span>
                                 <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">Supabase (Cloud)</span>
                             </div>
-                    </div>
                         </Card>
-        </div>
-    )
-}
-            </div >
+                    </div>
+                )}
 
-    <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={() => {
-            confirmModal.onConfirm();
-            setConfirmModal(prev => ({ ...prev, isOpen: false }));
-        }}
-        title={confirmModal.title}
-        message={confirmModal.message}
-    />
-        </div >
-    );
+                <ConfirmModal
+                    isOpen={confirmModal.isOpen}
+                    onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                    onConfirm={() => {
+                        confirmModal.onConfirm();
+                        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                    }}
+                    title={confirmModal.title}
+                    message={confirmModal.message}
+                />
+            </div >
+            );
 };
