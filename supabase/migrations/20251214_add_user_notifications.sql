@@ -5,6 +5,7 @@
 -- ==============================================================================
 
 -- 1. Create table
+DROP TABLE IF EXISTS public.user_notifications CASCADE;
 CREATE TABLE IF NOT EXISTS public.user_notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
