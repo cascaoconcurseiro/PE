@@ -7,7 +7,7 @@ export interface UserNotification {
     title: string;
     message: string;
     data: any;
-    read: boolean;
+    is_read: boolean;
     created_at: string;
 }
 
@@ -31,18 +31,18 @@ export const useSystemNotifications = (userId: string | undefined) => {
 
         if (data) {
             setNotifications(data);
-            setUnreadCount(data.filter(n => !n.read).length);
+            setUnreadCount(data.filter(n => !n.is_read).length);
         }
     };
 
     const markAsRead = async (id: string) => {
         // Optimistic update
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
 
         const { error } = await supabase
             .from('user_notifications')
-            .update({ read: true })
+            .update({ is_read: true })
             .eq('id', id);
 
         if (error) {
@@ -52,14 +52,14 @@ export const useSystemNotifications = (userId: string | undefined) => {
     };
 
     const markAllAsRead = async () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         setUnreadCount(0);
 
         await supabase
             .from('user_notifications')
-            .update({ read: true })
+            .update({ is_read: true })
             .eq('user_id', userId)
-            .eq('read', false);
+            .eq('is_read', false);
     };
 
     // Initial Fetch

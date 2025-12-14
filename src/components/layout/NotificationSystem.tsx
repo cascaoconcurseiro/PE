@@ -37,7 +37,8 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
         description: n.message,
         date: n.created_at,
         type: n.type,
-        read: n.read,
+        type: n.type,
+        read: n.is_read,
         isDb: true
     }));
 
