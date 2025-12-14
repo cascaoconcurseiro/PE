@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Account, Transaction, TransactionType, AccountType, Category } from '../types';
+import { Account, Transaction, TransactionType, AccountType, Category, Trip } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
 import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue, calculateTotalReceivables } from '../services/financialLogic';
@@ -10,6 +10,7 @@ import { supabaseService } from '../services/supabaseService';
 interface UseFinancialDashboardProps {
     accounts: Account[];
     transactions: Transaction[];
+    trips?: Trip[]; // NEW
     projectedAccounts?: Account[];
     currentDate: Date;
     spendingView: 'CATEGORY' | 'SOURCE';
@@ -18,6 +19,7 @@ interface UseFinancialDashboardProps {
 export const useFinancialDashboard = ({
     accounts,
     transactions,
+    trips, // NEW
     projectedAccounts,
     currentDate,
     spendingView
@@ -31,6 +33,15 @@ export const useFinancialDashboard = ({
         transactions.filter(t => {
             if (t.deleted) return false;
             if (isForeignTransaction(t, accounts)) return false;
+
+            // STRICT TRIP CHECK: If tx belongs to a Foreign Trip, exclude it from BRL Dashboard
+            // (Even if tx itself has no currency set, the Context is Foreign)
+            if (t.tripId && trips) {
+                const trip = trips.find(tr => tr.id === t.tripId);
+                // If trip exists and is NOT BRL, exclude this transaction
+                if (trip && trip.currency && trip.currency !== 'BRL') return false;
+            }
+
             // Redundant Safety Check
             if (t.accountId) {
                 const acc = accounts.find(a => a.id === t.accountId);
@@ -38,7 +49,7 @@ export const useFinancialDashboard = ({
             }
             return true;
         }),
-        [transactions, accounts]);
+        [transactions, accounts, trips]);
 
     const dashboardAccounts = useMemo(() =>
         accounts.filter(a => !a.currency || a.currency === 'BRL'),
@@ -103,7 +114,9 @@ export const useFinancialDashboard = ({
         }, 0);
 
         // 2. Receivables (Credits from Shared Transactions)
-        const receivables = calculateTotalReceivables(transactions);
+        // STRICT FIX: Use 'dashboardTransactions' to ensure we ONLY sum BRL receivables.
+        // This prevents foreign currency amounts (e.g. USD 50) from being mixed into BRL Net Worth.
+        const receivables = calculateTotalReceivables(dashboardTransactions);
 
         return cashBalance + receivables;
     }, [dashboardAccounts, transactions]);

@@ -10,6 +10,7 @@ interface AccountSelectorProps {
     onSelect: (id: string) => void;
     filterType?: 'NO_CREDIT' | 'ALL';
     disabled?: boolean;
+    emptyMessage?: string;
 }
 
 export const AccountSelector: React.FC<AccountSelectorProps> = ({
@@ -18,6 +19,7 @@ export const AccountSelector: React.FC<AccountSelectorProps> = ({
     selectedId,
     onSelect,
     filterType,
+    emptyMessage,
     disabled = false
 }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -97,26 +99,35 @@ export const AccountSelector: React.FC<AccountSelectorProps> = ({
 
             {isOpen && (
                 <div className="absolute inset-x-0 top-full mt-2 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-700 z-50 max-h-64 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
-                    {filteredAccounts.length === 0 ? (
-                        <div className="p-4 text-center text-slate-500 dark:text-slate-400 text-sm">Nenhuma conta disponível.</div>
-                    ) : (
-                        filteredAccounts.map(acc => (
-                            <div
-                                key={acc.id}
-                                onClick={() => { onSelect(acc.id); setIsOpen(false); }}
-                                className={`p-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer border-b border-slate-50 dark:border-slate-700 last:border-0 ${acc.id === selectedId ? 'bg-slate-50 dark:bg-slate-700' : ''}`}
-                            >
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${acc.type === AccountType.CREDIT_CARD ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
-                                    {getIcon(acc.type)}
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-slate-800 dark:text-white">{acc.name}</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">{acc.type} • {formatCurrency(acc.balance, acc.currency)}</p>
-                                </div>
-                                {acc.id === selectedId && <Check className="w-4 h-4 text-emerald-500 ml-auto" />}
+                    emptyMessage,
+                    disabled = false
+}) => {
+    const [isOpen, setIsOpen] = useState(false);
+                    const containerRef = useRef<HTMLDivElement>(null);
+                        // ... (unchanged) ...
+                        // ... inside return ...
+                        {filteredAccounts.length === 0 ? (
+                            <div className="p-4 text-center text-slate-500 dark:text-slate-400 text-sm">
+                                {emptyMessage || 'Nenhuma conta disponível.'}
                             </div>
-                        ))
-                    )}
+                        ) : (
+                            filteredAccounts.map(acc => (
+                                <div
+                                    key={acc.id}
+                                    onClick={() => { onSelect(acc.id); setIsOpen(false); }}
+                                    className={`p-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer border-b border-slate-50 dark:border-slate-700 last:border-0 ${acc.id === selectedId ? 'bg-slate-50 dark:bg-slate-700' : ''}`}
+                                >
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${acc.type === AccountType.CREDIT_CARD ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
+                                        {getIcon(acc.type)}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-800 dark:text-white">{acc.name}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{acc.type} • {formatCurrency(acc.balance, acc.currency)}</p>
+                                    </div>
+                                    {acc.id === selectedId && <Check className="w-4 h-4 text-emerald-500 ml-auto" />}
+                                </div>
+                            ))
+                        )}
                 </div>
             )}
         </div>

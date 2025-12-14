@@ -452,11 +452,32 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         {payerId === 'me' ? (
                             <AccountSelector
                                 label={isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}
-                                accounts={filteredAccountsForTrip}
+                                accounts={React.useMemo(() => {
+                                    // 1. Base Filter: Available Accounts (already filtered by user access)
+                                    let accs = availableAccounts;
+
+                                    // 2. Strict Currency Match (CRITICAL USER REQUIREMENT)
+                                    // If handling Foreign Currency (e.g. USD), ONLY show accounts of that currency.
+                                    // If handling BRL, ONLY show BRL accounts.
+                                    if (activeCurrency === 'BRL') {
+                                        accs = accs.filter(a => !a.currency || a.currency === 'BRL');
+                                    } else {
+                                        accs = accs.filter(a => a.currency === activeCurrency);
+                                    }
+
+                                    // 3. Trip Filter (Legacy/Optional - ensure we don't relax the strictness)
+                                    if (selectedTrip) {
+                                        // Trip currency usually dictates activeCurrency, but double check
+                                        accs = accs.filter(a => a.currency === selectedTrip.currency);
+                                    }
+
+                                    return accs;
+                                }, [availableAccounts, activeCurrency, selectedTrip])}
                                 selectedId={accountId}
                                 onSelect={setAccountId}
                                 filterType={(isIncome || isTransfer) ? 'NO_CREDIT' : 'ALL'}
                                 disabled={!!initialData}
+                                emptyMessage={activeCurrency !== 'BRL' ? `Você não possui conta em ${activeCurrency}. Crie uma conta internacional.` : 'Nenhuma conta encontrada.'}
                             />
                         ) : (
                             <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 flex items-center justify-between">

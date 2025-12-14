@@ -1,5 +1,5 @@
 import React, { Suspense, useState } from 'react';
-import { Account, Transaction, Goal } from '../types';
+import { Account, Transaction, Goal, Trip } from '../types';
 import { generateMonthlyReport, generateAnnualReport } from '../services/pdfService';
 import { Loader2, PieChart, CreditCard, Layers, Printer } from 'lucide-react';
 import { Button } from './ui/Button';
@@ -20,6 +20,7 @@ const CategorySpendingChart = lazyImport(() => import('./dashboard/CategorySpend
 interface DashboardProps {
     accounts: Account[];
     transactions: Transaction[];
+    trips?: Trip[]; // NEW: Required for currency filtering
     goals?: Goal[];
     currentDate?: Date;
     showValues: boolean;
@@ -28,7 +29,7 @@ interface DashboardProps {
     isLoading?: boolean;
     pendingSharedRequestsCount?: number;
     pendingSettlements?: any[];
-    projectedAccounts?: Account[]; // NEW: Explicit set of accounts for end-of-month projection
+    projectedAccounts?: Account[];
     onOpenShared?: () => void;
     onOpenSettlement?: (request: any) => void;
 }
@@ -39,7 +40,7 @@ const ChartSkeleton = () => (
     </div>
 );
 
-export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccounts, transactions, currentDate = new Date(), showValues, onEditRequest, isLoading = false, pendingSharedRequestsCount = 0, pendingSettlements = [], onOpenShared, onOpenSettlement }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccounts, transactions, trips, currentDate = new Date(), showValues, onEditRequest, isLoading = false, pendingSharedRequestsCount = 0, pendingSettlements = [], onOpenShared, onOpenSettlement }) => {
     const [spendingView, setSpendingView] = useState<'CATEGORY' | 'SOURCE'>('CATEGORY');
     const selectedYear = currentDate.getFullYear();
 
@@ -62,6 +63,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
         accounts,
         transactions,
         projectedAccounts,
+        trips, // NEW
         currentDate,
         spendingView
     });
