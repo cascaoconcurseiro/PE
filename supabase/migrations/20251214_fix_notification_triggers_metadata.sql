@@ -21,7 +21,7 @@ BEGIN
             NEW.user_id, 
             'TRANSACTION', 
             'Nova Despesa Compartilhada', 
-            COALESCE(v_sender_name, 'Alguém') || ' compartilhou: ' || NEW.description || ' (' || to_char(NEW.amount, 'FM999G999G990D00') || ')',
+            COALESCE(v_sender_name, 'Alguém') || ' compartilhou: ' || COALESCE(NEW.description, 'Nova Despesa') || ' (' || COALESCE(to_char(NEW.amount, 'FM999G999G990D00'), 'R$ 0,00') || ')',
             jsonb_build_object('transactionId', NEW.id, 'amount', NEW.amount, 'currency', NEW.currency)
         );
     END IF;
@@ -50,7 +50,7 @@ BEGIN
                     v_user_id,
                     'TRIP',
                     'Convite de Viagem',
-                    v_sender_name || ' adicionou você na viagem: ' || NEW.name,
+                    COALESCE(v_sender_name, 'Alguém') || ' adicionou você na viagem: ' || COALESCE(NEW.name, 'sem nome'),
                     jsonb_build_object('tripId', NEW.id)
                  );
              END IF;
@@ -69,7 +69,7 @@ BEGIN
                         v_user_id,
                         'TRIP',
                         'Convite de Viagem',
-                        v_sender_name || ' adicionou você na viagem: ' || NEW.name,
+                        COALESCE(v_sender_name, 'Alguém') || ' adicionou você na viagem: ' || COALESCE(NEW.name, 'sem nome'),
                         jsonb_build_object('tripId', NEW.id)
                      );
                  END IF;
