@@ -63,12 +63,17 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, acco
                     <button onClick={printComponent} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 rounded-xl transition-colors hidden sm:block" title="Imprimir">
                         <Printer className="w-5 h-5" />
                     </button>
-                    <button onClick={() => onEdit(trip)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-violet-600 rounded-xl transition-colors" title="Editar Viagem">
-                        <Pencil className="w-5 h-5" />
-                    </button>
-                    <button onClick={() => { if (confirm('Tem certeza que deseja excluir esta viagem?')) { onDelete(trip.id); } }} className="p-2 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 rounded-xl transition-colors" title="Excluir Viagem">
-                        <Trash2 className="w-5 h-5" />
-                    </button>
+                    {/* Owner Governance: Only Owner can Edit/Delete */}
+                    {currentUserId === trip.userId && (
+                        <>
+                            <button onClick={() => onEdit(trip)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-violet-600 rounded-xl transition-colors" title="Editar Viagem">
+                                <Pencil className="w-5 h-5" />
+                            </button>
+                            <button onClick={() => { if (confirm('Tem certeza que deseja excluir esta viagem?')) { onDelete(trip.id); } }} className="p-2 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 rounded-xl transition-colors" title="Excluir Viagem">
+                                <Trash2 className="w-5 h-5" />
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
