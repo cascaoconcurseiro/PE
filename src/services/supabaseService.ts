@@ -364,50 +364,19 @@ export const supabaseService = {
     async getCustomCategories(): Promise<CustomCategory[]> { return this.getAll<CustomCategory>('custom_categories'); },
     async getSnapshots(): Promise<Snapshot[]> { return this.getAll<Snapshot>('snapshots'); },
 
-    // DANGER: WIPE ALL DATA
+    // DANGER: WIPE ALL DATA (SAFE MODE)
     async dangerouslyWipeAllData() {
         const userId = await getUserId();
-        console.warn(`🚨 INICIANDO WIPE DE DADOS PARA USUÁRIO: ${userId}`);
+        console.warn(`🚨 INICIANDO WIPE SEGURO PARA USUÁRIO: ${userId}`);
 
-        // Delete in order of dependencies (Child -> Parent)
-        const tables = [
-            'user_notifications',
-            'transactions',
-            'shared_transaction_requests',
-            'settlement_requests',
-            'snapshots',
-            'assets',
-            'budgets',
-            'goals',
-            'trips',
-            'family_members',
-            'custom_categories',
-            'accounts'
-        ];
+        // OPTIMIZED: Use Server-Side RPC for atomic and safe deletion
+        const { error } = await supabase.rpc('reset_own_data');
 
-        for (const table of tables) {
-            let query = supabase.from(table).delete();
-
-            if (table === 'shared_transaction_requests') {
-                // Delete if I am requester OR invited
-                // Note: .or() syntax is specific
-                query = query.or(`requester_id.eq.${userId},invited_user_id.eq.${userId}`);
-            } else if (table === 'settlement_requests') {
-                // Delete if I am payer OR receiver
-                query = query.or(`payer_id.eq.${userId},receiver_id.eq.${userId}`);
-            } else {
-                // Default standard tables with user_id
-                query = query.eq('user_id', userId);
-            }
-
-            const { error }: any = await query;
-            if (error) {
-                console.error(`Falha ao limpar tabela ${table}:`, error);
-                // Don't throw immediately, try to clean what we can, but log it.
-                // Actually for a WIPE, we probably want to ensure it works.
-                // throw error; 
-            }
+        if (error) {
+            console.error('Falha ao resetar dados (RPC):', error);
+            throw error;
         }
-        console.log('✅ WIPE COMPLETO COM SUCESSO via Supabase Service.');
+
+        console.log('✅ WIPE SEGURO CONCLUÍDO COM SUCESSO via RPC.');
     }
 };
