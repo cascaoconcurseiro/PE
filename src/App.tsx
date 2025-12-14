@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense, useTransition } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense, useTransition, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from './integrations/supabase/client';
 import { Auth } from './components/Auth';
@@ -14,6 +14,7 @@ import { GlobalSearch } from './components/GlobalSearch';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSystemNotifications } from './hooks/useSystemNotifications';
+import { useToast } from './components/ui/Toast';
 
 import { lazyImport } from './utils/lazyImport';
 import { APP_VERSION } from './config/appVersion';
@@ -61,6 +62,19 @@ const App = () => {
 
 
     // ...
+
+    // Welcome Toast Logic
+    const hasWelcomed = useRef(false);
+    const { addToast } = useToast();
+
+    useEffect(() => {
+        if (sessionUser && !isSessionLoading && !hasWelcomed.current) {
+            const h = new Date().getHours();
+            const greeting = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+            addToast(`${greeting}, ${sessionUser.name?.split(' ')[0] || 'Visitante'}! 🚀`, 'info');
+            hasWelcomed.current = true;
+        }
+    }, [sessionUser, isSessionLoading, addToast]);
 
     // Initial Setup & Version Check
     useEffect(() => {
