@@ -17,7 +17,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
     const chartData = data.map(item => ({
         name: item.month,
         valueUp: item.Receitas,
-        valueDown: item.Despesas // Already negative from business logic
+        valueDown: -(Math.abs(item.Despesas || 0)) // Ensure negative for chart
     }));
 
     return (
@@ -64,7 +64,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
                             <span className="block text-[10px] uppercase font-bold text-slate-400">Saldo Ano</span>
                             <span className="font-bold">
                                 {formatCurrency(
-                                    data.reduce((acc, curr) => acc + (curr.Receitas || 0) + (curr.Despesas || 0), 0) // Despesas are negative
+                                    data.reduce((acc, curr) => acc + (curr.Receitas || 0) - (curr.Despesas || 0), 0) // Despesas are positive magnitude
                                 )}
                             </span>
                         </div>
@@ -88,7 +88,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
                                         Resumo Mensal
                                     </td>
                                     {data.map((item, idx) => {
-                                        const result = (item.Receitas || 0) + (item.Despesas || 0);
+                                        const result = (item.Receitas || 0) - (item.Despesas || 0); // Corrected Subtraction
                                         return (
                                             <td key={idx} className={`px-3 py-2 font-bold ${result >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                                 {formatCurrency(result)}
@@ -105,7 +105,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
                                         // Calculate accumulated up to this index
                                         let acc = 0;
                                         for (let i = 0; i <= idx; i++) {
-                                            acc += (data[i].Receitas || 0) + (data[i].Despesas || 0);
+                                            acc += (data[i].Receitas || 0) - (data[i].Despesas || 0); // Corrected Subtraction
                                         }
                                         return (
                                             <td key={idx} className={`px-3 py-2 font-bold ${acc >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
