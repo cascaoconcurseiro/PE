@@ -367,3 +367,6 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
                     </div>
                 </div>
             )}
+        </div>
+    );
+};
