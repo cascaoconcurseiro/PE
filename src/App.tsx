@@ -197,6 +197,7 @@ const App = () => {
                 title: sn.title,
                 description: sn.message,
                 type: sn.type,
+                data: sn.data,
                 date: sn.created_at,
                 isLocal: false
             }));
@@ -215,9 +216,29 @@ const App = () => {
 
     const handleNotificationPay = useCallback(() => { }, []);
     const handleNotificationClick = useCallback(async (id: string) => {
-        const isLocal = !systemNotifications.find(n => n.id === id);
-        if (!isLocal) {
+        const sysNotif = systemNotifications?.find(n => n.id === id);
+
+        if (sysNotif) {
+            // 1. Mark as Read
             await markAsRead(id);
+
+            // 2. Perform Navigation Action
+            const { type, data } = sysNotif;
+
+            if (type === 'INVITE') {
+                // Navigate to Family view to see the new connection
+                setActiveView(View.FAMILY);
+                // Optional: Show a toast or highlight?
+            } else if (type === 'TRIP') {
+                setActiveView(View.TRIPS);
+                // If we implemented opening a specific trip, we'd use data.tripId here
+            } else if (type === 'TRANSACTION') {
+                setActiveView(View.TRANSACTIONS);
+                if (data?.transactionId) {
+                    setEditTxId(data.transactionId);
+                    setIsTxModalOpen(true);
+                }
+            }
         }
     }, [markAsRead, systemNotifications]);
 
