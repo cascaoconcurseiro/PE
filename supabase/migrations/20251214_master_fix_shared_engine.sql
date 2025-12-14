@@ -49,6 +49,44 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'family_members' AND column_name = 'linked_user_id') THEN
         ALTER TABLE family_members ADD COLUMN linked_user_id UUID;
     END IF;
+
+    -- 5. ENSURE MISSING SHARED ENGINE TABLES
+    CREATE TABLE IF NOT EXISTS public.shared_transaction_requests (
+        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        transaction_id UUID NOT NULL, -- references transactions(id) but weak link to avoid cascade issues? No, strong link better.
+        requester_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+        invited_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+        status TEXT DEFAULT 'PENDING', -- PENDING, ACCEPTED, REJECTED
+        assigned_amount NUMERIC,
+        responded_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS public.settlement_requests (
+        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        payer_id UUID REFERENCES auth.users(id) ON DELETE CASCADE, -- Quem deve
+        receiver_id UUID REFERENCES auth.users(id) ON DELETE CASCADE, -- Quem recebe
+        amount NUMERIC NOT NULL,
+        currency TEXT DEFAULT 'BRL',
+        status TEXT DEFAULT 'PENDING',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+
+    -- Enable RLS for new tables
+    ALTER TABLE public.shared_transaction_requests ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.settlement_requests ENABLE ROW LEVEL SECURITY;
+
+    -- Create Policies if missing (Dynamic SQL to avoid errors if policy exists)
+    -- Simply dropping if exists is easier in DO block
+    DROP POLICY IF EXISTS "Users can see their own requests" ON public.shared_transaction_requests;
+    CREATE POLICY "Users can see their own requests" ON public.shared_transaction_requests
+        FOR ALL USING (auth.uid() = requester_id OR auth.uid() = invited_user_id);
+
+    DROP POLICY IF EXISTS "Users can see their own settlements" ON public.settlement_requests;
+    CREATE POLICY "Users can see their own settlements" ON public.settlement_requests
+        FOR ALL USING (auth.uid() = payer_id OR auth.uid() = receiver_id);
     
     RAISE NOTICE 'Schema Repair Completed.';
 END $do$;
