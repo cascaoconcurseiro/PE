@@ -117,9 +117,22 @@ export const useFinancialDashboard = ({
         }, 0);
 
         // 2. Receivables (Credits from Shared Transactions)
-        // STRICT FIX: Use 'dashboardTransactions' to ensure we ONLY sum BRL receivables.
-        // This prevents foreign currency amounts (e.g. USD 50) from being mixed into BRL Net Worth.
-        const receivables = calculateTotalReceivables(dashboardTransactions);
+        // 2. Receivables (Credits from Shared Transactions)
+        // STRICT FIX: Use 'dashboardTransactions' (already filtered) AND double check currency if available
+        const bRlReceivables = dashboardTransactions.filter(t => {
+            // Extra safety: Check if this specific tx is linked to a non-BRL account or Trip
+            const acc = accounts.find(a => a.id === t.accountId);
+            if (acc && acc.currency && acc.currency !== 'BRL') return false;
+
+            // Check trip context again (redundant but safe)
+            if (t.tripId && trips) {
+                const tr = trips.find(trip => trip.id === t.tripId);
+                if (tr && tr.currency && tr.currency !== 'BRL') return false;
+            }
+            return true;
+        });
+
+        const receivables = calculateTotalReceivables(bRlReceivables);
 
         return cashBalance + receivables;
     }, [dashboardAccounts, transactions]);

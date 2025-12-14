@@ -26,8 +26,12 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
 
     // Calculate totals in the TRIP'S currency (e.g. USD)
     const totalSpent = transactions.reduce((acc, t) => {
-        if (t.type === TransactionType.EXPENSE) return acc + t.amount;
-        if (t.type === TransactionType.INCOME) return acc - t.amount;
+        if (t.type === TransactionType.EXPENSE) {
+            return acc + t.amount;
+        }
+        if (t.type === TransactionType.INCOME || t.isRefund) {
+            return acc - t.amount;
+        }
         return acc;
     }, 0);
     const budget = trip.budget || 0;
