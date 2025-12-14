@@ -29,6 +29,7 @@ export const useFinancialDashboard = ({
     // 0. GLOBAL FILTER: Dashboard is checking/local only.
     const dashboardTransactions = useMemo(() =>
         transactions.filter(t => {
+            if (t.deleted) return false;
             if (isForeignTransaction(t, accounts)) return false;
             // Redundant Safety Check
             if (t.accountId) {

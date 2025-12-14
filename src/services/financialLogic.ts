@@ -144,6 +144,7 @@ export const calculateProjectedBalance = (
     };
 
     transactions.forEach(t => {
+        if (t.deleted) return;
         // Filtrar apenas transações deste mês
         if (!isSameMonth(t.date, currentDate)) return;
 

@@ -358,6 +358,7 @@ export const useTransactionForm = ({
         isTransfer,
         handleConfirmSplit,
         handleSubmit,
-        setManualExchangeRate // Export setter
+        setManualExchangeRate, // Export setter
+        duplicateWarning // ✅ Export for UI Blinking Alert
     };
 };

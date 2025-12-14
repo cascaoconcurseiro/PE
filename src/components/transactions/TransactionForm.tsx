@@ -78,7 +78,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         isIncome,
         isTransfer,
         handleConfirmSplit,
-        handleSubmit
+        handleSubmit,
+        duplicateWarning
     } = useTransactionForm({
         initialData,
         formMode,
@@ -212,6 +213,19 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     <div className="px-3 sm:px-5 pt-2 sm:pt-3 animate-in slide-in-from-top-2">
                         <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 border border-amber-100 dark:border-amber-800">
                             <Pencil className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Editando
+                        </div>
+                    </div>
+                )}
+
+                {/* ✅ BLINKING DUPLICATE ALERT */}
+                {duplicateWarning && (
+                    <div className="px-3 sm:px-5 pt-2 sm:pt-3 animate-pulse">
+                        <div className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 p-3 rounded-xl text-xs font-bold flex items-center gap-3 border-2 border-red-500 dark:border-red-500 shadow-lg">
+                            <BellRing className="w-5 h-5 text-red-600 dark:text-red-400 animate-bounce" />
+                            <div className="flex-1">
+                                <p className="uppercase tracking-wider text-[10px] text-red-600 dark:text-red-400 mb-0.5">Atenção!</p>
+                                <p>Possível transação duplicada detectada.</p>
+                            </div>
                         </div>
                     </div>
                 )}

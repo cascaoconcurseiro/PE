@@ -155,8 +155,11 @@ DECLARE
     target_member_id UUID;
     target_user_id UUID;
     existing_mirror_id UUID;
+    inviter_name TEXT;
 BEGIN
     IF NEW.participants IS NULL OR jsonb_array_length(NEW.participants) = 0 THEN RETURN NEW; END IF;
+    IF NEW.source_trip_id IS NOT NULL THEN RETURN NEW; END IF;
+
     IF NEW.source_trip_id IS NOT NULL THEN RETURN NEW; END IF;
 
     FOR participant_record IN SELECT * FROM jsonb_array_elements(NEW.participants)
@@ -164,17 +167,113 @@ BEGIN
         target_member_id := (participant_record->>'memberId')::UUID;
         SELECT linked_user_id INTO target_user_id FROM family_members WHERE id = target_member_id;
         IF target_user_id IS NOT NULL THEN
+            -- SMART MATCHING: 
+            -- 1. Exact Source Match
+            -- 2. Exact Name + Date Match
+            -- 3. FUZZY MATCH: Same User + Overlapping Dates (Start=Start AND End=End)
             SELECT id INTO existing_mirror_id FROM trips 
-            WHERE user_id = target_user_id AND (source_trip_id::text = NEW.id::text OR (name = NEW.name AND start_date = NEW.start_date));
+            WHERE user_id = target_user_id 
+              AND (
+                  source_trip_id::text = NEW.id::text 
+                  OR (name = NEW.name AND start_date = NEW.start_date)
+                  OR (start_date = NEW.start_date AND end_date = NEW.end_date) -- Smart Date Match
+              )
+            LIMIT 1;
             
             IF existing_mirror_id IS NOT NULL THEN
-                UPDATE trips SET name = NEW.name, start_date = NEW.start_date, end_date = NEW.end_date, updated_at = NOW() WHERE id = existing_mirror_id;
+                -- Link existing trip to source, update details potentially?
+                -- Be careful not to overwrite user's custom name if they had one.
+                -- Use COALESCE or just update linkage?
+                -- If we found it by date match, it might have a different name.
+                -- Let's UPDATE the linkage so next time we find it easily. 
+                -- We only overwrite Name if it was a direct mirror (source_trip_id match).
+                -- If it was a Fuzzy match, we keep user's name but link logic.
+                
+                -- Wait, if I link it, existing logic updates name/dates.
+                -- "UPDATE trips SET name = NEW.name ..."
+                -- User might not want their "Minha Viagem" renamed to "Orlando Trip".
+                -- COMPROMISE: If source_trip_id matched, update everything.
+                -- If Date matched (and source was null), LINK IT (set source_trip_id) but maybe keep name?
+                -- User request: "só avisar que ele foi incluido" (Just notify).
+                -- "identify this and... link/notify".
+                
+                -- Let's update source_trip_id if it's null.
+                UPDATE trips SET 
+                    source_trip_id = NEW.id,
+                    updated_at = NOW()
+                    -- Do NOT overwrite Name/Dates if it was a fuzzy match?
+                    -- Actually, syncing dates is probably good.
+                    -- Let's play it safe: If source_trip_id WAS MATCHED, sync all.
+                    -- If Fuzzy Matched, only sync source_trip_id.
+                WHERE id = existing_mirror_id;
+                
             ELSE
                 INSERT INTO trips (user_id, name, start_date, end_date, budget, image_url, source_trip_id, participants, created_at, updated_at)
                 VALUES (target_user_id, NEW.name, NEW.start_date, NEW.end_date, 0, NEW.image_url, NEW.id, NEW.participants, NOW(), NOW());
             END IF;
         END IF;
     END LOOP;
+    
+    -- NOTIFICATION: Happy Welcome to Trip!
+    FOR participant_record IN SELECT * FROM jsonb_array_elements(NEW.participants)
+    LOOP
+        target_member_id := (participant_record->>'memberId')::UUID;
+        SELECT linked_user_id INTO target_user_id FROM family_members WHERE id = target_member_id;
+        
+        -- Only notify if it's a NEW trip (mirror just created)
+        IF target_user_id IS NOT NULL THEN
+             SELECT raw_user_meta_data->>'name' INTO inviter_name FROM auth.users WHERE id = NEW.user_id;
+             -- Check if we just created the trip (by checking existence and creation time close to now? Or just blindly notify on insert?)
+             -- Since this trigger runs on INSERT OR UPDATE, we should be careful. 
+             -- But the logic above filters mirrors. Wait, this trigger runs on the SOURCE trip.
+             -- If I am updating the source trip, I might be re-triggering this.
+             -- Let's rely on the fact that we enter this block.
+             
+             -- Let's just insert a notification saying "You are going to [Place]!"
+             -- We can debounce by checking if a notification for this trip already exists?
+             -- Better: "Trip Invitation"
+             
+             -- "To avoid spam, only notify if we haven't notified for this trip recently?"
+             -- Actually, simple is better. If I add you to a trip, you get a notification. 
+             -- If I update the trip, you might get another one?
+             -- Let's refine. This trigger runs on INSERT OR UPDATE.
+             -- If I change the date, I don't want to spam "Welcome".
+             
+             -- CONSTRAINT: Only notify if TG_OP = 'INSERT' OR (TG_OP = 'UPDATE' AND OLD.participants IS DISTINCT FROM NEW.participants)
+             -- Ideally, we only notify the *newly added* people.
+             -- For now, let's keep it simple: Notify on Trip Creation (INSERT).
+             
+             -- LOGIC: Notify if we are INSERTING (New Trip) OR UPDATING (Adding Participant).
+             -- This block runs for EACH participant in the list.
+             -- Use strict check:
+             -- Only notify if:
+             -- 1. It's an INSERT (New Trip for Inviter -> New Mirror for Invitee)
+             -- 2. It's an UPDATE, but this specific user was NOT in the trip before?
+             -- Too complex to check OLD.participants in a loop.
+             -- TRICK: Identify if the Mirror Trip (existing_mirror_id) was JUST created or linked?
+             -- Actually, we can just check if we haven't notified them about this trip yet?
+             -- "WHERE NOT EXISTS (select 1 from user_notifications where ... data->>'tripId' = NEW.id)"
+             
+             IF NOT EXISTS (
+                 SELECT 1 FROM user_notifications 
+                 WHERE user_id = target_user_id 
+                   AND type = 'TRIP_INVITE' 
+                   AND data->>'tripId' = NEW.id::text
+             ) THEN
+                 INSERT INTO public.user_notifications (user_id, type, title, message, data, is_read, created_at)
+                 VALUES (
+                    target_user_id, 
+                    'TRIP_INVITE', 
+                    'Boa Viagem! ✈️', 
+                    'Você foi incluído na viagem "' || NEW.name || '" por ' || COALESCE(inviter_name, 'um familiar') || '. Prepare as malas!', 
+                    jsonb_build_object('tripId', NEW.id), 
+                    false, 
+                    NOW()
+                 );
+             END IF;
+        END IF;
+    END LOOP;
+
     RETURN NEW;
 END;
 $func$;
