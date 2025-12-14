@@ -71,7 +71,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
                 onSave={handleCreateOrUpdateTrip}
                 onCancel={() => { setIsCreatingTrip(false); setEditingTripId(null); }}
                 editingTripId={editingTripId}
-                currentUserId={currentUserId}
+                userId={currentUserId}
             />
         );
     }
@@ -96,7 +96,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
                 onEditTransaction={onEditTransaction} // Keep this for legacy or specialized modal trigger if needed
                 onUpdateTransactionInternal={onUpdateTransaction}
                 onDeleteTransactionInternal={onDeleteTransaction}
-                currentUserId={currentUserId}
+                userId={currentUserId}
             />
         );
     }
@@ -106,7 +106,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
             trips={trips}
             onTripClick={setSelectedTripId}
             onCreateClick={() => setIsCreatingTrip(true)}
-            currentUserId={currentUserId}
+            userId={currentUserId}
         />
     );
 };

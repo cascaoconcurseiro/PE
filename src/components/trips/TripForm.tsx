@@ -12,10 +12,10 @@ interface TripFormProps {
     onSave: (trip: Omit<Trip, 'id'> | Trip) => void;
     onCancel: () => void;
     editingTripId?: string | null;
-    currentUserId?: string;
+    userId?: string;
 }
 
-export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, onSave, onCancel, editingTripId, currentUserId }) => {
+export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, onSave, onCancel, editingTripId, userId }) => {
     const [name, setName] = useState(initialData?.name || '');
     const [startDate, setStartDate] = useState(initialData?.startDate || new Date().toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState(initialData?.endDate || new Date().toISOString().split('T')[0]);
@@ -25,8 +25,8 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
 
     // Permission Check
     // If creating, you are owner. If editing, check IDs.
-    // If no currentUserId provided (shouldn't happen in auth app), default to allow to avoid lockout.
-    const isOwner = !editingTripId || !currentUserId || (initialData?.userId === currentUserId);
+    // If no userId provided (shouldn't happen in auth app), default to allow to avoid lockout.
+    const isOwner = !editingTripId || !userId || (initialData?.userId === userId);
     const canEditSettings = isOwner;
 
     const calculateDuration = () => {

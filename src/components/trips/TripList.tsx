@@ -9,10 +9,14 @@ interface TripListProps {
     trips: Trip[];
     onTripClick: (tripId: string) => void;
     onCreateClick: () => void;
-    currentUserId?: string;
+interface TripListProps {
+    trips: Trip[];
+    onTripClick: (tripId: string) => void;
+    onCreateClick: () => void;
+    userId?: string;
 }
 
-export const TripList: React.FC<TripListProps> = ({ trips, onTripClick, onCreateClick, currentUserId }) => {
+export const TripList: React.FC<TripListProps> = ({ trips, onTripClick, onCreateClick, userId }) => {
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
             <div className="flex justify-between items-center px-1">

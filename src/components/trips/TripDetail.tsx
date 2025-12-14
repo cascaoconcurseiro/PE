@@ -26,10 +26,10 @@ interface TripDetailProps {
     onEditTransaction?: (id: string) => void; // Trigger modal/form
     onUpdateTransactionInternal: (t: Transaction) => void;
     onDeleteTransactionInternal: (id: string) => void;
-    currentUserId?: string;
+    userId?: string;
 }
 
-export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, accounts, familyMembers, onBack, onEdit, onDelete, onUpdateTrip, onNavigateToShared, onEditTransaction, onUpdateTransactionInternal, onDeleteTransactionInternal }) => {
+export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, accounts, familyMembers, onBack, onEdit, onDelete, onUpdateTrip, onNavigateToShared, onEditTransaction, onUpdateTransactionInternal, onDeleteTransactionInternal, userId }) => {
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'ITINERARY' | 'CHECKLIST' | 'STATS' | 'SHOPPING' | 'EXCHANGE'>('OVERVIEW');
 
     const totalSpent = transactions.reduce((acc, t) => acc + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0);
@@ -64,7 +64,7 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, acco
                         <Printer className="w-5 h-5" />
                     </button>
                     {/* Owner Governance: Only Owner can Edit/Delete */}
-                    {currentUserId === trip.userId && (
+                    {userId === trip.userId && (
                         <>
                             <button onClick={() => onEdit(trip)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-violet-600 rounded-xl transition-colors" title="Editar Viagem">
                                 <Pencil className="w-5 h-5" />
