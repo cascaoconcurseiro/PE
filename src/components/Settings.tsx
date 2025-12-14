@@ -358,35 +358,39 @@ export const Settings: React.FC<SettingsProps> = ({
                                     <p className="text-sm text-slate-500 dark:text-slate-400">Informações da versão.</p>
                                 </div>
                             </div>
-                            <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                                <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800">
-                                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Versão</span>
-                                    <span className="text-sm font-bold text-slate-900 dark:text-white">2.0.0 (Enterprise)</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800">
-                                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Ambiente</span>
-                                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">Produção</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2">
-                                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Banco de Dados</span>
-                                    <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">Supabase (Cloud)</span>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-                )}
-            </div>
+                            import {APP_VERSION, BUILD_CODENAME} from '../config/appVersion';
 
-            <ConfirmModal
-                isOpen={confirmModal.isOpen}
-                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-                onConfirm={() => {
-                    confirmModal.onConfirm();
-                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
-                }}
-                title={confirmModal.title}
-                message={confirmModal.message}
-            />
+                            // ... (inside the component return)
+
+                            <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800">
+                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Versão</span>
+                                <span className="text-sm font-bold text-slate-900 dark:text-white">{APP_VERSION} ({BUILD_CODENAME})</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800">
+                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Ambiente</span>
+                                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">Produção</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Banco de Dados</span>
+                                <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">Supabase (Cloud)</span>
+                            </div>
+                    </div>
+                        </Card>
+        </div>
+    )
+}
+            </div >
+
+    <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={() => {
+            confirmModal.onConfirm();
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }}
+        title={confirmModal.title}
+        message={confirmModal.message}
+    />
         </div >
     );
 };

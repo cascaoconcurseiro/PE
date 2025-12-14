@@ -56,8 +56,35 @@ const App = () => {
 
     // ...
 
-    // Initial Setup
+    import { APP_VERSION } from './config/appVersion';
+
+    // ...
+
+    // Initial Setup & Version Check
     useEffect(() => {
+        const checkVersion = async () => {
+            const storedVersion = localStorage.getItem('dyad_app_version');
+
+            // IF VERSION MISMATCH (or first run): FORCE CLEANUP
+            if (storedVersion !== APP_VERSION) {
+                console.warn(`⚠️ Detectada nova versão: ${APP_VERSION} (Antiga: ${storedVersion}). Forçando atualização...`);
+
+                // 1. Wipe Local Storage (Cache)
+                localStorage.clear();
+
+                // 2. Set New Version
+                localStorage.setItem('dyad_app_version', APP_VERSION);
+
+                // 3. Force Sign Out to ensure clean session state
+                await supabase.auth.signOut();
+
+                // 4. Force Hard Reload (Bypassing Service Worker if active)
+                window.location.reload();
+                return; // Stop execution
+            }
+        };
+        checkVersion();
+
         const init = async () => {
             try {
                 // RACE CONDITION: Timeout after 3s if Supabase is slow/stuck
@@ -203,7 +230,7 @@ const App = () => {
 
     const renderContent = () => {
         switch (activeView) {
-            case View.DASHBOARD: return <Dashboard accounts={calculatedAccounts} projectedAccounts={projectedAccounts} transactions={transactions} trips={trips} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={() => { }} onNotificationPay={() => { }} isLoading={isDataLoading} pendingSettlements={pendingSettlements} onOpenShared={() => handleViewChange(View.SHARED)} onOpenSettlement={() => { }} />;
+            case View.DASHBOARD: return <Dashboard accounts={calculatedAccounts} projectedAccounts={projectedAccounts} transactions={transactions} trips={trips} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={() => { }} onNotificationPay={() => { }} isLoading={isDataLoading} pendingSettlements={pendingSettlements} onOpenShared={() => handleViewChange(View.SHARED)} onOpenSettlement={() => { }} userName={sessionUser?.name} />;
             case View.ACCOUNTS: return <Accounts accounts={calculatedAccounts} transactions={transactions} members={familyMembers} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onDeleteTransaction={handlers.handleDeleteTransaction} onAddTransaction={handlers.handleAddTransaction} onAddTransactions={handlers.handleAddTransactions} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} initialAccountId={navigatedAccountId} onClearInitialAccount={() => setNavigatedAccountId(null)} />;
             case View.TRANSACTIONS: return <Transactions transactions={transactions} accounts={calculatedAccounts} trips={trips} familyMembers={familyMembers} customCategories={customCategories} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAnticipate={handlers.handleAnticipateInstallments} currentDate={currentDate} showValues={showValues} initialEditId={editTxId} onClearEditId={() => setEditTxId(null)} onNavigateToAccounts={() => handleViewChange(View.ACCOUNTS)} onNavigateToTrips={() => handleViewChange(View.TRIPS)} onNavigateToFamily={() => handleViewChange(View.FAMILY)} currentUserName={sessionUser?.name || 'Eu'} />;
             case View.BUDGETS: return <Budgets budgets={budgets} transactions={transactions} onAddBudget={handlers.handleAddBudget} onUpdateBudget={handlers.handleUpdateBudget} onDeleteBudget={handlers.handleDeleteBudget} currentDate={currentDate} />;
