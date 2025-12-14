@@ -107,10 +107,13 @@ export const useFinancialDashboard = ({
     const netWorth = useMemo(() => {
         // 1. Bank Balances
         const cashBalance = dashboardAccounts.reduce((acc, curr) => {
+            // STRICT CURRENCY CHECK: Omit if not BRL (or empty/null which implies Default)
+            if (curr.currency && curr.currency !== 'BRL') return acc;
+
             if (curr.type === AccountType.CREDIT_CARD) {
-                return acc - Math.abs(convertToBRL(curr.balance, curr.currency || 'BRL'));
+                return acc - Math.abs(curr.balance);
             }
-            return acc + convertToBRL(curr.balance, curr.currency || 'BRL');
+            return acc + curr.balance;
         }, 0);
 
         // 2. Receivables (Credits from Shared Transactions)

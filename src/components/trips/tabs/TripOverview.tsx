@@ -25,7 +25,11 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
     const [loadingAi, setLoadingAi] = useState(false);
 
     // Calculate totals in the TRIP'S currency (e.g. USD)
-    const totalSpent = transactions.reduce((acc, t) => acc + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0);
+    const totalSpent = transactions.reduce((acc, t) => {
+        if (t.type === TransactionType.EXPENSE) return acc + t.amount;
+        if (t.type === TransactionType.INCOME) return acc - t.amount;
+        return acc;
+    }, 0);
     const budget = trip.budget || 0;
     const percentUsed = budget > 0 ? (totalSpent / budget) * 100 : 0;
     const isOverBudget = totalSpent > budget && budget > 0;
