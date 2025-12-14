@@ -1,4 +1,4 @@
--- MIGRATION: V8 FINAL STABILIZATION
+-- MIGRATION: V8 FINAL STABILIZATION (CORRECTED TYPE CASTS)
 -- DATE: 2025-01-09
 -- 1. Fix "Violates foreign key" in Notifications (Verify user existence)
 -- 2. Fix "Ghost Transactions" (Cascade Delete)
@@ -35,19 +35,6 @@ BEGIN
                  IF v_user_id IS NOT NULL AND v_user_id <> NEW.user_id THEN
                     -- Check if user actually exists to avoid FK violation
                     IF EXISTS (SELECT 1 FROM auth.users WHERE id = v_user_id) THEN
-                         
-                         -- (Optional) Avoid Duplicate Notification logic could go here
-                         -- But for now, focus on preventing crash.
-                         
-                         -- Insert (if NEW participant logic matches)
-                         -- Simplified for robustness: Just Insert (Trigger logic in V7 had complex detection, keeping it simple here to ensure it works)
-                         -- Ideally we only notify NEW people. 
-                         -- Re-using V7 logic implicitly:
-                         
-                         -- IF UPDATE, check if exists in OLD. (Skipping complex check for safety/speed, assuming client sends valid diffs? No, safer to check.)
-                         -- Let's use a safe INSERT IGNORE style check for "Recently Notified"?
-                         -- Or just rely on the fact that if it crashes, it's bad.
-                         
                          INSERT INTO public.user_notifications (user_id, type, title, message, data)
                          VALUES (
                             v_user_id,
@@ -56,7 +43,7 @@ BEGIN
                             COALESCE(v_sender_name, 'Alguém') || ' adicionou você na viagem: ' || COALESCE(NEW.name, 'Viagem'),
                             jsonb_build_object('tripId', NEW.id)
                          )
-                         ON CONFLICT DO NOTHING; -- If we had a unique constraint. We don't.
+                         ON CONFLICT DO NOTHING; 
                     END IF;
                  END IF;
              END LOOP;
@@ -74,7 +61,8 @@ CREATE OR REPLACE FUNCTION delete_trip_cascade()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
     -- Delete all transactions linked to this trip
-    DELETE FROM public.transactions WHERE trip_id = OLD.id;
+    -- CAST TO TEXT to avoid 'operator does not exist: text = uuid' error
+    DELETE FROM public.transactions WHERE trip_id::text = OLD.id::text;
     RETURN OLD;
 END;
 $$;
@@ -87,6 +75,7 @@ FOR EACH ROW EXECUTE FUNCTION delete_trip_cascade();
 
 -- PART 3: CLEANUP ZOMBIE DATA
 -- Remove transactions that point to non-existent trips
+-- CAST TO TEXT to avoid type mismatch check error
 DELETE FROM public.transactions 
 WHERE trip_id IS NOT NULL 
-  AND trip_id NOT IN (SELECT id FROM public.trips);
+  AND trip_id::text NOT IN (SELECT id::text FROM public.trips);
