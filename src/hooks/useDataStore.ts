@@ -208,7 +208,7 @@ export const useDataStore = () => {
                 if (hasPaid) {
                     throw new Error('Não é possível alterar o número de parcelas de uma série com pagamentos já realizados.');
                 }
-                
+
                 // 1.5 Safety: Block resizing if Shared (too complex to regenerate splits on the fly without dedicated UI)
                 const isSharedSeries = seriesTxs.some(t => t.isShared || (t.sharedWith && t.sharedWith.length > 0));
                 if (isSharedSeries) {
@@ -625,7 +625,54 @@ export const useDataStore = () => {
             handleAddTrip: tripsHandler.add, handleUpdateTrip: tripsHandler.update,
             handleDeleteTrip: handleDeleteTrip, // Using the new cascading handler
 
-            handleAddMember: membersHandler.add, handleUpdateMember: membersHandler.update, handleDeleteMember: membersHandler.delete,
+            handleAddMember: membersHandler.add, handleUpdateMember: membersHandler.update,
+            handleDeleteMember: async (id: string, strategy: 'CASCADE' | 'UNLINK' = 'UNLINK') => performOperation(async () => {
+                // 1. Handle Transactions where member is PAYER
+                const payerTxs = transactions.filter(t => t.payerId === id);
+                if (payerTxs.length > 0) {
+                    if (strategy === 'CASCADE') {
+                        // Delete these transactions
+                        const idsToDelete = payerTxs.map(t => t.id);
+                        await supabaseService.bulkDelete('transactions', idsToDelete);
+                        // UI Optimistic
+                        setTransactions(prev => prev.filter(t => !idsToDelete.includes(t.id)));
+                    } else {
+                        // UNLINK: Reassign to 'me' (or null if backend handles it, but 'me' is safer for UI)
+                        // Actually, better to just clear payerId so it defaults to account owner
+                        const updates = payerTxs.map(t => ({ ...t, payerId: 'me', updatedAt: new Date().toISOString() }));
+                        await supabaseService.bulkCreate('transactions', updates); // upsert
+                        // UI Optimistic
+                        setTransactions(prev => prev.map(t => t.payerId === id ? { ...t, payerId: 'me' } : t));
+                    }
+                }
+
+                // 2. Handle Transactions where member is in SHARED_WITH
+                // We must remove them from the array.
+                const sharedTxs = transactions.filter(t => t.sharedWith?.some(s => s.memberId === id));
+                if (sharedTxs.length > 0) {
+                    const updates = sharedTxs.map(t => {
+                        const newShared = t.sharedWith?.filter(s => s.memberId !== id) || [];
+                        // If no one left to share with, isShared becomes false?
+                        // Logic: If sharedWith empty, it's personal.
+                        return {
+                            ...t,
+                            sharedWith: newShared,
+                            isShared: newShared.length > 0,
+                            updatedAt: new Date().toISOString()
+                        };
+                    });
+                    await supabaseService.bulkCreate('transactions', updates);
+                    // UI Optimistic
+                    setTransactions(prev => prev.map(t => {
+                        const match = updates.find(u => u.id === t.id);
+                        return match ? match : t;
+                    }));
+                }
+
+                // 3. Finally, delete the member
+                await supabaseService.delete('family_members', id);
+                setFamilyMembers(prev => prev.filter(m => m.id !== id));
+            }, 'Membro removido e vínculos processados.'),
             handleAddCategory, handleDeleteCategory: categoriesHandler.delete,
             handleAddBudget: budgetsHandler.add, handleUpdateBudget: budgetsHandler.update, handleDeleteBudget: budgetsHandler.delete,
             handleAddGoal: goalsHandler.add, handleUpdateGoal: goalsHandler.update, handleDeleteGoal: goalsHandler.delete,
