@@ -103,7 +103,7 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
                             ) : (
                                 <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
                                     {displayList.map(n => {
-                                        const isSystem = type => type === 'TRANSACTION' || type === 'TRIP';
+                                        const isSystem = (type: string) => type === 'TRANSACTION' || type === 'TRIP';
                                         const systemItem = isSystem(n.type);
 
                                         return (
