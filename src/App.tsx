@@ -56,6 +56,56 @@ const App = () => {
 
     // ...
 
+    // Initial Setup
+    useEffect(() => {
+        const init = async () => {
+            try {
+                // RACE CONDITION: Timeout after 3s if Supabase is slow/stuck
+                const sessionPromise = supabase.auth.getSession();
+                const timeoutPromise = new Promise<{ data: { session: null }, error: any }>((resolve) =>
+                    setTimeout(() => resolve({ data: { session: null }, error: new Error("Timeout") }), 3000)
+                );
+
+                const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+
+                if (error && error.message !== "Timeout") throw error;
+
+                startTransition(() => {
+                    if (session) {
+                        setSessionUser({
+                            id: session.user.id,
+                            name: session.user.user_metadata.name || session.user.email?.split('@')[0],
+                            email: session.user.email
+                        });
+                    }
+                    setIsSessionLoading(false);
+                });
+            } catch (err) {
+                console.warn("Session init error:", err);
+                setIsSessionLoading(false);
+            }
+        };
+        init();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            startTransition(() => {
+                if (session) {
+                    setSessionUser({
+                        id: session.user.id,
+                        name: session.user.user_metadata.name || session.user.email?.split('@')[0],
+                        email: session.user.email
+                    });
+                    // Ensure loading is cleared on auth change too
+                    setIsSessionLoading(false);
+                } else {
+                    setSessionUser(null);
+                    setIsSessionLoading(false);
+                }
+            });
+        });
+        return () => subscription.unsubscribe();
+    }, []);
+
     // Helper Functions & Memos
     const handleViewChange = (view: View) => startTransition(() => setActiveView(view));
 
