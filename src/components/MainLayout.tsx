@@ -85,7 +85,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                                             if (h < 12) return 'Bom dia';
                                             if (h < 18) return 'Boa tarde';
                                             return 'Boa noite';
-                                        })()}, <span className="text-emerald-600 dark:text-emerald-400 capitalize">{user?.name?.split(' ')[0] || 'Visitante'}</span> 👋
+                                        })()}, <span className="text-emerald-600 dark:text-emerald-400 capitalize">{user?.name && user.name !== 'Carregando...' ? user.name.split(' ')[0] : 'Visitante'}</span> 👋
                                     </h2>
                                 </div>
                             ) : (

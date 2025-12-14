@@ -6,9 +6,10 @@ import { parseDate } from '../../utils';
 
 interface TripsSummaryProps {
     trips: Trip[];
+    currentUserId?: string;
 }
 
-export const TripsSummary: React.FC<TripsSummaryProps> = ({ trips }) => {
+export const TripsSummary: React.FC<TripsSummaryProps> = ({ trips, currentUserId }) => {
     // Logic to find next trip
     const now = new Date();
     now.setHours(0, 0, 0, 0);
