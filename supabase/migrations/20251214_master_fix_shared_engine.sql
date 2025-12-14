@@ -1,4 +1,4 @@
--- MASTER FIX SHARED ENGINE (2025-12-14)
+-- MASTER FIX SHARED ENGINE (2025-12-14) - PARANOID EDITION
 -- Combined Script: Schema Repair + Logic Restoration + Data Sync
 -- OBJECTIVE: Fix Shared Trips, Transactions, and Notifications definitively.
 
@@ -58,7 +58,7 @@ END $do$;
 -- PART 2: LOGIC REPAIR (TRIGGERS & FUNCTIONS)
 -- =================================================================================
 
--- 1. BALANCE ENGINE
+-- 1. BALANCE ENGINE (Disable trigger-based calc, move to App/Edge)
 CREATE OR REPLACE FUNCTION update_account_balance()
 RETURNS TRIGGER AS $func$
 BEGIN
@@ -81,11 +81,12 @@ BEGIN
         SELECT raw_user_meta_data->>'name' INTO inviter_name FROM auth.users WHERE id = auth.uid();
         FOR split IN SELECT * FROM jsonb_array_elements(NEW.shared_with)
         LOOP
+            -- PARANOID: Text casting
             target_member_id := (split->>'memberId')::UUID;
             SELECT linked_user_id INTO target_user_id FROM public.family_members WHERE id = target_member_id;
             
             IF target_user_id IS NOT NULL THEN
-                -- TRIP LOGIC: JUST-IN-TIME MIRRORING (Golden Rule)
+                -- TRIP LOGIC
                 target_trip_id := NULL;
                 IF NEW.trip_id IS NOT NULL THEN
                     -- 1. Try to find existing mirror (SAFE CAST)
@@ -94,7 +95,7 @@ BEGIN
 
                     -- 2. If not found, CREATE IT AUTOMATICALLY
                     IF target_trip_id IS NULL THEN
-                        SELECT * INTO original_trip_rec FROM trips WHERE id = NEW.trip_id;
+                        SELECT * INTO original_trip_rec FROM trips WHERE id::text = NEW.trip_id::text;
                         IF original_trip_rec.id IS NOT NULL THEN
                             INSERT INTO trips (
                                 user_id, name, start_date, end_date, budget, image_url, source_trip_id, participants, created_at, updated_at
@@ -125,7 +126,7 @@ BEGIN
                     NEW.category, 
                     'DESPESA', 
                     true, 
-                    auth.uid()::text, -- SAFE CAST for payer_id
+                    auth.uid()::text, -- SAFE CAST: Inserting UUID as Text
                     '[]'::jsonb, 
                     target_trip_id,
                     NOW(), 
@@ -138,7 +139,11 @@ BEGIN
 END;
 $func$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- CLEANUP OLD TRIGGER NAMES
 DROP TRIGGER IF EXISTS trg_mirror_shared_transaction ON public.transactions;
+DROP TRIGGER IF EXISTS handle_shared_transaction_trigger ON public.transactions; -- Potential Zombie
+DROP TRIGGER IF EXISTS on_transaction_insert ON public.transactions; -- Potential Zombie
+-- RECREATE
 CREATE TRIGGER trg_mirror_shared_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.handle_mirror_shared_transaction();
 
 
@@ -198,7 +203,8 @@ BEGIN
     -- NOTIFY ON SHARED TRANSACTION
     IF (TG_OP = 'INSERT') AND (TG_TABLE_NAME = 'transactions') THEN
         -- Fix: Explicit Cast to Text/UUID for comparison soundness
-        IF (NEW.is_shared = true) AND (NEW.payer_id IS NOT NULL) AND (NEW.payer_id::text <> NEW.user_id::text) THEN
+        -- Check if payer_id is a valid UUID (length 36 approx) to avoid invalid input syntax
+        IF (NEW.is_shared = true) AND (NEW.payer_id IS NOT NULL) AND (length(NEW.payer_id) = 36) AND (NEW.payer_id::text <> NEW.user_id::text) THEN
             SELECT raw_user_meta_data->>'name' INTO sender_name FROM auth.users WHERE id = NEW.payer_id::uuid;
             INSERT INTO public.user_notifications (user_id, type, title, message, data, is_read, created_at)
             VALUES (NEW.user_id, 'TRANSACTION', 'Nova Despesa Compartilhada', COALESCE(sender_name, 'Alguém') || ' adicionou uma despesa para você.', jsonb_build_object('transactionId', NEW.id, 'tripId', NEW.trip_id), false, NOW());

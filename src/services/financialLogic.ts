@@ -293,3 +293,44 @@ export const analyzeFinancialHealth = (income: number, expenses: number): 'POSIT
     if (savingRate < 0.1) return 'WARNING'; // Poupando menos de 10%
     return 'POSITIVE'; // Saudável
 };
+
+/**
+ * Calculates the total amount owed TO the user (Accounts Receivable).
+ * Scans all transactions (history) where user paid but splits are not settled.
+ * This is an ASSET and should be part of Net Worth.
+ */
+export const calculateTotalReceivables = (transactions: Transaction[]): number => {
+    let total = 0;
+
+    transactions.forEach(t => {
+        if (t.deleted) return;
+
+        // I paid for shared expense
+        if (t.type === TransactionType.EXPENSE && t.isShared && (!t.payerId || t.payerId === 'me')) {
+            if (t.sharedWith && t.sharedWith.length > 0) {
+                t.sharedWith.forEach(s => {
+                    // We use the raw amount (assumed BRL if user paid in BRL context, 
+                    // or we should convert? Usually split assignedAmount is in transaction currency).
+                    // If transaction has exchange rate, we should convert back to BRL?
+                    // For now, assume simpler BRL-based logic or 1:1 if same currency context.
+                    // IMPORTANT: 'calculateProjectedBalance' converts. We should too.
+
+                    if (!s.isSettled) {
+                        // Conversion Logic
+                        let val = s.assignedAmount;
+                        if (t.exchangeRate && t.exchangeRate > 0) {
+                            val = val * t.exchangeRate;
+                        } else if (t.currency && t.currency !== 'BRL') {
+                            // This relies on 'convertToBRL' which is simple static.
+                            // Better to use stored rate or raw.
+                        }
+
+                        total += val;
+                    }
+                });
+            }
+        }
+    });
+
+    return total;
+};

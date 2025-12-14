@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { Account, Transaction, TransactionType, AccountType, Category } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
-import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue } from '../services/financialLogic';
+import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue, calculateTotalReceivables } from '../services/financialLogic';
 import { shouldShowTransaction } from '../utils/transactionFilters';
 import { isForeignTransaction } from '../utils/transactionUtils';
 import { supabaseService } from '../services/supabaseService';
@@ -89,15 +89,23 @@ export const useFinancialDashboard = ({
     // 4. Financial Health Check
     const healthStatus = analyzeFinancialHealth(monthlyIncome + pendingIncome, monthlyExpense + pendingExpenses);
 
-    // 5. Total Net Worth
+    // 5. Total Net Worth (Assets - Liabilities)
+    // Assets = Cash Accounts + Investments + Receivables (Credits owed to me)
+    // Liabilities = Credit Card Debt + Payables (Debts I owe) - But user requested Cash Basis for debts.
     const netWorth = useMemo(() => {
-        return dashboardAccounts.reduce((acc, curr) => {
+        // 1. Bank Balances
+        const cashBalance = dashboardAccounts.reduce((acc, curr) => {
             if (curr.type === AccountType.CREDIT_CARD) {
                 return acc - Math.abs(convertToBRL(curr.balance, curr.currency || 'BRL'));
             }
             return acc + convertToBRL(curr.balance, curr.currency || 'BRL');
         }, 0);
-    }, [dashboardAccounts]);
+
+        // 2. Receivables (Credits from Shared Transactions)
+        const receivables = calculateTotalReceivables(transactions);
+
+        return cashBalance + receivables;
+    }, [dashboardAccounts, transactions]);
 
     // Annual Cash Flow Data (LOCAL CALCULATION - Ensures consistency with Widgets)
     const cashFlowData = useMemo(() => {
@@ -118,7 +126,6 @@ export const useFinancialDashboard = ({
         dashboardTransactions.forEach(t => {
             const tYear = new Date(t.date).getFullYear();
             if (tYear !== selectedYear) return;
-            if (t.category === Category.OPENING_BALANCE) return; // Exclude Opening Balance
             if (!shouldShowTransaction(t)) return;
 
             const monthIndex = new Date(t.date).getMonth();
@@ -221,7 +228,6 @@ export const useFinancialDashboard = ({
     const spendingChartData = useMemo(() => {
         const chartTxs = monthlyTransactions
             .filter(t => t.type === TransactionType.EXPENSE)
-            .filter(t => t.category !== Category.OPENING_BALANCE);
 
         if (spendingView === 'CATEGORY') {
             return Object.entries(

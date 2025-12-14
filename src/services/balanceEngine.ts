@@ -21,6 +21,7 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
 
     // 2. Iterate through every single transaction to apply changes
     transactions.forEach(tx => {
+        if (tx.deleted) return; // ✅ IGNOREE DELETED TRANSACTIONS
         const amount = tx.amount; // Amount is ALWAYS in the currency of the Source Account (accountId)
 
         // ✅ VALIDAÇÃO CRÍTICA 1: Valor deve ser válido
@@ -144,6 +145,7 @@ export const calculateTripDebts = (transactions: Transaction[], participants: { 
 
     // 2. Process Transactions
     transactions.forEach(tx => {
+        if (tx.deleted) return; // ✅ IGNORE DELETED
         if (tx.type !== TransactionType.EXPENSE) return; // Only expenses count for debts
 
         // Check if the MAIN debt (Me -> Other) is settled
