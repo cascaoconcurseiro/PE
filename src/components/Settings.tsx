@@ -385,6 +385,7 @@ export const Settings: React.FC<SettingsProps> = ({
                     title={confirmModal.title}
                     message={confirmModal.message}
                 />
-            </div >
-            );
+            </div>
+        </div >
+    );
 };
