@@ -82,12 +82,39 @@ export const useTransactionFilters = ({ transactions, accounts, currentDate, sea
             if (t.type === TransactionType.INCOME) {
                 inc += t.isRefund ? -val : val;
             } else if (t.type === TransactionType.EXPENSE) {
-                const myVal = calculateMyExpense(t);
-                // IF we are displaying in foreign currency, calculateMyExpense logic (splits) 
-                // might need to ensure it returns portion in ORIGINAL currency.
-                // calculateMyExpense usually returns proportion of t.amount. YES.
+                let expenseVal = 0;
 
-                exp += t.isRefund ? -myVal : myVal;
+                // CASH FLOW LOGIC: If I am Payer, I spent the FULL amount.
+                // If I am NOT Payer (Shared with me), I spent only my effective share.
+                if (t.isShared && t.payerId && t.payerId !== 'me') {
+                    expenseVal = calculateMyExpense(t);
+                } else {
+                    // Payer (me) or Regular Expense -> Full Amount
+                    expenseVal = t.amount;
+                }
+
+                // Convert if needed (though usually processed in BRL)
+                // Note: calculateMyExpense returns share of ORIGINAL amount.
+                // t.amount is ORIGINAL amount.
+                // so expenseVal is in ORIGINAL currency.
+                // effectively we need to convert expenseVal to displayCurrency (BRL most likely)
+
+                // Re-using the conversion logic from lines 63-80 via 'toBRL' concept, 
+                // but we need to do it manually here since 'val' variable above was naive.
+
+                // Actually, let's look at how 'val' was calculated above: it used toBRL(t.amount).
+                // We should apply the same logic to expenseVal.
+
+                let finalVal = 0;
+                if (displayCurrency !== 'BRL' && (t.currency || 'BRL') === displayCurrency) {
+                    finalVal = expenseVal;
+                } else {
+                    // Assuming expenseVal is proportional to t.amount, we can use exchange rate
+                    if (t.exchangeRate && t.exchangeRate > 0) finalVal = expenseVal * t.exchangeRate;
+                    else finalVal = convertToBRL(expenseVal, t.currency || 'BRL');
+                }
+
+                exp += t.isRefund ? -finalVal : finalVal;
             }
         });
 
