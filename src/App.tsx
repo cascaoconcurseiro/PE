@@ -63,18 +63,7 @@ const App = () => {
 
     // ...
 
-    // Welcome Toast Logic
-    const hasWelcomed = useRef(false);
-    const { addToast } = useToast();
-
-    useEffect(() => {
-        if (sessionUser && !isSessionLoading && !hasWelcomed.current) {
-            const h = new Date().getHours();
-            const greeting = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
-            addToast(`${greeting}, ${sessionUser.name?.split(' ')[0] || 'Visitante'}! 🚀`, 'info');
-            hasWelcomed.current = true;
-        }
-    }, [sessionUser, isSessionLoading, addToast]);
+    // Welcome Toast Removed
 
     // Initial Setup & Version Check
     useEffect(() => {
@@ -310,7 +299,7 @@ const App = () => {
         <MainLayout
             activeView={activeView}
             setActiveView={handleViewChange}
-            user={storedUser || { id: 'loading', name: 'Carregando...', email: '' }}
+            user={storedUser || sessionUser || { id: 'temp', name: 'Visitante', email: '' }}
             onLogout={handleLogout}
             onNotificationPay={handleNotificationPay}
             showValues={showValues}
