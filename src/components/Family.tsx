@@ -292,79 +292,78 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
                                 {member.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                                <div>
-                                    <h3 className="font-bold text-slate-800 dark:text-white text-base">{member.name}</h3>
-                                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                                        {member.role && (
-                                            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wide">
-                                                {member.role}
-                                            </span>
-                                        )}
-                                        {member.email && (
-                                            <span className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                                                <Mail className="w-3 h-3" />
-                                                <span className="truncate max-w-[150px]">{member.email}</span>
-                                            </span>
-                                        )}
-                                    </div>
+                                <h3 className="font-bold text-slate-800 dark:text-white text-base">{member.name}</h3>
+                                <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                                    {member.role && (
+                                        <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wide">
+                                            {member.role}
+                                        </span>
+                                    )}
+                                    {member.email && (
+                                        <span className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                                            <Mail className="w-3 h-3" />
+                                            <span className="truncate max-w-[150px]">{member.email}</span>
+                                        </span>
+                                    )}
                                 </div>
                             </div>
-                            <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                <button
-                                    onClick={() => handleEdit(member)}
-                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-colors"
-                                    title="Editar"
-                                >
-                                    <Pencil className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => handleDeleteClick(member)}
-                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors"
-                                    title="Excluir"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
                         </div>
-                ))}
+                        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <button
+                                onClick={() => handleEdit(member)}
+                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-colors"
+                                title="Editar"
+                            >
+                                <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => handleDeleteClick(member)}
+                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors"
+                                title="Excluir"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
+                ))}
+            </div>
 
-            {/* Deletion Strategy Modal */ }
-            { memberToDelete && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-                            <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800">
-                                <div className="flex flex-col items-center text-center mb-6">
-                                    <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mb-4">
-                                        <Trash2 className="w-8 h-8" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Excluir {memberToDelete.name}?</h3>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                        Este membro possui <strong className="text-slate-900 dark:text-white">{dependencyCount} transações</strong> vinculadas.
-                                        Como deseja prosseguir?
-                                    </p>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <button
-                                        onClick={() => confirmDelete('UNLINK')}
-                                        className="w-full p-4 rounded-xl border-2 border-slate-100 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 group transition-all text-left"
-                                    >
-                                        <span className="block font-bold text-slate-800 dark:text-white group-hover:text-blue-600 mb-1">Manter Transações (Desvincular)</span>
-                                        <span className="block text-xs text-slate-500 dark:text-slate-400">Remove o membro, mas mantém as despesas, atribuindo-as a você.</span>
-                                    </button>
-
-                                    <button
-                                        onClick={() => confirmDelete('CASCADE')}
-                                        className="w-full p-4 rounded-xl border-2 border-red-100 dark:border-red-900/30 hover:border-red-500 dark:hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 group transition-all text-left"
-                                    >
-                                        <span className="block font-bold text-slate-800 dark:text-white group-hover:text-red-600 mb-1">Excluir Tudo</span>
-                                        <span className="block text-xs text-slate-500 dark:text-slate-400">Remove o membro e EXCLUI todas as despesas pagas por ele.</span>
-                                    </button>
-                                </div>
-
-                                <Button variant="ghost" className="w-full mt-6" onClick={() => setMemberToDelete(null)}>
-                                    Cancelar
-                                </Button>
+            {/* Deletion Strategy Modal */}
+            {memberToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800">
+                        <div className="flex flex-col items-center text-center mb-6">
+                            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mb-4">
+                                <Trash2 className="w-8 h-8" />
                             </div>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Excluir {memberToDelete.name}?</h3>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                Este membro possui <strong className="text-slate-900 dark:text-white">{dependencyCount} transações</strong> vinculadas.
+                                Como deseja prosseguir?
+                            </p>
                         </div>
-                    )}
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => confirmDelete('UNLINK')}
+                                className="w-full p-4 rounded-xl border-2 border-slate-100 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 group transition-all text-left"
+                            >
+                                <span className="block font-bold text-slate-800 dark:text-white group-hover:text-blue-600 mb-1">Manter Transações (Desvincular)</span>
+                                <span className="block text-xs text-slate-500 dark:text-slate-400">Remove o membro, mas mantém as despesas, atribuindo-as a você.</span>
+                            </button>
+
+                            <button
+                                onClick={() => confirmDelete('CASCADE')}
+                                className="w-full p-4 rounded-xl border-2 border-red-100 dark:border-red-900/30 hover:border-red-500 dark:hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 group transition-all text-left"
+                            >
+                                <span className="block font-bold text-slate-800 dark:text-white group-hover:text-red-600 mb-1">Excluir Tudo</span>
+                                <span className="block text-xs text-slate-500 dark:text-slate-400">Remove o membro e EXCLUI todas as despesas pagas por ele.</span>
+                            </button>
+                        </div>
+
+                        <Button variant="ghost" className="w-full mt-6" onClick={() => setMemberToDelete(null)}>
+                            Cancelar
+                        </Button>
+                    </div>
+                </div>
+            )}
