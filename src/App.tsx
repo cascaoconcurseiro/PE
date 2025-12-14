@@ -16,6 +16,7 @@ import { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardSh
 import { useSystemNotifications } from './hooks/useSystemNotifications';
 
 import { lazyImport } from './utils/lazyImport';
+import { APP_VERSION } from './config/appVersion';
 
 // Lazy load heavy components with robust reload protection
 const Dashboard = lazyImport(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -56,7 +57,8 @@ const App = () => {
 
     // ...
 
-    import { APP_VERSION } from './config/appVersion';
+    // ...
+
 
     // ...
 

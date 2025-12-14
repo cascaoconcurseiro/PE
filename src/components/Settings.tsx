@@ -14,6 +14,7 @@ import { PreferenceSettings } from './settings/PreferenceSettings';
 import { PrivacySettings } from './settings/PrivacySettings';
 import { AppearanceSettings } from './settings/AppearanceSettings';
 import { DataManagement } from './settings/DataManagement';
+import { APP_VERSION, BUILD_CODENAME } from '../config/appVersion';
 
 interface SettingsProps {
     customCategories: CustomCategory[];
@@ -358,10 +359,6 @@ export const Settings: React.FC<SettingsProps> = ({
                                     <p className="text-sm text-slate-500 dark:text-slate-400">Informações da versão.</p>
                                 </div>
                             </div>
-                            import {APP_VERSION, BUILD_CODENAME} from '../config/appVersion';
-
-                            // ... (inside the component return)
-
                             <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800">
                                 <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Versão</span>
                                 <span className="text-sm font-bold text-slate-900 dark:text-white">{APP_VERSION} ({BUILD_CODENAME})</span>
