@@ -41,9 +41,9 @@ BEGIN
     SELECT COALESCE(name, 'Alguém') INTO v_sender_name FROM user_profiles WHERE id = NEW.user_id;
     
     IF (TG_OP = 'INSERT') THEN
-         FOR v_participant IN SELECT * FROM jsonb_array_elements(NEW.participants)
+         FOR v_participant IN SELECT jsonb_array_elements(NEW.participants) AS elem
          LOOP
-             v_user_id := (v_participant->>'id')::UUID;
+             v_user_id := (v_participant.elem->>'id')::UUID;
              IF v_user_id <> NEW.user_id THEN
                  INSERT INTO public.user_notifications (user_id, type, title, message, metadata) -- Changed data -> metadata
                  VALUES (
@@ -56,9 +56,9 @@ BEGIN
              END IF;
          END LOOP;
     ELSIF (TG_OP = 'UPDATE') THEN
-         FOR v_participant IN SELECT * FROM jsonb_array_elements(NEW.participants)
+         FOR v_participant IN SELECT jsonb_array_elements(NEW.participants) AS elem
          LOOP
-             v_user_id := (v_participant->>'id')::UUID;
+             v_user_id := (v_participant.elem->>'id')::UUID;
              IF NOT EXISTS (
                  SELECT 1 FROM jsonb_array_elements(OLD.participants) old_p 
                  WHERE (old_p->>'id')::UUID = v_user_id
