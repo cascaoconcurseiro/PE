@@ -106,6 +106,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
             trips={trips}
             onTripClick={setSelectedTripId}
             onCreateClick={() => setIsCreatingTrip(true)}
+            currentUserId={currentUserId}
         />
     );
 };
