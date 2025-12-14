@@ -9,10 +9,6 @@ interface TripListProps {
     trips: Trip[];
     onTripClick: (tripId: string) => void;
     onCreateClick: () => void;
-interface TripListProps {
-    trips: Trip[];
-    onTripClick: (tripId: string) => void;
-    onCreateClick: () => void;
     userId?: string;
 }
 
