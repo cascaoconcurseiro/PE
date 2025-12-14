@@ -1,12 +1,5 @@
-import React, { useMemo } from 'react';
-import { Account, Transaction, TransactionType } from '../../types';
-import { Button } from '../ui/Button';
-import { ArrowDownLeft, Clock, FileUp, ShoppingBag, CreditCard, Users } from 'lucide-react';
-import { formatCurrency, getCategoryIcon } from '../../utils';
-import { ActionType } from './ActionModal';
-import { getInvoiceData } from '../../services/accountUtils';
-import { TransactionList } from '../transactions/TransactionList';
-import { useDataStore } from '../../hooks/useDataStore';
+import { TransactionDeleteModal } from '../transactions/TransactionDeleteModal';
+import { useState } from 'react';
 
 // Reusable Privacy Blur
 const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
@@ -23,13 +16,15 @@ interface CreditCardDetailProps {
     onAction: (type: ActionType, amount?: string) => void;
     onAnticipateInstallments: (tx: Transaction) => void;
     onImportBills: () => void;
+    onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
 }
 
 export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
-    account, transactions, currentDate, showValues, onAction, onAnticipateInstallments, onImportBills
+    account, transactions, currentDate, showValues, onAction, onAnticipateInstallments, onImportBills, onDeleteTransaction
 }) => {
     // Get all accounts for correct name resolution (e.g. transfers)
     const { accounts, familyMembers } = useDataStore();
+    const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id: string | null, isSeries: boolean }>({ isOpen: false, id: null, isSeries: false });
 
     // Use getInvoiceData to get transactions for the invoice cycle
     const { invoiceTotal, transactions: filteredTransactions, closingDate } = getInvoiceData(account, transactions, currentDate);
@@ -47,6 +42,19 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
         });
         return groups;
     }, [filteredTransactions]);
+
+    const handleDeleteRequest = (id: string) => {
+        const tx = transactions.find(t => t.id === id);
+        const isSeries = !!tx?.seriesId;
+        setDeleteModal({ isOpen: true, id, isSeries });
+    };
+
+    const confirmDelete = (scope: 'SINGLE' | 'SERIES' = 'SINGLE') => {
+        if (deleteModal.id) {
+            onDeleteTransaction(deleteModal.id, scope);
+            setDeleteModal({ isOpen: false, id: null, isSeries: false });
+        }
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
@@ -116,12 +124,19 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
                     familyMembers={familyMembers || []}
                     showValues={showValues}
                     onEdit={() => { }} // View only 
-                    onDelete={() => { }}
+                    onDelete={handleDeleteRequest}
                     onAddClick={() => { }}
                     onAnticipateInstallments={onAnticipateInstallments}
                     emptyMessage="Nenhuma compra importada para este mês."
                 />
             </div>
+
+            <TransactionDeleteModal
+                isOpen={deleteModal.isOpen}
+                isSeries={deleteModal.isSeries}
+                onClose={() => setDeleteModal({ isOpen: false, id: null, isSeries: false })}
+                onConfirm={confirmDelete}
+            />
         </div>
     );
 };

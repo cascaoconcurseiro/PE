@@ -1,11 +1,6 @@
-import React, { useMemo } from 'react';
-import { Account, Transaction, TransactionType } from '../../types';
-import { ArrowUpRight, ArrowDownLeft, Landmark, RefreshCcw } from 'lucide-react';
-import { formatCurrency } from '../../utils';
-import { getBankExtract, calculateHistoricalBalance } from '../../services/accountUtils';
-import { ActionType } from './ActionModal';
-import { TransactionList } from '../transactions/TransactionList';
-import { useDataStore } from '../../hooks/useDataStore';
+import { ActionModal } from './ActionModal';
+import { TransactionDeleteModal } from '../transactions/TransactionDeleteModal';
+import { useState } from 'react';
 
 // Reusable Privacy Blur
 const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {
@@ -19,13 +14,15 @@ interface BankingDetailProps {
     showValues: boolean;
     currentDate: Date;
     onAction: (type: ActionType) => void;
+    onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
 }
 
 export const BankingDetail: React.FC<BankingDetailProps> = ({
-    account, transactions, showValues, currentDate, onAction
+    account, transactions, showValues, currentDate, onAction, onDeleteTransaction
 }) => {
     // Get all accounts for correct name resolution
     const { accounts } = useDataStore();
+    const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id: string | null, isSeries: boolean }>({ isOpen: false, id: null, isSeries: false });
 
     const extractTxs = getBankExtract(account.id, transactions, currentDate);
     const income = extractTxs.filter(t => t.type === TransactionType.INCOME).reduce((a, b) => a + (b.isRefund ? -b.amount : b.amount), 0);
@@ -44,6 +41,19 @@ export const BankingDetail: React.FC<BankingDetailProps> = ({
         });
         return groups;
     }, [extractTxs]);
+
+    const handleDeleteRequest = (id: string) => {
+        const tx = transactions.find(t => t.id === id);
+        const isSeries = !!tx?.seriesId;
+        setDeleteModal({ isOpen: true, id, isSeries });
+    };
+
+    const confirmDelete = (scope: 'SINGLE' | 'SERIES' = 'SINGLE') => {
+        if (deleteModal.id) {
+            onDeleteTransaction(deleteModal.id, scope);
+            setDeleteModal({ isOpen: false, id: null, isSeries: false });
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -84,11 +94,18 @@ export const BankingDetail: React.FC<BankingDetailProps> = ({
                     familyMembers={[]}
                     showValues={showValues}
                     onEdit={() => { }} // View only
-                    onDelete={() => { }}
+                    onDelete={handleDeleteRequest}
                     onAddClick={() => { }}
                     emptyMessage="Nenhuma movimentação neste período."
                 />
             </div>
+
+            <TransactionDeleteModal
+                isOpen={deleteModal.isOpen}
+                isSeries={deleteModal.isSeries}
+                onClose={() => setDeleteModal({ isOpen: false, id: null, isSeries: false })}
+                onConfirm={confirmDelete}
+            />
         </div>
     );
 };

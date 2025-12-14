@@ -38,8 +38,8 @@ interface AccountsProps {
     // Actually Account defines FamilyMember import usually.
 }
 
-export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, onAddTransactions, showValues, currentDate = new Date(), onAnticipate, initialAccountId, onClearInitialAccount }) => {
-    const accountsProps = { accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onAddTransaction, onAddTransactions, showValues, currentDate, onAnticipate, initialAccountId, onClearInitialAccount };
+export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onDeleteTransaction, onAddTransaction, onAddTransactions, showValues, currentDate = new Date(), onAnticipate, initialAccountId, onClearInitialAccount }) => {
+    const accountsProps = { accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onDeleteTransaction, onAddTransaction, onAddTransactions, showValues, currentDate, onAnticipate, initialAccountId, onClearInitialAccount };
     const [viewState, setViewState] = useState<'LIST' | 'DETAIL'>('LIST');
     const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS' | 'INTERNATIONAL'>('BANKING');
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -223,9 +223,9 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
                 </div>
 
                 {selectedAccount.type === AccountType.CREDIT_CARD ? (
-                    <CreditCardDetail account={selectedAccount} transactions={transactions} currentDate={currentDate} showValues={showValues} onAction={(type, amount) => openActionModal(type, amount)} onAnticipateInstallments={handleAnticipateRequest} onImportBills={() => setImportBillModal({ isOpen: true, account: selectedAccount })} />
+                    <CreditCardDetail account={selectedAccount} transactions={transactions} currentDate={currentDate} showValues={showValues} onAction={(type, amount) => openActionModal(type, amount)} onAnticipateInstallments={handleAnticipateRequest} onImportBills={() => setImportBillModal({ isOpen: true, account: selectedAccount })} onDeleteTransaction={onDeleteTransaction} />
                 ) : (
-                    <BankingDetail account={selectedAccount} transactions={transactions} showValues={showValues} currentDate={currentDate} onAction={(type) => openActionModal(type)} />
+                    <BankingDetail account={selectedAccount} transactions={transactions} showValues={showValues} currentDate={currentDate} onAction={(type) => openActionModal(type)} onDeleteTransaction={onDeleteTransaction} />
                 )}
 
                 <ActionModal isOpen={actionModal.isOpen} type={actionModal.type} account={selectedAccount} accounts={accounts} initialAmount={actionModal.amount} onClose={closeActionModal} onConfirm={handleActionSubmit} />
