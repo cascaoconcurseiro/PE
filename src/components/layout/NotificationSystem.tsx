@@ -22,7 +22,7 @@ interface NotificationSystemProps {
 }
 
 export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifications: legacyNotifications = [], onNotificationClick, onNotificationDismiss, onNotificationPay, userId }) => {
-    const { notifications: dbNotifications, unreadCount, markAsRead, markAllAsRead } = useSystemNotifications(userId);
+    const { notifications: dbNotifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useSystemNotifications(userId);
     const [isOpen, setIsOpen] = useState(false);
 
     // Merge: Prefer DB notifications, fallback to legacy if DB is empty? 
@@ -57,7 +57,7 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
 
     const handleDismiss = (id: string, isDb: boolean) => {
         if (isDb) {
-            markAsRead(id);
+            deleteNotification(id);
         } else {
             onNotificationDismiss(id);
         }

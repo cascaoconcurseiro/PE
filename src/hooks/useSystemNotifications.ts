@@ -62,6 +62,24 @@ export const useSystemNotifications = (userId: string | undefined) => {
             .eq('is_read', false);
     };
 
+    const deleteNotification = async (id: string) => {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        // If it was unread, decrement count
+        const wasUnread = notifications.find(n => n.id === id && !n.is_read);
+        if (wasUnread) {
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+
+        const { error } = await supabase
+            .from('user_notifications')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting notification:', error);
+        }
+    };
+
     // Initial Fetch
     useEffect(() => {
         fetchNotifications();
@@ -98,6 +116,7 @@ export const useSystemNotifications = (userId: string | undefined) => {
         unreadCount,
         markAsRead,
         markAllAsRead,
+        deleteNotification,
         refresh: fetchNotifications
     };
 };
