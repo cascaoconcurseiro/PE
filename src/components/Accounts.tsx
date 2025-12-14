@@ -36,6 +36,7 @@ interface AccountsProps {
     onClearInitialAccount?: () => void;
     members?: any[]; // Using any[] temporarily to avoid circular dependency issues if FamilyMember isn't imported, but ideally import it. 
     // Actually Account defines FamilyMember import usually.
+    onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
 }
 
 export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onDeleteTransaction, onAddTransaction, onAddTransactions, showValues, currentDate = new Date(), onAnticipate, initialAccountId, onClearInitialAccount }) => {
@@ -231,7 +232,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
                 <ActionModal isOpen={actionModal.isOpen} type={actionModal.type} account={selectedAccount} accounts={accounts} initialAmount={actionModal.amount} onClose={closeActionModal} onConfirm={handleActionSubmit} />
                 <ImportModal isOpen={importModal.isOpen} onClose={() => setImportModal({ ...importModal, isOpen: false })} onImport={handleImportConfirm} importedTransactions={importModal.transactions} />
                 {anticipateModal.isOpen && anticipateModal.transaction && (<InstallmentAnticipationModal isOpen={anticipateModal.isOpen} onClose={() => setAnticipateModal({ isOpen: false, transaction: null })} transaction={anticipateModal.transaction} allInstallments={transactions} accounts={accounts} onConfirm={handleConfirmAnticipation} />)}
-                {importBillModal.isOpen && importBillModal.account && (<CreditCardImportModal isOpen={importBillModal.isOpen} onClose={() => setImportBillModal({ isOpen: false, account: null })} account={importBillModal.account} members={accountsProps.members || []} onImport={handleImportBills} />)}
+                {importBillModal.isOpen && importBillModal.account && (<CreditCardImportModal isOpen={importBillModal.isOpen} onClose={() => setImportBillModal({ isOpen: false, account: null })} account={importBillModal.account} onImport={handleImportBills} />)}
             </div>
         );
     }

@@ -26,6 +26,7 @@ interface TripDetailProps {
     onEditTransaction?: (id: string) => void; // Trigger modal/form
     onUpdateTransactionInternal: (t: Transaction) => void;
     onDeleteTransactionInternal: (id: string) => void;
+    currentUserId?: string;
 }
 
 export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, accounts, familyMembers, onBack, onEdit, onDelete, onUpdateTrip, onNavigateToShared, onEditTransaction, onUpdateTransactionInternal, onDeleteTransactionInternal }) => {
