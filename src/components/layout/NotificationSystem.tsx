@@ -1,25 +1,78 @@
 import React, { useState } from 'react';
-import { Bell, BellRing, Sparkles, AlertTriangle } from 'lucide-react';
+import { Bell, BellRing, Sparkles, AlertTriangle, CheckCheck } from 'lucide-react';
+import { useSystemNotifications } from '../../hooks/useSystemNotifications';
+
 interface NotificationItem {
     id: string;
     title?: string;
     description: string;
     date: string;
     amount?: number;
-    type: string; // Generic string to support both TransactionType and System Types
+    type: string;
     enableNotification?: boolean;
     notificationDate?: string;
 }
 
 interface NotificationSystemProps {
-    notifications: NotificationItem[];
+    notifications?: NotificationItem[];
     onNotificationClick: (id: string) => void;
     onNotificationDismiss: (id: string) => void;
     onNotificationPay?: (id: string) => void;
+    userId?: string;
 }
 
-export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifications, onNotificationClick, onNotificationDismiss, onNotificationPay }) => {
+export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifications: legacyNotifications = [], onNotificationClick, onNotificationDismiss, onNotificationPay, userId }) => {
+    const { notifications: dbNotifications, unreadCount, markAsRead, markAllAsRead } = useSystemNotifications(userId);
     const [isOpen, setIsOpen] = useState(false);
+
+    // Merge: Prefer DB notifications, fallback to legacy if DB is empty? 
+    // Or display both? 
+    // Legacy comes from useNotifications (local reminders).
+    // DB comes from server.
+    // Let's combine them for the list.
+
+    const dbItems = dbNotifications.map(n => ({
+        id: n.id,
+        title: n.title,
+        description: n.message,
+        date: n.created_at,
+        type: n.type,
+        read: n.read,
+        isDb: true
+    }));
+
+    // Legacy transformation
+    const legacyItems = legacyNotifications.map(n => ({
+        id: n.id,
+        title: n.title || 'Lembrete',
+        description: n.description,
+        date: n.date,
+        type: n.type || 'REMINDER',
+        read: false,
+        isDb: false
+    }));
+
+    const displayList = [...dbItems, ...legacyItems].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const totalUnread = unreadCount + legacyNotifications.length; // Approximate
+
+    const handleDismiss = (id: string, isDb: boolean) => {
+        if (isDb) {
+            markAsRead(id);
+        } else {
+            onNotificationDismiss(id);
+        }
+    };
+
+    const handleClick = (id: string, isDb: boolean) => {
+        if (isDb) {
+            markAsRead(id);
+            // Navigate or show details?
+            // For now, just mark read.
+        } else {
+            onNotificationClick(id);
+        }
+        setIsOpen(false);
+    };
 
     return (
         <div className="relative">
@@ -28,7 +81,7 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors relative shadow-sm active:scale-95"
             >
                 <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-                {notifications.length > 0 && (
+                {totalUnread > 0 && (
                     <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse" />
                 )}
             </button>
@@ -40,71 +93,55 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm">
                                 <BellRing className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Notificações
                             </h3>
-                            <span className="text-xs font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-full">
-                                {notifications.length}
-                            </span>
+                            <div className="flex gap-2">
+                                <button onClick={() => markAllAsRead()} className="text-[10px] text-indigo-600 hover:underline">Ler todas</button>
+                                <span className="text-xs font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-full">
+                                    {totalUnread}
+                                </span>
+                            </div>
                         </div>
                         <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                            {notifications.length === 0 ? (
+                            {displayList.length === 0 ? (
                                 <div className="p-8 text-center text-slate-500">
                                     <Sparkles className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                                     <p className="text-xs">Tudo tranquilo.</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                                    {notifications.map(n => {
-                                        const isOverdue = n.type === 'REMINDER' && !n.enableNotification;
-                                        const isSystem = n.type === 'TRANSACTION' || n.type === 'ALERT' || n.type === 'INVITE';
-
-                                        const dueDate = new Date(n.notificationDate || n.date);
-                                        const today = new Date();
-                                        today.setHours(0, 0, 0, 0);
-                                        dueDate.setHours(0, 0, 0, 0);
-                                        const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+                                    {displayList.map(n => {
+                                        const isSystem = n.type === 'TRANSACTION' || n.type === 'TRIP';
 
                                         return (
-                                            <div key={n.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors flex gap-3">
-                                                <div className={`mt-1 p-1.5 rounded-lg h-fit ${isOverdue
-                                                    ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                                                    : isSystem ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400'
-                                                        : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
-                                                    }`}>
+                                            <div key={n.id} className={`p-3 transition-colors flex gap-3 ${n.read ? 'opacity-60 bg-white' : 'bg-indigo-50/30 hover:bg-indigo-50/50'}`}>
+                                                <div className={`mt-1 p-1.5 rounded-lg h-fit ${isSystem ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'}`}>
                                                     {isSystem ? <BellRing className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
                                                 </div>
                                                 <div className="flex-1">
-                                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{n.description}</p>
-                                                    <p className="text-[10px] mb-2">
-                                                        {isOverdue ? (
-                                                            <span className="text-red-600 dark:text-red-400 font-bold">
-                                                                {daysOverdue === 0 ? 'Vence hoje!' : `Vencida há ${daysOverdue} dia${daysOverdue !== 1 ? 's' : ''}`}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-slate-500">
-                                                                Vence: {dueDate.toLocaleDateString('pt-BR')}
-                                                            </span>
-                                                        )}
+                                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{n.title}</p>
+                                                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{n.description}</p>
+                                                    <p className="text-[10px] mt-1 text-slate-400">
+                                                        {new Date(n.date).toLocaleDateString()} {new Date(n.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </p>
-                                                    <div className="flex gap-2">
+
+                                                    <div className="flex gap-2 mt-2">
+                                                        {isSystem ? (
+                                                            <button
+                                                                onClick={() => handleClick(n.id, n.isDb)}
+                                                                className="text-[10px] font-bold px-2 py-1 rounded bg-white border border-slate-200 shadow-sm text-slate-700"
+                                                            >
+                                                                <CheckCheck className="w-3 h-3 inline mr-1" /> Marcar lida
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleClick(n.id, n.isDb)}
+                                                                className="text-[10px] font-bold px-2 py-1 rounded bg-white border border-slate-200 shadow-sm text-slate-700"
+                                                            >
+                                                                Ver
+                                                            </button>
+                                                        )}
                                                         <button
-                                                            onClick={() => {
-                                                                if (isOverdue && onNotificationPay) {
-                                                                    onNotificationPay(n.id);
-                                                                    setIsOpen(false);
-                                                                } else {
-                                                                    onNotificationClick(n.id);
-                                                                    setIsOpen(false);
-                                                                }
-                                                            }}
-                                                            className={`text-[10px] font-bold px-2 py-1 rounded transition-colors ${isOverdue
-                                                                ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40'
-                                                                : 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'
-                                                                }`}
-                                                        >
-                                                            {isOverdue ? 'Pagar Agora' : 'Ver Detalhes'}
-                                                        </button>
-                                                        <button
-                                                            onClick={() => onNotificationDismiss(n.id)}
-                                                            className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                                                            onClick={() => handleDismiss(n.id, n.isDb)}
+                                                            className="text-[10px] text-slate-400 hover:text-slate-600"
                                                         >
                                                             Dispensar
                                                         </button>

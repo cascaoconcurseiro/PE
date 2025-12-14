@@ -27,7 +27,6 @@ interface DashboardProps {
     onEditRequest?: (id: string) => void;
     onNotificationPay?: (id: string) => void;
     isLoading?: boolean;
-    pendingSharedRequestsCount?: number;
     pendingSettlements?: any[];
     projectedAccounts?: Account[];
     onOpenShared?: () => void;
@@ -40,7 +39,7 @@ const ChartSkeleton = () => (
     </div>
 );
 
-export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccounts, transactions, trips, currentDate = new Date(), showValues, onEditRequest, isLoading = false, pendingSharedRequestsCount = 0, pendingSettlements = [], onOpenShared, onOpenSettlement }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccounts, transactions, trips, currentDate = new Date(), showValues, onEditRequest, isLoading = false, pendingSettlements = [], onOpenShared, onOpenSettlement }) => {
     const [spendingView, setSpendingView] = useState<'CATEGORY' | 'SOURCE'>('CATEGORY');
     const selectedYear = currentDate.getFullYear();
 
@@ -76,23 +75,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
         <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
 
             {/* Pending Actions Section */}
-            {(pendingSharedRequestsCount > 0 || (pendingSettlements && pendingSettlements.length > 0)) && (
+            {(pendingSettlements && pendingSettlements.length > 0) && (
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-2xl p-4 animate-in slide-in-from-top-4">
                     <h3 className="font-bold text-amber-900 dark:text-amber-100 mb-3 flex items-center gap-2">
                         <Layers className="w-5 h-5" /> Ações Pendentes
                     </h3>
                     <div className="space-y-3">
-                        {pendingSharedRequestsCount > 0 && (
-                            <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-amber-100 dark:border-amber-900 flex justify-between items-center shadow-sm">
-                                <div>
-                                    <p className="font-bold text-slate-800 dark:text-slate-200">Convites Compartilhados</p>
-                                    <p className="text-sm text-slate-500">{pendingSharedRequestsCount} solicitações aguardando aceite.</p>
-                                </div>
-                                <Button size="sm" onClick={onOpenShared} className="bg-amber-100 text-amber-900 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-100">
-                                    Ver Todos
-                                </Button>
-                            </div>
-                        )}
+
                         {pendingSettlements?.map(s => (
                             <div key={s.id} className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-amber-100 dark:border-amber-900 flex justify-between items-center shadow-sm">
                                 <div>

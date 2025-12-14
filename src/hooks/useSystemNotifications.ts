@@ -1,102 +1,103 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
-import { useToast } from '../components/ui/Toast';
 
-export interface SystemNotification {
+export interface UserNotification {
     id: string;
+    type: string;
     title: string;
     message: string;
-    type: 'SYSTEM' | 'INVITE' | 'TRANSACTION' | 'ALERT';
-    read_at: string | null;
+    data: any;
+    read: boolean;
     created_at: string;
-    metadata?: any;
 }
 
 export const useSystemNotifications = (userId: string | undefined) => {
-    const [notifications, setNotifications] = useState<SystemNotification[]>([]);
-    const { addToast } = useToast();
+    const [notifications, setNotifications] = useState<UserNotification[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
 
-    const fetchNotifications = useCallback(async () => {
+    const fetchNotifications = async () => {
         if (!userId) return;
-
         const { data, error } = await supabase
             .from('user_notifications')
             .select('*')
             .eq('user_id', userId)
-            .is('read_at', null) // Only unread by default for the bell
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(20);
 
         if (error) {
             console.error('Error fetching notifications:', error);
             return;
         }
 
-        setNotifications(data || []);
+        if (data) {
+            setNotifications(data);
+            setUnreadCount(data.filter(n => !n.read).length);
+        }
+    };
+
+    const markAsRead = async (id: string) => {
+        // Optimistic update
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+
+        const { error } = await supabase
+            .from('user_notifications')
+            .update({ read: true })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error marking notification as read:', error);
+            // Revert if needed, but low impact
+        }
+    };
+
+    const markAllAsRead = async () => {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setUnreadCount(0);
+
+        await supabase
+            .from('user_notifications')
+            .update({ read: true })
+            .eq('user_id', userId)
+            .eq('read', false);
+    };
+
+    // Initial Fetch
+    useEffect(() => {
+        fetchNotifications();
     }, [userId]);
 
-    // Real-time subscription
+    // Realtime Subscription
     useEffect(() => {
         if (!userId) return;
 
-        fetchNotifications();
-
-        const subscription = supabase
+        const channel = supabase
             .channel('public:user_notifications')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'user_notifications',
-                    filter: `user_id=eq.${userId}`
-                },
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${userId}` },
                 (payload) => {
-                    const newNotif = payload.new as SystemNotification;
+                    const newNotif = payload.new as UserNotification;
                     setNotifications(prev => [newNotif, ...prev]);
-                    addToast(newNotif.title, 'info'); // Pop-up toast for new items
+                    setUnreadCount(prev => prev + 1);
+
+                    // Optional: Native Browser Notification
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification(newNotif.title, { body: newNotif.message });
+                    }
                 }
             )
             .subscribe();
 
         return () => {
-            subscription.unsubscribe();
+            supabase.removeChannel(channel);
         };
-    }, [userId, fetchNotifications, addToast]);
-
-    const markAsRead = async (id: string) => {
-        // Optimistic update
-        setNotifications(prev => prev.filter(n => n.id !== id));
-
-        const { error } = await supabase
-            .from('user_notifications')
-            .update({ read_at: new Date().toISOString() })
-            .eq('id', id);
-
-        if (error) {
-            console.error('Error marking as read:', error);
-            fetchNotifications(); // Revert on error
-        }
-    };
-
-    const markAllAsRead = async () => {
-        const ids = notifications.map(n => n.id);
-        setNotifications([]);
-
-        const { error } = await supabase
-            .from('user_notifications')
-            .update({ read_at: new Date().toISOString() })
-            .in('id', ids);
-
-        if (error) {
-            console.error('Error marking all as read:', error);
-            fetchNotifications();
-        }
-    };
+    }, [userId]);
 
     return {
-        systemNotifications: notifications,
+        notifications,
+        unreadCount,
         markAsRead,
         markAllAsRead,
-        refreshNotifications: fetchNotifications
+        refresh: fetchNotifications
     };
 };

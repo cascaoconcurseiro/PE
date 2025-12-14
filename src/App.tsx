@@ -48,106 +48,13 @@ const App = () => {
     const [showValues, setShowValues] = useState<boolean>(true);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
-    const { systemNotifications, markAsRead } = useSystemNotifications(sessionUser?.id);
+    const { notifications: systemNotifications, markAsRead } = useSystemNotifications(sessionUser?.id);
 
-    const [pendingSharedRequests, setPendingSharedRequests] = useState(0);
     const [pendingSettlements, setPendingSettlements] = useState<any[]>([]);
     const [activeSettlementRequest, setActiveSettlementRequest] = useState<any | null>(null);
     const [settlementToPay, setSettlementToPay] = useState<any | null>(null);
 
-    // AUTO-UPDATE LOGIC (Zombie SW Killer)
-    // AUTO-UPDATE LOGIC REMOVED: Now relying on lazyImport retry mechanism.
-
-
-    // Initial Setup
-    useEffect(() => {
-        const init = async () => {
-            try {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) throw error;
-                startTransition(() => {
-                    if (session) {
-                        setSessionUser({
-                            id: session.user.id,
-                            name: session.user.user_metadata.name || session.user.email?.split('@')[0],
-                            email: session.user.email
-                        });
-                    }
-                    setIsSessionLoading(false);
-                });
-            } catch (err) {
-                console.warn("Session init error:", err);
-                setIsSessionLoading(false);
-            }
-        };
-        init();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            console.log(`Auth state changed: ${_event}`, session ? 'User present' : 'No session');
-            startTransition(() => {
-                if (session) {
-                    setSessionUser({
-                        id: session.user.id,
-                        name: session.user.user_metadata.name || session.user.email?.split('@')[0],
-                        email: session.user.email
-                    });
-                } else {
-                    console.warn("User signed out or session invalid.");
-                    setSessionUser(null);
-                }
-            });
-        });
-        return () => subscription.unsubscribe();
-    }, []);
-
-    // Sync Auth
-    useEffect(() => {
-        if (sessionUser && !storedUser) {
-            handlers.handleLogin({
-                id: sessionUser.id,
-                name: sessionUser.name,
-                email: sessionUser.email,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                syncStatus: SyncStatus.SYNCED
-            });
-        }
-    }, [sessionUser, storedUser]);
-
-    // App Logic
-    useAppLogic({
-        accounts,
-        transactions,
-        assets,
-        isMigrating: isDataLoading,
-        handlers: {
-            handleAddTransaction: handlers.handleAddTransaction,
-            handleUpdateTransaction: handlers.handleUpdateTransaction,
-            handleAddSnapshot: handlers.handleAddSnapshot
-        }
-    });
-
-    // Keyboard Shortcuts
-    useKeyboardShortcuts(getDefaultShortcuts({
-        openNewTransaction: () => setIsTxModalOpen(true),
-        openSearch: () => setIsSearchOpen(true),
-        closeModal: () => {
-            if (isSearchOpen) setIsSearchOpen(false);
-            else if (isTxModalOpen) setIsTxModalOpen(false);
-        }
-    }), !!sessionUser);
-
-    // Fetch Requests
-    useEffect(() => {
-        const fetchRequests = async () => {
-            if (!sessionUser?.id) return;
-            setPendingSharedRequests(0);
-            setPendingSettlements([]);
-        };
-        fetchRequests();
-        const interval = setInterval(fetchRequests, 30000);
-        return () => clearInterval(interval);
-    }, [sessionUser]);
+    // ...
 
     // Helper Functions & Memos
     const handleViewChange = (view: View) => startTransition(() => setActiveView(view));
@@ -202,7 +109,9 @@ const App = () => {
         today.setHours(0, 0, 0, 0);
         const todayStr = today.toISOString().split('T')[0];
         const notifs: any[] = [];
-        return notifs;
+
+        // Removed pendingSharedRequests logic
+
         if (systemNotifications) {
             const mapped = systemNotifications.map(sn => ({
                 id: sn.id,
@@ -215,7 +124,7 @@ const App = () => {
             notifs.push(...mapped);
         }
         return notifs;
-    }, [transactions, accounts, pendingSharedRequests, dismissedNotifications, systemNotifications]);
+    }, [transactions, accounts, dismissedNotifications, systemNotifications]);
 
     // Re-implementing critical handlers
     const handleLogout = useCallback(async () => {
@@ -244,7 +153,7 @@ const App = () => {
 
     const renderContent = () => {
         switch (activeView) {
-            case View.DASHBOARD: return <Dashboard accounts={calculatedAccounts} projectedAccounts={projectedAccounts} transactions={transactions} trips={trips} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={() => { }} onNotificationPay={() => { }} isLoading={isDataLoading} pendingSharedRequestsCount={pendingSharedRequests} pendingSettlements={pendingSettlements} onOpenShared={() => handleViewChange(View.SHARED)} onOpenSettlement={() => { }} />;
+            case View.DASHBOARD: return <Dashboard accounts={calculatedAccounts} projectedAccounts={projectedAccounts} transactions={transactions} trips={trips} goals={goals} currentDate={currentDate} showValues={showValues} onEditRequest={() => { }} onNotificationPay={() => { }} isLoading={isDataLoading} pendingSettlements={pendingSettlements} onOpenShared={() => handleViewChange(View.SHARED)} onOpenSettlement={() => { }} />;
             case View.ACCOUNTS: return <Accounts accounts={calculatedAccounts} transactions={transactions} members={familyMembers} onAddAccount={handlers.handleAddAccount} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onDeleteTransaction={handlers.handleDeleteTransaction} onAddTransaction={handlers.handleAddTransaction} onAddTransactions={handlers.handleAddTransactions} showValues={showValues} currentDate={currentDate} onAnticipate={handlers.handleAnticipateInstallments} initialAccountId={navigatedAccountId} onClearInitialAccount={() => setNavigatedAccountId(null)} />;
             case View.TRANSACTIONS: return <Transactions transactions={transactions} accounts={calculatedAccounts} trips={trips} familyMembers={familyMembers} customCategories={customCategories} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAnticipate={handlers.handleAnticipateInstallments} currentDate={currentDate} showValues={showValues} initialEditId={editTxId} onClearEditId={() => setEditTxId(null)} onNavigateToAccounts={() => handleViewChange(View.ACCOUNTS)} onNavigateToTrips={() => handleViewChange(View.TRIPS)} onNavigateToFamily={() => handleViewChange(View.FAMILY)} currentUserName={sessionUser?.name || 'Eu'} />;
             case View.BUDGETS: return <Budgets budgets={budgets} transactions={transactions} onAddBudget={handlers.handleAddBudget} onUpdateBudget={handlers.handleUpdateBudget} onDeleteBudget={handlers.handleDeleteBudget} currentDate={currentDate} />;
