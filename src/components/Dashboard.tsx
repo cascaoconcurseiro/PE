@@ -31,6 +31,7 @@ interface DashboardProps {
     projectedAccounts?: Account[];
     onOpenShared?: () => void;
     onOpenSettlement?: (request: any) => void;
+    userName?: string;
 }
 
 const ChartSkeleton = () => (
@@ -39,7 +40,7 @@ const ChartSkeleton = () => (
     </div>
 );
 
-export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccounts, transactions, trips, currentDate = new Date(), showValues, onEditRequest, isLoading = false, pendingSettlements = [], onOpenShared, onOpenSettlement }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccounts, transactions, trips, currentDate = new Date(), showValues, onEditRequest, isLoading = false, pendingSettlements = [], onOpenShared, onOpenSettlement, userName }) => {
     const [spendingView, setSpendingView] = useState<'CATEGORY' | 'SOURCE'>('CATEGORY');
     const selectedYear = currentDate.getFullYear();
 
@@ -73,6 +74,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
+
+
+            {/* Friendly Greeting */}
+
 
             {/* Pending Actions Section */}
             {(pendingSettlements && pendingSettlements.length > 0) && (

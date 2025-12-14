@@ -77,7 +77,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                         </div>
 
                         <div className="hidden md:block">
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white">{activeView}</h2>
+                            {activeView === View.DASHBOARD ? (
+                                <div className="flex flex-col">
+                                    <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                        {(() => {
+                                            const h = new Date().getHours();
+                                            if (h < 12) return 'Bom dia';
+                                            if (h < 18) return 'Boa tarde';
+                                            return 'Boa noite';
+                                        })()}, <span className="text-emerald-600 dark:text-emerald-400 capitalize">{user?.name?.split(' ')[0] || 'Visitante'}</span> 👋
+                                    </h2>
+                                </div>
+                            ) : (
+                                <h2 className="text-xl font-bold text-slate-800 dark:text-white">{activeView}</h2>
+                            )}
                         </div>
 
                         {/* Month Selector */}
