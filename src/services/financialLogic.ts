@@ -150,9 +150,64 @@ export const calculateProjectedBalance = (
         const tDate = new Date(t.date);
         tDate.setHours(0, 0, 0, 0); // Normalizar para meia-noite para comparação justa
 
-        // Considerar apenas transações ESTRITAMENTE FUTURAS (Amanhã em diante)
-        // Transações de HOJE já foram deduzidas do saldo atual pelo sistema
-        if (tDate.getTime() > today.getTime()) {
+        // Check for SHARED DEBTS/CREDITS (Unsettled items in this month appear as Pending)
+        // Does not strictly need to be "Future" to be "Pending", just "Unsettled".
+        // If I paid for someone yesterday, they still owe me -> Pending Income.
+        // If someone paid for me yesterday, I still owe them -> Pending Expense.
+
+        let processedAsShared = false;
+
+        // 1. Shared Receivables (Credits) - Money coming back to me
+        // Only if I am Payer
+        if (t.type === TransactionType.EXPENSE && t.isShared && (!t.payerId || t.payerId === 'me')) {
+            // Sum of UNSETTLED splits
+            const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
+                return sum + (!s.isSettled ? s.assignedAmount : 0);
+            }, 0) || 0;
+
+            if (pendingSplitsTotal > 0) {
+                pendingIncome += toBRL(pendingSplitsTotal, t);
+                // We don't mark 'processedAsShared = true' because the MAIN expense 
+                // (my cash outflow) logic below handles the "Expense projection" part.
+                // This block ADDS the "Reimbursement projection".
+            }
+        }
+
+        // 2. Shared Debts (Payables) - Money I owe others
+        // Only if I am NOT Payer
+        if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
+            // If NOT settled, I owe this amount.
+            // But wait, if I am NOT payer, does this transaction even represent a cash outflow for me right now?
+            // Usually, "Mirror Transactions" are created for me.
+            // If I haven't marked it as settled, it's a future payment.
+            // Is 'isSettled' on the transaction itself? Yes.
+
+            if (!t.isSettled) {
+                // It's a pending expense for me.
+                // We count it below in the "Future Expense" block?
+                // The "Future Expense" block checks date > today.
+                // If this debt is from yesterday, strict future check skips it.
+                // We should manually count it here and MARK it as processed so clean logic doesn't double count?
+                // Actually, "Mirror" transactions don't have Account ID (usually).
+                // Logic below checks `liquidityAccountIds.has(accId)`.
+                // Mirror transactions have `account_id` as NULL or specific "Debt" account?
+                // If NULL, they are skipped below.
+                // So we MUST handle them here.
+
+                // However, "Projected Balance" usually implies Bank Account Projection.
+                // Paying a debt involves a Transfer from Bank -> External/Person.
+                // If I owe R$ 50, I will eventually pay R$ 50.
+                pendingExpenses += toBRL(t.amount, t); // t.amount is 'my share' in mirror tx
+            }
+            processedAsShared = true; // Skip standard processing (since standard requires existing Account ID)
+        }
+
+        const isFuture = tDate.getTime() > today.getTime();
+
+        if (processedAsShared) return;
+
+        // Standard Cash Flow Projection (Strictly Future)
+        if (isFuture) {
 
             // Tratamento refinado de Transferências: Afetam a projeção se cruzarem a fronteira da liquidez
             if (t.type === TransactionType.TRANSFER) {

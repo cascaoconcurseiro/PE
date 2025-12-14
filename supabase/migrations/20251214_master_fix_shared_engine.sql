@@ -1,0 +1,308 @@
+-- MASTER FIX SHARED ENGINE (2025-12-14)
+-- Combined Script: Schema Repair + Logic Restoration + Data Sync
+-- OBJECTIVE: Fix Shared Trips, Transactions, and Notifications definitively.
+
+-- =================================================================================
+-- PART 1: SCHEMA REPAIR (ENSURE COLUMNS EXIST)
+-- =================================================================================
+DO $$
+BEGIN
+    RAISE NOTICE 'Starting Schema Repair...';
+    
+    -- 1. Fix User Notifications Schema
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_notifications' AND column_name = 'data') THEN
+        ALTER TABLE user_notifications ADD COLUMN data JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_notifications' AND column_name = 'is_read') THEN
+        ALTER TABLE user_notifications ADD COLUMN is_read BOOLEAN DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_notifications' AND column_name = 'type') THEN
+        ALTER TABLE user_notifications ADD COLUMN type TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_notifications' AND column_name = 'title') THEN
+        ALTER TABLE user_notifications ADD COLUMN title TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_notifications' AND column_name = 'message') THEN
+        ALTER TABLE user_notifications ADD COLUMN message TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_notifications' AND column_name = 'user_id') THEN
+        ALTER TABLE user_notifications ADD COLUMN user_id UUID REFERENCES auth.users(id);
+    END IF;
+
+    -- 2. Fix Trips Mirroring Schema
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'trips' AND column_name = 'source_trip_id') THEN
+        ALTER TABLE trips ADD COLUMN source_trip_id UUID;
+    END IF;
+
+    -- 3. Fix Transactions Mirroring Schema
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'shared_with') THEN
+        ALTER TABLE transactions ADD COLUMN shared_with JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'payer_id') THEN
+        ALTER TABLE transactions ADD COLUMN payer_id TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'is_shared') THEN
+        ALTER TABLE transactions ADD COLUMN is_shared BOOLEAN DEFAULT false;
+    END IF;
+
+    -- 4. Fix Family Linking Schema
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'family_members' AND column_name = 'linked_user_id') THEN
+        ALTER TABLE family_members ADD COLUMN linked_user_id UUID;
+    END IF;
+    
+    RAISE NOTICE 'Schema Repair Completed.';
+END $$;
+
+
+-- =================================================================================
+-- PART 2: LOGIC REPAIR (TRIGGERS & FUNCTIONS)
+-- =================================================================================
+
+-- 1. BALANCE ENGINE
+CREATE OR REPLACE FUNCTION update_account_balance()
+RETURNS TRIGGER AS $$
+BEGIN
+  RETURN NEW; 
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. SHARED MIRROR ENGINE (Transactions)
+CREATE OR REPLACE FUNCTION public.handle_mirror_shared_transaction()
+RETURNS TRIGGER AS $$
+DECLARE
+    split JSONB;
+    target_member_id UUID;
+    target_user_id UUID;
+    target_trip_id UUID; 
+    inviter_name TEXT;
+BEGIN
+    IF (TG_OP = 'INSERT') AND (auth.uid() = NEW.user_id) AND (NEW.is_shared = true) AND (NEW.shared_with IS NOT NULL) AND (jsonb_array_length(NEW.shared_with) > 0) THEN
+        SELECT raw_user_meta_data->>'name' INTO inviter_name FROM auth.users WHERE id = auth.uid();
+        FOR split IN SELECT * FROM jsonb_array_elements(NEW.shared_with)
+        LOOP
+            target_member_id := (split->>'memberId')::UUID;
+            SELECT linked_user_id INTO target_user_id FROM public.family_members WHERE id = target_member_id;
+            
+            IF target_user_id IS NOT NULL THEN
+                -- Resolve Mirror Trip ID if original transaction belongs to a trip
+                target_trip_id := NULL;
+                IF NEW.trip_id IS NOT NULL THEN
+                    SELECT id INTO target_trip_id FROM trips 
+                    WHERE source_trip_id = NEW.trip_id AND user_id = target_user_id;
+                END IF;
+
+                INSERT INTO public.transactions (
+                    user_id, amount, date, description, category, type, is_shared, payer_id, shared_with, trip_id, created_at, updated_at
+                ) VALUES (
+                    target_user_id, 
+                    (split->>'assignedAmount')::NUMERIC, 
+                    NEW.date, 
+                    NEW.description || ' (Compartilhado por ' || COALESCE(inviter_name, 'Alguém') || ')',
+                    NEW.category, 
+                    'DESPESA', 
+                    true, 
+                    auth.uid(), 
+                    '[]'::jsonb, 
+                    target_trip_id, -- LINK TO SHARED TRIP
+                    NOW(), 
+                    NOW()
+                );
+            END IF;
+        END LOOP;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_mirror_shared_transaction ON public.transactions;
+CREATE TRIGGER trg_mirror_shared_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.handle_mirror_shared_transaction();
+
+
+-- 3. TRIP MIRROR ENGINE
+CREATE OR REPLACE FUNCTION handle_trip_sharing()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    participant_record JSONB;
+    target_member_id UUID;
+    target_user_id UUID;
+    existing_mirror_id UUID;
+BEGIN
+    IF NEW.participants IS NULL OR jsonb_array_length(NEW.participants) = 0 THEN RETURN NEW; END IF;
+    IF NEW.source_trip_id IS NOT NULL THEN RETURN NEW; END IF;
+
+    FOR participant_record IN SELECT * FROM jsonb_array_elements(NEW.participants)
+    LOOP
+        target_member_id := (participant_record->>'memberId')::UUID;
+        SELECT linked_user_id INTO target_user_id FROM family_members WHERE id = target_member_id;
+        IF target_user_id IS NOT NULL THEN
+            SELECT id INTO existing_mirror_id FROM trips 
+            WHERE user_id = target_user_id AND (source_trip_id = NEW.id OR (name = NEW.name AND start_date = NEW.start_date));
+            
+            IF existing_mirror_id IS NOT NULL THEN
+                UPDATE trips SET name = NEW.name, start_date = NEW.start_date, end_date = NEW.end_date, updated_at = NOW() WHERE id = existing_mirror_id;
+            ELSE
+                INSERT INTO trips (user_id, name, start_date, end_date, budget, image_url, source_trip_id, participants, created_at, updated_at)
+                VALUES (target_user_id, NEW.name, NEW.start_date, NEW.end_date, 0, NEW.image_url, NEW.id, NEW.participants, NOW(), NOW());
+            END IF;
+        END IF;
+    END LOOP;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_trip_change ON trips;
+CREATE TRIGGER on_trip_change AFTER INSERT OR UPDATE ON trips FOR EACH ROW EXECUTE FUNCTION handle_trip_sharing();
+
+
+-- 4. NOTIFICATION ENGINE
+CREATE OR REPLACE FUNCTION public.handle_shared_notification()
+RETURNS TRIGGER AS $$
+DECLARE
+    target_user_id UUID;
+    sender_name TEXT;
+BEGIN
+    -- NOTIFY ON INVITE
+    IF (TG_OP = 'INSERT') AND (TG_TABLE_NAME = 'family_members') THEN
+        IF NEW.linked_user_id IS NOT NULL THEN
+            SELECT raw_user_meta_data->>'name' INTO sender_name FROM auth.users WHERE id = NEW.user_id; 
+            INSERT INTO public.user_notifications (user_id, type, title, message, data, is_read, created_at)
+            VALUES (NEW.linked_user_id, 'INVITE', 'Convite de Família', COALESCE(sender_name, 'Alguém') || ' te adicionou como membro familiar.', jsonb_build_object('memberId', NEW.id), false, NOW());
+        END IF;
+        RETURN NEW;
+    END IF;
+
+    -- NOTIFY ON SHARED TRANSACTION
+    IF (TG_OP = 'INSERT') AND (TG_TABLE_NAME = 'transactions') THEN
+        -- Fix: Explicit Cast to Text/UUID for comparison soundness
+        IF (NEW.is_shared = true) AND (NEW.payer_id IS NOT NULL) AND (NEW.payer_id <> NEW.user_id::text) THEN
+            SELECT raw_user_meta_data->>'name' INTO sender_name FROM auth.users WHERE id = NEW.payer_id::uuid;
+            INSERT INTO public.user_notifications (user_id, type, title, message, data, is_read, created_at)
+            VALUES (NEW.user_id, 'TRANSACTION', 'Nova Despesa Compartilhada', COALESCE(sender_name, 'Alguém') || ' adicionou uma despesa para você.', jsonb_build_object('transactionId', NEW.id, 'tripId', NEW.trip_id), false, NOW());
+        END IF;
+        RETURN NEW;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_notify_on_invite ON public.family_members;
+CREATE TRIGGER trg_notify_on_invite AFTER INSERT ON public.family_members FOR EACH ROW EXECUTE FUNCTION public.handle_shared_notification();
+
+DROP TRIGGER IF EXISTS trg_notify_on_transaction ON public.transactions;
+CREATE TRIGGER trg_notify_on_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.handle_shared_notification();
+
+
+-- 5. INVITE RPCs
+DROP FUNCTION IF EXISTS check_user_by_email(text);
+CREATE OR REPLACE FUNCTION check_user_by_email(email_to_check TEXT) RETURNS UUID AS $$
+DECLARE found_user_id UUID;
+BEGIN SELECT id INTO found_user_id FROM auth.users WHERE lower(email) = lower(email_to_check); RETURN found_user_id; END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP FUNCTION IF EXISTS invite_user_to_family(uuid, text);
+CREATE OR REPLACE FUNCTION invite_user_to_family(member_id UUID, email_to_invite TEXT) RETURNS BOOLEAN AS $$
+DECLARE target_user_id UUID;
+BEGIN
+    SELECT id INTO target_user_id FROM auth.users WHERE lower(email) = lower(email_to_invite);
+    IF target_user_id IS NULL THEN RETURN FALSE; END IF;
+    UPDATE public.family_members SET linked_user_id = target_user_id, email = email_to_invite, updated_at = NOW() WHERE id = member_id;
+    RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- =================================================================================
+-- PART 3: DATA REPAIR (FORCE SYNC)
+-- =================================================================================
+DO $$
+DECLARE
+    links_fixed INT := 0;
+    trips_created INT := 0;
+    tx_created INT := 0;
+    
+    member_rec RECORD;
+    trip_rec RECORD;
+    tx_rec RECORD;
+    
+    target_user_id UUID;
+    existing_mirror_id UUID;
+    split JSONB;
+    target_member_id UUID;
+    inviter_name TEXT;
+    target_trip_id UUID;
+    duplicate_found BOOLEAN;
+BEGIN
+    RAISE NOTICE 'Starting Data Repair...';
+
+    -- 1. FIX FAMILY LINKS
+    UPDATE public.family_members fm
+    SET linked_user_id = au.id
+    FROM auth.users au
+    WHERE LOWER(TRIM(fm.email)) = LOWER(TRIM(au.email))
+      AND fm.linked_user_id IS NULL;
+    GET DIAGNOSTICS links_fixed = ROW_COUNT;
+    RAISE NOTICE 'Links repaired: %', links_fixed;
+
+
+    -- 2. SYNC TRIPS
+    FOR trip_rec IN SELECT * FROM trips WHERE participants IS NOT NULL AND jsonb_array_length(participants) > 0 AND source_trip_id IS NULL
+    LOOP
+        FOR split IN SELECT * FROM jsonb_array_elements(trip_rec.participants)
+        LOOP
+            target_member_id := (split->>'memberId')::UUID;
+            SELECT linked_user_id INTO target_user_id FROM family_members WHERE id = target_member_id;
+            
+            IF target_user_id IS NOT NULL THEN
+                SELECT id INTO existing_mirror_id FROM trips 
+                WHERE user_id = target_user_id 
+                  AND (source_trip_id = trip_rec.id OR (name = trip_rec.name AND start_date = trip_rec.start_date));
+                
+                IF existing_mirror_id IS NULL THEN
+                    INSERT INTO trips (user_id, name, start_date, end_date, budget, image_url, source_trip_id, participants, created_at, updated_at)
+                    VALUES (target_user_id, trip_rec.name, trip_rec.start_date, trip_rec.end_date, 0, trip_rec.image_url, trip_rec.id, trip_rec.participants, NOW(), NOW());
+                    trips_created := trips_created + 1;
+                END IF;
+            END IF;
+        END LOOP;
+    END LOOP;
+    RAISE NOTICE 'Trips synced: %', trips_created;
+
+
+    -- 3. SYNC TRANSACTIONS
+    FOR tx_rec IN SELECT * FROM transactions WHERE is_shared = true AND (payer_id = user_id::text OR payer_id IS NULL OR payer_id = 'me') AND shared_with IS NOT NULL AND jsonb_array_length(shared_with) > 0
+    LOOP
+        SELECT raw_user_meta_data->>'name' INTO inviter_name FROM auth.users WHERE id = tx_rec.user_id;
+        
+        FOR split IN SELECT * FROM jsonb_array_elements(tx_rec.shared_with)
+        LOOP
+            target_member_id := (split->>'memberId')::UUID;
+            SELECT linked_user_id INTO target_user_id FROM family_members WHERE id = target_member_id;
+            
+            IF target_user_id IS NOT NULL THEN
+                SELECT EXISTS (
+                    SELECT 1 FROM transactions WHERE user_id = target_user_id AND date = tx_rec.date AND amount = (split->>'assignedAmount')::NUMERIC AND description LIKE '%' || tx_rec.description || '%' AND type = 'DESPESA'
+                ) INTO duplicate_found;
+                
+                IF NOT duplicate_found THEN
+                    -- Resolve Trip Link
+                    target_trip_id := NULL;
+                    IF tx_rec.trip_id IS NOT NULL THEN
+                         SELECT id INTO target_trip_id FROM trips WHERE source_trip_id = tx_rec.trip_id AND user_id = target_user_id;
+                    END IF;
+
+                    INSERT INTO public.transactions (
+                        user_id, amount, date, description, category, type, is_shared, payer_id, shared_with, trip_id, created_at, updated_at
+                    ) VALUES (
+                        target_user_id, (split->>'assignedAmount')::NUMERIC, tx_rec.date, 
+                        tx_rec.description || ' (Compartilhado por ' || COALESCE(inviter_name, 'Alguém') || ')',
+                        tx_rec.category, 'DESPESA', true, tx_rec.user_id, '[]'::jsonb, target_trip_id, NOW(), NOW()
+                    );
+                    tx_created := tx_created + 1;
+                END IF;
+            END IF;
+        END LOOP;
+    END LOOP;
+    RAISE NOTICE 'Transactions synced: %', tx_created;
+
+    RAISE NOTICE 'Data Repair Completed.';
+END $$;
