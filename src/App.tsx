@@ -192,15 +192,17 @@ const App = () => {
         // Removed pendingSharedRequests logic
 
         if (systemNotifications) {
-            const mapped = systemNotifications.map(sn => ({
-                id: sn.id,
-                title: sn.title,
-                description: sn.message,
-                type: sn.type,
-                data: sn.data,
-                date: sn.created_at,
-                isLocal: false
-            }));
+            const mapped = systemNotifications
+                .filter(sn => !sn.read) // ONLY SHOW UNREAD
+                .map(sn => ({
+                    id: sn.id,
+                    title: sn.title,
+                    description: sn.message,
+                    type: sn.type,
+                    data: sn.data,
+                    date: sn.created_at,
+                    isLocal: false
+                }));
             notifs.push(...mapped);
         }
         return notifs;
