@@ -19,7 +19,7 @@ const mapToApp = <T>(data: any): T => {
 
     const newObj: any = {};
     for (const key in data) {
-        if (key === 'user_id') continue;
+        // if (key === 'user_id') continue; // We need userId for ownership checks now
         const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
 
         // Specific overrides if needed
@@ -210,19 +210,17 @@ export const supabaseService = {
 
         if (tripError) throw tripError;
 
-        // 2. Soft delete associated TRANSACTIONS
-        // This triggers the mirror logic for shared transactions naturally
+        // 2. Unlink associated TRANSACTIONS (Preserve history)
+        // We set trip_id to NULL so they remain in the user's ledger but are no longer grouped.
         const { error: txError } = await supabase
             .from('transactions')
-            .update({ deleted: true, updated_at: new Date().toISOString() })
+            .update({ trip_id: null, updated_at: new Date().toISOString() })
             .eq('trip_id', tripId)
             .eq('user_id', userId);
 
         if (txError) {
-            console.error("Failed to cascade delete transactions for trip:", tripId, txError);
-            // We don't throw here to avoid "Zombie Trip" state (Trip deleted but txs failed), 
-            // but ideally we should have used a transaction. 
-            // Given Supabase client limitations on transactions without RPC, this is best effort.
+            console.error("Failed to unlink transactions for trip:", tripId, txError);
+            // We log but continue, as the trip itself will be deleted.
         }
     },
 

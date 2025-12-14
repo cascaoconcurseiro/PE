@@ -179,11 +179,18 @@ export const AccountForm: React.FC<AccountFormProps> = ({ type, initialData, onS
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Moeda</label>
                             <div className="relative">
-                                <select className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none appearance-none text-slate-900 dark:text-white text-sm font-normal" value={newAccount.currency} onChange={e => setNewAccount({ ...newAccount, currency: e.target.value })}>
+                                <select
+                                    className={`w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none appearance-none text-slate-900 dark:text-white text-sm font-normal ${isEditing ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-900' : ''}`}
+                                    value={newAccount.currency}
+                                    onChange={e => setNewAccount({ ...newAccount, currency: e.target.value })}
+                                    disabled={isEditing}
+                                >
                                     {AVAILABLE_CURRENCIES.map(c => (<option key={c.code} value={c.code}>{c.code} - {c.name}</option>))}
                                 </select>
-                                <Globe className="w-4 h-4 text-slate-500 absolute left-3 top-2.5 pointer-events-none" />
+                                <Globe className={`w-4 h-4 text-slate-500 absolute left-3 top-2.5 pointer-events-none ${isEditing ? 'opacity-50' : ''}`} />
+                                {isEditing && <span className="absolute right-3 top-2.5 text-xs text-slate-400 no-print">Bloqueado</span>}
                             </div>
+                            {isEditing && <p className="text-[10px] text-slate-500 mt-1">Não é possível alterar a moeda de uma conta ativa.</p>}
                         </div>
                     </div>
 

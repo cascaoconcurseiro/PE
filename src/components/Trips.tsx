@@ -20,9 +20,10 @@ interface TripsProps {
     onNavigateToShared?: () => void;
     onEditTransaction?: (id: string) => void;
     onLoadHistory: (start: string, end: string) => Promise<void>;
+    currentUserId?: string;
 }
 
-export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onUpdateTransaction, onDeleteTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared, onEditTransaction, onLoadHistory }) => {
+export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onUpdateTransaction, onDeleteTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared, onEditTransaction, onLoadHistory, currentUserId }) => {
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
     const [isCreatingTrip, setIsCreatingTrip] = useState(false);
     const [editingTripId, setEditingTripId] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
                 onSave={handleCreateOrUpdateTrip}
                 onCancel={() => { setIsCreatingTrip(false); setEditingTripId(null); }}
                 editingTripId={editingTripId}
+                currentUserId={currentUserId}
             />
         );
     }
@@ -94,6 +96,7 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
                 onEditTransaction={onEditTransaction} // Keep this for legacy or specialized modal trigger if needed
                 onUpdateTransactionInternal={onUpdateTransaction}
                 onDeleteTransactionInternal={onDeleteTransaction}
+                currentUserId={currentUserId}
             />
         );
     }

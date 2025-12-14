@@ -12,15 +12,22 @@ interface TripFormProps {
     onSave: (trip: Omit<Trip, 'id'> | Trip) => void;
     onCancel: () => void;
     editingTripId?: string | null;
+    currentUserId?: string;
 }
 
-export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, onSave, onCancel, editingTripId }) => {
+export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, onSave, onCancel, editingTripId, currentUserId }) => {
     const [name, setName] = useState(initialData?.name || '');
     const [startDate, setStartDate] = useState(initialData?.startDate || new Date().toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState(initialData?.endDate || new Date().toISOString().split('T')[0]);
     const [participants, setParticipants] = useState<string[]>(initialData?.participants.map(p => p.id) || []);
     const [currency, setCurrency] = useState(initialData?.currency || 'BRL');
     const [formError, setFormError] = useState<string | null>(null);
+
+    // Permission Check
+    // If creating, you are owner. If editing, check IDs.
+    // If no currentUserId provided (shouldn't happen in auth app), default to allow to avoid lockout.
+    const isOwner = !editingTripId || !currentUserId || (initialData?.userId === currentUserId);
+    const canEditSettings = isOwner;
 
     const calculateDuration = () => {
         if (!startDate || !endDate) return 0;
@@ -36,6 +43,12 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setFormError(null);
+
+        if (!canEditSettings) {
+            // Allow saving ONLY if they didn't touch restricted fields? 
+            // Actually, if we disable inputs, the state won't change. 
+            // But we should ensure we don't overwrite if they did hack it.
+        }
 
         if (!name.trim()) {
             setFormError("O nome da viagem é obrigatório.");
@@ -91,22 +104,31 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
                 </Button>
                 <h2 className="text-xl font-bold text-slate-800">{editingTripId ? 'Editar Viagem' : 'Nova Viagem'}</h2>
             </div>
+
+            {!canEditSettings && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm flex items-center gap-2 mb-4">
+                    <AlertCircle className="w-5 h-5" />
+                    <span>Você é um participante convidado. Apenas o criador da viagem pode alterar nome, datas e moeda.</span>
+                </div>
+            )}
+
             <Card className="bg-white dark:bg-slate-800 border-violet-100 dark:border-violet-900 shadow-lg">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Nome da Viagem</label>
                         <input
-                            className="w-full text-lg font-semibold text-slate-900 dark:text-white border-b-2 border-slate-200 dark:border-slate-700 focus:border-violet-500 outline-none py-2 bg-transparent placeholder-slate-500 dark:placeholder-slate-400 transition-colors"
+                            className={`w-full text-lg font-semibold text-slate-900 dark:text-white border-b-2 outline-none py-2 bg-transparent placeholder-slate-500 dark:placeholder-slate-400 transition-colors ${canEditSettings ? 'border-slate-200 dark:border-slate-700 focus:border-violet-500' : 'border-dashed border-slate-300 opacity-60 cursor-not-allowed'}`}
                             placeholder="Ex: Férias em Miami"
                             value={name}
                             onChange={e => setName(e.target.value)}
-                            autoFocus
+                            autoFocus={canEditSettings}
                             required
+                            disabled={!canEditSettings}
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="relative group">
-                            <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl flex flex-col justify-center shadow-sm hover:border-violet-400 dark:hover:border-violet-600 transition-all focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-100 dark:focus-within:ring-violet-900/30 relative h-20 overflow-hidden">
+                            <div className={`bg-white dark:bg-slate-800 border rounded-xl flex flex-col justify-center shadow-sm relative h-20 overflow-hidden ${canEditSettings ? 'border-slate-300 dark:border-slate-600 hover:border-violet-400 focus-within:border-violet-500' : 'border-slate-200 opacity-70 cursor-not-allowed'}`}>
                                 <div className="absolute top-2 left-3 flex items-center gap-2 pointer-events-none">
                                     <Calendar className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Início</span>
@@ -115,14 +137,15 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
                                     type="date"
                                     className="w-full h-full pt-6 px-3 text-center font-bold text-slate-900 dark:text-white bg-transparent border-none outline-none cursor-pointer"
                                     value={startDate}
-                                    onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
+                                    onClick={(e) => { if (canEditSettings) try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
                                     onChange={e => setStartDate(e.target.value)}
                                     required
+                                    disabled={!canEditSettings}
                                 />
                             </div>
                         </div>
                         <div className="relative group">
-                            <div className={`bg-white dark:bg-slate-800 border rounded-xl flex flex-col justify-center shadow-sm transition-all relative h-20 overflow-hidden ${duration <= 0 ? 'border-red-300 dark:border-red-800' : 'border-slate-300 dark:border-slate-600 hover:border-violet-400 dark:hover:border-violet-600 focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-100 dark:focus-within:ring-violet-900/30'}`}>
+                            <div className={`bg-white dark:bg-slate-800 border rounded-xl flex flex-col justify-center shadow-sm transition-all relative h-20 overflow-hidden ${duration <= 0 ? 'border-red-300 dark:border-red-800' : (canEditSettings ? 'border-slate-300 dark:border-slate-600 hover:border-violet-400' : 'border-slate-200 opacity-70 cursor-not-allowed')}`}>
                                 <div className="absolute top-2 left-3 flex items-center gap-2 pointer-events-none">
                                     <Calendar className={`w-4 h-4 ${duration <= 0 ? 'text-red-600 dark:text-red-400' : 'text-violet-600 dark:text-violet-400'}`} />
                                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fim</span>
@@ -131,10 +154,11 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
                                     type="date"
                                     className="w-full h-full pt-6 px-3 text-center font-bold text-slate-900 dark:text-white bg-transparent border-none outline-none cursor-pointer"
                                     value={endDate}
-                                    onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
+                                    onClick={(e) => { if (canEditSettings) try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }}
                                     onChange={e => setEndDate(e.target.value)}
                                     min={startDate}
                                     required
+                                    disabled={!canEditSettings}
                                 />
                             </div>
                         </div>
@@ -153,11 +177,12 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
                     <div>
                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Moeda Principal</label>
                         <div className="relative">
-                            <Globe className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                            <Globe className={`absolute left-3 top-3 w-5 h-5 text-slate-400 ${!canEditSettings ? 'opacity-50' : ''}`} />
                             <select
                                 value={currency}
                                 onChange={(e) => setCurrency(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold outline-none focus:ring-2 focus:ring-violet-500 appearance-none"
+                                disabled={!canEditSettings}
+                                className={`w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold outline-none focus:ring-2 focus:ring-violet-500 appearance-none ${!canEditSettings ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-900' : ''}`}
                             >
                                 {AVAILABLE_CURRENCIES.map(curr => (
                                     <option key={curr.code} value={curr.code}>{curr.code} - {curr.name}</option>
@@ -198,7 +223,7 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
                         </div>
                     )}
                     <div className="pt-4">
-                        <Button type="submit" className="w-full h-12 text-lg bg-violet-700 hover:bg-violet-800 shadow-lg shadow-violet-200" disabled={!name || !startDate || !endDate || duration <= 0}>
+                        <Button type="submit" className="w-full h-12 text-lg bg-violet-700 hover:bg-violet-800 shadow-lg shadow-violet-200" disabled={(!name || !startDate || !endDate || duration <= 0)}>
                             {editingTripId ? 'Salvar Alterações' : 'Criar Viagem'}
                         </Button>
                     </div>

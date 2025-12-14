@@ -208,6 +208,12 @@ export const useDataStore = () => {
                 if (hasPaid) {
                     throw new Error('Não é possível alterar o número de parcelas de uma série com pagamentos já realizados.');
                 }
+                
+                // 1.5 Safety: Block resizing if Shared (too complex to regenerate splits on the fly without dedicated UI)
+                const isSharedSeries = seriesTxs.some(t => t.isShared || (t.sharedWith && t.sharedWith.length > 0));
+                if (isSharedSeries) {
+                    throw new Error('Por segurança, não é permitido alterar o número de parcelas de uma compra compartilhada. Exclua e crie novamente.');
+                }
 
                 // 2. GENERATE NEW SERIES DATA (In Memory)
                 // We need to regenerate the proper dates and installments

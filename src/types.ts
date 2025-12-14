@@ -271,6 +271,7 @@ export interface TripExchangeEntry {
 
 export interface Trip extends BaseEntity {
   id: string;
+  userId: string; // Added for ownership checks
   name: string;
   startDate: string;
   endDate: string;
