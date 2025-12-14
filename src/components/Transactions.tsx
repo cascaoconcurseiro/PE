@@ -72,7 +72,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
     // Use Custom Hook for Filtering Logic
     const { filteredTxs, groupedTxs, income, expense, balance, currency } = useTransactionFilters({
-        transactions: transactions.filter(t => t.category !== Category.OPENING_BALANCE), // Filter out Opening Balance/Imported Invoices from Main View
+        transactions: transactions, // Allow all transaction types, including OPENING_BALANCE
         accounts,
         currentDate,
         searchTerm,
