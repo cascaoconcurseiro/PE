@@ -5,7 +5,7 @@
 -- =================================================================================
 -- PART 1: SCHEMA REPAIR (ENSURE COLUMNS EXIST)
 -- =================================================================================
-DO $$
+DO $do$
 BEGIN
     RAISE NOTICE 'Starting Schema Repair...';
     
@@ -51,7 +51,7 @@ BEGIN
     END IF;
     
     RAISE NOTICE 'Schema Repair Completed.';
-END $$;
+END $do$;
 
 
 -- =================================================================================
@@ -60,21 +60,22 @@ END $$;
 
 -- 1. BALANCE ENGINE
 CREATE OR REPLACE FUNCTION update_account_balance()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $func$
 BEGIN
   RETURN NEW; 
 END;
-$$ LANGUAGE plpgsql;
+$func$ LANGUAGE plpgsql;
 
 -- 2. SHARED MIRROR ENGINE (Transactions)
 CREATE OR REPLACE FUNCTION public.handle_mirror_shared_transaction()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $func$
 DECLARE
     split JSONB;
     target_member_id UUID;
     target_user_id UUID;
     target_trip_id UUID; 
     inviter_name TEXT;
+    original_trip_rec RECORD;
 BEGIN
     IF (TG_OP = 'INSERT') AND (auth.uid() = NEW.user_id) AND (NEW.is_shared = true) AND (NEW.shared_with IS NOT NULL) AND (jsonb_array_length(NEW.shared_with) > 0) THEN
         SELECT raw_user_meta_data->>'name' INTO inviter_name FROM auth.users WHERE id = auth.uid();
@@ -84,13 +85,36 @@ BEGIN
             SELECT linked_user_id INTO target_user_id FROM public.family_members WHERE id = target_member_id;
             
             IF target_user_id IS NOT NULL THEN
-                -- Resolve Mirror Trip ID if original transaction belongs to a trip
+                -- TRIP LOGIC: JUST-IN-TIME MIRRORING (Golden Rule)
                 target_trip_id := NULL;
                 IF NEW.trip_id IS NOT NULL THEN
+                    -- 1. Try to find existing mirror (SAFE CAST)
                     SELECT id INTO target_trip_id FROM trips 
-                    WHERE source_trip_id = NEW.trip_id AND user_id = target_user_id;
+                    WHERE source_trip_id::text = NEW.trip_id::text AND user_id = target_user_id;
+
+                    -- 2. If not found, CREATE IT AUTOMATICALLY
+                    IF target_trip_id IS NULL THEN
+                        SELECT * INTO original_trip_rec FROM trips WHERE id = NEW.trip_id;
+                        IF original_trip_rec.id IS NOT NULL THEN
+                            INSERT INTO trips (
+                                user_id, name, start_date, end_date, budget, image_url, source_trip_id, participants, created_at, updated_at
+                            ) VALUES (
+                                target_user_id, 
+                                original_trip_rec.name, 
+                                original_trip_rec.start_date, 
+                                original_trip_rec.end_date, 
+                                original_trip_rec.budget,
+                                original_trip_rec.image_url, 
+                                original_trip_rec.id, -- source_trip_id (UUID)
+                                original_trip_rec.participants, 
+                                NOW(), 
+                                NOW()
+                            ) RETURNING id INTO target_trip_id;
+                        END IF;
+                    END IF;
                 END IF;
 
+                -- INSERT TRANSACTION
                 INSERT INTO public.transactions (
                     user_id, amount, date, description, category, type, is_shared, payer_id, shared_with, trip_id, created_at, updated_at
                 ) VALUES (
@@ -101,9 +125,9 @@ BEGIN
                     NEW.category, 
                     'DESPESA', 
                     true, 
-                    auth.uid(), 
+                    auth.uid()::text, -- SAFE CAST for payer_id
                     '[]'::jsonb, 
-                    target_trip_id, -- LINK TO SHARED TRIP
+                    target_trip_id,
                     NOW(), 
                     NOW()
                 );
@@ -112,7 +136,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_mirror_shared_transaction ON public.transactions;
 CREATE TRIGGER trg_mirror_shared_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.handle_mirror_shared_transaction();
@@ -120,7 +144,7 @@ CREATE TRIGGER trg_mirror_shared_transaction AFTER INSERT ON public.transactions
 
 -- 3. TRIP MIRROR ENGINE
 CREATE OR REPLACE FUNCTION handle_trip_sharing()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $func$
 DECLARE
     participant_record JSONB;
     target_member_id UUID;
@@ -136,7 +160,7 @@ BEGIN
         SELECT linked_user_id INTO target_user_id FROM family_members WHERE id = target_member_id;
         IF target_user_id IS NOT NULL THEN
             SELECT id INTO existing_mirror_id FROM trips 
-            WHERE user_id = target_user_id AND (source_trip_id = NEW.id OR (name = NEW.name AND start_date = NEW.start_date));
+            WHERE user_id = target_user_id AND (source_trip_id::text = NEW.id::text OR (name = NEW.name AND start_date = NEW.start_date));
             
             IF existing_mirror_id IS NOT NULL THEN
                 UPDATE trips SET name = NEW.name, start_date = NEW.start_date, end_date = NEW.end_date, updated_at = NOW() WHERE id = existing_mirror_id;
@@ -148,7 +172,7 @@ BEGIN
     END LOOP;
     RETURN NEW;
 END;
-$$;
+$func$;
 
 DROP TRIGGER IF EXISTS on_trip_change ON trips;
 CREATE TRIGGER on_trip_change AFTER INSERT OR UPDATE ON trips FOR EACH ROW EXECUTE FUNCTION handle_trip_sharing();
@@ -156,7 +180,7 @@ CREATE TRIGGER on_trip_change AFTER INSERT OR UPDATE ON trips FOR EACH ROW EXECU
 
 -- 4. NOTIFICATION ENGINE
 CREATE OR REPLACE FUNCTION public.handle_shared_notification()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $func$
 DECLARE
     target_user_id UUID;
     sender_name TEXT;
@@ -174,7 +198,7 @@ BEGIN
     -- NOTIFY ON SHARED TRANSACTION
     IF (TG_OP = 'INSERT') AND (TG_TABLE_NAME = 'transactions') THEN
         -- Fix: Explicit Cast to Text/UUID for comparison soundness
-        IF (NEW.is_shared = true) AND (NEW.payer_id IS NOT NULL) AND (NEW.payer_id <> NEW.user_id::text) THEN
+        IF (NEW.is_shared = true) AND (NEW.payer_id IS NOT NULL) AND (NEW.payer_id::text <> NEW.user_id::text) THEN
             SELECT raw_user_meta_data->>'name' INTO sender_name FROM auth.users WHERE id = NEW.payer_id::uuid;
             INSERT INTO public.user_notifications (user_id, type, title, message, data, is_read, created_at)
             VALUES (NEW.user_id, 'TRANSACTION', 'Nova Despesa Compartilhada', COALESCE(sender_name, 'Alguém') || ' adicionou uma despesa para você.', jsonb_build_object('transactionId', NEW.id, 'tripId', NEW.trip_id), false, NOW());
@@ -183,7 +207,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_notify_on_invite ON public.family_members;
 CREATE TRIGGER trg_notify_on_invite AFTER INSERT ON public.family_members FOR EACH ROW EXECUTE FUNCTION public.handle_shared_notification();
@@ -194,13 +218,13 @@ CREATE TRIGGER trg_notify_on_transaction AFTER INSERT ON public.transactions FOR
 
 -- 5. INVITE RPCs
 DROP FUNCTION IF EXISTS check_user_by_email(text);
-CREATE OR REPLACE FUNCTION check_user_by_email(email_to_check TEXT) RETURNS UUID AS $$
+CREATE OR REPLACE FUNCTION check_user_by_email(email_to_check TEXT) RETURNS UUID AS $func$
 DECLARE found_user_id UUID;
 BEGIN SELECT id INTO found_user_id FROM auth.users WHERE lower(email) = lower(email_to_check); RETURN found_user_id; END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP FUNCTION IF EXISTS invite_user_to_family(uuid, text);
-CREATE OR REPLACE FUNCTION invite_user_to_family(member_id UUID, email_to_invite TEXT) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION invite_user_to_family(member_id UUID, email_to_invite TEXT) RETURNS BOOLEAN AS $func$
 DECLARE target_user_id UUID;
 BEGIN
     SELECT id INTO target_user_id FROM auth.users WHERE lower(email) = lower(email_to_invite);
@@ -208,13 +232,13 @@ BEGIN
     UPDATE public.family_members SET linked_user_id = target_user_id, email = email_to_invite, updated_at = NOW() WHERE id = member_id;
     RETURN TRUE;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- =================================================================================
 -- PART 3: DATA REPAIR (FORCE SYNC)
 -- =================================================================================
-DO $$
+DO $do$
 DECLARE
     links_fixed INT := 0;
     trips_created INT := 0;
@@ -255,7 +279,7 @@ BEGIN
             IF target_user_id IS NOT NULL THEN
                 SELECT id INTO existing_mirror_id FROM trips 
                 WHERE user_id = target_user_id 
-                  AND (source_trip_id = trip_rec.id OR (name = trip_rec.name AND start_date = trip_rec.start_date));
+                  AND (source_trip_id::text = trip_rec.id::text OR (name = trip_rec.name AND start_date = trip_rec.start_date));
                 
                 IF existing_mirror_id IS NULL THEN
                     INSERT INTO trips (user_id, name, start_date, end_date, budget, image_url, source_trip_id, participants, created_at, updated_at)
@@ -269,7 +293,7 @@ BEGIN
 
 
     -- 3. SYNC TRANSACTIONS
-    FOR tx_rec IN SELECT * FROM transactions WHERE is_shared = true AND (payer_id = user_id::text OR payer_id IS NULL OR payer_id = 'me') AND shared_with IS NOT NULL AND jsonb_array_length(shared_with) > 0
+    FOR tx_rec IN SELECT * FROM transactions WHERE is_shared = true AND (payer_id::text = user_id::text OR payer_id IS NULL OR payer_id = 'me') AND shared_with IS NOT NULL AND jsonb_array_length(shared_with) > 0
     LOOP
         SELECT raw_user_meta_data->>'name' INTO inviter_name FROM auth.users WHERE id = tx_rec.user_id;
         
@@ -287,7 +311,17 @@ BEGIN
                     -- Resolve Trip Link
                     target_trip_id := NULL;
                     IF tx_rec.trip_id IS NOT NULL THEN
-                         SELECT id INTO target_trip_id FROM trips WHERE source_trip_id = tx_rec.trip_id AND user_id = target_user_id;
+                         SELECT id INTO target_trip_id FROM trips WHERE source_trip_id::text = tx_rec.trip_id::text AND user_id = target_user_id;
+                         
+                         -- AUTO CREATE TRIP IF MISSING IN SYNC
+                         IF target_trip_id IS NULL THEN
+                            INSERT INTO trips (
+                                user_id, name, start_date, end_date, budget, image_url, source_trip_id, participants, created_at, updated_at
+                            ) SELECT 
+                                target_user_id, name, start_date, end_date, budget, image_url, id, participants, NOW(), NOW()
+                              FROM trips WHERE id = tx_rec.trip_id
+                              RETURNING id INTO target_trip_id;
+                         END IF;
                     END IF;
 
                     INSERT INTO public.transactions (
@@ -295,7 +329,7 @@ BEGIN
                     ) VALUES (
                         target_user_id, (split->>'assignedAmount')::NUMERIC, tx_rec.date, 
                         tx_rec.description || ' (Compartilhado por ' || COALESCE(inviter_name, 'Alguém') || ')',
-                        tx_rec.category, 'DESPESA', true, tx_rec.user_id, '[]'::jsonb, target_trip_id, NOW(), NOW()
+                        tx_rec.category, 'DESPESA', true, tx_rec.user_id::text, '[]'::jsonb, target_trip_id, NOW(), NOW()
                     );
                     tx_created := tx_created + 1;
                 END IF;
@@ -305,4 +339,4 @@ BEGIN
     RAISE NOTICE 'Transactions synced: %', tx_created;
 
     RAISE NOTICE 'Data Repair Completed.';
-END $$;
+END $do$;

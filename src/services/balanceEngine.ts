@@ -105,11 +105,12 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
                 // Otherwise, assume 1:1 (same currency).
                 let amountIncoming = amount;
 
-                // ✅ VALIDAÇÃO CRÍTICA 6: Multi-currency transfers MUST have destinationAmount
+                // ✅ VALIDAÇÃO CRÍTICA 6: Multi-currency transfers SAFETY NET
                 if (sourceAcc && sourceAcc.currency !== destAcc.currency) {
                     if (!tx.destinationAmount || tx.destinationAmount <= 0) {
-                        console.error(`❌ ERRO CRÍTICO: Transferência multi-moeda (${sourceAcc.currency} → ${destAcc.currency}) sem destinationAmount válido!`);
-                        return;
+                        console.error(`❌ ERRO CRÍTICO (Autocorrigido): Transferência multi-moeda (${sourceAcc.currency} → ${destAcc.currency}) sem destinationAmount válido!`);
+                        console.warn(`⚠️ Aplicando taxa de conversão 1:1 como fallback de segurança.`);
+                        amountIncoming = round2dec(amount); // Fallback: 1:1 to preserve Asset existence (Double Entry)
                     } else {
                         amountIncoming = round2dec(tx.destinationAmount);
                     }
@@ -119,6 +120,7 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
                 }
 
                 // Transfer In always adds to Destination
+                // STRICT ROUNDING: Apply round2dec on the operation result
                 destAcc.balance = round2dec(destAcc.balance + amountIncoming);
             }
         }
