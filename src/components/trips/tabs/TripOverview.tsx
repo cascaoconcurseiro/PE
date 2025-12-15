@@ -70,7 +70,7 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
                 <Card className="border-none shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 overflow-hidden relative">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
 
-                    <div className="flex justify-between items-start mb-6">
+                    <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
                         <div>
                             <span className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1 block">Orçamento Total</span>
                             <div className="flex items-baseline gap-2">
