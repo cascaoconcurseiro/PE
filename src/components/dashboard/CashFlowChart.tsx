@@ -102,11 +102,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
                                         Acumulado
                                     </td>
                                     {data.map((item, idx) => {
-                                        // Calculate accumulated up to this index
-                                        let acc = 0;
-                                        for (let i = 0; i <= idx; i++) {
-                                            acc += (data[i].Receitas || 0) - (data[i].Despesas || 0); // Corrected Subtraction
-                                        }
+                                        const acc = item.Acumulado;
                                         return (
                                             <td key={idx} className={`px-3 py-2 font-bold ${acc >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                                 {formatCurrency(acc)}

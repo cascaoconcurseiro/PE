@@ -151,10 +151,16 @@ export const useFinancialDashboard = ({
     // Annual Cash Flow Data (LOCAL CALCULATION - Ensures consistency with Widgets)
     const cashFlowData = useMemo(() => {
         // 1. Get Current Liquid Balance (The Anchor)
-        const liquidAccounts = dashboardAccounts.filter(a =>
-            a.type === AccountType.CHECKING || a.type === AccountType.SAVINGS || a.type === AccountType.CASH
-        );
-        let accumulated = liquidAccounts.reduce((sum, a) => sum + (convertToBRL(a.balance, a.currency || 'BRL')), 0);
+        // 1. Get Current Net Worth Balance (The Anchor) - Sum of ALL Accounts
+        // This ensures that "Acumulado" matches the "Net Worth" concept, which is consistent with
+        // the Chart showing Income/Expense from ALL sources (Investments, etc).
+        let accumulated = dashboardAccounts.reduce((sum, a) => {
+            const val = convertToBRL(a.balance, a.currency || 'BRL');
+            if (a.type === AccountType.CREDIT_CARD) {
+                return sum - Math.abs(val); // Debt reduces accumulated
+            }
+            return sum + val;
+        }, 0);
 
         // 2. Adjust Balance to reach Jan 1st of Selected Year
         // We travel in time from 'currentDate' (Today) to 'Jan 1st selectedYear'
@@ -173,12 +179,14 @@ export const useFinancialDashboard = ({
             if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
                 amount = calculateEffectiveTransactionValue(t);
             }
-            // Strict liquid account filter for cash flow
+
+            // STRICT FILTER REMOVED: Now we include ALL transactions in the time-travel
+            // to insure the "Acumulado" consistently represents the Net Worth evolution.
             const account = accounts.find(a => a.id === t.accountId);
-            if (!account || (account.type !== AccountType.CHECKING && account.type !== AccountType.SAVINGS && account.type !== AccountType.CASH)) {
-                return;
-            }
-            const amountBRL = convertToBRL(amount, account.currency || 'BRL');
+            // Safety check for currency
+            if (account && account.currency && account.currency !== 'BRL') return;
+
+            const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
 
             // CASE A: Future View (e.g. Viewing 2026, Today is 2025)
             // We need to ADD everything happenning between Now and Start of 2026
