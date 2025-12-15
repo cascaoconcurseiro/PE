@@ -113,7 +113,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             <div className={`bg-white dark:bg-slate-900 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 flex flex-col transition-transform duration-300 ${isOpen ? 'translate-y-0 pointer-events-auto' : 'translate-y-full'}`}>
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                     <h3 className="font-bold text-lg dark:text-white flex items-center gap-2"><Layers className="w-5 h-5 text-indigo-500" /> Importar Parcelado</h3>
-                    <button onClick={onClose}><X className="w-6 h-6 text-slate-400" /></button>
+                    <button type="button" onClick={onClose}><X className="w-6 h-6 text-slate-400" /></button>
                 </div>
 
                 <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
@@ -161,6 +161,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         <div className="grid grid-cols-2 gap-2">
                             {availableMembers.map(m => (
                                 <button
+                                    type="button"
                                     key={m.id}
                                     onClick={() => setAssigneeId(m.id)}
                                     className={`px-4 py-3 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2 ${assigneeId === m.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'}`}

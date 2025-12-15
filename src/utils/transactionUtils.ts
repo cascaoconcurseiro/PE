@@ -2,8 +2,10 @@
 import { Transaction, Account } from '../types';
 
 export const isForeignTransaction = (t: Transaction, accounts: Account[]): boolean => {
-    // 1. Explicitly linked to a trip
-    if (t.tripId) return true;
+    // 1. Explicitly linked to a trip? 
+    // REMOVED: Just being in a trip doesn't make it foreign. 
+    // The Dashboard hook checks the Trip's currency specifically.
+    // if (t.tripId) return true;
 
     // 2. Explicitly foreign currency
     if (t.currency && t.currency !== 'BRL') return true;

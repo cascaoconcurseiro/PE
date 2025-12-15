@@ -163,17 +163,11 @@ export const calculateProjectedBalance = (
         const tDate = new Date(t.date);
         tDate.setHours(0, 0, 0, 0);
 
-        // 1. GLOBAL FILTER: To affect the projection, the transaction must be:
-        //    a) Before or on the Target View Date (We don't care about Mar 2026 if viewing Feb 2026)
-        //    b) Either in the Future (relative to Real Today) OR Unsettled (Past Due)
-        //       (Settled past transactions are already in the Current Balance, so we skip them)
-
-        const isBeforeOrOnTarget = tDate.getTime() <= viewMonthEnd.getTime();
-        const isFuture = tDate.getTime() > today.getTime();
-        const isUnsettled = !t.isSettled;
-
-        if (!isBeforeOrOnTarget) return; // Ignore things beyond the view
-        if (!isFuture && !isUnsettled) return; // Ignore Settled Past things (already in Balance)
+        // 1. STRICT MONTH FILTER (User Request: "No logic cumulative", "Strictly month/year matching")
+        // We only consider transactions that belong to the 'currentDate' (View Date) month/year.
+        if (tDate.getMonth() !== currentDate.getMonth() || tDate.getFullYear() !== currentDate.getFullYear()) {
+            return;
+        }
 
         // SHARED LOGIC
         let processedAsShared = false;
@@ -183,8 +177,7 @@ export const calculateProjectedBalance = (
             if (t.currency && t.currency !== 'BRL') {
                 // Skip foreign
             } else {
-                // If it's valid for projection (Future or Unsettled), add it.
-                // We already filtered broadly above.
+                // Logic: I paid, waiting for others to pay me back (Asset/Income)
                 const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
                     return sum + (!s.isSettled ? s.assignedAmount : 0);
                 }, 0) || 0;
@@ -193,6 +186,8 @@ export const calculateProjectedBalance = (
                     pendingIncome += toBRL(pendingSplitsTotal, t);
                 }
             }
+            // ✅ FIX ERRO 1: Mark as processed to prevent double-counting as Expense below
+            processedAsShared = true;
         }
 
         // 2. Shared Debts (Payables)
@@ -208,8 +203,6 @@ export const calculateProjectedBalance = (
         if (processedAsShared) return;
 
         // Standard Cash Flow
-        // We already filtered for (Future || Unsettled) && BeforeTarget
-
         if (t.type === TransactionType.TRANSFER) {
             const sourceAccId = t.accountId;
             const isSourceLiquid = sourceAccId ? liquidityAccountIds.has(sourceAccId) : false;

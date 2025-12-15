@@ -356,7 +356,35 @@ export const supabaseService = {
         return data || [];
     },
     async getAccounts(): Promise<Account[]> { return this.getAll<Account>('accounts'); },
-    async getTrips(): Promise<Trip[]> { return this.getAll<Trip>('trips'); },
+    async getTrips(): Promise<Trip[]> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return [];
+        const userId = user.id;
+        const userEmail = user.email;
+
+        let query = supabase
+            .from('trips')
+            .select('*')
+            .eq('deleted', false);
+
+        // Fetch Own Trips OR Shared Trips (where I am a participant by email)
+        if (userEmail) {
+            // Use Supabase 'or' syntax with JSONB containment
+            // user_id.eq.ID, or participants.cs.[{"email":"EMAIL"}]
+            query = query.or(`user_id.eq.${userId},participants.cs.[{"email": "${userEmail}"}]`);
+        } else {
+            query = query.eq('user_id', userId);
+        }
+
+        const { data, error } = await query.order('start_date', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching trips:', error);
+            return [];
+        }
+        return mapToApp<Trip[]>(data);
+    },
+
     async getFamilyMembers(): Promise<FamilyMember[]> { return this.getAll<FamilyMember>('family_members'); },
     async getGoals(): Promise<Goal[]> { return this.getAll<Goal>('goals'); },
     async getBudgets(): Promise<Budget[]> { return this.getAll<Budget>('budgets'); },

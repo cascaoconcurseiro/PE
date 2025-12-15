@@ -1,7 +1,8 @@
 -- MIGRATION: HARD RESET (CLEAN SLATE)
 -- DATE: 2025-01-09
 -- DESCRIPTION: Truncates all transactional data tables to reset the system state.
---              Do NOT run this if you want to keep data!
+--              SAFETY: Uses TRUNCATE CASCADE. Does NOT drop tables or columns.
+--              WARNING: This will wipe all data! Do NOT run this if you want to keep data!
 
 BEGIN;
 

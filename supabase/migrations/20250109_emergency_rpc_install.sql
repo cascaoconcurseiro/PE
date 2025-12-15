@@ -15,12 +15,12 @@ BEGIN
     DELETE FROM public.transactions WHERE user_id = v_user_id;
     DELETE FROM public.trips WHERE user_id = v_user_id;
     DELETE FROM public.user_notifications WHERE user_id = v_user_id;
-    DELETE FROM public.shared_transaction_requests WHERE sender_id = v_user_id;
+    DELETE FROM public.shared_transaction_requests WHERE requester_id = v_user_id;
     DELETE FROM public.accounts WHERE user_id = v_user_id;
     DELETE FROM public.custom_categories WHERE user_id = v_user_id;
     DELETE FROM public.goals WHERE user_id = v_user_id;
     DELETE FROM public.budgets WHERE user_id = v_user_id;
-    DELETE FROM public.ledger_entries WHERE user_id = v_user_id;
+    -- DELETE FROM public.ledger_entries WHERE user_id = v_user_id; -- Table removed in v2 refactor
     DELETE FROM public.assets WHERE user_id = v_user_id;
 END;
 $$;
@@ -37,38 +37,45 @@ $$;
 
 -- 3. FUNCTION INVITE USER (Fixes Error 2)
 -- Note: Replaces older definition with correct update logic
+-- Explicit drop to avoid return type conflict (42P13)
+DROP FUNCTION IF EXISTS invite_user_to_family(uuid, text);
+
 CREATE OR REPLACE FUNCTION invite_user_to_family(p_member_id UUID, p_email TEXT)
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE 
-    target_user_id UUID;
-BEGIN
-    -- 1. Check if user exists
-    SELECT id INTO target_user_id FROM auth.users WHERE lower(email) = lower(p_email);
+    DECLARE 
+        target_user_id UUID;
+        sender_name TEXT;
+    BEGIN
+        -- 1. Check if user exists
+        SELECT id INTO target_user_id FROM auth.users WHERE lower(email) = lower(p_email);
+        
+        IF target_user_id IS NULL THEN
+            RETURN jsonb_build_object('success', false, 'message', 'Usuário não encontrado no sistema.');
+        END IF;
     
-    IF target_user_id IS NULL THEN
-        -- Return failure JSON so frontend can handle it nicely
-        RETURN jsonb_build_object('success', false, 'message', 'Usuário não encontrado no sistema.');
-    END IF;
-
-    -- 2. Link the user
-    UPDATE public.family_members 
-    SET 
-        linked_user_id = target_user_id, 
-        email = lower(p_email), 
-        updated_at = NOW() 
-    WHERE id = p_member_id;
-
-    -- 3. Notify the invited user
-    INSERT INTO public.user_notifications (user_id, type, title, message, data, is_read, created_at)
-    VALUES (
-        target_user_id, 
-        'INVITE', 
-        'Novo Convite', 
-        'Alguém te adicionou como membro familiar.', 
-        jsonb_build_object('memberId', p_member_id), 
-        false, 
-        NOW()
-    );
+        -- 1.1 Get Sender Name
+        SELECT name INTO sender_name FROM public.user_profiles WHERE id = auth.uid();
+        IF sender_name IS NULL THEN sender_name := 'Alguém'; END IF;
+    
+        -- 2. Link the user
+        UPDATE public.family_members 
+        SET 
+            linked_user_id = target_user_id, 
+            email = lower(p_email), 
+            updated_at = NOW() 
+        WHERE id = p_member_id;
+    
+        -- 3. Notify the invited user
+        INSERT INTO public.user_notifications (user_id, type, title, message, data, read, created_at)
+        VALUES (
+            target_user_id, 
+            'INVITE', 
+            'Novo Convite', 
+            sender_name || ' te adicionou como membro familiar.', 
+            jsonb_build_object('memberId', p_member_id), 
+            false, 
+            NOW()
+        );
 
     RETURN jsonb_build_object('success', true, 'message', 'Convite enviado com sucesso!');
 EXCEPTION WHEN OTHERS THEN
