@@ -100,6 +100,12 @@ export const calculateBalances = (accounts: Account[], transactions: Transaction
 
             if (!destAcc) {
                 console.warn(`⚠️ Aviso: Conta de destino não encontrada (${tx.destinationAccountId}). O valor saiu da origem mas caiu no limbo.`);
+                // CORREÇÃO AUDITORIA: Estornar da origem para evitar perda de fundos (Princípio da Conservação)
+                if (sourceAcc) {
+                    console.log(`   ↪️ Estornando valor para origem (${sourceAcc.name}) para manter integridade.`);
+                    // Reverte a subtração feita acima (linha 87)
+                    sourceAcc.balance = round2dec(sourceAcc.balance + amount);
+                }
             } else {
                 // Determine the amount arriving at destination
                 // If explicit destinationAmount exists (multi-currency), use it.

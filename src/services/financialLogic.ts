@@ -340,3 +340,55 @@ export const calculateTotalReceivables = (transactions: Transaction[]): number =
 
     return total;
 };
+
+/**
+ * Calculates the total amount the user OWES to others (Accounts Payable).
+ * Scans all transactions (history) where user shares the cost but someone else paid.
+ * This is a LIABILITY and should be subtracted from Net Worth.
+ */
+export const calculateTotalPayables = (transactions: Transaction[]): number => {
+    let total = 0;
+
+    transactions.forEach(t => {
+        if (t.deleted) return;
+        // Ignore orphans (no account linked) - Phantom Data Protection
+        // HOWEVER: Mirror transactions often don't have accountId. They rely on payerId.
+        // We should check consistency but not blindly skip if accountId is missing, 
+        // because "Debt" doesn't strictly need a bank account until paid.
+        // But for consistency with Receivables, let's keep logic similar but robust.
+
+        // I owe money (Shared Expense, I am NOT payer)
+        if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
+            // Rule: Only consider NATIONAL (BRL) liabilities for BRL Net Worth.
+            if (t.currency && t.currency !== 'BRL') return;
+
+            if (!t.isSettled) {
+                // My share is what I owe
+                // calculateEffectiveTransactionValue handles the logic: (Total - Splits) = My Share
+                // Wait, calculateEffectiveTransactionValue returns "My Share" correctly?
+                // Yes, lines 44-45: const myShare = t.amount - splitsTotal; return Math.max(0, myShare);
+                // But we need to use `toBRL` if we want consistency? 
+                // calculateEffectiveTransactionValue uses raw amount.
+
+                // Let's iterate splits to be precise or use effective value logic?
+                // Mirrors usually have `t.amount` as the FULL transaction amount and `t.sharedWith` containing others?
+                // NO. In Dyad, "Mirror Transaction" (created via trigger) usually has `amount` = `assignedAmount` (My Share) 
+                // and `payer_id` = Original Payer.
+                // Let's verify `handle_mirror_shared_transaction` trigger logic in SQL.
+                // "INSERT INTO transactions ... amount = (split->>'assignedAmount')::NUMERIC ..."
+                // SO: For mirror transaction, `t.amount` IS ALREADY "My Share".
+                // AND `shared_with` is usually empty '[]' in the mirror?
+                // Trigger says: `shared_with` = '[]'::jsonb.
+
+                // SO: If it is a mirror (I am NOT payer), `t.amount` is exactly what I owe.
+                // UNLESS I split it further? (Recursion? Not implemented).
+
+                // Simple Logic:
+                total += t.amount;
+                // (Assuming strict single-layer mirroring).
+            }
+        }
+    });
+
+    return total;
+};
