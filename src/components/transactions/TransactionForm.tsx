@@ -414,56 +414,26 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                     <>
                                         <div className="fixed inset-0 z-10" onClick={() => setIsTripSelectorOpen(false)} />
                                         <div className="absolute inset-x-0 top-full mt-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-20 overflow-hidden max-h-60 overflow-y-auto custom-scrollbar">
-                                            <div onClick={() => { setTripId('');
-    const CategoryIcon = getCategoryIcon(category);
-    const mainColor = isRefund ? 'text-amber-600 dark:text-amber-400' : isExpense ? 'text-red-600 dark:text-red-400' : isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400';
-    const headerBg = isRefund ? 'bg-amber-50 dark:bg-amber-950/30' : isExpense ? 'bg-red-50 dark:bg-red-950/30' : isIncome ? 'bg-emerald-50 dark:bg-emerald-950/30' : 'bg-blue-50 dark:bg-blue-950/30';
-
-    // LOCK LOGIC: If this transaction is a Mirror (has sourceTransactionId), IT IS READ ONLY.
-    const isLocked = !!initialData?.sourceTransactionId;
-
-    return (
-        <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900 pb-20 md:pb-0 overflow-y-auto custom-scrollbar relative">
-            <div ref={topRef} />
-
-            {/* HEADER */}
-            <div className={`p-6 pb-8 ${headerBg} relative overflow-hidden shrink-0`}>
-                {/* READ ONLY BANNER */}
-                {isLocked && (
-                    <div className="absolute top-0 left-0 right-0 bg-slate-800 text-white px-4 py-2 flex items-center justify-center gap-2 z-30 shadow-md">
-                        <AlertTriangle className="w-4 h-4 text-amber-400" />
-                        <span className="text-xs font-bold uppercase tracking-wide">Modo Leitura: Gerido pelo criador</span>
-                    </div>
-                )}
-
-                <div className="flex justify-between items-start relative z-10 mb-6">
-                    <button onClick={onCancel} className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-                        <X className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-                    </button>
-                    {!isLocked && (
-                        <div className="flex gap-2">
-                             {/* Mode Toggles */}
-                             <button
-                                onClick={() => setFormMode(TransactionType.EXPENSE)}
-                                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider transition-all ${formMode === TransactionType.EXPENSE ? 'bg-red-600 text-white shadow-lg shadow-red-500/30' : 'bg-white/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400'}`}
-                            >
-                                Despesa
-                            </button>
-                            <button
-                                onClick={() => setFormMode(TransactionType.INCOME)}
-                                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider transition-all ${formMode === TransactionType.INCOME ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30' : 'bg-white/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400'}`}
-                            >
-                                Receita
-                            </button>
-                            <button
-                                onClick={() => setFormMode(TransactionType.TRANSFER)}
-                                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider transition-all ${formMode === TransactionType.TRANSFER ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-white/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400'}`}
-                            >
-                                Transf.
-                            </button>
-                        </div>
-                    )}
-                </div>Plus className="w-4 h-4" />
+                                            <div onClick={() => { setTripId(''); setIsTripSelectorOpen(false); }} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-slate-600 dark:text-slate-300 font-medium text-sm border-b border-slate-50 dark:border-slate-700">Nenhuma</div>
+                                            {trips.length === 0 ? (
+                                                <div className="p-4 text-center">
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className="w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                                                            <Plane className="w-6 h-6 text-violet-600 dark:text-violet-400" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Nenhuma viagem cadastrada</p>
+                                                            <p className="text-xs text-slate-500 dark:text-slate-400">Crie uma viagem para vincular despesas</p>
+                                                        </div>
+                                                        {onNavigateToTrips && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setIsTripSelectorOpen(false);
+                                                                    onNavigateToTrips();
+                                                                }}
+                                                                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-bold transition-colors"
+                                                            >
+                                                                <Plus className="w-4 h-4" />
                                                                 Criar Viagem
                                                             </button>
                                                         )}
