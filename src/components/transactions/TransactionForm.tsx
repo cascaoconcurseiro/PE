@@ -100,6 +100,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     const headerBg = isRefund ? 'bg-amber-50 dark:bg-amber-950/30' : isExpense ? 'bg-red-50 dark:bg-red-950/30' : isIncome ? 'bg-emerald-50 dark:bg-emerald-950/30' : 'bg-blue-50 dark:bg-blue-950/30';
     const buttonMainBg = isRefund ? 'bg-amber-600 hover:bg-amber-700' : isExpense ? 'bg-red-600 hover:bg-red-700' : isIncome ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700';
 
+    // LOCK LOGIC: If this transaction is a Mirror (has sourceTransactionId), IT IS READ ONLY.
+    const isLocked = !!initialData?.sourceTransactionId;
+
     const selectedTrip = trips.find(t => t.id === tripId);
 
     // STRICT CURRENCY MATCH: Trip expenses can ONLY use accounts with the SAME currency
