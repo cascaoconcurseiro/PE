@@ -84,7 +84,7 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, acco
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay opacity-30 grayscale hover:grayscale-0 transition-all duration-700"></div>
 
                 {/* Content Overlay */}
-                <div className="relative z-10 p-5 sm:p-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
+                <div className="relative z-10 p-4 sm:p-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 md:gap-10">
 
                     {/* Left Info */}
                     <div className="flex-1 space-y-4">

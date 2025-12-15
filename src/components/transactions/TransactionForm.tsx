@@ -659,7 +659,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     )}
                 </div>
 
-                <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 fixed bottom-0 left-0 right-0 md:relative md:border-none md:bg-transparent dark:md:bg-transparent z-20">
+                <div className="p-4 pb-safe bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 fixed bottom-0 left-0 right-0 md:relative md:border-none md:bg-transparent dark:md:bg-transparent z-20">
                     <Button onClick={handleSubmit} className={`w-full h-12 text-base shadow-xl shadow-slate-200 ${buttonMainBg} hover:opacity-90 transition-opacity`}>
                         {initialData ? 'Salvar Alterações' : 'Confirmar Transação'}
                     </Button>
