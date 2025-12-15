@@ -47,12 +47,23 @@ export default defineConfig(({ mode }) => {
         workbox: {
           clientsClaim: true,
           skipWaiting: true,
-          cleanupOutdatedCaches: true, // Clean old caches
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          cleanupOutdatedCaches: true,
+          globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2}'], // Exclude HTML from precache to ensure fresh index
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/.*\.supabase\.co\/.* /i,
-              handler: 'NetworkOnly', // Ensure Supabase is never cached by SW
+              urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+              handler: 'NetworkOnly',
+            },
+            {
+              urlPattern: ({ request }) => request.mode === 'navigate',
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'pages',
+                expiration: {
+                  maxEntries: 1,
+                  maxAgeSeconds: 0 // Do not cache index.html
+                }
+              }
             }
           ]
         }
