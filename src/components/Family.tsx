@@ -9,7 +9,7 @@ import { FamilySummary } from './family/FamilySummary';
 interface FamilyProps {
     members: FamilyMember[];
     transactions?: Transaction[]; // Optional to avoid breaking if not passed initially, but highly recommended
-    onAddMember: (member: Partial<FamilyMember>) => void;
+    onAddMember: (member: Partial<FamilyMember>) => void | Promise<void>;
     onUpdateMember: (member: FamilyMember) => void;
     onDeleteMember: (id: string, strategy?: 'CASCADE' | 'UNLINK') => void;
     onInviteMember?: (memberId: string, email: string) => Promise<void>;
@@ -123,7 +123,8 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
         } else {
             // Add new - generate ID here if inviting, so we can link it
             finalMemberId = crypto.randomUUID();
-            onAddMember({
+            // Await the creation to ensure the member exists in DB before we try to link it via RPC
+            await onAddMember({
                 id: finalMemberId,
                 name: name.trim(),
                 role: role.trim(),
