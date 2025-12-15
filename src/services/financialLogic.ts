@@ -161,29 +161,32 @@ export const calculateProjectedBalance = (
         // 1. Shared Receivables (Credits) - Money coming back to me
         // Only if I am Payer
         if (t.type === TransactionType.EXPENSE && t.isShared && (!t.payerId || t.payerId === 'me')) {
-            // Sum of UNSETTLED splits
-            const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
-                return sum + (!s.isSettled ? s.assignedAmount : 0);
-            }, 0) || 0;
+            // Rule: Only consider NATIONAL (BRL) receivables.
+            if (t.currency && t.currency !== 'BRL') {
+                // Skip foreign receivables
+            } else {
+                // Sum of UNSETTLED splits
+                const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
+                    return sum + (!s.isSettled ? s.assignedAmount : 0);
+                }, 0) || 0;
 
-            if (pendingSplitsTotal > 0) {
-                pendingIncome += toBRL(pendingSplitsTotal, t);
-                // We don't mark 'processedAsShared = true' because the MAIN expense 
-                // (my cash outflow) logic below handles the "Expense projection" part.
-                // This block ADDS the "Reimbursement projection".
+                if (pendingSplitsTotal > 0) {
+                    pendingIncome += toBRL(pendingSplitsTotal, t);
+                    // We don't mark 'processedAsShared = true' because the MAIN expense 
+                    // (my cash outflow) logic below handles the "Expense projection" part.
+                    // This block ADDS the "Reimbursement projection".
+                }
             }
         }
 
         // 2. Shared Debts (Payables) - Money I owe others
         // Only if I am NOT Payer
         if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
-            // If NOT settled, I owe this amount.
-            // But wait, if I am NOT payer, does this transaction even represent a cash outflow for me right now?
-            // Usually, "Mirror Transactions" are created for me.
-            // If I haven't marked it as settled, it's a future payment.
-            // Is 'isSettled' on the transaction itself? Yes.
-
-            if (!t.isSettled) {
+            // Rule: Only consider NATIONAL (BRL) shared debts for Projected Balance.
+            // International debts (USD/EUR) should not affect BRL projection.
+            if (t.currency && t.currency !== 'BRL') {
+                // Skip foreign shared debts
+            } else if (!t.isSettled) {
                 // It's a pending expense for me.
                 // We count it below in the "Future Expense" block?
                 // The "Future Expense" block checks date > today.
@@ -200,7 +203,7 @@ export const calculateProjectedBalance = (
                 // If I owe R$ 50, I will eventually pay R$ 50.
                 pendingExpenses += toBRL(t.amount, t); // t.amount is 'my share' in mirror tx
             }
-            processedAsShared = true; // Skip standard processing (since standard requires existing Account ID)
+            processedAsShared = true; // Skip standard processing
         }
 
         const isFuture = tDate.getTime() > today.getTime();
