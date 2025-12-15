@@ -64,7 +64,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
                             <span className="block text-[10px] uppercase font-bold text-slate-400">Saldo Ano</span>
                             <span className="font-bold">
                                 {formatCurrency(
-                                    data.reduce((acc, curr) => acc + (curr.Receitas || 0) - (curr.Despesas || 0), 0) // Despesas are positive magnitude
+                                    data[data.length - 1]?.Acumulado || 0
                                 )}
                             </span>
                         </div>
