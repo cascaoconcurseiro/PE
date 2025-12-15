@@ -186,8 +186,10 @@ export const calculateProjectedBalance = (
                     pendingIncome += toBRL(pendingSplitsTotal, t);
                 }
             }
-            // ✅ FIX ERRO 1: Mark as processed to prevent double-counting as Expense below
-            processedAsShared = true;
+            // REVERT: We MUST allow this to fall through to Standard Cash Flow
+            // because if I paid, it IS an Expense (Cash Outflow) that needs to be recorded.
+            // The "Income" above is just the *future reimbursement*.
+            // processedAsShared = true; <--- REMOVED
         }
 
         // 2. Shared Debts (Payables)
