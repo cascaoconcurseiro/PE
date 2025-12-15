@@ -150,40 +150,56 @@ export const useFinancialDashboard = ({
 
     // Annual Cash Flow Data (LOCAL CALCULATION - Ensures consistency with Widgets)
     const cashFlowData = useMemo(() => {
-        // 1. Calculate Opening Balance for the User's BRL Accounts (Liquid)
+        // 1. Get Current Liquid Balance (The Anchor)
         const liquidAccounts = dashboardAccounts.filter(a =>
             a.type === AccountType.CHECKING || a.type === AccountType.SAVINGS || a.type === AccountType.CASH
         );
-        const initialBalanceSum = liquidAccounts.reduce((sum, a) => sum + (a.initialBalance || 0), 0);
+        let accumulated = liquidAccounts.reduce((sum, a) => sum + (convertToBRL(a.balance, a.currency || 'BRL')), 0);
 
-        // Sum prior transactions (Before Jan 1st of selected year)
-        const previousTransactionsSum = dashboardTransactions.reduce((acc, t) => {
-            if (!shouldShowTransaction(t)) return acc;
-            const tYear = new Date(t.date).getFullYear();
-            if (tYear >= selectedYear) return acc; // Skip current/future years
+        // 2. Adjust Balance to reach Jan 1st of Selected Year
+        // We travel in time from 'currentDate' (Today) to 'Jan 1st selectedYear'
+        const startOfYear = new Date(selectedYear, 0, 1);
+        startOfYear.setHours(0, 0, 0, 0);
 
-            // Logic mirrors the BalanceEngine simplified
-            const account = accounts.find(a => a.id === t.accountId);
-            // Only consider liquid accounts for "Cash Flow" balance continuity
-            if (!account || (account.type !== AccountType.CHECKING && account.type !== AccountType.SAVINGS && account.type !== AccountType.CASH)) {
-                return acc;
-            }
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        dashboardTransactions.forEach(t => {
+            if (!shouldShowTransaction(t)) return;
+            const tDate = new Date(t.date);
+            tDate.setHours(0, 0, 0, 0);
 
             let amount = t.amount;
             if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
                 amount = calculateEffectiveTransactionValue(t);
             }
+            // Strict liquid account filter for cash flow
+            const account = accounts.find(a => a.id === t.accountId);
+            if (!account || (account.type !== AccountType.CHECKING && account.type !== AccountType.SAVINGS && account.type !== AccountType.CASH)) {
+                return;
+            }
             const amountBRL = convertToBRL(amount, account.currency || 'BRL');
 
-            if (t.type === TransactionType.INCOME) return acc + amountBRL;
-            if (t.type === TransactionType.EXPENSE) return acc - amountBRL;
-            // Transfers internal ignored for total sum, assuming closed system? 
-            // Transfer OUT to External reduces.
+            // CASE A: Future View (e.g. Viewing 2026, Today is 2025)
+            // We need to ADD everything happenning between Now and Start of 2026
+            if (startOfYear > now) {
+                if (tDate >= now && tDate < startOfYear) {
+                    if (t.type === TransactionType.INCOME) accumulated += amountBRL;
+                    if (t.type === TransactionType.EXPENSE) accumulated -= amountBRL;
+                }
+            }
+            // CASE B: Past/Current View (e.g. Viewing 2025, Today is Dec 2025)
+            // We need to SUBTRACT everything that happened between Start of 2025 and Now (Reverse Engineering)
+            else {
+                if (tDate >= startOfYear && tDate <= now) {
+                    // Reverse logic to go back in time
+                    if (t.type === TransactionType.INCOME) accumulated -= amountBRL;
+                    if (t.type === TransactionType.EXPENSE) accumulated += amountBRL;
+                }
+            }
+        });
 
-            return acc;
-        }, 0);
-
-        let accumulated = initialBalanceSum + previousTransactionsSum;
+        // Now 'accumulated' represents the projected/historical balance at Jan 1st 00:00 of selectedYear.
 
         // Initialize 12 months
         const data = Array.from({ length: 12 }, (_, i) => {
