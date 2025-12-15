@@ -120,9 +120,19 @@ const mapToDB = (data: any, userId: string): any => {
         externalId: 'external_id'
     };
 
+    const nullableUUIDs = [
+        'account_id', 'destination_account_id', 'trip_id', 'series_id', 'payer_id',
+        'related_member_id', 'settled_by_tx_id', 'reconciled_with', 'category_id', 'source_trip_id'
+    ];
+
     for (const [appKey, dbKey] of Object.entries(keys)) {
         if (data[appKey] !== undefined) {
-            newObj[dbKey] = data[appKey];
+            let value = data[appKey];
+            // Sanitize: Empty String -> NULL for UUIDs
+            if (typeof value === 'string' && value === '' && nullableUUIDs.includes(dbKey)) {
+                value = null;
+            }
+            newObj[dbKey] = value;
         }
     }
 
