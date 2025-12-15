@@ -22,7 +22,7 @@ interface NotificationSystemProps {
 }
 
 export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifications: legacyNotifications = [], onNotificationClick, onNotificationDismiss, onNotificationPay, userId }) => {
-    const { notifications: dbNotifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useSystemNotifications(userId);
+    const { notifications: dbNotifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearAllNotifications } = useSystemNotifications(userId);
     const [isOpen, setIsOpen] = useState(false);
 
     const dbItems = dbNotifications.map(n => ({
@@ -89,6 +89,7 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
                             </h3>
                             <div className="flex gap-2">
                                 <button onClick={() => markAllAsRead()} className="text-[10px] text-indigo-600 hover:underline">Ler todas</button>
+                                <button onClick={() => clearAllNotifications()} className="text-[10px] text-red-500 hover:underline">Limpar todas</button>
                                 <span className="text-xs font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-full">
                                     {totalUnread}
                                 </span>

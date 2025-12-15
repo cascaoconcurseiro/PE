@@ -80,6 +80,21 @@ export const useSystemNotifications = (userId: string | undefined) => {
         }
     };
 
+    const clearAllNotifications = async () => {
+        // Optimistic clear
+        setNotifications([]);
+        setUnreadCount(0);
+
+        const { error } = await supabase
+            .from('user_notifications')
+            .delete()
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error('Error clearing notifications:', error);
+        }
+    };
+
     // Initial Fetch
     useEffect(() => {
         fetchNotifications();
@@ -117,6 +132,7 @@ export const useSystemNotifications = (userId: string | undefined) => {
         markAsRead,
         markAllAsRead,
         deleteNotification,
+        clearAllNotifications,
         refresh: fetchNotifications
     };
 };

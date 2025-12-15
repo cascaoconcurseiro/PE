@@ -305,6 +305,8 @@ export const calculateTotalReceivables = (transactions: Transaction[]): number =
 
     transactions.forEach(t => {
         if (t.deleted) return;
+        // Ignore orphans (no account linked) - Phantom Data Protection
+        if (!t.accountId) return;
 
         // I paid for shared expense
         if (t.type === TransactionType.EXPENSE && t.isShared && (!t.payerId || t.payerId === 'me')) {
