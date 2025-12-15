@@ -150,6 +150,7 @@ export interface FamilyMember extends BaseEntity {
   name: string;
   role?: string;
   email?: string;
+  linkedUserId?: string;
 }
 
 export interface TransactionSplit {

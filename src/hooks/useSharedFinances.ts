@@ -44,8 +44,18 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
             }
             // 2. DEBIT LOGIC: Other Paid, User Owes
             else {
-                const payerId = t.payerId;
-                if (!invoiceMap[payerId]) invoiceMap[payerId] = [];
+                // Fix: Map Payer UserID to MemberID
+                // The payerId on the transaction is the Auth User ID (UUID).
+                // We need to group it under the Family Member ID.
+                const payerMember = members.find(m => m.linkedUserId === t.payerId);
+                const targetMemberId = payerMember ? payerMember.id : t.payerId;
+
+                // Safety check: specific member might not exist in local list yet (sync lag)
+                // If so, we might need a fallback 'Unknown' bucket or similar, but for now we create the entry on the fly 
+                // if it matches a known structure, or just skip/log.
+                // If we use targetMemberId and it's not in invoiceMap (initially populated by members), we must init it.
+                if (!invoiceMap[targetMemberId]) invoiceMap[targetMemberId] = [];
+
                 const totalSplits = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
                 const myShare = t.amount - totalSplits;
 
@@ -54,8 +64,8 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                 }
 
                 if (myShare > 0.01) {
-                    invoiceMap[payerId].push({
-                        id: `${t.id}-debit-${payerId}`,
+                    invoiceMap[targetMemberId].push({
+                        id: `${t.id}-debit-${targetMemberId}`,
                         originalTxId: t.id,
                         description: t.description,
                         date: t.date,
@@ -64,7 +74,7 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                         type: 'DEBIT',
                         isPaid: !!t.isSettled,
                         tripId: t.tripId,
-                        memberId: payerId,
+                        memberId: targetMemberId,
                         currency: txCurrency,
                         installmentNumber: t.currentInstallment,
                         totalInstallments: t.totalInstallments
