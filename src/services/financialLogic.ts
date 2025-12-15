@@ -151,7 +151,10 @@ export const calculateProjectedBalance = (
     const viewMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
     viewMonthEnd.setHours(23, 59, 59, 999);
 
-    const today = new Date();
+    // today is likely already defined above in this function scope or passed in. 
+    // If not, use a different name or just rely on 'today' if previously defined.
+    // Checked file: 'today' IS defined at line 129. 
+    // So we just reset it or use existing variable.
     today.setHours(0, 0, 0, 0);
 
     transactions.forEach(t => {
@@ -222,21 +225,23 @@ export const calculateProjectedBalance = (
                     if (destAcc && destAcc.currency !== 'BRL') {
                         pendingIncome += convertToBRL(t.destinationAmount, destAcc.currency);
                     } else {
-                        // Para o saldo, o dinheiro SAIU da conta. O reembolso é uma entrada futura separada.
-
-                        let expenseValue = t.amount;
-                        if (t.isShared && t.payerId && t.payerId !== 'me') {
-                            // Se outra pessoa pagou, aí sim uso apenas minha parte (pois só isso sairá da minha conta eventualmente)
-                            expenseValue = calculateEffectiveTransactionValue(t);
-                        }
-
-                        pendingExpenses += toBRL(expenseValue, t);
+                        pendingIncome += t.destinationAmount;
                     }
+                } else {
+                    pendingIncome += toBRL(t.amount, t);
                 }
             }
-        });
+            return;
+        }
 
-    // Calcular Projeção
+        if (t.type === TransactionType.INCOME) {
+            pendingIncome += toBRL(t.amount, t);
+        } else if (t.type === TransactionType.EXPENSE) {
+            pendingExpenses += toBRL(t.amount, t);
+        }
+    });
+
+    // Calculate final projected balance
     const projectedBalance = currentBalance + pendingIncome - pendingExpenses;
 
     return {
