@@ -25,6 +25,7 @@ const mapToApp = <T>(data: any): T => {
         // Specific overrides if needed
         if (key === 'account_id') newObj['accountId'] = data[key];
         else if (key === 'destination_account_id') newObj['destinationAccountId'] = data[key];
+        else if (key === 'source_transaction_id') newObj['sourceTransactionId'] = data[key]; // Map the Lock Flag
         else newObj[camelKey] = data[key];
     }
     return newObj as T;

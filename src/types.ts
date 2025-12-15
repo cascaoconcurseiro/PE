@@ -207,6 +207,7 @@ export interface Transaction extends BaseEntity {
   reconciled?: boolean;
   reconciledWith?: string;
   externalId?: string;
+  sourceTransactionId?: string;
 }
 
 export interface AuditLog extends BaseEntity {

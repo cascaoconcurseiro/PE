@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Transaction, TransactionType, Account, FamilyMember, AccountType } from '../../types';
 import { formatCurrency, getCategoryIcon, parseDate } from '../../utils';
-import { RefreshCcw, ScanLine, Plus, Plane, Users, Trash2, ArrowRight, User, CreditCard, Wallet, ArrowDownLeft, ArrowUpRight, Clock, CalendarDays } from 'lucide-react';
+import { RefreshCcw, ScanLine, Plus, Plane, Users, Trash2, ArrowRight, User, CreditCard, Wallet, ArrowDownLeft, ArrowUpRight, Clock, CalendarDays, Lock } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface TransactionListProps {
@@ -242,22 +242,32 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
                                         {/* Hover Actions (Desktop) */}
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 bottom-4 bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 rounded-lg p-0.5">
-                                            {isInstallment && (t.currentInstallment || 0) < (t.totalInstallments || 0) && onAnticipateInstallments && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); onAnticipateInstallments(t); }}
-                                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded transition-colors"
-                                                    title="Antecipar"
-                                                >
-                                                    <Clock className="w-3.5 h-3.5" />
-                                                </button>
+                                            {t.sourceTransactionId ? (
+                                                /* Locked for Mirrors */
+                                                <div className="p-1.5 text-slate-400" title="Gerido pelo criador (Apenas Leitura)">
+                                                    <Lock className="w-3.5 h-3.5" />
+                                                </div>
+                                            ) : (
+                                                /* Action Buttons for Owners */
+                                                <>
+                                                    {isInstallment && (t.currentInstallment || 0) < (t.totalInstallments || 0) && onAnticipateInstallments && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); onAnticipateInstallments(t); }}
+                                                            className="p-1.5 text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                                                            title="Antecipar"
+                                                        >
+                                                            <Clock className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); if (confirm('Excluir?')) onDelete(t.id); }}
+                                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+                                                        title="Excluir"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </>
                                             )}
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); if (confirm('Excluir?')) onDelete(t.id); }}
-                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
-                                                title="Excluir"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
