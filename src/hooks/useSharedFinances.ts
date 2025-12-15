@@ -47,7 +47,18 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                 // Fix: Map Payer UserID to MemberID
                 // The payerId on the transaction is the Auth User ID (UUID).
                 // We need to group it under the Family Member ID.
-                const payerMember = members.find(m => m.linkedUserId === t.payerId);
+                let payerMember = members.find(m => m.linkedUserId === t.payerId);
+
+                // FALLBACK: Fuzzy Match by Name from Description
+                // If database link is missing, try to parse "(Compartilhado por NAME)"
+                if (!payerMember && t.description) {
+                    const match = t.description.match(/\(Compartilhado por (.*?)\)/);
+                    if (match && match[1]) {
+                        const nameToFind = match[1].trim().toLowerCase();
+                        payerMember = members.find(m => m.name.toLowerCase() === nameToFind || m.name.split(' ')[0].toLowerCase() === nameToFind);
+                    }
+                }
+
                 const targetMemberId = payerMember ? payerMember.id : t.payerId;
 
                 // Safety check: specific member might not exist in local list yet (sync lag)
