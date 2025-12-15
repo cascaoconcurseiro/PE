@@ -202,8 +202,7 @@ export const calculateProjectedBalance = (
         // Filtrar apenas transações deste mês
         if (!isSameMonth(t.date, currentDate)) return;
 
-        const tDate = new Date(t.date);
-        tDate.setHours(0, 0, 0, 0); // Normalizar para meia-noite para comparação justa
+        // tDate is already defined at top of loop
 
         const isFuture = tDate.getTime() > today.getTime();
 

@@ -246,7 +246,7 @@ export const useFinancialDashboard = ({
         return data;
     }, [dashboardTransactions, selectedYear, accounts, dashboardAccounts]);
 
-    const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0), [cashFlowData]);
+    const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0 || d.Acumulado !== 0), [cashFlowData]);
 
     // Sparkline Data
     const incomeSparkline = useMemo(() => {
