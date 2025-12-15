@@ -150,6 +150,41 @@ export const useFinancialDashboard = ({
 
     // Annual Cash Flow Data (LOCAL CALCULATION - Ensures consistency with Widgets)
     const cashFlowData = useMemo(() => {
+        // 1. Calculate Opening Balance for the User's BRL Accounts (Liquid)
+        const liquidAccounts = dashboardAccounts.filter(a =>
+            a.type === AccountType.CHECKING || a.type === AccountType.SAVINGS || a.type === AccountType.CASH
+        );
+        const initialBalanceSum = liquidAccounts.reduce((sum, a) => sum + (a.initialBalance || 0), 0);
+
+        // Sum prior transactions (Before Jan 1st of selected year)
+        const previousTransactionsSum = dashboardTransactions.reduce((acc, t) => {
+            if (!shouldShowTransaction(t)) return acc;
+            const tYear = new Date(t.date).getFullYear();
+            if (tYear >= selectedYear) return acc; // Skip current/future years
+
+            // Logic mirrors the BalanceEngine simplified
+            const account = accounts.find(a => a.id === t.accountId);
+            // Only consider liquid accounts for "Cash Flow" balance continuity
+            if (!account || (account.type !== AccountType.CHECKING && account.type !== AccountType.SAVINGS && account.type !== AccountType.CASH)) {
+                return acc;
+            }
+
+            let amount = t.amount;
+            if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
+                amount = calculateEffectiveTransactionValue(t);
+            }
+            const amountBRL = convertToBRL(amount, account.currency || 'BRL');
+
+            if (t.type === TransactionType.INCOME) return acc + amountBRL;
+            if (t.type === TransactionType.EXPENSE) return acc - amountBRL;
+            // Transfers internal ignored for total sum, assuming closed system? 
+            // Transfer OUT to External reduces.
+
+            return acc;
+        }, 0);
+
+        let accumulated = initialBalanceSum + previousTransactionsSum;
+
         // Initialize 12 months
         const data = Array.from({ length: 12 }, (_, i) => {
             const date = new Date(selectedYear, i, 1);
@@ -159,7 +194,8 @@ export const useFinancialDashboard = ({
                 year: selectedYear,
                 monthIndex: i,
                 Receitas: 0,
-                Despesas: 0
+                Despesas: 0,
+                Acumulado: 0
             };
         });
 
@@ -186,11 +222,6 @@ export const useFinancialDashboard = ({
             const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
 
             if (t.type === TransactionType.INCOME) {
-                // Refunds subtract from Income? No, usually Refunds are positive Income or negative Expense.
-                // In this app, Refund is usually flagged on Expense to reverse it, or Income.
-                // Let's stick to standard Type check. 
-                // If it is a Refund Transaction (type=INCOME?), add to Income.
-                // If it is Expense Refund, it reduces Expense.
                 if (t.isRefund) {
                     data[monthIndex].Despesas -= amountBRL; // Refund reduces expense
                 } else {
@@ -198,9 +229,6 @@ export const useFinancialDashboard = ({
                 }
             } else if (t.type === TransactionType.EXPENSE) {
                 if (t.isRefund) {
-                    data[monthIndex].Receitas -= amountBRL; // Negative Expense? Treat as Income deduction or just negative expense.
-                    // Actually isRefund on Expense usually means money back.
-                    // Let's assume standard behavior: Expense = Outflow.
                     data[monthIndex].Despesas -= amountBRL;
                 } else {
                     data[monthIndex].Despesas += amountBRL;
@@ -208,8 +236,15 @@ export const useFinancialDashboard = ({
             }
         });
 
+        // Compute accumulated
+        data.forEach(d => {
+            const result = d.Receitas - d.Despesas;
+            accumulated += result;
+            d.Acumulado = accumulated;
+        });
+
         return data;
-    }, [dashboardTransactions, selectedYear, accounts]);
+    }, [dashboardTransactions, selectedYear, accounts, dashboardAccounts]);
 
     const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0), [cashFlowData]);
 

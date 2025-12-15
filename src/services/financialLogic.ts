@@ -145,17 +145,9 @@ export const calculateProjectedBalance = (
 
     transactions.forEach(t => {
         if (t.deleted) return;
-        // Filtrar apenas transações deste mês
-        if (!isSameMonth(t.date, currentDate)) return;
 
-        const tDate = new Date(t.date);
-        tDate.setHours(0, 0, 0, 0); // Normalizar para meia-noite para comparação justa
-
-        // Check for SHARED DEBTS/CREDITS (Unsettled items in this month appear as Pending)
-        // Does not strictly need to be "Future" to be "Pending", just "Unsettled".
-        // If I paid for someone yesterday, they still owe me -> Pending Income.
-        // If someone paid for me yesterday, I still owe them -> Pending Expense.
-
+        // SHARED LOGIC (Must bypass isSameMonth if Unsettled, because past debts affect future balance)
+        // Check for SHARED DEBTS/CREDITS (Unsettled items appeared as Pending)
         let processedAsShared = false;
 
         // 1. Shared Receivables (Credits) - Money coming back to me
@@ -164,8 +156,10 @@ export const calculateProjectedBalance = (
             // Rule: Only consider NATIONAL (BRL) receivables.
             if (t.currency && t.currency !== 'BRL') {
                 // Skip foreign receivables
-            } else {
-                // Sum of UNSETTLED splits
+            } else if (!t.isSettled) {
+                // If UNSETTLED, it is pending income REGARDLESS OF DATE.
+                // (e.g. Someone owes me from last month)
+                // We must process it here.
                 const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
                     return sum + (!s.isSettled ? s.assignedAmount : 0);
                 }, 0) || 0;
@@ -173,8 +167,8 @@ export const calculateProjectedBalance = (
                 if (pendingSplitsTotal > 0) {
                     pendingIncome += toBRL(pendingSplitsTotal, t);
                     // We don't mark 'processedAsShared = true' because the MAIN expense 
-                    // (my cash outflow) logic below handles the "Expense projection" part.
-                    // This block ADDS the "Reimbursement projection".
+                    // (my cash outflow) logic below MUST still run if it fits the month/future criteria.
+                    // BUT: This particular "Receivable" part is done.
                 }
             }
         }
@@ -187,28 +181,22 @@ export const calculateProjectedBalance = (
             if (t.currency && t.currency !== 'BRL') {
                 // Skip foreign shared debts
             } else if (!t.isSettled) {
-                // It's a pending expense for me.
-                // We count it below in the "Future Expense" block?
-                // The "Future Expense" block checks date > today.
-                // If this debt is from yesterday, strict future check skips it.
-                // We should manually count it here and MARK it as processed so clean logic doesn't double count?
-                // Actually, "Mirror" transactions don't have Account ID (usually).
-                // Logic below checks `liquidityAccountIds.has(accId)`.
-                // Mirror transactions have `account_id` as NULL or specific "Debt" account?
-                // If NULL, they are skipped below.
-                // So we MUST handle them here.
-
-                // However, "Projected Balance" usually implies Bank Account Projection.
-                // Paying a debt involves a Transfer from Bank -> External/Person.
-                // If I owe R$ 50, I will eventually pay R$ 50.
+                // UNSETTLED DEBT implies Pending Expense regardless of date.
                 pendingExpenses += toBRL(t.amount, t); // t.amount is 'my share' in mirror tx
             }
-            processedAsShared = true; // Skip standard processing
+            processedAsShared = true; // Mirror transactions are purely virtual debts; don't process as standard flow
         }
 
-        const isFuture = tDate.getTime() > today.getTime();
-
         if (processedAsShared) return;
+
+        // DATE FILTER: For standard cash flow (non-shared-debt), strictly follow the month or future rule.
+        // Filtrar apenas transações deste mês
+        if (!isSameMonth(t.date, currentDate)) return;
+
+        const tDate = new Date(t.date);
+        tDate.setHours(0, 0, 0, 0); // Normalizar para meia-noite para comparação justa
+
+        const isFuture = tDate.getTime() > today.getTime();
 
         // Standard Cash Flow Projection (Strictly Future)
         if (isFuture) {
