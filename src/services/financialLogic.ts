@@ -153,8 +153,27 @@ export const calculateProjectedBalance = (
 
         let processedAsShared = false;
 
-        const tDate = new Date(t.date); // Define tDate here for use in shared logic
-        tDate.setHours(0, 0, 0, 0); // Normalize for comparison
+        const tDate = new Date(t.date);
+        tDate.setHours(0, 0, 0, 0);
+
+        // Determine Context: Are we viewing the "Real Now" or a Future/Past simulation?
+        const realToday = new Date();
+        realToday.setHours(0, 0, 0, 0);
+        const viewMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const realCurrentMonthStart = new Date(realToday.getFullYear(), realToday.getMonth(), 1);
+
+        const isViewingRealCurrentMonth = viewMonthStart.getTime() === realCurrentMonthStart.getTime();
+
+        // Logic for inclusion:
+        // 1. Transaction is strictly in the View Month (Standard forecast)
+        // 2. Transaction is Past Due (Unsettled) AND we are viewing the Real Current Month (Catch-up)
+        // We DO NOT show Past Due items if we are simulating a future month (e.g. May 2026), 
+        // to avoid "Snowball" visual clutter where a Jan debt appears in every month of the year.
+
+        const isStrictlyThisMonth = isSameMonth(t.date, currentDate);
+        const isPastDue = tDate < viewMonthStart;
+
+        const shouldIncludeUnsettled = isStrictlyThisMonth || (isPastDue && isViewingRealCurrentMonth);
 
         // 1. Shared Receivables (Credits) - Money coming back to me
         // Only if I am Payer
@@ -163,18 +182,14 @@ export const calculateProjectedBalance = (
             if (t.currency && t.currency !== 'BRL') {
                 // Skip foreign receivables
             } else if (!t.isSettled) {
-                // FIX: Only include if due date is <= End of Month (Past Due + Current Month)
-                // We do NOT want to sum up ALL future installments.
-                if (tDate <= endOfMonth) {
+                // Apply Refined Filter
+                if (shouldIncludeUnsettled) {
                     const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
                         return sum + (!s.isSettled ? s.assignedAmount : 0);
                     }, 0) || 0;
 
                     if (pendingSplitsTotal > 0) {
                         pendingIncome += toBRL(pendingSplitsTotal, t);
-                        // We don't mark 'processedAsShared = true' because the MAIN expense 
-                        // (my cash outflow) logic below MUST still run if it fits the month/future criteria.
-                        // BUT: This particular "Receivable" part is done.
                     }
                 }
             }
@@ -188,8 +203,8 @@ export const calculateProjectedBalance = (
             if (t.currency && t.currency !== 'BRL') {
                 // Skip foreign shared debts
             } else if (!t.isSettled) {
-                // FIX: Only include if due date is <= End of Month (Past Due + Current Month)
-                if (tDate <= endOfMonth) {
+                // Apply Refined Filter
+                if (shouldIncludeUnsettled) {
                     pendingExpenses += toBRL(t.amount, t); // t.amount is 'my share' in mirror tx
                 }
             }
