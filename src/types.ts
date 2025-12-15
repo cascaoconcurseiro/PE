@@ -212,7 +212,7 @@ export interface Transaction extends BaseEntity {
 
 export interface AuditLog extends BaseEntity {
   id: string;
-  entity: 'TRANSACTION' | 'ACCOUNT' | 'GOAL' | 'BUDGET' | 'TRIP';
+  entity: 'TRANSACTION' | 'ACCOUNT' | 'GOAL' | 'BUDGET' | 'TRIP' | 'FAMILY';
   entityId: string;
   action: 'CREATE' | 'UPDATE' | 'DELETE';
   changes: string; // JSON string of changes
