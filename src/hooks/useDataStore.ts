@@ -28,7 +28,7 @@ export const useDataStore = () => {
     const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
 
     // TIME-WINDOW SYNC STATE
-    const [loadedPeriods, setLoadedPeriods] = useState<Set<string>>(new Set());
+    const loadedPeriods = useRef<Set<string>>(new Set());
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     const [isLoading, setIsLoading] = useState(true);
@@ -353,7 +353,7 @@ export const useDataStore = () => {
                 return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             });
 
-            setLoadedPeriods(new Set([currentPeriod, prevPeriod]));
+            loadedPeriods.current = new Set([currentPeriod, prevPeriod]);
             console.timeEnd("Tier1_Transactions");
 
 
@@ -584,7 +584,7 @@ export const useDataStore = () => {
 
         const periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-        if (loadedPeriods.has(periodKey)) {
+        if (loadedPeriods.current.has(periodKey)) {
             // Already loaded, skip
             return;
         }
@@ -612,7 +612,7 @@ export const useDataStore = () => {
             });
 
             // Mark as loaded
-            setLoadedPeriods(prev => new Set(prev).add(periodKey));
+            loadedPeriods.current.add(periodKey);
 
         } catch (e) {
             console.error("Failed to load history window", e);
@@ -620,7 +620,7 @@ export const useDataStore = () => {
         } finally {
             setIsLoadingHistory(false);
         }
-    }, [loadedPeriods, isOnline]);
+    }, [isOnline]);
 
     // Generated Handlers
     const tripsHandler = createCrudHandlers<Trip>('trips', { create: 'Viagem criada!', update: 'Viagem atualizada!', delete: 'Viagem excluída.' });

@@ -57,7 +57,8 @@ const App = () => {
     const [activeSettlementRequest, setActiveSettlementRequest] = useState<any | null>(null);
     const [settlementToPay, setSettlementToPay] = useState<any | null>(null);
 
-    // ...
+    // SAFETY BRAKE: Prevent infinite loops in effect
+    const lastAttemptedDate = useRef<number>(0);
 
     // ...
 
@@ -140,8 +141,15 @@ const App = () => {
     }, []);
 
     // ONE-TIME: Smart Sync for Month Navigation
+    // ONE-TIME: Smart Sync for Month Navigation
     useEffect(() => {
         if (sessionUser && ensurePeriodLoaded) {
+            // Check if we already tried this date recently (deduplication)
+            const dateKey = currentDate.getTime();
+            if (lastAttemptedDate.current === dateKey) return;
+
+            lastAttemptedDate.current = dateKey;
+
             const timer = setTimeout(() => {
                 ensurePeriodLoaded(currentDate);
             }, 300);
