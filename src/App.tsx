@@ -196,7 +196,7 @@ const App = () => {
 
         if (systemNotifications) {
             const mapped = systemNotifications
-                .filter(sn => !sn.read) // ONLY SHOW UNREAD
+                .filter(sn => !sn.is_read) // ONLY SHOW UNREAD
                 .map(sn => ({
                     id: sn.id,
                     title: sn.title,

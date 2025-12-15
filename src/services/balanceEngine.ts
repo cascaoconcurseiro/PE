@@ -1,140 +1,93 @@
-import { Account, Transaction, TransactionType } from '../types';
-import { round2dec } from '../utils';
+import { parseDate } from '../utils';
 
-/**
- * CORE FINANCIAL ENGINE
- * Reconstructs the state of all accounts based on the history of transactions.
- * This ensures Double-Entry Bookkeeping consistency with floating point safety.
- * 
- * @param cutOffDate If provided, transactions after this date will be ignored.
- */
-export const calculateBalances = (accounts: Account[], transactions: Transaction[], cutOffDate?: Date): Account[] => {
-    // 1. Create a map of accounts with their INITIAL balance
-    const accountMap = new Map<string, Account>();
+// ... (inside loop)
+// TIME TRAVEL LOGIC:
+if (cutOffDate) {
+    // Use safe-parsing (Noon) to avoid timezone shifts pushing dates to previous day
+    const txDate = parseDate(tx.date);
+    const cutOff = new Date(cutOffDate);
+    cutOff.setHours(23, 59, 59, 999);
 
-    accounts.forEach(acc => {
-        accountMap.set(acc.id, {
-            ...acc,
-            balance: acc.initialBalance !== undefined ? acc.initialBalance : (acc.balance || 0)
-        });
-    });
+    if (txDate.getTime() > cutOff.getTime()) {
+        return; // Skip this future transaction
+    }
+}
 
-    // 2. Iterate through every single transaction to apply changes
-    transactions.forEach(tx => {
-        if (tx.deleted) return; // ✅ IGNOREE DELETED TRANSACTIONS
-        const amount = tx.amount; // Amount is ALWAYS in the currency of the Source Account (accountId)
+// Logic for Source Account (The account spending/sending money)
+const sourceAcc = accountMap.get(tx.accountId || '');
 
-        // ✅ VALIDAÇÃO CRÍTICA 1: Valor deve ser válido
-        if (!amount || amount <= 0) {
-            console.error(`❌ ERRO CRÍTICO: Transação com valor inválido!`);
-            console.error(`   Transaction ID: ${tx.id}`);
-            console.error(`   Amount: ${amount}`);
-            return;
-        }
+// ✅ VALIDAÇÃO: Conta de origem não encontrada (provavelmente deletada)
+// Não abortamos a transação para garantir que o LADO DO DESTINO (se existir) seja processado.
+if (!someoneElsePaid && !sourceAcc) {
+    console.warn(`⚠️ Aviso: Conta de origem não encontrada (${tx.accountId}). Processando apenas efeitos colaterais visíveis.`);
+}
 
-        const someoneElsePaid = tx.payerId && tx.payerId !== 'me';
+if (sourceAcc) {
+    if (tx.type === TransactionType.EXPENSE) {
         if (!someoneElsePaid) {
-            if (!tx.accountId || tx.accountId.trim() === '' || tx.accountId === 'EXTERNAL') {
-                // ✅ Allow "Floating" Transactions (Shared Installments pending payment)
-                if (tx.isShared || tx.isInstallment) {
-                    return; // Just skip balance calculation for these
-                }
-
-                console.error(`❌ ERRO CRÍTICO: Transação sem conta de origem válida!`);
-                console.error(`   Transaction ID: ${tx.id}`);
-                console.error(`   Description: ${tx.description}`);
-                console.error(`   AccountId: ${tx.accountId}`);
-                console.error(`   ⚠️ TRANSAÇÃO IGNORADA - SALDO PODE ESTAR INCORRETO!`);
-                return;
-            }
+            // Expense subtracts from source
+            const change = tx.isRefund ? amount : -amount;
+            sourceAcc.balance = round2dec(sourceAcc.balance + change);
         }
+    } else if (tx.type === TransactionType.INCOME) {
+        // Income adds to source
+        const change = tx.isRefund ? -amount : amount;
+        sourceAcc.balance = round2dec(sourceAcc.balance + change);
 
-        // TIME TRAVEL LOGIC:
-        if (cutOffDate) {
-            const txDate = new Date(tx.date);
-            const cutOff = new Date(cutOffDate);
-            cutOff.setHours(23, 59, 59, 999);
+    } else if (tx.type === TransactionType.TRANSFER) {
+        // Transfer Out always subtracts 'amount' from Source
+        // 'amount' is guaranteed to be in Source Currency
+        sourceAcc.balance = round2dec(sourceAcc.balance - amount);
+    }
+}
 
-            if (txDate.getTime() > cutOff.getTime()) {
-                return; // Skip this future transaction
-            }
-        }
+// Logic for Destination Account (Transfer Only)
+if (tx.type === TransactionType.TRANSFER) {
+    // ✅ VALIDAÇÃO CRÍTICA 4: Transferência DEVE ter destino
+    if (!tx.destinationAccountId || tx.destinationAccountId.trim() === '') {
+        console.error(`❌ ERRO CRÍTICO: Transferência sem conta de destino! ID: ${tx.id}`);
+        return;
+    }
 
-        // Logic for Source Account (The account spending/sending money)
-        const sourceAcc = accountMap.get(tx.accountId || '');
+    const destAcc = accountMap.get(tx.destinationAccountId || '');
 
-        // ✅ VALIDAÇÃO: Conta de origem não encontrada (provavelmente deletada)
-        // Não abortamos a transação para garantir que o LADO DO DESTINO (se existir) seja processado.
-        if (!someoneElsePaid && !sourceAcc) {
-            console.warn(`⚠️ Aviso: Conta de origem não encontrada (${tx.accountId}). Processando apenas efeitos colaterais visíveis.`);
-        }
-
+    if (!destAcc) {
+        console.warn(`⚠️ Aviso: Conta de destino não encontrada (${tx.destinationAccountId}). O valor saiu da origem mas caiu no limbo.`);
+        // CORREÇÃO AUDITORIA: Estornar da origem para evitar perda de fundos (Princípio da Conservação)
         if (sourceAcc) {
-            if (tx.type === TransactionType.EXPENSE) {
-                if (!someoneElsePaid) {
-                    // Expense subtracts from source
-                    const change = tx.isRefund ? amount : -amount;
-                    sourceAcc.balance = round2dec(sourceAcc.balance + change);
-                }
-            } else if (tx.type === TransactionType.INCOME) {
-                // Income adds to source
-                const change = tx.isRefund ? -amount : amount;
-                sourceAcc.balance = round2dec(sourceAcc.balance + change);
-
-            } else if (tx.type === TransactionType.TRANSFER) {
-                // Transfer Out always subtracts 'amount' from Source
-                // 'amount' is guaranteed to be in Source Currency
-                sourceAcc.balance = round2dec(sourceAcc.balance - amount);
-            }
+            console.log(`   ↪️ Estornando valor para origem (${sourceAcc.name}) para manter integridade.`);
+            // Reverte a subtração feita acima (linha 87)
+            sourceAcc.balance = round2dec(sourceAcc.balance + amount);
         }
+    } else {
+        // Determine the amount arriving at destination
+        // If explicit destinationAmount exists (multi-currency), use it.
+        // Otherwise, assume 1:1 (same currency).
+        let amountIncoming = amount;
 
-        // Logic for Destination Account (Transfer Only)
-        if (tx.type === TransactionType.TRANSFER) {
-            // ✅ VALIDAÇÃO CRÍTICA 4: Transferência DEVE ter destino
-            if (!tx.destinationAccountId || tx.destinationAccountId.trim() === '') {
-                console.error(`❌ ERRO CRÍTICO: Transferência sem conta de destino! ID: ${tx.id}`);
-                return;
-            }
-
-            const destAcc = accountMap.get(tx.destinationAccountId || '');
-
-            if (!destAcc) {
-                console.warn(`⚠️ Aviso: Conta de destino não encontrada (${tx.destinationAccountId}). O valor saiu da origem mas caiu no limbo.`);
-                // CORREÇÃO AUDITORIA: Estornar da origem para evitar perda de fundos (Princípio da Conservação)
-                if (sourceAcc) {
-                    console.log(`   ↪️ Estornando valor para origem (${sourceAcc.name}) para manter integridade.`);
-                    // Reverte a subtração feita acima (linha 87)
-                    sourceAcc.balance = round2dec(sourceAcc.balance + amount);
-                }
+        // ✅ VALIDAÇÃO CRÍTICA 6: Multi-currency transfers SAFETY NET
+        if (sourceAcc && sourceAcc.currency !== destAcc.currency) {
+            if (!tx.destinationAmount || tx.destinationAmount <= 0) {
+                console.error(`❌ ERRO CRÍTICO (Autocorrigido): Transferência multi-moeda (${sourceAcc.currency} → ${destAcc.currency}) sem destinationAmount válido!`);
+                console.warn(`⚠️ Aplicando taxa de conversão 1:1 como fallback de segurança.`);
+                amountIncoming = round2dec(amount); // Fallback: 1:1 to preserve Asset existence (Double Entry)
             } else {
-                // Determine the amount arriving at destination
-                // If explicit destinationAmount exists (multi-currency), use it.
-                // Otherwise, assume 1:1 (same currency).
-                let amountIncoming = amount;
-
-                // ✅ VALIDAÇÃO CRÍTICA 6: Multi-currency transfers SAFETY NET
-                if (sourceAcc && sourceAcc.currency !== destAcc.currency) {
-                    if (!tx.destinationAmount || tx.destinationAmount <= 0) {
-                        console.error(`❌ ERRO CRÍTICO (Autocorrigido): Transferência multi-moeda (${sourceAcc.currency} → ${destAcc.currency}) sem destinationAmount válido!`);
-                        console.warn(`⚠️ Aplicando taxa de conversão 1:1 como fallback de segurança.`);
-                        amountIncoming = round2dec(amount); // Fallback: 1:1 to preserve Asset existence (Double Entry)
-                    } else {
-                        amountIncoming = round2dec(tx.destinationAmount);
-                    }
-                } else if (tx.destinationAmount && tx.destinationAmount > 0) {
-                    // Same currency but has destinationAmount (unusual but valid)
-                    amountIncoming = round2dec(tx.destinationAmount);
-                }
-
-                // Transfer In always adds to Destination
-                // STRICT ROUNDING: Apply round2dec on the operation result
-                destAcc.balance = round2dec(destAcc.balance + amountIncoming);
+                amountIncoming = round2dec(tx.destinationAmount);
             }
+        } else if (tx.destinationAmount && tx.destinationAmount > 0) {
+            // Same currency but has destinationAmount (unusual but valid)
+            amountIncoming = round2dec(tx.destinationAmount);
         }
+
+        // Transfer In always adds to Destination
+        // STRICT ROUNDING: Apply round2dec on the operation result
+        destAcc.balance = round2dec(destAcc.balance + amountIncoming);
+    }
+}
     });
 
-    // 3. Return the array of accounts with updated balances
-    return Array.from(accountMap.values());
+// 3. Return the array of accounts with updated balances
+return Array.from(accountMap.values());
 };
 
 /**

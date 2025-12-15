@@ -120,7 +120,7 @@ export const Shared: React.FC<SharedProps> = ({
                 type: settleModal.type === 'PAY' ? TransactionType.EXPENSE : TransactionType.INCOME,
                 category: settleModal.type === 'PAY' ? Category.TRANSFER : Category.INCOME,
                 accountId: accountId,
-                destinationAccountId: settleModal.type === 'PAY' ? 'EXTERNAL' : undefined,
+                destinationAccountId: undefined, // Fixed: Do not send 'EXTERNAL' string to UUID column
                 isShared: false,
                 relatedMemberId: settleModal.memberId!,
                 exchangeRate: isConverting ? rate : undefined,
