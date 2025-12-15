@@ -402,6 +402,16 @@ export const supabaseService = {
     async getCustomCategories(): Promise<CustomCategory[]> { return this.getAll<CustomCategory>('custom_categories'); },
     async getSnapshots(): Promise<Snapshot[]> { return this.getAll<Snapshot>('snapshots'); },
 
+    async bulkDelete(table: string, ids: string[]) {
+        if (!ids.length) return;
+        const { error } = await supabase
+            .from(table)
+            .update({ deleted: true }) // Soft Delete
+            .in('id', ids);
+
+        if (error) throw error;
+    },
+
     // DANGER: WIPE ALL DATA (SAFE MODE)
     async dangerouslyWipeAllData() {
         const userId = await getUserId();

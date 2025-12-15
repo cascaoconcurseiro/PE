@@ -7,6 +7,7 @@ export interface UserNotification {
     title: string;
     message: string;
     metadata: any;
+    data?: any;
     is_read: boolean;
     created_at: string;
 }

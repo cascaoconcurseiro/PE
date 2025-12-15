@@ -3,7 +3,6 @@ import { Loader2 } from 'lucide-react';
 import { supabase } from './integrations/supabase/client';
 import { Auth } from './components/Auth';
 import { View, SyncStatus, TransactionType } from './types';
-import { calculateBalances } from './services/balanceEngine';
 import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useDataStore } from './hooks/useDataStore';
 import { useAppLogic } from './hooks/useAppLogic';
