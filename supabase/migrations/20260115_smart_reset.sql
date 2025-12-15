@@ -18,7 +18,7 @@ BEGIN
     -- To be safe, we explicitly delete children of our transactions.
     
     DELETE FROM public.transactions
-    WHERE parent_transaction_id IN (
+    WHERE source_transaction_id IN (
         SELECT id FROM public.transactions WHERE user_id = v_user_id
     );
 
