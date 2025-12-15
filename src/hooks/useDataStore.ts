@@ -579,7 +579,7 @@ export const useDataStore = () => {
     }, 'Conta excluída com sucesso.');
 
     // PHASE 5: SMART HYDRATION (LAZY LOADING)
-    const ensurePeriodLoaded = async (date: Date) => {
+    const ensurePeriodLoaded = useCallback(async (date: Date) => {
         if (!isOnline) return;
 
         const periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -620,7 +620,7 @@ export const useDataStore = () => {
         } finally {
             setIsLoadingHistory(false);
         }
-    };
+    }, [loadedPeriods, isOnline]);
 
     // Generated Handlers
     const tripsHandler = createCrudHandlers<Trip>('trips', { create: 'Viagem criada!', update: 'Viagem atualizada!', delete: 'Viagem excluída.' });
@@ -723,6 +723,7 @@ export const useDataStore = () => {
         user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories,
         isLoading, dataInconsistencies, isOnline,
         isLoadingHistory,
+        ensurePeriodLoaded,
         handlers
     };
 };

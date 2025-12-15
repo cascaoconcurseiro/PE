@@ -12,6 +12,10 @@ AS $$
 DECLARE
     v_user_id uuid := auth.uid();
 BEGIN
+    -- 0. BYPASS AUDIT TRIGGERS & CONSTRAINTS for performance and to prevent "null user_id" errors
+    -- This requires SECURITY DEFINER and sufficient privileges (which this function has)
+    SET session_replication_role = 'replica';
+
     -- 1. IDENTIFY AND PREPARE FOR DELETION (ORPHAN PREVENTION)
     -- If we delete a transaction where we are the OWNER, the children (shared copies) become orphans.
     -- We must find them and delete them first, OR rely on a Trigger.
@@ -71,7 +75,7 @@ BEGIN
         DELETE FROM public.family_members WHERE user_id = v_user_id;
         
         -- Delete the member record representing ME in OTHERS' profiles (The Link)
-        -- We find family_members where linked_user_id = me
+        -- We find family_members where linked_user_id = v_user_id
         DELETE FROM public.family_members WHERE linked_user_id = v_user_id;
     END IF;
 
@@ -80,5 +84,12 @@ BEGIN
     -- Let's clean logs where I am the actor.
     DELETE FROM public.audit_logs WHERE changed_by = v_user_id;
 
+    -- 8. RESET REPLICATION ROLE
+    SET session_replication_role = 'origin';
+
+EXCEPTION WHEN OTHERS THEN
+    -- Safety: Ensure we don't leave the session in replica mode if something crashes
+    SET session_replication_role = 'origin';
+    RAISE;
 END;
 $$;

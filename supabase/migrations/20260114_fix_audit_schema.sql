@@ -71,7 +71,11 @@ begin
         TG_OP,
         case when TG_OP in ('UPDATE', 'DELETE') then row_to_json(OLD) else null end,
         case when TG_OP in ('INSERT', 'UPDATE') then row_to_json(NEW) else null end,
-        auth.uid()
+        coalesce(
+            auth.uid(),
+            (CASE WHEN TG_OP = 'DELETE' THEN OLD.user_id ELSE NEW.user_id END),
+            '00000000-0000-0000-0000-000000000000'::uuid -- Fallback to system/nil UUID if absolutely nothing found
+        )
     );
     return null;
 end;

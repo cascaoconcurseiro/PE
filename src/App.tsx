@@ -39,7 +39,7 @@ const App = () => {
     const {
         user: storedUser, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories,
         isLoading: isDataLoading, isLoadingHistory, // Added isLoadingHistory
-        dataInconsistencies, handlers
+        dataInconsistencies, handlers, ensurePeriodLoaded
     } = useDataStore();
 
     const [activeView, setActiveView] = useState<View>(View.DASHBOARD);
@@ -141,13 +141,13 @@ const App = () => {
 
     // ONE-TIME: Smart Sync for Month Navigation
     useEffect(() => {
-        if (sessionUser && handlers.ensurePeriodLoaded) {
+        if (sessionUser && ensurePeriodLoaded) {
             const timer = setTimeout(() => {
-                handlers.ensurePeriodLoaded(currentDate);
+                ensurePeriodLoaded(currentDate);
             }, 300);
             return () => clearTimeout(timer);
         }
-    }, [currentDate, sessionUser, handlers]);
+    }, [currentDate, sessionUser, ensurePeriodLoaded]);
 
     // Helper Functions & Memos
     const handleViewChange = (view: View) => startTransition(() => setActiveView(view));
