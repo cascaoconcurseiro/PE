@@ -143,146 +143,98 @@ export const calculateProjectedBalance = (
         return convertToBRL(amount, t.currency || 'BRL');
     };
 
+    // Define the Time Window for Projection:
+    // Start: NOW (Current Real Time)
+    // End: End of the Viewed Month (e.g. If viewing Feb 2026, End is Feb 28 2026)
+    // Goal: Accumulate all changes from Now until the target date to get the true future balance.
+
+    const viewMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    viewMonthEnd.setHours(23, 59, 59, 999);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     transactions.forEach(t => {
         if (t.deleted) return;
-
-        // Check for SHARED DEBTS/CREDITS (Unsettled items in this month appear as Pending)
-        // Does not strictly need to be "Future" to be "Pending", just "Unsettled".
-        // If I paid for someone yesterday, they still owe me -> Pending Income.
-        // If someone paid for me yesterday, I still owe them -> Pending Expense.
-
-        let processedAsShared = false;
 
         const tDate = new Date(t.date);
         tDate.setHours(0, 0, 0, 0);
 
-        // Determine Context: Are we viewing the "Real Now" or a Future/Past simulation?
-        const realToday = new Date();
-        realToday.setHours(0, 0, 0, 0);
-        const viewMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        const realCurrentMonthStart = new Date(realToday.getFullYear(), realToday.getMonth(), 1);
+        // 1. GLOBAL FILTER: To affect the projection, the transaction must be:
+        //    a) Before or on the Target View Date (We don't care about Mar 2026 if viewing Feb 2026)
+        //    b) Either in the Future (relative to Real Today) OR Unsettled (Past Due)
+        //       (Settled past transactions are already in the Current Balance, so we skip them)
 
-        const isViewingRealCurrentMonth = viewMonthStart.getTime() === realCurrentMonthStart.getTime();
+        const isBeforeOrOnTarget = tDate.getTime() <= viewMonthEnd.getTime();
+        const isFuture = tDate.getTime() > today.getTime();
+        const isUnsettled = !t.isSettled;
 
-        // Logic for inclusion:
-        // 1. Transaction is strictly in the View Month (Standard forecast)
-        // 2. Transaction is Past Due (Unsettled) AND we are viewing the Real Current Month (Catch-up)
-        // We DO NOT show Past Due items if we are simulating a future month (e.g. May 2026), 
-        // to avoid "Snowball" visual clutter where a Jan debt appears in every month of the year.
+        if (!isBeforeOrOnTarget) return; // Ignore things beyond the view
+        if (!isFuture && !isUnsettled) return; // Ignore Settled Past things (already in Balance)
 
-        const isStrictlyThisMonth = isSameMonth(t.date, currentDate);
-        const isPastDue = tDate < viewMonthStart;
+        // SHARED LOGIC
+        let processedAsShared = false;
 
-        const shouldIncludeUnsettled = isStrictlyThisMonth || (isPastDue && isViewingRealCurrentMonth);
-
-        // 1. Shared Receivables (Credits) - Money coming back to me
-        // Only if I am Payer
+        // 1. Shared Receivables (Credits)
         if (t.type === TransactionType.EXPENSE && t.isShared && (!t.payerId || t.payerId === 'me')) {
-            // Rule: Only consider NATIONAL (BRL) receivables.
             if (t.currency && t.currency !== 'BRL') {
-                // Skip foreign receivables
-            } else if (!t.isSettled) {
-                // Apply Refined Filter
-                if (shouldIncludeUnsettled) {
-                    const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
-                        return sum + (!s.isSettled ? s.assignedAmount : 0);
-                    }, 0) || 0;
+                // Skip foreign
+            } else {
+                // If it's valid for projection (Future or Unsettled), add it.
+                // We already filtered broadly above.
+                const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
+                    return sum + (!s.isSettled ? s.assignedAmount : 0);
+                }, 0) || 0;
 
-                    if (pendingSplitsTotal > 0) {
-                        pendingIncome += toBRL(pendingSplitsTotal, t);
-                    }
+                if (pendingSplitsTotal > 0) {
+                    pendingIncome += toBRL(pendingSplitsTotal, t);
                 }
             }
         }
 
-        // 2. Shared Debts (Payables) - Money I owe others
-        // Only if I am NOT Payer
+        // 2. Shared Debts (Payables)
         if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
-            // Rule: Only consider NATIONAL (BRL) shared debts for Projected Balance.
-            // International debts (USD/EUR) should not affect BRL projection.
             if (t.currency && t.currency !== 'BRL') {
-                // Skip foreign shared debts
-            } else if (!t.isSettled) {
-                // Apply Refined Filter
-                if (shouldIncludeUnsettled) {
-                    pendingExpenses += toBRL(t.amount, t); // t.amount is 'my share' in mirror tx
-                }
+                // Skip foreign
+            } else {
+                pendingExpenses += toBRL(t.amount, t);
             }
-            processedAsShared = true; // Mirror transactions are purely virtual debts; don't process as standard flow
+            processedAsShared = true; // Skip standard processing
         }
 
         if (processedAsShared) return;
 
-        // DATE FILTER: For standard cash flow (non-shared-debt), strictly follow the month or future rule.
-        // Filtrar apenas transações deste mês
-        if (!isSameMonth(t.date, currentDate)) return;
+        // Standard Cash Flow
+        // We already filtered for (Future || Unsettled) && BeforeTarget
 
-        // tDate is already defined at top of loop
+        if (t.type === TransactionType.TRANSFER) {
+            const sourceAccId = t.accountId;
+            const isSourceLiquid = sourceAccId ? liquidityAccountIds.has(sourceAccId) : false;
+            const destAccId = t.destinationAccountId;
+            const isDestLiquid = destAccId ? liquidityAccountIds.has(destAccId) : false;
 
-        const isFuture = tDate.getTime() > today.getTime();
-
-        // Standard Cash Flow Projection (Strictly Future)
-        if (isFuture) {
-
-            // Tratamento refinado de Transferências: Afetam a projeção se cruzarem a fronteira da liquidez
-            if (t.type === TransactionType.TRANSFER) {
-                const sourceAccId = t.accountId;
-                const isSourceLiquid = sourceAccId ? liquidityAccountIds.has(sourceAccId) : false;
-                // Se não tem destino (saque/externo), assumimos que não é líquido (saiu do sistema)
-                const destAccId = t.destinationAccountId;
-                const isDestLiquid = destAccId ? liquidityAccountIds.has(destAccId) : false;
-
-                // Cenário 1: Saiu da liquidez para não-liquidez (ex: Investimento ou Pagamento Fatura)
-                // Deve contar como "Despesa" na projeção de fluxo de caixa líquido
-                if (isSourceLiquid && !isDestLiquid) {
-                    pendingExpenses += toBRL(t.amount, t);
-                }
-                // Cenário 2: Entrou na liquidez vindo de não-liquidez (ex: Resgate)
-                // Deve contar como "Receita" na projeção
-                else if (!isSourceLiquid && isDestLiquid) {
-                    // Check if we have an explicit destination amount (Multi-currency or Manual correction)
-                    if (t.destinationAmount && t.destinationAmount > 0) {
-                        // Trust the destination amount implicitly as it represents what HIT the account
-                        const destAcc = accounts.find(a => a.id === t.destinationAccountId);
-
-                        if (destAcc && destAcc.currency !== 'BRL') {
-                            // If destination is NOT BRL, we must convert that amount to BRL
-                            pendingIncome += convertToBRL(t.destinationAmount, destAcc.currency);
-                        } else {
-                            // Destination is BRL (or assumed BRL basis for projection), so use raw value
-                            pendingIncome += t.destinationAmount;
-                        }
+            if (isSourceLiquid && !isDestLiquid) {
+                pendingExpenses += toBRL(t.amount, t);
+            }
+            else if (!isSourceLiquid && isDestLiquid) {
+                if (t.destinationAmount && t.destinationAmount > 0) {
+                    const destAcc = accounts.find(a => a.id === t.destinationAccountId);
+                    if (destAcc && destAcc.currency !== 'BRL') {
+                        pendingIncome += convertToBRL(t.destinationAmount, destAcc.currency);
                     } else {
-                        // Fallback: Convert source amount
-                        pendingIncome += toBRL(t.amount, t);
+                        // Para o saldo, o dinheiro SAIU da conta. O reembolso é uma entrada futura separada.
+
+                        let expenseValue = t.amount;
+                        if (t.isShared && t.payerId && t.payerId !== 'me') {
+                            // Se outra pessoa pagou, aí sim uso apenas minha parte (pois só isso sairá da minha conta eventualmente)
+                            expenseValue = calculateEffectiveTransactionValue(t);
+                        }
+
+                        pendingExpenses += toBRL(expenseValue, t);
                     }
                 }
-                return;
             }
-
-            if (t.type === TransactionType.INCOME) {
-                // Receitas: usar valor total
-                pendingIncome += toBRL(t.amount, t);
-            } else if (t.type === TransactionType.EXPENSE) {
-                // ✅ CORREÇÃO CRÍTICA: Ignorar despesas de Cartão de Crédito na projeção de fluxo de caixa
-                // (Pois elas só afetam o caixa no dia do pagamento da fatura, que geralmente é uma Transferência)
-                const accId = t.accountId;
-                if (accId && liquidityAccountIds.has(accId)) {
-                    // ✅ CORREÇÃO CRÍTICA (Fluxo de Caixa): Usar valor integral se fui eu que paguei.
-                    // A regra "Effective Value" (minha parte) só vale para Análise de Gastos, não para Projeção de Saldo.
-                    // Para o saldo, o dinheiro SAIU da conta. O reembolso é uma entrada futura separada.
-
-                    let expenseValue = t.amount;
-                    if (t.isShared && t.payerId && t.payerId !== 'me') {
-                        // Se outra pessoa pagou, aí sim uso apenas minha parte (pois só isso sairá da minha conta eventualmente)
-                        expenseValue = calculateEffectiveTransactionValue(t);
-                    }
-
-                    pendingExpenses += toBRL(expenseValue, t);
-                }
-            }
-        }
-    });
+        });
 
     // Calcular Projeção
     const projectedBalance = currentBalance + pendingIncome - pendingExpenses;
