@@ -146,9 +146,15 @@ export const calculateProjectedBalance = (
     transactions.forEach(t => {
         if (t.deleted) return;
 
-        // SHARED LOGIC (Must bypass isSameMonth if Unsettled, because past debts affect future balance)
-        // Check for SHARED DEBTS/CREDITS (Unsettled items appeared as Pending)
+        // Check for SHARED DEBTS/CREDITS (Unsettled items in this month appear as Pending)
+        // Does not strictly need to be "Future" to be "Pending", just "Unsettled".
+        // If I paid for someone yesterday, they still owe me -> Pending Income.
+        // If someone paid for me yesterday, I still owe them -> Pending Expense.
+
         let processedAsShared = false;
+
+        const tDate = new Date(t.date); // Define tDate here for use in shared logic
+        tDate.setHours(0, 0, 0, 0); // Normalize for comparison
 
         // 1. Shared Receivables (Credits) - Money coming back to me
         // Only if I am Payer
@@ -157,18 +163,19 @@ export const calculateProjectedBalance = (
             if (t.currency && t.currency !== 'BRL') {
                 // Skip foreign receivables
             } else if (!t.isSettled) {
-                // If UNSETTLED, it is pending income REGARDLESS OF DATE.
-                // (e.g. Someone owes me from last month)
-                // We must process it here.
-                const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
-                    return sum + (!s.isSettled ? s.assignedAmount : 0);
-                }, 0) || 0;
+                // FIX: Only include if due date is <= End of Month (Past Due + Current Month)
+                // We do NOT want to sum up ALL future installments.
+                if (tDate <= endOfMonth) {
+                    const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
+                        return sum + (!s.isSettled ? s.assignedAmount : 0);
+                    }, 0) || 0;
 
-                if (pendingSplitsTotal > 0) {
-                    pendingIncome += toBRL(pendingSplitsTotal, t);
-                    // We don't mark 'processedAsShared = true' because the MAIN expense 
-                    // (my cash outflow) logic below MUST still run if it fits the month/future criteria.
-                    // BUT: This particular "Receivable" part is done.
+                    if (pendingSplitsTotal > 0) {
+                        pendingIncome += toBRL(pendingSplitsTotal, t);
+                        // We don't mark 'processedAsShared = true' because the MAIN expense 
+                        // (my cash outflow) logic below MUST still run if it fits the month/future criteria.
+                        // BUT: This particular "Receivable" part is done.
+                    }
                 }
             }
         }
@@ -181,8 +188,10 @@ export const calculateProjectedBalance = (
             if (t.currency && t.currency !== 'BRL') {
                 // Skip foreign shared debts
             } else if (!t.isSettled) {
-                // UNSETTLED DEBT implies Pending Expense regardless of date.
-                pendingExpenses += toBRL(t.amount, t); // t.amount is 'my share' in mirror tx
+                // FIX: Only include if due date is <= End of Month (Past Due + Current Month)
+                if (tDate <= endOfMonth) {
+                    pendingExpenses += toBRL(t.amount, t); // t.amount is 'my share' in mirror tx
+                }
             }
             processedAsShared = true; // Mirror transactions are purely virtual debts; don't process as standard flow
         }
