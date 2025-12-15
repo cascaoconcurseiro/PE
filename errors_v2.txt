@@ -1,0 +1,10 @@
+src/components/transactions/TransactionForm.tsx(129,30): error TS2304: Cannot find name 'AccountType'.
+src/components/transactions/TransactionForm.tsx(179,26): error TS2304: Cannot find name 'Plus'.
+src/components/transactions/TransactionForm.tsx(196,26): error TS2304: Cannot find name 'ArrowDownLeft'.
+src/components/transactions/TransactionForm.tsx(200,26): error TS2304: Cannot find name 'ArrowUpRight'.
+src/components/transactions/TransactionForm.tsx(436,66): error TS2304: Cannot find name 'Plus'.
+src/components/transactions/TransactionForm.tsx(518,50): error TS2304: Cannot find name 'Globe'.
+src/components/transactions/TransactionForm.tsx(539,46): error TS2304: Cannot find name 'Globe'.
+src/components/transactions/TransactionForm.tsx(601,481): error TS2304: Cannot find name 'Repeat'.
+src/components/transactions/TransactionForm.tsx(603,508): error TS2304: Cannot find name 'Bell'.
+src/components/transactions/TransactionForm.tsx(604,530): error TS2304: Cannot find name 'Users'.

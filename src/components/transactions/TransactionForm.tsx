@@ -1,8 +1,8 @@
-```typescript
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, CustomCategory, Frequency } from '../../types';
+import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, CustomCategory, Frequency, AccountType } from '../../types';
 import { formatCurrency, getCategoryIcon, parseDate } from '../../utils';
-import { Calendar, Check, ChevronDown, DollarSign, X, RefreshCcw, BellRing, Undo2, Plane, AlertTriangle, Pencil, CreditCard, Wallet, ArrowRight, User } from 'lucide-react';
+import { Calendar, Check, ChevronDown, DollarSign, X, RefreshCcw, BellRing, Undo2, Plane, AlertTriangle, Pencil, CreditCard, Wallet, ArrowRight, User, Plus, ArrowDownLeft, ArrowUpRight, Globe, Repeat, Bell, Users } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { AccountSelector } from './AccountSelector';
 import { useTransactionForm } from '../../hooks/useTransactionForm';
@@ -192,15 +192,15 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             {/* Header Tabs */}
             <div className="sticky top-0 px-2 py-1 shrink-0 border-b border-slate-100 dark:border-slate-700 flex items-center gap-1.5 bg-white dark:bg-slate-900 z-30">
                 <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg relative shadow-inner flex-1 gap-1">
-                    <button onClick={() => setFormMode(TransactionType.EXPENSE)} className={`flex - 1 flex items - center justify - center gap - 1.5 py - 2 rounded - md transition - all ${ isExpense ? 'bg-white dark:bg-red-500/10 text-red-700 dark:text-red-400 shadow-sm ring-1 ring-slate-200 dark:ring-red-900/50 font-bold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 font-medium' } `}>
+                    <button onClick={() => setFormMode(TransactionType.EXPENSE)} className={`flex - 1 flex items - center justify - center gap - 1.5 py - 2 rounded - md transition - all ${isExpense ? 'bg-white dark:bg-red-500/10 text-red-700 dark:text-red-400 shadow-sm ring-1 ring-slate-200 dark:ring-red-900/50 font-bold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 font-medium'} `}>
                         <ArrowDownLeft className="w-3.5 h-3.5" />
                         <span className="text-xs">Despesa</span>
                     </button>
-                    <button onClick={() => setFormMode(TransactionType.INCOME)} className={`flex - 1 flex items - center justify - center gap - 1.5 py - 2 rounded - md transition - all ${ isIncome ? 'bg-white dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-sm ring-1 ring-slate-200 dark:ring-emerald-900/50 font-bold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 font-medium' } `}>
+                    <button onClick={() => setFormMode(TransactionType.INCOME)} className={`flex - 1 flex items - center justify - center gap - 1.5 py - 2 rounded - md transition - all ${isIncome ? 'bg-white dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-sm ring-1 ring-slate-200 dark:ring-emerald-900/50 font-bold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 font-medium'} `}>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                         <span className="text-xs">Receita</span>
                     </button>
-                    <button onClick={() => setFormMode(TransactionType.TRANSFER)} className={`flex - 1 flex items - center justify - center gap - 1.5 py - 2 rounded - md transition - all ${ isTransfer ? 'bg-white dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 shadow-sm ring-1 ring-slate-200 dark:ring-blue-900/50 font-bold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 font-medium' } `}>
+                    <button onClick={() => setFormMode(TransactionType.TRANSFER)} className={`flex - 1 flex items - center justify - center gap - 1.5 py - 2 rounded - md transition - all ${isTransfer ? 'bg-white dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 shadow-sm ring-1 ring-slate-200 dark:ring-blue-900/50 font-bold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 font-medium'} `}>
                         <RefreshCcw className="w-3.5 h-3.5" />
                         <span className="text-xs">Transf.</span>
                     </button>
@@ -233,14 +233,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 )}
 
                 {/* Amount Input */}
-                <div className={`flex flex - col items - center justify - center py - 2 sm: py - 3 ${ headerBg } transition - colors duration - 300 shrink - 0`}>
+                <div className={`flex flex - col items - center justify - center py - 2 sm: py - 3 ${headerBg} transition - colors duration - 300 shrink - 0`}>
                     <label className="text-[9px] sm:text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
                         {isRefund ? <Undo2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <DollarSign className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
                         <span className="hidden xs:inline">{isRefund ? 'Valor do Estorno' : 'Valor'}</span>
                     </label>
 
                     <div className="relative flex items-center justify-center w-full px-2 sm:px-4">
-                        <span className={`text - 2xl sm: text - 3xl md: text - 4xl font - bold mr - 1 sm: mr - 2 opacity - 80 ${ mainColor } `}>
+                        <span className={`text - 2xl sm: text - 3xl md: text - 4xl font - bold mr - 1 sm: mr - 2 opacity - 80 ${mainColor} `}>
                             {activeCurrency === 'BRL' ? 'R$' : activeCurrency}
                         </span>
                         <input
@@ -250,7 +250,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                             value={amountStr}
                             onChange={(e) => setAmountStr(e.target.value)}
                             placeholder="0,00"
-                            className={`w - full max - w - [180px] sm: max - w - [240px] text - center text - 2xl sm: text - 3xl md: text - 4xl font - black bg - transparent border - none outline - none placeholder - slate - 300 dark: placeholder - slate - 700 ${ mainColor } `}
+                            className={`w - full max - w - [180px] sm: max - w - [240px] text - center text - 2xl sm: text - 3xl md: text - 4xl font - black bg - transparent border - none outline - none placeholder - slate - 300 dark: placeholder - slate - 700 ${mainColor} `}
                             autoFocus={!initialData}
                         />
                     </div>
@@ -278,8 +278,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">Data</label>
-                                <div className={`bg - slate - 50 dark: bg - slate - 800 rounded - xl h - 10 flex items - center px - 3 border ${ selectedTrip && (date < (selectedTrip.startDate || '') || date > (selectedTrip.endDate || '')) ? 'border-amber-400 dark:border-amber-600' : 'border-slate-200 dark:border-slate-700' } relative`}>
-                                    <Calendar className={`w - 4 h - 4 mr - 2 ${ selectedTrip && (date < (selectedTrip.startDate || '') || date > (selectedTrip.endDate || '')) ? 'text-amber-500' : 'text-slate-400' } `} />
+                                <div className={`bg - slate - 50 dark: bg - slate - 800 rounded - xl h - 10 flex items - center px - 3 border ${selectedTrip && (date < (selectedTrip.startDate || '') || date > (selectedTrip.endDate || '')) ? 'border-amber-400 dark:border-amber-600' : 'border-slate-200 dark:border-slate-700'} relative`}>
+                                    <Calendar className={`w - 4 h - 4 mr - 2 ${selectedTrip && (date < (selectedTrip.startDate || '') || date > (selectedTrip.endDate || '')) ? 'text-amber-500' : 'text-slate-400'} `} />
                                     <input type="date" value={date} onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }} onChange={e => setDate(e.target.value)} className="bg-transparent font-bold text-slate-700 dark:text-slate-200 text-sm outline-none w-full h-full" />
                                 </div>
                                 {selectedTrip && (date < (selectedTrip.startDate || '') || date > (selectedTrip.endDate || '')) && (
@@ -402,11 +402,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     {isExpense && (
                         <div className="space-y-1">
                             <div className="relative z-20">
-                                <div onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)} className={`border rounded - xl p - 3 flex items - center gap - 3 shadow - sm relative transition - all cursor - pointer ${ tripId ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700' } `}>
-                                    <div className={`w - 9 h - 9 rounded - full flex items - center justify - center shrink - 0 ${ tripId ? 'bg-violet-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400' } `}><Plane className="w-4 h-4" /></div>
+                                <div onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)} className={`border rounded - xl p - 3 flex items - center gap - 3 shadow - sm relative transition - all cursor - pointer ${tripId ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'} `}>
+                                    <div className={`w - 9 h - 9 rounded - full flex items - center justify - center shrink - 0 ${tripId ? 'bg-violet-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'} `}><Plane className="w-4 h-4" /></div>
                                     <div className="flex-1 overflow-hidden">
-                                        <span className={`block text - sm font - bold truncate mb - 0.5 ${ tripId ? 'text-violet-900 dark:text-violet-300' : 'text-slate-600 dark:text-slate-300' } `}>{tripId ? trips.find(t => t.id === tripId)?.name : 'Vincular a uma Viagem'}</span>
-                                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate block">{tripId ? `Moeda: ${ selectedTrip?.currency } ` : 'Opcional'}</span>
+                                        <span className={`block text - sm font - bold truncate mb - 0.5 ${tripId ? 'text-violet-900 dark:text-violet-300' : 'text-slate-600 dark:text-slate-300'} `}>{tripId ? trips.find(t => t.id === tripId)?.name : 'Vincular a uma Viagem'}</span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate block">{tripId ? `Moeda: ${selectedTrip?.currency} ` : 'Opcional'}</span>
                                     </div>
                                     <ChevronDown className="w-5 h-5 text-slate-400" />
                                 </div>
@@ -484,7 +484,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                 onSelect={setAccountId}
                                 filterType={(isIncome || isTransfer) ? 'NO_CREDIT' : 'ALL'}
                                 disabled={!!initialData}
-                                emptyMessage={activeCurrency !== 'BRL' ? `Você não possui conta em ${ activeCurrency }. Crie uma conta internacional.` : 'Nenhuma conta encontrada.'}
+                                emptyMessage={activeCurrency !== 'BRL' ? `Você não possui conta em ${activeCurrency}. Crie uma conta internacional.` : 'Nenhuma conta encontrada.'}
                             />
                         ) : (
                             <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 flex items-center justify-between">
@@ -504,11 +504,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                 {/* Conversion Toggle for International/Cross-Currency */}
                                 {selectedAccountObj && (
                                     <div className="flex justify-end mb-2">
-                                        <label className={`flex items - center gap - 2 text - xs font - bold cursor - pointer transition - colors ${
-    isConversion
-        ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800'
-        : 'text-slate-500 hover:text-slate-700'
-} `}>
+                                        <label className={`flex items - center gap - 2 text - xs font - bold cursor - pointer transition - colors ${isConversion
+                                            ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800'
+                                            : 'text-slate-500 hover:text-slate-700'
+                                            } `}>
                                             <input
                                                 type="checkbox"
                                                 checked={isConversion}
@@ -599,10 +598,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     <div>
                         <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 block pl-1">Opções Adicionais</label>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={`h - 14 rounded - xl border flex flex - col items - center justify - center gap - 0.5 transition - all ${ isRecurring ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700' } `}><Repeat className="w-4 h-4" /><span className="text-[9px] font-bold">Repetir</span></button>
-                            {isExpense && isCreditCard && <button type="button" onClick={() => setIsInstallment(!isInstallment)} className={`h - 14 rounded - xl border flex flex - col items - center justify - center gap - 0.5 transition - all ${ isInstallment ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700' } `}><CreditCard className="w-4 h-4" /><span className="text-[9px] font-bold">Parcelar</span></button>}
-                            <button type="button" onClick={() => setEnableNotification(!enableNotification)} className={`h - 14 rounded - xl border flex flex - col items - center justify - center gap - 0.5 transition - all ${ enableNotification ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700' } `}><Bell className="w-4 h-4" /><span className="text-[9px] font-bold">Lembrar</span></button>
-                            {isExpense && <button type="button" onClick={() => setIsSplitModalOpen(true)} className={`h - 14 rounded - xl border flex flex - col items - center justify - center gap - 0.5 transition - all ${ splits.length > 0 || payerId !== 'me' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700' } `}><Users className="w-4 h-4" /><span className="text-[9px] font-bold">Dividir</span></button>}
+                            <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={`h - 14 rounded - xl border flex flex - col items - center justify - center gap - 0.5 transition - all ${isRecurring ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'} `}><Repeat className="w-4 h-4" /><span className="text-[9px] font-bold">Repetir</span></button>
+                            {isExpense && isCreditCard && <button type="button" onClick={() => setIsInstallment(!isInstallment)} className={`h - 14 rounded - xl border flex flex - col items - center justify - center gap - 0.5 transition - all ${isInstallment ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'} `}><CreditCard className="w-4 h-4" /><span className="text-[9px] font-bold">Parcelar</span></button>}
+                            <button type="button" onClick={() => setEnableNotification(!enableNotification)} className={`h - 14 rounded - xl border flex flex - col items - center justify - center gap - 0.5 transition - all ${enableNotification ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'} `}><Bell className="w-4 h-4" /><span className="text-[9px] font-bold">Lembrar</span></button>
+                            {isExpense && <button type="button" onClick={() => setIsSplitModalOpen(true)} className={`h - 14 rounded - xl border flex flex - col items - center justify - center gap - 0.5 transition - all ${splits.length > 0 || payerId !== 'me' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'} `}><Users className="w-4 h-4" /><span className="text-[9px] font-bold">Dividir</span></button>}
                         </div>
                     </div>
 
@@ -660,7 +659,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     {isInstallment && isCreditCard && (
                         <div className="bg-purple-50 dark:bg-purple-900/20 rounded-2xl p-4 border border-purple-100 dark:border-purple-800 animate-in slide-in-from-top-2 space-y-3">
                             <div className="grid grid-cols-4 gap-3">
-                                {[2, 3, 4, 5, 6, 10, 12].map(num => (<button key={num} type="button" onClick={() => setTotalInstallments(num)} className={`py - 2 rounded - xl text - sm font - bold border ${ totalInstallments === num ? 'bg-purple-600 text-white border-purple-600' : 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/30' } `}>{num}x</button>))}
+                                {[2, 3, 4, 5, 6, 10, 12].map(num => (<button key={num} type="button" onClick={() => setTotalInstallments(num)} className={`py - 2 rounded - xl text - sm font - bold border ${totalInstallments === num ? 'bg-purple-600 text-white border-purple-600' : 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/30'} `}>{num}x</button>))}
                                 <div className="relative"><input type="number" placeholder="Outro" value={totalInstallments || ''} onChange={e => setTotalInstallments(parseInt(e.target.value))} className="w-full h-full rounded-xl text-center font-bold border border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-300 outline-none focus:ring-2 focus:ring-purple-400 bg-white dark:bg-slate-800" /></div>
                             </div>
                         </div>
@@ -668,7 +667,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 </div>
 
                 <div className="p-4 pb-safe bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 fixed bottom-0 left-0 right-0 md:relative md:border-none md:bg-transparent dark:md:bg-transparent z-20">
-                    <Button onClick={handleSubmit} disabled={isSubmitting} className={`w - full h - 12 text - base shadow - xl shadow - slate - 200 ${ buttonMainBg } hover: opacity - 90 transition - opacity`}>
+                    <Button onClick={handleSubmit} disabled={isSubmitting} className={`w - full h - 12 text - base shadow - xl shadow - slate - 200 ${buttonMainBg} hover: opacity - 90 transition - opacity`}>
                         {isSubmitting ? 'Salvando...' : (initialData ? 'Salvar Alterações' : 'Confirmar Transação')}
                     </Button>
                 </div>
