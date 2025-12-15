@@ -145,7 +145,10 @@ export const useFinancialDashboard = ({
         });
         const payables = calculateTotalPayables(bRlPayables);
 
-        return cashBalance + receivables - payables;
+        // USER REQUEST 2025-12-15: "Não deveria ainda afetar o patrimonio liquido"
+        // Net Worth = Current Cash Balance only (Assets - Liabilities [Credit Cards])
+        // We exclude Future/Pending Shared Debts from this metric.
+        return cashBalance; // + receivables - payables;
     }, [dashboardAccounts, transactions, trips, dashboardTransactions, accounts]);
 
     // Annual Cash Flow Data (LOCAL CALCULATION - Ensures consistency with Widgets)
