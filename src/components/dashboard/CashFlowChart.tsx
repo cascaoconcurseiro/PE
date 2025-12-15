@@ -51,7 +51,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({ data, hasData, yea
             {/* Annual Summary Footer */}
             {hasData && (
                 <>
-                    <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-between gap-4 text-xs sm:text-sm">
+                    <div className="px-4 py-4 md:px-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-wrap justify-between gap-y-4 gap-x-2 text-xs sm:text-sm">
                         <div className="text-emerald-600 dark:text-emerald-400">
                             <span className="block text-[10px] uppercase font-bold text-slate-400">Entradas</span>
                             <span className="font-bold">{formatCurrency(data.reduce((acc, curr) => acc + (curr.Receitas || 0), 0))}</span>

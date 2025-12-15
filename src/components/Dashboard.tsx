@@ -146,7 +146,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
                 onEditRequest={onEditRequest}
             />
 
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 md:p-6 shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-slate-700 dark:text-slate-300">
                         {spendingView === 'CATEGORY' ? 'Gastos por Categoria' : 'Fontes de Gasto'}
