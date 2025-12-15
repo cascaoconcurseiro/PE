@@ -5,6 +5,7 @@ import { Card } from '../ui/Card';
 import { ArrowLeft, Download, Printer, Pencil, Trash2, Plane, Users, Calendar, Wallet } from 'lucide-react';
 import { formatCurrency, parseDate } from '../../utils';
 import { exportToCSV, prepareTripExpensesForExport, printComponent } from '../../services/exportUtils';
+import { ConfirmModal } from '../ui/ConfirmModal';
 
 import { TripOverview } from './tabs/TripOverview';
 import { TripItinerary } from './tabs/TripItinerary';
@@ -31,6 +32,7 @@ interface TripDetailProps {
 
 export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, accounts, familyMembers, onBack, onEdit, onDelete, onUpdateTrip, onNavigateToShared, onEditTransaction, onUpdateTransactionInternal, onDeleteTransactionInternal, userId }) => {
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'ITINERARY' | 'CHECKLIST' | 'STATS' | 'SHOPPING' | 'EXCHANGE'>('OVERVIEW');
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const totalSpent = transactions.reduce((acc, t) => acc + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0);
 
@@ -69,7 +71,7 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, acco
                             <button onClick={() => onEdit(trip)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-violet-600 rounded-xl transition-colors" title="Editar Viagem">
                                 <Pencil className="w-5 h-5" />
                             </button>
-                            <button onClick={() => { if (confirm('Tem certeza que deseja excluir esta viagem?')) { onDelete(trip.id); } }} className="p-2 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 rounded-xl transition-colors" title="Excluir Viagem">
+                            <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 rounded-xl transition-colors" title="Excluir Viagem">
                                 <Trash2 className="w-5 h-5" />
                             </button>
                         </>
@@ -175,6 +177,19 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, acco
                 {activeTab === 'SHOPPING' && <TripShopping trip={trip} onUpdateTrip={onUpdateTrip} />}
                 {activeTab === 'EXCHANGE' && <TripExchange trip={trip} onUpdateTrip={onUpdateTrip} />}
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                onConfirm={() => {
+                    onDelete(trip.id);
+                    setIsDeleteModalOpen(false);
+                }}
+                title="Excluir Viagem e Despesas?"
+                message={`Você está prestes a excluir a viagem "${trip.name}".\n\n⚠️ ATENÇÃO: Todas as despesas e transações vinculadas a esta viagem serão excluídas permanentemente. Esta ação não pode ser desfeita.`}
+                confirmLabel="Excluir Tudo"
+                isDanger
+            />
         </div>
     );
 };

@@ -9,6 +9,7 @@ import { useToast } from '../components/ui/Toast';
 import { supabase } from '../integrations/supabase/client';
 import { processRecurringTransactions } from '../services/recurrenceEngine';
 import { checkDataConsistency } from '../services/financialLogic';
+import { translateErrorMessage } from '../utils/errorMapping';
 
 
 
@@ -25,6 +26,10 @@ export const useDataStore = () => {
     const [assets, setAssets] = useState<Asset[]>([]);
     const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
     const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
+
+    // TIME-WINDOW SYNC STATE
+    const [loadedPeriods, setLoadedPeriods] = useState<Set<string>>(new Set());
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     const [isLoading, setIsLoading] = useState(true);
     const [dataInconsistencies, setDataInconsistencies] = useState<string[]>([]);
@@ -49,7 +54,8 @@ export const useDataStore = () => {
             }
         } catch (error: any) {
             console.error("Operation failed:", error);
-            addToast(`Erro: ${error.message || 'Falha na operação'}`, 'error');
+            const userFriendlyMessage = translateErrorMessage(error.message || 'Falha na operação');
+            addToast(userFriendlyMessage, 'error');
         }
     };
 
@@ -102,7 +108,7 @@ export const useDataStore = () => {
         }
     };
 
-    const handleAddTransaction = async (newTx: Omit<Transaction, 'id'>) => {
+    const handleAddTransaction = async (newTx: Omit<Transaction, 'id'> & { id?: string }) => {
         validateTransaction(newTx);
 
         // Prepare logic (Generate Installments vs Single)
@@ -157,7 +163,7 @@ export const useDataStore = () => {
 
                     txs.push({
                         ...newTx,
-                        id: crypto.randomUUID(),
+                        id: crypto.randomUUID(), // Installments get new IDs
                         date: formattedDate,
                         amount: currentAmount,
                         description: `${newTx.description} (${i + 1}/${totalInstallments})`,
@@ -174,7 +180,7 @@ export const useDataStore = () => {
             } else {
                 txs.push({
                     ...newTx,
-                    id: crypto.randomUUID(),
+                    id: newTx.id || crypto.randomUUID(), // USE PROVIDED ID IF AVAILABLE
                     isSettled: false,
                     created_at: now,
                     updatedAt: now
@@ -320,37 +326,43 @@ export const useDataStore = () => {
             console.timeEnd("Tier1_Accounts");
 
 
-            // --- TIER 1.5: TRANSACTIONS ---
+            // --- TIER 1.5: TRANSACTIONS (SMART WINDOW) ---
             console.time("Tier1_Transactions");
             const today = new Date();
-            const startOfMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
-            const startOfMonth = `${startOfMonthDate.getFullYear()}-${String(startOfMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
 
-            const recentTxs = await supabaseService.getTransactions(startOfMonth);
+            // Define Window: Current Month + Previous Month
+            // This provides immediate context for trends without heavy load
+            const currentPeriod = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+            const prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const prevPeriod = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+
+            const startOfWindow = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`;
+            const endOfWindow = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+
+            const [recentTxs, unsettledShared] = await Promise.all([
+                supabaseService.getTransactionsByRange(startOfWindow, endOfWindow),
+                supabaseService.getUnsettledSharedTransactions(startOfWindow) // Fetch older debts separately
+            ]);
+
             if (signal.aborted) return;
-            setTransactions(recentTxs);
+
+            setTransactions(prev => {
+                const combined = [...recentTxs, ...unsettledShared];
+                // Deduplicate
+                const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+                return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            });
+
+            setLoadedPeriods(new Set([currentPeriod, prevPeriod]));
             console.timeEnd("Tier1_Transactions");
 
 
-            // --- TIER 2: EXTENDED DATA (Recent History & Metadata) ---
+            // --- TIER 2: METADATA & CONFIG (Lazy-load safe) ---
             console.time("Tier2_Load");
 
-            // SCALABILITY FIX: Reduced initial fetch from 24 months to 3 months.
-            // Old history should be loaded on-demand (pagination) in future updates.
-            const fetchStart = new Date();
-            fetchStart.setMonth(fetchStart.getMonth() - 3);
-            const historyStartDate = `${fetchStart.getFullYear()}-${String(fetchStart.getMonth() + 1).padStart(2, '0')}-${String(fetchStart.getDate()).padStart(2, '0')}`;
-
-            const historyEndDateObj = new Date(today.getFullYear(), today.getMonth(), 0);
-            const historyEndDate = `${historyEndDateObj.getFullYear()}-${String(historyEndDateObj.getMonth() + 1).padStart(2, '0')}-${String(historyEndDateObj.getDate()).padStart(2, '0')}`;
-
             const [
-                historyTxs,
-                orphanedSharedTxs,
                 trps, bdgts, gls, fam, assts, snaps, cats
             ] = await Promise.all([
-                supabaseService.getTransactions(historyStartDate, historyEndDate),
-                supabaseService.getUnsettledSharedTransactions(historyStartDate), // Fetch active debts older than history window
                 supabaseService.getTrips(),
                 supabaseService.getBudgets(),
                 supabaseService.getGoals(),
@@ -362,13 +374,6 @@ export const useDataStore = () => {
 
             if (signal.aborted) return;
 
-            setTransactions(prev => {
-                const all = [...prev, ...historyTxs, ...orphanedSharedTxs];
-                // Deduplicate by ID just in case overlap occurs
-                const unique = Array.from(new Map(all.map(item => [item.id, item])).values());
-                return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            });
-
             setTrips(trps);
             setBudgets(bdgts);
             setGoals(gls);
@@ -379,26 +384,22 @@ export const useDataStore = () => {
 
             console.timeEnd("Tier2_Load");
 
-            // Recurrence & Consistency
-            const deletedTxs = await supabaseService.getTransactions(undefined, undefined, true);
-            if (signal.aborted) return;
-
+            // Consistency Check (Debounced)
             setTimeout(() => {
                 if (signal.aborted) return;
-                processRecurringTransactions(deletedTxs, handleAddTransaction, handleUpdateTransaction);
-                const activeTxs = [...recentTxs, ...historyTxs];
-                const issues = checkDataConsistency(accs, activeTxs);
+                const issues = checkDataConsistency(accs, recentTxs);
                 setDataInconsistencies(issues);
-            }, 100);
+            }, 500);
 
             isInitialized.current = true;
+            setIsLoading(false);
         } catch (error) {
             if (signal.aborted) return;
             console.error("Error fetching data from Supabase:", error);
             addToast("Erro ao carregar dados da nuvem.", 'error');
             setIsLoading(false);
         }
-    }, []);
+    }, [loadedPeriods]); // Depend on loadedPeriods? No, fetchData replaces init. But ensurePeriodLoaded uses it.
 
     // Initial Load
     useEffect(() => {
@@ -478,10 +479,10 @@ export const useDataStore = () => {
         }, deleteScope === 'SERIES' ? 'Série excluída.' : 'Transação excluída.', { backgroundRefresh: true });
     };
 
-    const handleAddTransactions = async (newTxs: Omit<Transaction, 'id'>[]) => {
+    const handleAddTransactions = async (newTxs: (Omit<Transaction, 'id'> & { id?: string })[]) => {
         const txsToCreate = newTxs.map(tx => ({
             ...tx,
-            id: crypto.randomUUID(),
+            id: tx.id || crypto.randomUUID(),
             isSettled: tx.isSettled ?? false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -577,21 +578,47 @@ export const useDataStore = () => {
         await supabaseService.softDeleteAccount(id);
     }, 'Conta excluída com sucesso.');
 
-    // PHASE 5: SMART HYDRATION
-    const loadHistoryWindow = async (startDate: string, endDate: string) => {
+    // PHASE 5: SMART HYDRATION (LAZY LOADING)
+    const ensurePeriodLoaded = async (date: Date) => {
         if (!isOnline) return;
-        // Silent fetch (don't trigger global loading to avoid UI flicker)
+
+        const periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+        if (loadedPeriods.has(periodKey)) {
+            // Already loaded, skip
+            return;
+        }
+
+        console.log(`📥 Lazy Loading History for: ${periodKey}`);
+        setIsLoadingHistory(true);
+
         try {
-            const newTxs = await supabaseService.getTransactions(startDate, endDate);
+            // Calculate Range: Start to End of requested month
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const start = new Date(year, month, 1);
+            const end = new Date(year, month + 1, 0); // Last day of month
+
+            const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-01`;
+            const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+
+            const newTxs = await supabaseService.getTransactionsByRange(startStr, endStr);
+
             setTransactions(prev => {
                 const all = [...prev, ...newTxs];
                 // Deduplicate by ID
                 const unique = Array.from(new Map(all.map(item => [item.id, item])).values());
                 return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             });
+
+            // Mark as loaded
+            setLoadedPeriods(prev => new Set(prev).add(periodKey));
+
         } catch (e) {
             console.error("Failed to load history window", e);
             addToast('Erro ao carregar histórico antigo.', 'error');
+        } finally {
+            setIsLoadingHistory(false);
         }
     };
 
@@ -615,12 +642,20 @@ export const useDataStore = () => {
     }, 'Viagem e despesas excluídas.');
 
     return {
-        user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories, isLoading, dataInconsistencies, isOnline,
+        user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories,
+        isLoading, dataInconsistencies, isOnline,
+        isLoadingHistory, // New State
+
         handlers: {
             handleLogin, handleLogout,
             handleAddTransaction, handleAddTransactions, handleUpdateTransaction, handleBatchUpdateTransactions, handleDeleteTransaction, handleAnticipateInstallments,
             handleAddAccount, handleUpdateAccount, handleDeleteAccount,
-            loadHistoryWindow,
+
+            ensurePeriodLoaded, // Replacement for loadHistoryWindow
+            checkConsistency: () => {
+                const issues = checkDataConsistency(accounts, transactions);
+                setDataInconsistencies(issues);
+            },
 
             handleAddTrip: tripsHandler.add, handleUpdateTrip: tripsHandler.update,
             handleDeleteTrip: handleDeleteTrip, // Using the new cascading handler

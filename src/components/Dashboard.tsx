@@ -27,6 +27,7 @@ interface DashboardProps {
     onEditRequest?: (id: string) => void;
     onNotificationPay?: (id: string) => void;
     isLoading?: boolean;
+    isLoadingHistory?: boolean; // NEW PROP
     pendingSettlements?: any[];
     projectedAccounts?: Account[];
     onOpenShared?: () => void;
@@ -40,7 +41,7 @@ const ChartSkeleton = () => (
     </div>
 );
 
-export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccounts, transactions, trips, currentDate = new Date(), showValues, onEditRequest, isLoading = false, pendingSettlements = [], onOpenShared, onOpenSettlement, userName }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccounts, transactions, trips, currentDate = new Date(), showValues, onEditRequest, isLoading = false, isLoadingHistory = false, pendingSettlements = [], onOpenShared, onOpenSettlement, userName }) => {
     const [spendingView, setSpendingView] = useState<'CATEGORY' | 'SOURCE'>('CATEGORY');
     const selectedYear = currentDate.getFullYear();
 
@@ -75,6 +76,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
 
+
+            {/* Friendly Greeting & Sync Indicator */}
+            {isLoadingHistory && (
+                <div className="flex justify-center -mt-2 mb-2 animate-in fade-in slide-in-from-top-2">
+                    <span className="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs px-3 py-1 rounded-full flex items-center gap-2 font-medium shadow-sm border border-emerald-100 dark:border-emerald-800">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Sincronizando histórico...
+                    </span>
+                </div>
+            )}
 
             {/* Friendly Greeting */}
 

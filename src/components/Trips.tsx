@@ -19,11 +19,10 @@ interface TripsProps {
     onDeleteTrip?: (id: string) => void;
     onNavigateToShared?: () => void;
     onEditTransaction?: (id: string) => void;
-    onLoadHistory: (start: string, end: string) => Promise<void>;
     currentUserId?: string;
 }
 
-export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onUpdateTransaction, onDeleteTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared, onEditTransaction, onLoadHistory, currentUserId }) => {
+export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onUpdateTransaction, onDeleteTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared, onEditTransaction, currentUserId }) => {
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
     const [isCreatingTrip, setIsCreatingTrip] = useState(false);
     const [editingTripId, setEditingTripId] = useState<string | null>(null);
@@ -31,11 +30,9 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
     const selectedTrip = trips.find(t => String(t.id) === String(selectedTripId));
 
     // PHASE 5: Smart Hydration (Load history when trip selected)
-    React.useEffect(() => {
-        if (selectedTrip) {
-            onLoadHistory(selectedTrip.startDate, selectedTrip.endDate);
-        }
-    }, [selectedTripId, trips]); // trips dependency in case we load trips late? ID is simpler.
+    // DEPRECATED: Now handled by Global Lazy Loading or could be re-implemented if needed
+    // Logic: If trip dates are outside loaded range, we might need a fetch?
+    // For now, disabling explicit fetch here to rely on global/demand.
 
     const tripTransactions = transactions.filter(t => t.tripId && String(t.tripId) === String(selectedTripId)).sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime());
 

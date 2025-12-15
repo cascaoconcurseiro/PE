@@ -35,6 +35,8 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
     // Filter out "Me" from assignee list (I can't assign debt to myself in this context if I am payer)
     const availableMembers = React.useMemo(() => members.filter(m => m.id !== 'me'), [members]);
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     useEffect(() => {
         if (isOpen) {
             setDescription('');
@@ -43,84 +45,98 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             setDate(new Date().toISOString().split('T')[0]);
             setCategory(Category.OTHER);
             setAccountId('');
+            setIsSubmitting(false); // Reset on open
             // Default to first available member
             if (availableMembers.length > 0) setAssigneeId(availableMembers[0].id);
         }
     }, [isOpen, availableMembers]);
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
+        if (isSubmitting) return; // Prevent double click
+
         if (!amount || !description || !assigneeId) {
             alert('Preencha todos os campos obrigatórios.');
             return;
         }
 
-        const installmentValue = parseFloat(amount);
-        const numInstallments = parseInt(installments);
+        setIsSubmitting(true);
 
-        const generatedTransactions: Omit<Transaction, 'id'>[] = [];
-        const [yearStr, monthStr, dayStr] = date.split('-');
-        const startYear = parseInt(yearStr);
-        const startMonth = parseInt(monthStr) - 1;
-        const startDay = parseInt(dayStr);
+        try {
+            const installmentValue = parseFloat(amount);
+            const numInstallments = parseInt(installments);
 
-        const seriesId = crypto.randomUUID();
-        const totalAmount = installmentValue * numInstallments;
+            const generatedTransactions: any[] = []; // Allow ID
+            const [yearStr, monthStr, dayStr] = date.split('-');
+            const startYear = parseInt(yearStr);
+            const startMonth = parseInt(monthStr) - 1;
+            const startDay = parseInt(dayStr);
 
-        for (let i = 0; i < numInstallments; i++) {
-            const currentInstallmentAmount = installmentValue;
-            const currentMonthIndex = startMonth + i;
-            const targetYear = startYear + Math.floor(currentMonthIndex / 12);
-            const targetMonth = currentMonthIndex % 12;
-            const maxDaysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-            const finalDay = Math.min(startDay, maxDaysInMonth);
-            const utcDate = new Date(Date.UTC(targetYear, targetMonth, finalDay, 12, 0, 0));
-            const dateStr = utcDate.toISOString().split('T')[0];
+            const seriesId = crypto.randomUUID();
+            const totalAmount = installmentValue * numInstallments;
 
-            // 100% Assignment to Selected Member
-            const sharedWith: TransactionSplit[] = [{
-                memberId: assigneeId,
-                assignedAmount: currentInstallmentAmount,
-                percentage: 100,
-                isSettled: false
-            }];
+            for (let i = 0; i < numInstallments; i++) {
+                const currentInstallmentAmount = installmentValue;
+                const currentMonthIndex = startMonth + i;
+                const targetYear = startYear + Math.floor(currentMonthIndex / 12);
+                const targetMonth = currentMonthIndex % 12;
+                const maxDaysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+                const finalDay = Math.min(startDay, maxDaysInMonth);
+                const utcDate = new Date(Date.UTC(targetYear, targetMonth, finalDay, 12, 0, 0));
+                const dateStr = utcDate.toISOString().split('T')[0];
+                const transactionId = crypto.randomUUID(); // Idempotency Key
 
-            generatedTransactions.push({
-                description: `${description} (${i + 1}/${numInstallments})`,
-                amount: currentInstallmentAmount,
-                type: TransactionType.EXPENSE,
-                category: category,
-                date: dateStr,
-                accountId: accountId || undefined,
-                payerId: 'me', // Implicit: I paid
-                isShared: true,
-                sharedWith: sharedWith, // They owe me
-                isInstallment: numInstallments > 1,
-                currentInstallment: i + 1,
-                totalInstallments: numInstallments,
-                seriesId: numInstallments > 1 ? seriesId : undefined,
-                originalAmount: totalAmount,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                syncStatus: SyncStatus.PENDING
-            });
+                // 100% Assignment to Selected Member
+                const sharedWith: TransactionSplit[] = [{
+                    memberId: assigneeId,
+                    assignedAmount: currentInstallmentAmount,
+                    percentage: 100,
+                    isSettled: false
+                }];
+
+                generatedTransactions.push({
+                    id: transactionId, // Explicit ID for Idempotency
+                    user_id: 'temp', // Will be overwritten by service
+                    description: `${description} (${i + 1}/${numInstallments})`,
+                    amount: currentInstallmentAmount,
+                    type: TransactionType.EXPENSE,
+                    category: category,
+                    date: dateStr,
+                    accountId: accountId || undefined,
+                    payerId: 'me', // Implicit: I paid
+                    isShared: true,
+                    sharedWith: sharedWith, // They owe me
+                    isInstallment: numInstallments > 1,
+                    currentInstallment: i + 1,
+                    totalInstallments: numInstallments,
+                    seriesId: numInstallments > 1 ? seriesId : undefined,
+                    originalAmount: totalAmount,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    syncStatus: SyncStatus.PENDING
+                });
+            }
+            onImport(generatedTransactions);
+            // Modal closes via parent calling onClose or effect, but we keep state coherent
+        } catch (e) {
+            console.error("Error importing:", e);
+            setIsSubmitting(false); // Re-enable on error
         }
-        onImport(generatedTransactions);
     };
 
     return (
         <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
-            <div className={`absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`} onClick={onClose} />
+            <div className={`absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`} onClick={!isSubmitting ? onClose : undefined} />
             <div className={`bg-white dark:bg-slate-900 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 flex flex-col transition-transform duration-300 ${isOpen ? 'translate-y-0 pointer-events-auto' : 'translate-y-full'}`}>
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                     <h3 className="font-bold text-lg dark:text-white flex items-center gap-2"><Layers className="w-5 h-5 text-indigo-500" /> Importar Parcelado</h3>
-                    <button type="button" onClick={onClose}><X className="w-6 h-6 text-slate-400" /></button>
+                    <button type="button" onClick={onClose} disabled={isSubmitting}><X className="w-6 h-6 text-slate-400" /></button>
                 </div>
 
                 <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                     {/* Description */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">Descrição</label>
-                        <input className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white" value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Compra Geladeira" />
+                        <input disabled={isSubmitting} className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white" value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Compra Geladeira" />
                     </div>
 
                     {/* Amount & Installments Row */}
@@ -129,12 +145,12 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                             <label className="block text-xs font-bold text-slate-500 mb-1">Valor da Parcela</label>
                             <div className="relative">
                                 <DollarSign className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                                <input type="number" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+                                <input disabled={isSubmitting} type="number" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
                             </div>
                         </div>
                         <div className="w-1/3">
                             <label className="block text-xs font-bold text-slate-500 mb-1">Parcelas</label>
-                            <input type="number" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white" value={installments} onChange={e => setInstallments(e.target.value)} placeholder="1" min="1" max="99" />
+                            <input disabled={isSubmitting} type="number" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white" value={installments} onChange={e => setInstallments(e.target.value)} placeholder="1" min="1" max="99" />
                         </div>
                     </div>
 
@@ -143,14 +159,14 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         <label className="block text-xs font-bold text-slate-500 mb-1">Data 1ª Parcela</label>
                         <div className="relative">
                             <Calendar className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                            <input type="date" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white" value={date} onChange={e => setDate(e.target.value)} />
+                            <input disabled={isSubmitting} type="date" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white" value={date} onChange={e => setDate(e.target.value)} />
                         </div>
                     </div>
 
                     {/* Category */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">Categoria</label>
-                        <select className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white" value={category} onChange={e => setCategory(e.target.value as Category)}>
+                        <select disabled={isSubmitting} className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white" value={category} onChange={e => setCategory(e.target.value as Category)}>
                             {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
@@ -163,8 +179,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                                 <button
                                     type="button"
                                     key={m.id}
+                                    disabled={isSubmitting}
                                     onClick={() => setAssigneeId(m.id)}
-                                    className={`px-4 py-3 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2 ${assigneeId === m.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'}`}
+                                    className={`px-4 py-3 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2 ${assigneeId === m.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     {assigneeId === m.id && <Check className="w-4 h-4" />}
                                     {m.name}
@@ -178,8 +195,8 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 </div>
 
                 <div className="p-6 pt-0">
-                    <Button onClick={handleConfirm} className="w-full h-12 text-lg rounded-xl shadow-xl shadow-indigo-500/20">
-                        Confirmar {installments}x de {amount && !isNaN(parseFloat(amount)) ? (parseFloat(amount)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '...'}
+                    <Button onClick={handleConfirm} disabled={isSubmitting} className="w-full h-12 text-lg rounded-xl shadow-xl shadow-indigo-500/20">
+                        {isSubmitting ? 'Processando...' : `Confirmar ${installments}x de ${amount && !isNaN(parseFloat(amount)) ? (parseFloat(amount)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '...'}`}
                     </Button>
                 </div>
             </div>

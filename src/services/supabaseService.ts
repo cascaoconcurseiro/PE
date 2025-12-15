@@ -167,6 +167,27 @@ export const supabaseService = {
         return mapToApp(data) as T[];
     },
 
+    // NEW: Time-Windowed Fetching (Scalability)
+    async getTransactionsByRange(startDate: string, endDate: string) {
+        const userId = await getUserId();
+
+        // Ensure inclusive range (00:00:00 to 23:59:59) if passed as date strings
+        // But usually input is YYYY-MM-DD. Supabase date column is DATE or TIMESTAMP?
+        // Schema says DATE. So strict comparison works.
+
+        const { data, error } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('deleted', false)
+            .gte('date', startDate)
+            .lte('date', endDate)
+            .order('date', { ascending: false });
+
+        if (error) throw error;
+        return mapToApp<Transaction[]>(data);
+    },
+
     async create(table: string, item: any) {
         const userId = await getUserId();
         const dbItem = mapToDB(item, userId);

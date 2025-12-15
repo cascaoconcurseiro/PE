@@ -188,14 +188,17 @@ export const useTransactionForm = ({
     };
 
     const [duplicateWarning, setDuplicateWarning] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Reset warning when form changes
     useEffect(() => {
         setDuplicateWarning(false);
     }, [amountStr, description, date, accountId]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
         const newErrors: { [key: string]: string } = {};
 
         // ... (standard validations)
@@ -273,51 +276,59 @@ export const useTransactionForm = ({
             }
         }
 
-        const finalSplits = splits
-            .filter(s => s.percentage > 0)
-            .map(s => ({
-                ...s,
-                assignedAmount: (activeAmount * s.percentage) / 100
-            }));
+        setIsSubmitting(true);
 
-        const isExternalPayer = payerId && payerId !== 'me';
-        const shouldBeShared = formMode === TransactionType.EXPENSE && (isShared || finalSplits.length > 0 || isExternalPayer);
+        try {
+            const finalSplits = splits
+                .filter(s => s.percentage > 0)
+                .map(s => ({
+                    ...s,
+                    assignedAmount: (activeAmount * s.percentage) / 100
+                }));
 
-        let updateFuture = false;
-        if (initialData && (initialData.seriesId || initialData.isRecurring)) {
-            if (confirm(`Esta transação faz parte de uma série/recorrência.\n\nDeseja aplicar as alterações para TODAS as transações futuras desta série?`)) {
-                updateFuture = true;
+            const isExternalPayer = payerId && payerId !== 'me';
+            const shouldBeShared = formMode === TransactionType.EXPENSE && (isShared || finalSplits.length > 0 || isExternalPayer);
+
+            let updateFuture = false;
+            if (initialData && (initialData.seriesId || initialData.isRecurring)) {
+                if (confirm(`Esta transação faz parte de uma série/recorrência.\n\nDeseja aplicar as alterações para TODAS as transações futuras desta série?`)) {
+                    updateFuture = true;
+                }
             }
+
+            const data = {
+                id: initialData ? undefined : crypto.randomUUID(), // Idempotency Key for Create
+                amount: activeAmount,
+                description: description.trim(),
+                date,
+                type: formMode!,
+                category: formMode === TransactionType.TRANSFER ? Category.TRANSFER : category,
+                accountId: (payerId && payerId !== 'me') ? undefined : (accountId || undefined),
+                destinationAccountId: isTransfer ? destinationAccountId : undefined,
+                destinationAmount: (isTransfer && isMultiCurrencyTransfer) ? parseFloat(destinationAmountStr) : undefined,
+                tripId: (formMode === TransactionType.EXPENSE && tripId) ? tripId : undefined,
+                isShared: shouldBeShared,
+                sharedWith: finalSplits,
+                payerId: payerId === 'me' ? undefined : payerId,
+                isRecurring,
+                recurrenceDay: isRecurring ? recurrenceDay : undefined,
+                lastGenerated: isRecurring ? date : undefined,
+                frequency: isRecurring ? frequency : Frequency.ONE_TIME,
+                isInstallment: (isCreditCard || isExternalPayer) ? isInstallment : false,
+                currentInstallment: isInstallment ? currentInstallment : undefined,
+                totalInstallments: isInstallment ? totalInstallments : undefined,
+                enableNotification,
+                notificationDate: enableNotification ? notificationDate : undefined,
+                isRefund,
+                currency: activeCurrency,
+                exchangeRate: (manualExchangeRate && parseFloat(manualExchangeRate) > 0) ? parseFloat(manualExchangeRate) : undefined
+            };
+
+            await onSave(data, !!initialData, updateFuture);
+        } catch (error) {
+            console.error(error);
+            setIsSubmitting(false);
         }
-
-        const data = {
-            amount: activeAmount,
-            description: description.trim(),
-            date,
-            type: formMode!,
-            category: formMode === TransactionType.TRANSFER ? Category.TRANSFER : category,
-            accountId: (payerId && payerId !== 'me') ? undefined : (accountId || undefined),
-            destinationAccountId: isTransfer ? destinationAccountId : undefined,
-            destinationAmount: (isTransfer && isMultiCurrencyTransfer) ? parseFloat(destinationAmountStr) : undefined,
-            tripId: (formMode === TransactionType.EXPENSE && tripId) ? tripId : undefined,
-            isShared: shouldBeShared,
-            sharedWith: finalSplits,
-            payerId: payerId === 'me' ? undefined : payerId,
-            isRecurring,
-            recurrenceDay: isRecurring ? recurrenceDay : undefined,
-            lastGenerated: isRecurring ? date : undefined,
-            frequency: isRecurring ? frequency : Frequency.ONE_TIME,
-            isInstallment: (isCreditCard || isExternalPayer) ? isInstallment : false,
-            currentInstallment: isInstallment ? currentInstallment : undefined,
-            totalInstallments: isInstallment ? totalInstallments : undefined,
-            enableNotification,
-            notificationDate: enableNotification ? notificationDate : undefined,
-            isRefund,
-            currency: activeCurrency,
-            exchangeRate: (manualExchangeRate && parseFloat(manualExchangeRate) > 0) ? parseFloat(manualExchangeRate) : undefined
-        };
-
-        onSave(data, !!initialData, updateFuture);
     };
 
     return {
@@ -359,6 +370,7 @@ export const useTransactionForm = ({
         handleConfirmSplit,
         handleSubmit,
         setManualExchangeRate, // Export setter
-        duplicateWarning // ✅ Export for UI Blinking Alert
+        duplicateWarning, // ✅ Export for UI Blinking Alert
+        isSubmitting // ✅ Export isSubmitting
     };
 };

@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { Plus, Users, User, Trash2, Mail, Pencil, X, Check, Loader2, UserCheck, UserX, AlertTriangle } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { FamilySummary } from './family/FamilySummary';
+import { ConfirmModal } from './ui/ConfirmModal';
 
 interface FamilyProps {
     members: FamilyMember[];
@@ -66,10 +67,8 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
             setDependencyCount(count);
             setMemberToDelete(member);
         } else {
-            // No dependencies, just delete
-            if (window.confirm(`Tem certeza que deseja excluir ${member.name}?`)) {
-                onDeleteMember(member.id, 'UNLINK');
-            }
+            setDependencyCount(0);
+            setMemberToDelete(member);
         }
     };
 
@@ -94,57 +93,68 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
         let finalMemberId = editingId;
         let shouldInvite = false;
 
-        // Check for invite if email is present and changed (or new)
-        if (currentEmail && onInviteMember) {
-            let inviteeId = foundUserId;
+        try {
+            // Check for invite if email is present and changed (or new)
+            if (currentEmail && onInviteMember) {
+                let inviteeId = foundUserId;
 
-            // If not checked yet or changed since last check (rare edge case if typing fast then enter)
-            if (currentEmail !== lastCheckedEmail) {
-                const { data } = await supabase.rpc('check_user_by_email', { email_to_check: currentEmail });
-                inviteeId = data;
-            }
+                // If not checked yet or changed since last check (rare edge case if typing fast then enter)
+                if (currentEmail !== lastCheckedEmail) {
+                    const { data } = await supabase.rpc('check_user_by_email', { email_to_check: currentEmail });
+                    inviteeId = data;
+                }
 
-            if (inviteeId) {
-                const confirmInvite = window.confirm(`O usuário com e-mail ${currentEmail} foi encontrado no sistema.\n\nDeseja enviar uma solicitação para compartilhar todas as despesas vinculadas a este membro?`);
-                if (confirmInvite) {
-                    shouldInvite = true;
+                if (inviteeId) {
+                    const confirmInvite = window.confirm(`O usuário com e-mail ${currentEmail} foi encontrado no sistema.\n\nDeseja enviar uma solicitação para compartilhar todas as despesas vinculadas a este membro?`);
+                    if (confirmInvite) {
+                        shouldInvite = true;
+                    }
                 }
             }
-        }
 
-        if (editingId) {
-            // Update existing
-            onUpdateMember({
-                id: editingId,
-                name: name.trim(),
-                role: role.trim(),
-                email: currentEmail
-            });
-        } else {
-            // Add new - generate ID here if inviting, so we can link it
-            finalMemberId = crypto.randomUUID();
-            // Await the creation to ensure the member exists in DB before we try to link it via RPC
-            await onAddMember({
-                id: finalMemberId,
-                name: name.trim(),
-                role: role.trim(),
-                email: currentEmail
-            });
-        }
+            if (editingId) {
+                // Update existing
+                onUpdateMember({
+                    id: editingId,
+                    name: name.trim(),
+                    role: role.trim(),
+                    email: currentEmail
+                });
+            } else {
+                // Add new - generate ID here if inviting, so we can link it
+                finalMemberId = crypto.randomUUID();
+                // Await the creation to ensure the member exists in DB before we try to link it via RPC
+                await onAddMember({
+                    id: finalMemberId,
+                    name: name.trim(),
+                    role: role.trim(),
+                    email: currentEmail
+                });
+            }
 
-        if (shouldInvite && finalMemberId && currentEmail && onInviteMember) {
-            await onInviteMember(finalMemberId, currentEmail);
-        }
+            if (shouldInvite && finalMemberId && currentEmail && onInviteMember) {
+                await onInviteMember(finalMemberId, currentEmail);
+            }
 
-        // Reset form
-        setName('');
-        setRole('');
-        setEmail('');
-        setEditingId(null);
-        setEmailCheckStatus('IDLE');
-        setLastCheckedEmail('');
-        setFoundUserId(null);
-        setIsFormOpen(false);
+            // Reset form
+            setName('');
+            setRole('');
+            setEmail('');
+            setEditingId(null);
+            setEmailCheckStatus('IDLE');
+            setLastCheckedEmail('');
+            setFoundUserId(null);
+            setIsFormOpen(false);
+
+        } catch (error: any) {
+            console.error("Error saving member:", error);
+            // Handle unique violation (Postgres code 23505)
+            if (error?.code === '23505' || error?.message?.includes('violates unique constraint') || error?.message?.includes('already exists')) {
+                alert('Este usuário (e-mail) já está cadastrado na sua família.');
+            } else {
+                alert('Erro ao salvar membro. Tente novamente.');
+            }
+        }
     };
 
     const handleEdit = (member: FamilyMember) => {
@@ -329,8 +339,8 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
                 ))}
             </div>
 
-            {/* Deletion Strategy Modal */}
-            {memberToDelete && (
+            {/* Deletion Strategy Modal (Dependencies) */}
+            {memberToDelete && dependencyCount > 0 && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800">
                         <div className="flex flex-col items-center text-center mb-6">
@@ -368,6 +378,22 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
                     </div>
                 </div>
             )}
+
+            {/* Simple Delete Modal (No Dependencies) */}
+            <ConfirmModal
+                isOpen={!!memberToDelete && dependencyCount === 0}
+                onCancel={() => setMemberToDelete(null)}
+                onConfirm={() => {
+                    if (memberToDelete) {
+                        onDeleteMember(memberToDelete.id, 'UNLINK');
+                        setMemberToDelete(null);
+                    }
+                }}
+                title={`Excluir ${memberToDelete?.name}?`}
+                message={`Tem certeza que deseja excluir ${memberToDelete?.name} da sua família?`}
+                confirmLabel="Excluir Membro"
+                isDanger
+            />
         </div>
     );
 };

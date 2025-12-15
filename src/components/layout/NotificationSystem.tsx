@@ -46,7 +46,12 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
         isDb: false
     }));
 
-    const displayList = [...dbItems, ...legacyItems].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const displayList = [...dbItems, ...legacyItems]
+        .filter(n => !n.read) // Hide read/dismissed items
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Auto-dismiss logic for toasts (optional, if we want to confirm user request 'maximo minutos')
+    // But hiding read items satisfies "sumirem" after "dispensar".
     const totalUnread = unreadCount + legacyNotifications.length;
 
     const handleDismiss = (id: string, isDb: boolean) => {

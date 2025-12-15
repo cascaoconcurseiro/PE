@@ -20,6 +20,7 @@ import { CreditCardImportModal } from './accounts/CreditCardImportModal';
 import { AccountSummaryCards } from './accounts/AccountSummaryCards';
 import { AccountList } from './accounts/AccountList';
 import { useAccountActions } from '../hooks/useAccountActions';
+import { ConfirmModal } from './ui/ConfirmModal';
 
 interface AccountsProps {
     accounts: Account[];
@@ -79,6 +80,9 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
     const [anticipateModal, setAnticipateModal] = useState<{ isOpen: boolean, transaction: Transaction | null }>({ isOpen: false, transaction: null });
     const [importBillModal, setImportBillModal] = useState<{ isOpen: boolean, account: Account | null }>({ isOpen: false, account: null });
 
+    // Deletion State
+    const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
+
     const handleAccountClick = (account: Account) => {
         setSelectedAccount(account);
         setViewState('DETAIL');
@@ -94,10 +98,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
 
     const handleDelete = () => {
         if (selectedAccount) {
-            if (confirm('Tem certeza que deseja excluir esta conta?')) {
-                onDeleteAccount(selectedAccount.id);
-                handleBack();
-            }
+            setAccountToDelete(selectedAccount);
         }
     };
 
@@ -233,6 +234,20 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
                 <ImportModal isOpen={importModal.isOpen} onClose={() => setImportModal({ ...importModal, isOpen: false })} onImport={handleImportConfirm} importedTransactions={importModal.transactions} />
                 {anticipateModal.isOpen && anticipateModal.transaction && (<InstallmentAnticipationModal isOpen={anticipateModal.isOpen} onClose={() => setAnticipateModal({ isOpen: false, transaction: null })} transaction={anticipateModal.transaction} allInstallments={transactions} accounts={accounts} onConfirm={handleConfirmAnticipation} />)}
                 {importBillModal.isOpen && importBillModal.account && (<CreditCardImportModal isOpen={importBillModal.isOpen} onClose={() => setImportBillModal({ isOpen: false, account: null })} account={importBillModal.account} onImport={handleImportBills} />)}
+                <ConfirmModal
+                    isOpen={!!accountToDelete}
+                    onCancel={() => setAccountToDelete(null)}
+                    onConfirm={() => {
+                        if (accountToDelete) {
+                            onDeleteAccount(accountToDelete.id);
+                            setAccountToDelete(null);
+                        }
+                    }}
+                    title="Excluir Conta Bancária?"
+                    message={`Tem certeza que deseja excluir a conta "${accountToDelete?.name}"? \n\n⚠️ O histórico de transações desta conta será preservado no banco de dados, mas ficará oculto dos relatórios principais.`}
+                    confirmLabel="Excluir Conta"
+                    isDanger
+                />
             </div>
         );
     }

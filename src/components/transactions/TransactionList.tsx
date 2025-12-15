@@ -14,6 +14,8 @@ interface TransactionListProps {
     onAddClick: () => void;
     emptyMessage?: string;
     onAnticipateInstallments?: (tx: Transaction) => void;
+    hasActiveFilters?: boolean;
+    onClearFilters?: () => void;
 }
 
 const BlurValue = ({ value, show }: { value: string, show: boolean }) => {
@@ -30,7 +32,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     onDelete,
     onAddClick,
     emptyMessage,
-    onAnticipateInstallments
+    onAnticipateInstallments,
+    hasActiveFilters,
+    onClearFilters
 }) => {
     const dates = Object.keys(groupedTxs).sort((a, b) => b.localeCompare(a));
     const [visibleDays, setVisibleDays] = useState(5);
@@ -44,10 +48,20 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     <ScanLine className="w-10 h-10 text-slate-400" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sem movimento</h3>
-                <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-xs text-center">{emptyMessage || "Nenhuma transação encontrada neste período."}</p>
-                <Button onClick={onAddClick} className="rounded-xl px-8 h-12 text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-500/20">
-                    <Plus className="w-4 h-4 mr-2" /> Adicionar Transação
-                </Button>
+                <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-xs text-center">
+                    {hasActiveFilters
+                        ? "Nenhum resultado encontrado com os filtros atuais."
+                        : (emptyMessage || "Nenhuma transação encontrada neste período.")}
+                </p>
+                {hasActiveFilters && onClearFilters ? (
+                    <Button onClick={onClearFilters} variant="secondary" className="rounded-xl px-8 h-12 text-sm font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white">
+                        <ScanLine className="w-4 h-4 mr-2" /> Limpar Filtros
+                    </Button>
+                ) : (
+                    <Button onClick={onAddClick} className="rounded-xl px-8 h-12 text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-500/20">
+                        <Plus className="w-4 h-4 mr-2" /> Adicionar Transação
+                    </Button>
+                )}
             </div>
         );
     }

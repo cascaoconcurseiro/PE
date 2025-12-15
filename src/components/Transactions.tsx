@@ -23,7 +23,7 @@ interface TransactionsProps {
     trips: Trip[];
     familyMembers: FamilyMember[];
     customCategories: CustomCategory[];
-    onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
+    onAddTransaction: (t: Omit<Transaction, 'id'> & { id?: string }) => void;
     onUpdateTransaction: (t: Transaction) => void;
     onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
     onAnticipate?: (ids: string[], date: string, accountId: string) => void;
@@ -206,6 +206,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 onEdit={handleEditRequest}
                 onDelete={handleDeleteRequest}
                 onAddClick={() => setFormMode(TransactionType.EXPENSE)}
+                hasActiveFilters={!!searchTerm}
+                onClearFilters={() => setSearchTerm('')}
             />
 
             <TransactionDeleteModal

@@ -134,45 +134,71 @@ export const getCommittedBalance = (account: Account, transactions: Transaction[
 };
 
 export const calculateHistoricalBalance = (account: Account, transactions: Transaction[], referenceDate: Date) => {
-    // 1. Determine the cutoff date (End of the selected month)
+    // REVERSE CALCULATION STRATEGY (Scalability)
+    // Instead of summing from 0 (Start of Time) -> Date,
+    // We start from Current Balance (DB Authoritative) and subtract transactions > Date.
+    // Logic: Balance @ Date = CurrentBalance - Sum(Transactions happened AFTER Date)
+
+    // 1. Get Current Balance (Anchor)
+    let computedBalance = account.balance || 0;
+
+    // 2. Determine Cutoff Date (End of selected month)
     const year = referenceDate.getFullYear();
     const month = referenceDate.getMonth();
-    // Day 0 of next month is the last day of this month
     const endOfPeriod = new Date(year, month + 1, 0);
-    // FIX: Usar formatação local para evitar problemas de timezone
+    // Set to end of day to be inclusive of transactions on that day?
+    // Actually, we want to subtract transactions that happened STRICTLY AFTER this date.
+    // If a transaction happened on endOfPeriod, it is INCLUDED in the historical balance.
+    // So we subtract transactions where date > endOfPeriod.
+
+    // Use string comparison to match existing logic style and avoid timezone issues
     const endStr = formatLocalDate(endOfPeriod);
 
-    // 2. Filter transactions: specific account, not deleted, date <= endOfPeriod
-    const activeTransactions = transactions.filter(shouldShowTransaction);
+    // 3. Filter "Future" Transactions (Transactions that happened AFTER the view date)
+    // We only process Active transactions.
+    const futureTransactions = transactions.filter(t => {
+        if (!shouldShowTransaction(t)) return false;
+        if (t.accountId !== account.id && t.destinationAccountId !== account.id) return false;
 
-    // Transactions where this account is the source
-    const accountTxs = activeTransactions.filter(t => t.accountId === account.id && t.date <= endStr);
+        // Check if transaction is AFTER the period
+        return t.date > endStr;
+    });
 
-    // Transactions where this account is the destination (Transfers)
-    const incomingTxs = activeTransactions.filter(t => t.destinationAccountId === account.id && t.date <= endStr);
+    // 4. Reverse the specific transactions
+    futureTransactions.forEach(t => {
+        // If it's an INCOME (added to balance), we SUBTRACT it to go back in time.
+        // If it's an EXPENSE (removed from balance), we ADD it back.
 
-    // 3. Sum up Source Transactions (Expenses reduce, Incomes increase)
-    const balanceChange = accountTxs.reduce((acc, t) => {
-        if (t.type === TransactionType.EXPENSE) return acc - t.amount;
-        if (t.type === TransactionType.INCOME) return acc + t.amount;
-        // Refunds on expenses: Increase balance (reverse expense)
-        if (t.isRefund) return acc + t.amount;
+        // Case A: I am the Source (Expense or Transfer Out)
+        if (t.accountId === account.id) {
+            if (t.type === TransactionType.INCOME) {
+                // It added money. Remove it.
+                computedBalance -= t.amount;
+            } else if (t.type === TransactionType.EXPENSE) {
+                // It removed money. Add it back.
+                // Handle refunds: Refund puts money back. So to reverse, we subtract(?)
+                // Refund Logic: isRefund=true, Amount is positive, but semantically 'Credit'.
+                // Expense limit logic: usually Expense decreases. Refund increases.
+                if (t.isRefund) {
+                    computedBalance -= t.amount;
+                } else {
+                    computedBalance += t.amount;
+                }
+            } else if (t.type === TransactionType.TRANSFER) {
+                // Transfer OUT removed money. Add it back.
+                computedBalance += t.amount;
+            }
+        }
 
-        // Transfer Out: Reduces balance
-        if (t.type === TransactionType.TRANSFER) return acc - t.amount;
+        // Case B: I am the Destination (Transfer In)
+        if (t.destinationAccountId === account.id) {
+            // It was a Transfer IN. It added money. Remove it.
+            const val = t.destinationAmount || t.amount;
+            computedBalance -= val;
+        }
+    });
 
-        return acc;
-    }, 0);
-
-    // 4. Sum up Incoming Transactions (Transfers In increase balance)
-    const incomingTotal = incomingTxs.reduce((acc, t) => {
-        return acc + (t.destinationAmount || t.amount);
-    }, 0);
-
-    // 5. Add Initial Balance
-    // Initial Balance is the starting point.
-    // If we assume initialBalance is "at start of time", this works.
-    return (account.initialBalance || 0) + balanceChange + incomingTotal;
+    return computedBalance;
 };
 
 export const getBankExtract = (accountId: string, transactions: Transaction[], referenceDate?: Date) => {
