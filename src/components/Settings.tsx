@@ -32,7 +32,7 @@ interface SettingsProps {
     onDeleteAccount: (id: string) => void;
     onUpdateTrip: (trip: Trip) => void;
     onDeleteTrip: (id: string) => void;
-    onFactoryReset: () => void;
+    onFactoryReset: (unlinkFamily: boolean) => void;
     currentUserName?: string;
     currentUserEmail?: string;
 }

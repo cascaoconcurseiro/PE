@@ -434,18 +434,21 @@ export const supabaseService = {
     },
 
     // DANGER: WIPE ALL DATA (SAFE MODE)
-    async dangerouslyWipeAllData() {
+    // SMART FACTORY RESET
+    async performSmartReset(unlinkFamily: boolean = false) {
         const userId = await getUserId();
-        console.warn(`🚨 INICIANDO WIPE SEGURO PARA USUÁRIO: ${userId}`);
+        console.warn(`🚨 INICIANDO SMART RESET (Unlink Family: ${unlinkFamily}) PARA USUÁRIO: ${userId}`);
 
-        // OPTIMIZED: Use Server-Side RPC for atomic and safe deletion
-        const { error } = await supabase.rpc('reset_own_data');
+        // Call the new Logic-Aware RPC
+        const { error } = await supabase.rpc('fn_smart_factory_reset', {
+            p_unlink_family: unlinkFamily
+        });
 
         if (error) {
-            console.error('Falha ao resetar dados (RPC):', error);
+            console.error('Falha ao resetar dados (Smart RPC):', error);
             throw error;
         }
 
-        console.log('✅ WIPE SEGURO CONCLUÍDO COM SUCESSO via RPC.');
+        console.log('✅ SMART RESET CONCLUÍDO COM SUCESSO.');
     }
 };

@@ -646,49 +646,39 @@ export const useDataStore = () => {
         isLoading, dataInconsistencies, isOnline,
         isLoadingHistory, // New State
 
-        handlers: {
+        const handlers = useMemo(() => ({
             handleLogin, handleLogout,
             handleAddTransaction, handleAddTransactions, handleUpdateTransaction, handleBatchUpdateTransactions, handleDeleteTransaction, handleAnticipateInstallments,
             handleAddAccount, handleUpdateAccount, handleDeleteAccount,
 
-            ensurePeriodLoaded, // Replacement for loadHistoryWindow
+            ensurePeriodLoaded,
             checkConsistency: () => {
                 const issues = checkDataConsistency(accounts, transactions);
                 setDataInconsistencies(issues);
             },
 
             handleAddTrip: tripsHandler.add, handleUpdateTrip: tripsHandler.update,
-            handleDeleteTrip: handleDeleteTrip, // Using the new cascading handler
+            handleDeleteTrip,
 
             handleAddMember: membersHandler.add, handleUpdateMember: membersHandler.update,
             handleDeleteMember: async (id: string, strategy: 'CASCADE' | 'UNLINK' = 'UNLINK') => performOperation(async () => {
-                // 1. Handle Transactions where member is PAYER
                 const payerTxs = transactions.filter(t => t.payerId === id);
                 if (payerTxs.length > 0) {
                     if (strategy === 'CASCADE') {
-                        // Delete these transactions
                         const idsToDelete = payerTxs.map(t => t.id);
                         await supabaseService.bulkDelete('transactions', idsToDelete);
-                        // UI Optimistic
                         setTransactions(prev => prev.filter(t => !idsToDelete.includes(t.id)));
                     } else {
-                        // UNLINK: Reassign to 'me' (or null if backend handles it, but 'me' is safer for UI)
-                        // Actually, better to just clear payerId so it defaults to account owner
                         const updates = payerTxs.map(t => ({ ...t, payerId: 'me', updatedAt: new Date().toISOString() }));
-                        await supabaseService.bulkCreate('transactions', updates); // upsert
-                        // UI Optimistic
+                        await supabaseService.bulkCreate('transactions', updates);
                         setTransactions(prev => prev.map(t => t.payerId === id ? { ...t, payerId: 'me' } : t));
                     }
                 }
 
-                // 2. Handle Transactions where member is in SHARED_WITH
-                // We must remove them from the array.
                 const sharedTxs = transactions.filter(t => t.sharedWith?.some(s => s.memberId === id));
                 if (sharedTxs.length > 0) {
                     const updates = sharedTxs.map(t => {
                         const newShared = t.sharedWith?.filter(s => s.memberId !== id) || [];
-                        // If no one left to share with, isShared becomes false?
-                        // Logic: If sharedWith empty, it's personal.
                         return {
                             ...t,
                             sharedWith: newShared,
@@ -697,14 +687,12 @@ export const useDataStore = () => {
                         };
                     });
                     await supabaseService.bulkCreate('transactions', updates);
-                    // UI Optimistic
                     setTransactions(prev => prev.map(t => {
                         const match = updates.find(u => u.id === t.id);
                         return match ? match : t;
                     }));
                 }
 
-                // 3. Finally, delete the member
                 await supabaseService.delete('family_members', id);
                 setFamilyMembers(prev => prev.filter(m => m.id !== id));
             }, 'Membro removido e vínculos processados.'),
@@ -714,18 +702,30 @@ export const useDataStore = () => {
             handleAddAsset: assetsHandler.add, handleUpdateAsset: assetsHandler.update, handleDeleteAsset: assetsHandler.delete,
             handleAddSnapshot: snapshotsHandler.add,
 
-            handleFactoryReset: async () => performOperation(async () => {
-                await supabaseService.dangerouslyWipeAllData();
+            handleFactoryReset: async (unlinkFamily: boolean = false) => performOperation(async () => {
+                await supabaseService.performSmartReset(unlinkFamily);
                 setAccounts([]);
                 setTransactions([]);
-                setTrips([]);
+                if (unlinkFamily) {
+                    setTrips([]);
+                    setFamilyMembers([]);
+                }
                 setBudgets([]);
                 setGoals([]);
-                setFamilyMembers([]);
                 setAssets([]);
                 setSnapshots([]);
                 setCustomCategories([]);
-            }, 'Sistema restaurado para o padrão de fábrica.')
-        }
+                window.location.reload();
+            }, 'Sistema restaurado para o padrão de fábrica.'),
+        }), [
+            user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories,
+            loadedPeriods // Important dep for ensuringPeriodLoaded
+        ]);
+
+        return {
+            user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories,
+            isLoading, dataInconsistencies, isOnline,
+            isLoadingHistory,
+            handlers
+        };
     };
-};
