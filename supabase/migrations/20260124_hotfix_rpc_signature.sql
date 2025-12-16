@@ -79,7 +79,7 @@ BEGIN
                         v_tx_rec.description || ' (' || v_inviter_name || ')', 
                         v_tx_rec.category,
                         'DESPESA', -- PT-BR Type
-                        'SHARED', -- ✅ FIX: SET VALID DOMAIN
+                        CASE WHEN v_target_trip_id IS NOT NULL THEN 'TRAVEL' ELSE 'SHARED' END, -- ✅ FIX: DYNAMIC DOMAIN
                         true, 
                         v_tx_rec.user_id::text, 
                         '[]'::jsonb,
