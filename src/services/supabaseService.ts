@@ -316,7 +316,8 @@ export const supabaseService = {
             p_series_id: transaction.seriesId || null,
             p_is_recurring: transaction.isRecurring || false,
             p_frequency: transaction.frequency || null,
-            p_is_settled: transaction.isSettled || false
+            p_is_settled: transaction.isSettled || false,
+            p_shared_with: transaction.sharedWith || [] // ✅ FIX: Sent Shared Data to RPC
         };
         const { error } = await supabase.rpc('update_transaction', params);
         if (error) {
