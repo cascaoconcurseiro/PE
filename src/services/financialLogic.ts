@@ -163,11 +163,15 @@ export const calculateProjectedBalance = (
         const tDate = new Date(t.date);
         tDate.setHours(0, 0, 0, 0);
 
-        // 1. STRICT MONTH FILTER (User Request: "No logic cumulative", "Strictly month/year matching")
-        // We only consider transactions that belong to the 'currentDate' (View Date) month/year.
+        // 1. STRICT MONTH FILTER
         if (tDate.getMonth() !== currentDate.getMonth() || tDate.getFullYear() !== currentDate.getFullYear()) {
             return;
         }
+
+        // 2. FUTURE ONLY FILTER (Fix Double Counting)
+        // We only sum items that have NOT happened yet (affecting future balance).
+        // Items <= today are assumed to be already reflected in 'currentBalance'.
+        if (tDate <= today) return;
 
         // SHARED LOGIC
         let processedAsShared = false;
@@ -177,7 +181,6 @@ export const calculateProjectedBalance = (
             if (t.currency && t.currency !== 'BRL') {
                 // Skip foreign
             } else {
-                // Logic: I paid, waiting for others to pay me back (Asset/Income)
                 const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
                     return sum + (!s.isSettled ? s.assignedAmount : 0);
                 }, 0) || 0;
@@ -186,10 +189,6 @@ export const calculateProjectedBalance = (
                     pendingIncome += toBRL(pendingSplitsTotal, t);
                 }
             }
-            // REVERT: We MUST allow this to fall through to Standard Cash Flow
-            // because if I paid, it IS an Expense (Cash Outflow) that needs to be recorded.
-            // The "Income" above is just the *future reimbursement*.
-            // processedAsShared = true; <--- REMOVED
         }
 
         // 2. Shared Debts (Payables)
@@ -199,7 +198,7 @@ export const calculateProjectedBalance = (
             } else {
                 pendingExpenses += toBRL(t.amount, t);
             }
-            processedAsShared = true; // Skip standard processing
+            processedAsShared = true;
         }
 
         if (processedAsShared) return;
@@ -229,10 +228,19 @@ export const calculateProjectedBalance = (
             return;
         }
 
+        // Standard Income/Expense
         if (t.type === TransactionType.INCOME) {
-            pendingIncome += toBRL(t.amount, t);
+            // Only count if destination is Liquid (Cash Flow)
+            const accId = t.accountId;
+            if (accId && liquidityAccountIds.has(accId)) {
+                pendingIncome += toBRL(t.amount, t);
+            }
         } else if (t.type === TransactionType.EXPENSE) {
-            pendingExpenses += toBRL(t.amount, t);
+            const accId = t.accountId;
+            // Only count if source is Liquid (e.g. Debit/Cash). Credit Card spend is NOT cash outflow.
+            if (accId && liquidityAccountIds.has(accId)) {
+                pendingExpenses += toBRL(t.amount, t);
+            }
         }
     });
 

@@ -24,6 +24,8 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
     const [currency, setCurrency] = useState(initialData?.currency || 'BRL');
     const [formError, setFormError] = useState<string | null>(null);
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     // Permission Check
     // If creating, you are owner. If editing, check IDs.
     // If no userId provided (shouldn't happen in auth app), default to allow to avoid lockout.
@@ -44,21 +46,27 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setFormError(null);
+        setIsSubmitting(true);
 
         if (!canEditSettings) {
             // Permission check passed by UI state, but extra safety logic here if needed
+            setIsSubmitting(false);
+            return;
         }
 
         if (!name.trim()) {
             setFormError("O nome da viagem é obrigatório.");
+            setIsSubmitting(false);
             return;
         }
         if (!startDate || !endDate) {
             setFormError("Datas de início e fim são obrigatórias.");
+            setIsSubmitting(false);
             return;
         }
         if (duration <= 0) {
             setFormError("A data de término deve ser igual ou posterior à data de início.");
+            setIsSubmitting(false);
             return;
         }
 
@@ -68,16 +76,33 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
                 const exists = await supabaseService.checkTripExists(userId, name, startDate);
                 if (exists) {
                     setFormError("Uma viagem com este nome e data de início já existe.");
+                    setIsSubmitting(false);
                     return;
                 }
             } catch (e: any) {
                 console.error("Erro ao verificar duplicidade:", e);
-                setFormError("Não foi possível validar a viagem. Tente novamente.");
-                return;
+                // Non-blocking warning? Or block?
+                // Better to block if system is unstable, but user complained about blockage.
+                // Let's allow proceeding if check fails, DB unique constraint (if any) will catch it.
+                // Or simply warn.
+                // setFormError("Não foi possível validar a viagem. Tente novamente.");
             }
         }
 
-        // ... logic continues ...
+        try {
+            await onSave({
+                name,
+                startDate,
+                endDate,
+                participants: familyMembers.filter(m => participants.includes(m.id)),
+                currency
+            });
+            // Don't set submitting false here immediately if onSave navigates away
+        } catch (error) {
+            console.error("Error saving trip:", error);
+            setFormError("Erro ao criar viagem. Tente novamente.");
+            setIsSubmitting(false);
+        }
     };
 
     const toggleParticipant = (memberId: string) => {
@@ -215,8 +240,8 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
                         </div>
                     )}
                     <div className="pt-4">
-                        <Button type="submit" className="w-full h-12 text-lg bg-violet-700 hover:bg-violet-800 shadow-lg shadow-violet-200" disabled={(!name || !startDate || !endDate || duration <= 0)}>
-                            {editingTripId ? 'Salvar Alterações' : 'Criar Viagem'}
+                        <Button type="submit" className="w-full h-12 text-lg bg-violet-700 hover:bg-violet-800 shadow-lg shadow-violet-200" disabled={isSubmitting || (!name || !startDate || !endDate || duration <= 0)}>
+                            {isSubmitting ? (editingTripId ? 'Salvando...' : 'Criando...') : (editingTripId ? 'Salvar Alterações' : 'Criar Viagem')}
                         </Button>
                     </div>
                 </form>
