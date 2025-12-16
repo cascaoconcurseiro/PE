@@ -127,7 +127,8 @@ export const Shared: React.FC<SharedProps> = ({
                 currency: isConverting ? 'BRL' : settleModal.currency,
                 createdAt: now,
                 updatedAt: now,
-                syncStatus: SyncStatus.PENDING
+                syncStatus: SyncStatus.PENDING,
+                domain: 'SHARED' // ✅ FIX: Add domain to prevent constraint violation
             });
         }
 
