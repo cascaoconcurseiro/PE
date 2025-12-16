@@ -201,6 +201,54 @@ export const supabaseService = {
         }
     },
 
+    // NEW (Phase 8): RPC-Based Transaction Creation
+    async createTransactionWithValidation(transaction: Partial<Transaction>) {
+        const userId = await getUserId();
+
+        // Map Application Object to RPC Parameters
+        const params = {
+            p_description: transaction.description,
+            p_amount: transaction.amount,
+            p_type: transaction.type,
+            p_category: transaction.category,
+            p_date: transaction.date,
+            p_account_id: transaction.accountId,
+            p_destination_account_id: transaction.destinationAccountId || null,
+            p_trip_id: transaction.tripId || null,
+            p_is_shared: transaction.isShared || false,
+            p_domain: transaction.domain || null,
+            // Extended Fields (Phase 8 Fix)
+            p_is_installment: transaction.isInstallment || false,
+            p_current_installment: transaction.currentInstallment || null,
+            p_total_installments: transaction.totalInstallments || null,
+            p_series_id: transaction.seriesId || null,
+            p_is_recurring: transaction.isRecurring || false,
+            p_frequency: transaction.frequency || null
+        };
+
+        const { data, error } = await supabase.rpc('create_transaction', params);
+
+        if (error) {
+            console.error('Failed to create transaction via RPC:', error);
+            throw error;
+        }
+        return data; // Returns the new UUID
+    },
+
+    // NEW (Phase 8): Debt Settlement
+    async settleDebt(splitId: string, paymentAccountId: string) {
+        const { data, error } = await supabase.rpc('settle_split', {
+            p_split_id: splitId,
+            p_payment_account_id: paymentAccountId
+        });
+
+        if (error) {
+            console.error('Failed to settle debt via RPC:', error);
+            throw error;
+        }
+        return data;
+    },
+
     async update(table: string, item: any) {
         const userId = await getUserId();
         const dbItem = mapToDB(item, userId);
@@ -281,18 +329,12 @@ export const supabaseService = {
     },
 
     async recreateTransactionSeries(oldSeriesId: string, newTransactions: any[]) {
-        const userId = await getUserId();
-        // Prepare DB items
-        const dbItems = newTransactions.map(t => mapToDB(t, userId));
+        // 1. Delete Old Series
+        await this.deleteTransactionSeries(oldSeriesId);
 
-        const { error } = await supabase.rpc('recreate_transaction_series', {
-            p_old_series_id: oldSeriesId,
-            p_new_transactions: dbItems
-        });
-
-        if (error) {
-            console.error('Failed to recreate transaction series atomically:', error);
-            throw error;
+        // 2. Create New Items via Validated RPC
+        for (const tx of newTransactions) {
+            await this.createTransactionWithValidation(tx);
         }
     },
 

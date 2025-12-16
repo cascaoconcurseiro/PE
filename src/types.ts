@@ -208,6 +208,7 @@ export interface Transaction extends BaseEntity {
   reconciledWith?: string;
   externalId?: string;
   sourceTransactionId?: string;
+  domain?: 'PERSONAL' | 'TRAVEL' | 'SHARED' | 'BUSINESS'; // Phase 6: Domain Separation
 }
 
 export interface AuditLog extends BaseEntity {
