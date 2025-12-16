@@ -134,8 +134,10 @@ BEGIN
         RAISE EXCEPTION 'Transaction not found or access denied.';
     END IF;
 
-    -- 2. Determine Valid Domain (Constraint Safe)
+    -- 2. Determine Valid Domain (Constraint Safe - PRIORITIZE TRIP_ID)
     v_final_domain := CASE 
+        WHEN p_trip_id IS NOT NULL THEN 'TRAVEL' -- ✅ FIX: If has trip, MUST be TRAVEL
+        WHEN p_is_shared = TRUE THEN 'SHARED'
         WHEN p_domain IN ('PERSONAL', 'TRAVEL', 'SHARED', 'BUSINESS') THEN p_domain
         ELSE 'PERSONAL' -- Default if null or invalid
     END;
