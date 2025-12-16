@@ -195,9 +195,8 @@ export const useDataStore = () => {
 
             // Sequential insert to respect order if needed, or parallelize?
             // Sequential is safer for rate limits and errors
-            for (const tx of txsToCreate) {
-                await supabaseService.create('transactions', tx);
-            }
+            // ATOMIC BATCH INSERT (Replaces sequential loop for integrity)
+            await supabaseService.bulkCreate('transactions', txsToCreate);
         }, 'Transação adicionada com sucesso!');
     };
 

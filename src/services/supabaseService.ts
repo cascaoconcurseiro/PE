@@ -3,6 +3,7 @@ import {
     Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset,
     CustomCategory, SyncStatus, UserProfile, Snapshot
 } from '../types';
+import { UserSettings } from '../types/UserSettings';
 import { DBTransaction, DBAccount, DBTrip, DBBudget, DBGoal, DBFamilyMember, DBAsset, DBSnapshot, DBCustomCategory } from '../types/db';
 
 // Helper to get current user
@@ -233,26 +234,15 @@ export const supabaseService = {
     async deleteTripCascade(tripId: string) {
         const userId = await getUserId();
 
-        // 1. Soft delete the TRIP
-        const { error: tripError } = await supabase
-            .from('trips')
-            .update({ deleted: true, updated_at: new Date().toISOString() })
-            .eq('id', tripId)
-            .eq('user_id', userId);
+        // ATOMIC RPC CALL
+        const { error } = await supabase.rpc('delete_trip_cascade_rpc', {
+            p_trip_id: tripId,
+            p_user_id: userId
+        });
 
-        if (tripError) throw tripError;
-
-        // 2. Unlink associated TRANSACTIONS (Preserve history)
-        // We set trip_id to NULL so they remain in the user's ledger but are no longer grouped.
-        const { error: txError } = await supabase
-            .from('transactions')
-            .update({ trip_id: null, updated_at: new Date().toISOString() })
-            .eq('trip_id', tripId)
-            .eq('user_id', userId);
-
-        if (txError) {
-            console.error("Failed to unlink transactions for trip:", tripId, txError);
-            // We log but continue, as the trip itself will be deleted.
+        if (error) {
+            console.error("Failed to execute atomic delete_trip_cascade_rpc:", error);
+            throw error;
         }
     },
 
@@ -451,5 +441,51 @@ export const supabaseService = {
         }
 
         console.log('✅ SMART RESET CONCLUÍDO COM SUCESSO.');
+    },
+
+    // User Settings
+    async getUserSettings(userId: string): Promise<UserSettings | null> {
+        const { data, error } = await supabase
+            .from('user_settings')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null; // Not found
+            throw error;
+        }
+
+        return data as UserSettings;
+    },
+
+    async upsertUserSettings(userId: string, settings: UserSettings): Promise<void> {
+        const { error } = await supabase
+            .from('user_settings')
+            .upsert({
+                user_id: userId,
+                notifications: settings.notifications,
+                security: settings.security,
+                preferences: settings.preferences,
+                privacy: settings.privacy,
+                appearance: settings.appearance,
+                updated_at: new Date().toISOString()
+            });
+
+        if (error) throw error;
+    },
+
+    async checkTripExists(userId: string, name: string, startDate: string): Promise<boolean> {
+        const { data, error } = await supabase
+            .from('trips')
+            .select('id')
+            .eq('user_id', userId)
+            .ilike('name', name)
+            .eq('start_date', startDate)
+            .eq('deleted', false)
+            .maybeSingle();
+
+        if (error) throw error;
+        return !!data;
     }
 };

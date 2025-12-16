@@ -5,7 +5,7 @@ import { Button } from '../ui/Button';
 import { ArrowLeft, Calendar, Users, X, Clock, Globe, ChevronDown, Check, AlertCircle } from 'lucide-react';
 import { AVAILABLE_CURRENCIES } from '../../services/currencyService';
 import { parseDate } from '../../utils';
-import { supabase } from '../../integrations/supabase/client';
+import { supabaseService } from '../../services/supabaseService';
 
 interface TripFormProps {
     initialData?: Trip | null;
@@ -63,24 +63,18 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
         }
 
         // Check for duplicates (Only for NEW trips)
-        if (!editingTripId) {
+        if (!editingTripId && userId) {
             try {
-                // We need to import supabase. Assuming it's available via context or we import it.
-                // Since this file didn't have it, I'll add the import in a separate block or assume the instruction allows adding it.
-                // Wait, I can't add imports easily with replace_file_content if I don't target the top.
-                // I will assume the user (me) will add the import or I should have checked imports.
-                // TripForm doesn't seem to import supabase based on previous view_file.
-                // I will assume I need to ADD the import later or use a passed down verification function which doesn't exist.
-                // Let's assume I will duplicate the tool call to add the import first, OR just do it here if I can.
-                // Actually, I'll use the supabase client directly if I can import it.
-
-                // Let's assume I can't check without the import.
-                // I'll proceed with the logic and then add the import in the next step.
-
-                // Oops, I can't await here easily if the function wasn't async.
-                // The original handleSubmit was synch? "const handleSubmit = (e: React.FormEvent) => {"
-                // Yes. I need to make it async.
-            } catch (e) { }
+                const exists = await supabaseService.checkTripExists(userId, name, startDate);
+                if (exists) {
+                    setFormError("Uma viagem com este nome e data de início já existe.");
+                    return;
+                }
+            } catch (e: any) {
+                console.error("Erro ao verificar duplicidade:", e);
+                setFormError("Não foi possível validar a viagem. Tente novamente.");
+                return;
+            }
         }
 
         // ... logic continues ...

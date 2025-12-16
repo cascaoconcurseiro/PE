@@ -9,6 +9,7 @@ import {
     defaultUserSettings
 } from '../types/UserSettings';
 import { supabase } from '../integrations/supabase/client';
+import { supabaseService } from '../services/supabaseService';
 
 interface SettingsContextType {
     settings: UserSettings;
@@ -59,22 +60,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
             // Load from Supabase
             try {
-                const { data, error } = await supabase
-                    .from('user_settings')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .single();
+                const data = await supabaseService.getUserSettings(user.id);
 
-                if (error) {
-                    // Table missing or no rows
-                    console.warn('User settings sync issue or first login:', error.message);
-                    if (error.code === 'PGRST116') { // No rows
-                        await createDefaultSettings(user.id);
-                    } else {
-                        // Other error (e.g. table missing), use defaults
-                        setSettings(defaultUserSettings);
-                    }
-                } else if (data) {
+                if (data) {
                     const loadedSettings: UserSettings = {
                         notifications: data.notifications || defaultUserSettings.notifications,
                         security: data.security || defaultUserSettings.security,
@@ -83,6 +71,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
                         appearance: data.appearance || defaultUserSettings.appearance
                     };
                     setSettings(loadedSettings);
+                } else {
+                    // Not found (null returned), create defaults
+                    await createDefaultSettings(user.id);
                 }
             } catch (innerError) {
                 console.warn('Exception loading settings:', innerError);
@@ -97,22 +88,18 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
     const createDefaultSettings = async (userId: string) => {
         try {
-            const { error } = await supabase
-                .from('user_settings')
-                .insert({
-                    user_id: userId,
-                    notifications: defaultUserSettings.notifications,
-                    security: defaultUserSettings.security,
-                    preferences: defaultUserSettings.preferences,
-                    privacy: defaultUserSettings.privacy,
-                    appearance: defaultUserSettings.appearance
-                });
+            const initialSettings = {
+                user_id: userId,
+                notifications: defaultUserSettings.notifications,
+                security: defaultUserSettings.security,
+                preferences: defaultUserSettings.preferences,
+                privacy: defaultUserSettings.privacy,
+                appearance: defaultUserSettings.appearance
+            };
 
-            if (error) {
-                console.error('Error creating default settings:', error);
-            } else {
-                setSettings(defaultUserSettings);
-            }
+            await supabaseService.upsertUserSettings(userId, initialSettings as UserSettings);
+            // setSettings is called after logic
+            setSettings(defaultUserSettings);
         } catch (error) {
             console.error('Error in createDefaultSettings:', error);
         }
@@ -127,21 +114,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
             const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {
-                const { error } = await supabase
-                    .from('user_settings')
-                    .upsert({
-                        user_id: user.id,
-                        notifications: newSettings.notifications,
-                        security: newSettings.security,
-                        preferences: newSettings.preferences,
-                        privacy: newSettings.privacy,
-                        appearance: newSettings.appearance,
-                        updated_at: new Date().toISOString()
-                    });
-
-                if (error) {
-                    console.error('Error saving settings to Supabase:', error);
-                }
+                await supabaseService.upsertUserSettings(user.id, newSettings);
             }
         } catch (error) {
             console.error('Error in saveSettings:', error);
