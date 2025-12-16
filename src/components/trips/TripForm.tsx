@@ -95,7 +95,10 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
                 startDate,
                 endDate,
                 participants: familyMembers.filter(m => participants.includes(m.id)),
-                currency
+                currency,
+                // Fix Type Error:
+                userId: userId || '',
+                budget: 0 // Default budget if not in form
             });
             // Don't set submitting false here immediately if onSave navigates away
         } catch (error) {
@@ -223,8 +226,8 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
                                     return (
                                         <div
                                             key={member.id}
-                                            onClick={() => toggleParticipant(member.id)}
-                                            className={`p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${isSelected ? 'bg-violet-700 text-white border-violet-700 shadow-md shadow-violet-200 dark:shadow-violet-900/50' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                                            onClick={() => canEditSettings && toggleParticipant(member.id)}
+                                            className={`p-3 rounded-xl border flex items-center justify-between transition-all ${canEditSettings ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'} ${isSelected ? 'bg-violet-700 text-white border-violet-700 shadow-md shadow-violet-200 dark:shadow-violet-900/50' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                                         >
                                             <span className={`font-bold text-sm ${isSelected ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{member.name}</span>
                                             {isSelected && <Check className="w-4 h-4" />}
