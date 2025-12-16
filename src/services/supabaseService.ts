@@ -232,7 +232,8 @@ export const supabaseService = {
             p_total_installments: transaction.totalInstallments || null,
             p_series_id: transaction.seriesId || null,
             p_is_recurring: transaction.isRecurring || false,
-            p_frequency: transaction.frequency || null
+            p_frequency: transaction.frequency || null,
+            p_shared_with: transaction.sharedWith || [] // Enabling Mirroring Data
         };
 
         const { data, error } = await supabase.rpc('create_transaction', params);
