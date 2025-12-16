@@ -1,73 +1,71 @@
 -- ==============================================================================
--- UNFREEZE SYSTEM & FIX VISIBILITY
+-- UNFREEZE SYSTEM & FIX VISIBILITY (CORRECTED)
 -- DATE: 2026-01-24
--- PROBLEM: Maintenance Mode is ON, blocking ALL operations (including SELECT).
---          Users cannot see Transactions, Trips, or Shared items.
--- SOLUTION: 1. Disable Maintenance Mode.
---           2. Update RLS policies to ALWAYS allow SELECT (Read-Only) even in Freeze.
+-- PROBLEM: Maintenance Mode blocked SELECTs. Script had wrong column names.
+-- SOLUTION: 1. Fix column usage (`key` vs `flag_key`).
+--           2. disable maintenance mode (`value='false'`).
+--           3. Replace "FOR ALL" Freeze Policy with "FOR WRITE" policies only.
 -- ==============================================================================
 
 BEGIN;
 
--- 1. DISABLE MAINTENANCE MODE (Restores Write Access via normal channels if needed, but we rely on RPCs)
---    Actually, we want to allow normal usage now.
+-- 1. DISABLE MAINTENANCE MODE
+-- Correct table schema: key (primary), value (text)
 UPDATE public.system_flags 
-SET is_enabled = false, updated_at = NOW() 
-WHERE flag_key = 'maintenance_mode';
+SET value = 'false', updated_at = NOW() 
+WHERE key = 'maintenance_mode';
 
--- 2. REFINE RLS POLICIES (Safety Net)
---    Modify policies to allow SELECT even if Maintenance Mode is TRUE.
---    This prevents "Invisible Data" panic if we ever freeze again.
-
--- Transactions
+-- 2. REMOVE BROKEN "FOR ALL" POLICIES
+-- These blocked SELECTs when maintenance_mode was true.
 DROP POLICY IF EXISTS "System Freeze - Maintenance Mode" ON public.transactions;
-CREATE POLICY "System Freeze - Maintenance Mode - Modifiers" ON public.transactions
-    FOR ALL -- INSERT/UPDATE/DELETE (and SELECT if not separated?)
-    -- Use USING for Filter (Select/Update/Delete visibility) and WITH CHECK for Insert/Update
-    -- Wait, FOR ALL includes SELECT.
-    -- We want to BLOCK writes, ALLOW reads.
-    USING (
-        -- ALLOW if it is a SELECT
-        (current_setting('request.method', true) = 'GET') 
-        OR 
-        -- OR if Maintenance Mode is OFF
-        (EXISTS (SELECT 1 FROM system_flags WHERE flag_key = 'maintenance_mode' AND is_enabled = false))
-    );
-    -- Ideally, we split policies.
-    
--- CLEANER APPROACH: Split Policies
-DROP POLICY IF EXISTS "System Freeze - Maintenance Mode - Modifiers" ON public.transactions;
+DROP POLICY IF EXISTS "System Freeze - Maintenance Mode" ON public.transaction_splits;
+DROP POLICY IF EXISTS "System Freeze - Maintenance Mode" ON public.trips;
+DROP POLICY IF EXISTS "System Freeze - Maintenance Mode" ON public.shared_transaction_requests;
 
--- Allow READS always (subject to User Ownership Policy which is separate)
--- We don't need a specific freeze policy for SELECT if the default is permitted by "Users can view own...".
--- So we only need to restrict MODIFICATIONS during freeze.
+-- 3. RECREATE GRANULAR POLICIES (BLOCK WRITES ONLY)
+-- We use AS RESTRICTIVE so they act as a safety net on top of existing permissive policies.
+-- SELECTs are intentionally OMITTED so they always work (ReadOnly Access).
 
-CREATE POLICY "System Freeze - Block Writes" ON public.transactions
-    FOR INSERT 
-    WITH CHECK (EXISTS (SELECT 1 FROM system_flags WHERE flag_key = 'maintenance_mode' AND is_enabled = false));
+-- A) Transactions
+CREATE POLICY "System Freeze - Block Inserts" ON public.transactions
+    AS RESTRICTIVE FOR INSERT 
+    WITH CHECK (public.is_system_active());
 
 CREATE POLICY "System Freeze - Block Updates" ON public.transactions
-    FOR UPDATE
-    USING (EXISTS (SELECT 1 FROM system_flags WHERE flag_key = 'maintenance_mode' AND is_enabled = false));
+    AS RESTRICTIVE FOR UPDATE 
+    USING (public.is_system_active());
 
 CREATE POLICY "System Freeze - Block Deletes" ON public.transactions
-    FOR DELETE
-    USING (EXISTS (SELECT 1 FROM system_flags WHERE flag_key = 'maintenance_mode' AND is_enabled = false));
+    AS RESTRICTIVE FOR DELETE 
+    USING (public.is_system_active());
 
--- Repeat for Trips
-DROP POLICY IF EXISTS "System Freeze - Maintenance Mode" ON public.trips;
-CREATE POLICY "System Freeze - Block Writes" ON public.trips
-    FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM system_flags WHERE flag_key = 'maintenance_mode' AND is_enabled = false));
+-- B) Trips
+CREATE POLICY "System Freeze - Block Inserts" ON public.trips
+    AS RESTRICTIVE FOR INSERT 
+    WITH CHECK (public.is_system_active());
+
 CREATE POLICY "System Freeze - Block Updates" ON public.trips
-    FOR UPDATE USING (EXISTS (SELECT 1 FROM system_flags WHERE flag_key = 'maintenance_mode' AND is_enabled = false));
+    AS RESTRICTIVE FOR UPDATE 
+    USING (public.is_system_active());
+
 CREATE POLICY "System Freeze - Block Deletes" ON public.trips
-    FOR DELETE USING (EXISTS (SELECT 1 FROM system_flags WHERE flag_key = 'maintenance_mode' AND is_enabled = false));
+    AS RESTRICTIVE FOR DELETE 
+    USING (public.is_system_active());
 
--- Repeat for Shared Transaction Requests
-DROP POLICY IF EXISTS "System Freeze - Maintenance Mode" ON public.shared_transaction_requests;
--- (Similar block logic or simply remove since low risk)
--- Let's just remove the Freeze policy from shared_requests to fix the "Shared items not appearing" issue quickly, relying on standard ownership policies.
+-- C) Splits
+CREATE POLICY "System Freeze - Block Inserts" ON public.transaction_splits
+    AS RESTRICTIVE FOR INSERT 
+    WITH CHECK (public.is_system_active());
 
+CREATE POLICY "System Freeze - Block Updates" ON public.transaction_splits
+    AS RESTRICTIVE FOR UPDATE 
+    USING (public.is_system_active());
+
+CREATE POLICY "System Freeze - Block Deletes" ON public.transaction_splits
+    AS RESTRICTIVE FOR DELETE 
+    USING (public.is_system_active());
+
+-- 4. ENSURE CACHE RELOAD
 NOTIFY pgrst, 'reload schema';
 
 COMMIT;
