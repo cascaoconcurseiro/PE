@@ -192,6 +192,15 @@ export const supabaseService = {
 
     async create(table: string, item: any) {
         const userId = await getUserId();
+
+        // 🚀 ROUTING: Transactions & Trips -> RPC (Backend Centric)
+        if (table === 'transactions') {
+            return this.createTransactionWithValidation(item);
+        }
+        if (table === 'trips') {
+            return this.createTripRPC(item);
+        }
+
         const dbItem = mapToDB(item, userId);
 
         const { error } = await supabase.from(table).insert(dbItem);
@@ -249,8 +258,84 @@ export const supabaseService = {
         return data;
     },
 
+    // --- RPC HELPERS ---
+
+    async createTripRPC(trip: any) {
+        const params = {
+            p_name: trip.name,
+            p_description: trip.description || '',
+            p_start_date: trip.startDate,
+            p_end_date: trip.endDate,
+            p_currency: trip.currency,
+            p_status: trip.status || 'PLANNED',
+            p_participants: trip.participants || []
+        };
+        const { data, error } = await supabase.rpc('create_trip', params);
+        if (error) {
+            console.error('Create Trip RPC Failed:', error);
+            throw error;
+        }
+        return data;
+    },
+
+    async updateTripRPC(trip: any) {
+        const params = {
+            p_id: trip.id,
+            p_name: trip.name,
+            p_description: trip.description || '',
+            p_start_date: trip.startDate,
+            p_end_date: trip.endDate,
+            p_currency: trip.currency,
+            p_status: trip.status,
+            p_participants: trip.participants || []
+        };
+        const { error } = await supabase.rpc('update_trip', params);
+        if (error) {
+            console.error('Update Trip RPC Failed:', error);
+            throw error;
+        }
+    },
+
+    async updateTransactionRPC(transaction: any) {
+        const params = {
+            p_id: transaction.id,
+            p_description: transaction.description,
+            p_amount: transaction.amount,
+            p_type: transaction.type,
+            p_category: transaction.category,
+            p_date: transaction.date,
+            p_account_id: transaction.accountId,
+            p_destination_account_id: transaction.destinationAccountId || null,
+            p_trip_id: transaction.tripId || null,
+            p_is_shared: transaction.isShared || false,
+            p_domain: transaction.domain || null,
+            p_is_installment: transaction.isInstallment || false,
+            p_current_installment: transaction.currentInstallment || null,
+            p_total_installments: transaction.totalInstallments || null,
+            p_series_id: transaction.seriesId || null,
+            p_is_recurring: transaction.isRecurring || false,
+            p_frequency: transaction.frequency || null,
+            p_is_settled: transaction.isSettled || false
+        };
+        const { error } = await supabase.rpc('update_transaction', params);
+        if (error) {
+            console.error('Update Transaction RPC Failed:', error);
+            throw error;
+        }
+    },
+
     async update(table: string, item: any) {
         const userId = await getUserId();
+
+        // 🚀 ROUTING: Trips -> RPC
+        if (table === 'trips') {
+            return this.updateTripRPC(item);
+        }
+        // 🚀 ROUTING: Transactions -> RPC
+        if (table === 'transactions' && item.id) {
+            return this.updateTransactionRPC(item);
+        }
+
         const dbItem = mapToDB(item, userId);
         // Don't update ID or UserID
         delete dbItem.id;
