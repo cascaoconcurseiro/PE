@@ -616,5 +616,35 @@ export const supabaseService = {
 
         if (error) throw error;
         return !!data;
+    },
+
+    // DDD REPORTING (Phase 2)
+    async getBalanceSheet() {
+        const userId = await getUserId();
+        const { data, error } = await supabase
+            .from('view_balance_sheet')
+            .select('*')
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error('Error fetching balance sheet:', error);
+            return [];
+        }
+        return data;
+    },
+
+    async getIncomeStatement() {
+        const userId = await getUserId();
+        const { data, error } = await supabase
+            .from('view_income_statement')
+            .select('*')
+            .eq('user_id', userId)
+            .order('month_year', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching income statement:', error);
+            return [];
+        }
+        return data;
     }
 };

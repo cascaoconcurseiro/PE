@@ -69,7 +69,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
         spendingView
     });
 
-    if (isLoading) {
+    if (isLoading || isLoadingHistory) {
         return <DashboardSkeleton />;
     }
 
