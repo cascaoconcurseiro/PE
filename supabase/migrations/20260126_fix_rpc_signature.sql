@@ -30,7 +30,7 @@ CREATE OR REPLACE FUNCTION public.create_transaction(
     p_type TEXT,
     p_category TEXT,
     p_date DATE,
-    p_account_id UUID,
+    p_account_id UUID DEFAULT NULL, -- NULLABLE: Transações compartilhadas podem não ter conta
     p_destination_account_id UUID DEFAULT NULL,
     p_trip_id UUID DEFAULT NULL,
     p_is_shared BOOLEAN DEFAULT FALSE,
@@ -103,7 +103,7 @@ CREATE OR REPLACE FUNCTION public.update_transaction(
     p_type TEXT,
     p_category TEXT,
     p_date DATE,
-    p_account_id UUID,
+    p_account_id UUID DEFAULT NULL, -- NULLABLE: Transações compartilhadas podem não ter conta
     p_destination_account_id UUID DEFAULT NULL,
     p_trip_id UUID DEFAULT NULL,
     p_is_shared BOOLEAN DEFAULT FALSE,
