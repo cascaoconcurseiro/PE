@@ -163,26 +163,21 @@ export const calculateProjectedBalance = (
         const tDate = new Date(t.date);
         tDate.setHours(0, 0, 0, 0);
 
-        // LOGIC REFINEMENT (2025-12-17):
-        // 1. Shared/Unsettled: Must include ALL outstanding debts/credits up to the end of view period.
-        //    (Even if they are from last month, if not settled, they affect my 'Effective Balance' now).
-        // 2. Standard: Only include FUTURE items in the CURRENT view month (Forecast).
-
+        // STRICT MONTH FILTER (User Request: "Só aparecer o projeto do mês")
         const isViewMonth = tDate.getMonth() === currentDate.getMonth() && tDate.getFullYear() === currentDate.getFullYear();
-        const isPastOrCurrent = tDate <= viewMonthEnd;
+        if (!isViewMonth) return;
 
         // SHARED LOGIC
-        // We check for Shared Unsettled items FIRST.
-        // They are valid if they are <= viewMonthEnd (accumulated debt) AND not settled.
+        // We check for Shared Unsettled items within THIS MONTH.
         let processedAsShared = false;
 
-        const isSharedContext = t.isShared || (t.payerId && t.payerId !== 'me'); // Broad check (same as checkDataConsistency)
+        const isSharedContext = t.isShared || (t.payerId && t.payerId !== 'me');
 
-        if (isSharedContext && isPastOrCurrent) {
+        if (isSharedContext) {
             // 1. Receivables (I paid, others owe me)
             if (t.type === TransactionType.EXPENSE && (!t.payerId || t.payerId === 'me')) {
                 if (t.currency && t.currency !== 'BRL') {
-                    // Skip foreign for now (Dashboard is BRL centric)
+                    // Skip foreign
                 } else {
                     const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
                         return sum + (!s.isSettled ? s.assignedAmount : 0);
@@ -201,8 +196,6 @@ export const calculateProjectedBalance = (
                     // Skip foreign
                 } else {
                     if (!t.isSettled) {
-                        // Logic Update for "Credit Card Bill Import" or "Mirror":
-                        // If it's a mirror (I am not payer), 't.amount' is my share.
                         pendingExpenses += toBRL(t.amount, t);
                     }
                 }
@@ -210,44 +203,27 @@ export const calculateProjectedBalance = (
             }
         }
 
-        // Check if we should stop here (if it was a shared item processed above)
-        // NOTE: A transaction can be Shared AND have a personal part?
-        // Usually if I paid 100 and split 50, I still paid 100 from my account.
-        // For "Projected Balance" (Cash Flow):
-        // If I paid 100 today: Current Balance ALREADY has -100.
-        // We only add "Pending Receivables" (+50).
-        // If I pay 100 TOMORROW: It's a standard future expense (-100).
-        // AND we add "Pending Receivables" (+50).
+        // Cash Flow Impact Logic
+        // IF I am the Payer (or Personal Expense), it affects my Cash Flow.
+        // IF I am NOT the Payer (Debt), it does NOT affect my Cash Flow (Liquidity) YET (until I pay it).
+        // The "processedAsShared" block above handled the "A Pagar" (Liability) visualization.
+        // But for "Projected Balance", we usually exclude non-cash liabilities unless they are due?
 
-        // The "processedAsShared" logic above handled the "Debt/Credit" accumulation (A Receber/A Pagar).
-        // Does it handle the "Cash Flow Outflow"?
+        // Filter out non-cash debts from "Pending Expenses" calculation for PROJECTION?
+        // Pending Expenses = Sum of Liquid Withdrawals to come.
+        // A Shared Debt (I owe Friend) is NOT a bank withdrawal yet. 
+        // However, User usually wants to see it in "A Pagar".
 
-        // Case: I owe 50 (Payer=Other). 
-        // Logic above added +50 to pendingExpenses. Perfect.
-        // It does NOT affect Standard Cash Flow because I didn't pay it from my bank.
+        // If processedAsShared (I owe someone), we added to pendingExpenses. 
+        // Does this reduce Projected Balance? Yes (Balance - Expenses).
+        // This is correct: My projected wealth at end of month is lower because I owe money.
+
         if (t.type === TransactionType.EXPENSE && t.payerId && t.payerId !== 'me') {
-            return; // It's purely a debt, handled above.
+            return; // Purely debt/credit logic, no personal bank flow.
         }
 
-        // Case: I paid 100 (Payer=Me).
-        // Logic above checked for "Receivables" (+50).
-        // We STILL need to check if this is a Future Expense for the Standard Flow.
-        // IF it's Past/Today: Already in Current Balance.
-        // IF it's Future: Need to subtract 100 (or effective share?).
-        // "Projected Balance" = Balance + PendingIncome - PendingExpenses.
-        // If I pay 100 tomorrow: Balance - 100.
-        // Receivables is +50.
-        // Net result: -50 to my wealth. Correct.
-
-        // SO: We continue to Standard Logic even if processed as shared (for Payer=Me),
-        // BUT only if it stands as a valid Standard Transaction.
-
-
         // STANDARD LOGIC (Cash Flow)
-        // Must be in THIS month (Strict Filter)
-        if (!isViewMonth) return;
-
-        // Must be FUTURE (> Today)
+        // Must be FUTURE (> Today) to be "Pending"
         if (tDate <= today) return;
 
         if (t.type === TransactionType.TRANSFER) {
@@ -276,14 +252,12 @@ export const calculateProjectedBalance = (
 
         // Standard Income/Expense
         if (t.type === TransactionType.INCOME) {
-            // Only count if destination is Liquid (Cash Flow)
             const accId = t.accountId;
             if (accId && liquidityAccountIds.has(accId)) {
                 pendingIncome += toBRL(t.amount, t);
             }
         } else if (t.type === TransactionType.EXPENSE) {
             const accId = t.accountId;
-            // Only count if source is Liquid (e.g. Debit/Cash). Credit Card spend is NOT cash outflow.
             if (accId && liquidityAccountIds.has(accId)) {
                 pendingExpenses += toBRL(t.amount, t);
             }
