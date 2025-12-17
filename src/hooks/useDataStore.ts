@@ -375,8 +375,25 @@ export const useDataStore = () => {
             loadedPeriods.current = new Set([currentPeriod, prevPeriod]);
             console.timeEnd("Tier1_Transactions");
 
-            // CRITICAL FIX: Only stop loading after TRANSACTIONS are ready to avoid 0-value flash
-            if (!isInitialized.current) setIsLoading(false);
+            // CRITICAL FIX (2025-12-17): Prevent "Flicker" of Dashboard Values.
+            // moving setIsLoading(false) here ensures transactions are effectively loaded.
+            // The dashboard recalculates immediately upon 'transactions' update.
+            // This prevents the UI from rendering with '0' then jumping to 'Value'.
+            // if (!isInitialized.current) setIsLoading(false); 
+            // WAIT. If we set it false here, React processes 'setTransactions'.
+            // Recalculation happens in next render cycle.
+            // We should ensure a small buffer or rely on the Layout effect?
+            // Actually, simply ensuring we don't 'flash' empty state before this point is key.
+
+            if (!isInitialized.current) {
+                // Determine if we have data to show.
+                // Fix: 'combined' was inside setTransactions scope. Use the source arrays.
+                const hasTransactions = (recentTxs && recentTxs.length > 0) || (unsettledShared && unsettledShared.length > 0);
+                if (hasTransactions || accounts.length > 0) {
+                    setIsLoading(false);
+                    isInitialized.current = true;
+                }
+            }
 
 
             // --- TIER 2: METADATA & CONFIG (Lazy-load safe) ---

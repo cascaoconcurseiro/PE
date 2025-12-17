@@ -233,9 +233,12 @@ export const calculateProjectedBalance = (
             const isDestLiquid = destAccId ? liquidityAccountIds.has(destAccId) : false;
 
             if (isSourceLiquid && !isDestLiquid) {
+                // Logic Update 2025-12-17: Transfer to Credit Card IS an Expense (Bill Payment)
+                // in the context of Cash Flow for the Checking Account.
                 pendingExpenses += toBRL(t.amount, t);
             }
             else if (!isSourceLiquid && isDestLiquid) {
+                // Receiving from non-liquid (e.g. Loan, Investment Withdrawal) is Income
                 if (t.destinationAmount && t.destinationAmount > 0) {
                     const destAcc = accounts.find(a => a.id === t.destinationAccountId);
                     if (destAcc && destAcc.currency !== 'BRL') {
@@ -247,6 +250,11 @@ export const calculateProjectedBalance = (
                     pendingIncome += toBRL(t.amount, t);
                 }
             }
+            // Logic Update: What if Source is Liquid AND Dest is Credit Card?
+            // Already covered by first 'if' (SourceLiquid && !DestLiquid).
+            // Credit Card accounts are NOT in 'liquidityAccountIds'.
+            // So Transfer Checking -> Credit Card = PendingExpense. CORRECT.
+
             return;
         }
 
