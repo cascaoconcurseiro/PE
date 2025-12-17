@@ -8,6 +8,8 @@ interface FinancialProjectionCardProps {
     currentBalance: number;
     pendingIncome: number;
     pendingExpenses: number;
+    monthlyIncome: number;
+    monthlyExpense: number;
     healthStatus: 'POSITIVE' | 'WARNING' | 'CRITICAL';
     currentDate: Date;
     showValues: boolean;
@@ -18,6 +20,8 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
     currentBalance,
     pendingIncome,
     pendingExpenses,
+    monthlyIncome,
+    monthlyExpense,
     healthStatus,
     currentDate,
     showValues
@@ -36,6 +40,12 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
             ? 'Saldo Projetado'
             : 'Saldo Final Previsto';
 
+    // For past months, show actual monthly result (income - expense), not projected balance
+    // For current/future months, show projected balance
+    const displayBalance = isViewingPastMonth
+        ? (monthlyIncome - monthlyExpense)
+        : projectedBalance;
+
     return (
         <div className="bg-indigo-900 dark:bg-indigo-950 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 opacity-10">
@@ -49,8 +59,8 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                         <span className="text-xs font-bold uppercase tracking-widest">{balanceLabel}</span>
                     </div>
                     <div className="mb-1">
-                        <span className={`text-4xl font-black tracking-tight ${projectedBalance < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
-                            <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(projectedBalance)}</PrivacyBlur>
+                        <span className={`text-4xl font-black tracking-tight ${displayBalance < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
+                            <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(displayBalance)}</PrivacyBlur>
                         </span>
                     </div>
                     <p className="text-sm text-indigo-200">
