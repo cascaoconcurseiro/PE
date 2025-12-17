@@ -163,51 +163,93 @@ export const calculateProjectedBalance = (
         const tDate = new Date(t.date);
         tDate.setHours(0, 0, 0, 0);
 
-        // 1. STRICT MONTH FILTER
-        if (tDate.getMonth() !== currentDate.getMonth() || tDate.getFullYear() !== currentDate.getFullYear()) {
-            return;
-        }
+        // LOGIC REFINEMENT (2025-12-17):
+        // 1. Shared/Unsettled: Must include ALL outstanding debts/credits up to the end of view period.
+        //    (Even if they are from last month, if not settled, they affect my 'Effective Balance' now).
+        // 2. Standard: Only include FUTURE items in the CURRENT view month (Forecast).
 
-        // SHARED LOGIC - Consider ALL transactions in the month (not just future)
-        // Because "A Receber" and "A Pagar" are monthly metrics, not daily
+        const isViewMonth = tDate.getMonth() === currentDate.getMonth() && tDate.getFullYear() === currentDate.getFullYear();
+        const isPastOrCurrent = tDate <= viewMonthEnd;
+
+        // SHARED LOGIC
+        // We check for Shared Unsettled items FIRST.
+        // They are valid if they are <= viewMonthEnd (accumulated debt) AND not settled.
         let processedAsShared = false;
 
-        // 1. Shared Receivables (Credits) - I paid, others owe me
-        if (t.type === TransactionType.EXPENSE && t.isShared && (!t.payerId || t.payerId === 'me')) {
-            if (t.currency && t.currency !== 'BRL') {
-                // Skip foreign
-            } else {
-                const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
-                    return sum + (!s.isSettled ? s.assignedAmount : 0);
-                }, 0) || 0;
+        const isSharedContext = t.isShared || (t.payerId && t.payerId !== 'me'); // Broad check (same as checkDataConsistency)
 
-                if (pendingSplitsTotal > 0) {
-                    pendingIncome += toBRL(pendingSplitsTotal, t);
+        if (isSharedContext && isPastOrCurrent) {
+            // 1. Receivables (I paid, others owe me)
+            if (t.type === TransactionType.EXPENSE && (!t.payerId || t.payerId === 'me')) {
+                if (t.currency && t.currency !== 'BRL') {
+                    // Skip foreign for now (Dashboard is BRL centric)
+                } else {
+                    const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
+                        return sum + (!s.isSettled ? s.assignedAmount : 0);
+                    }, 0) || 0;
+
+                    if (pendingSplitsTotal > 0) {
+                        pendingIncome += toBRL(pendingSplitsTotal, t);
+                    }
                 }
+                processedAsShared = true;
             }
-            processedAsShared = true;
+
+            // 2. Payables (Others paid, I owe them)
+            if (t.type === TransactionType.EXPENSE && t.payerId && t.payerId !== 'me') {
+                if (t.currency && t.currency !== 'BRL') {
+                    // Skip foreign
+                } else {
+                    if (!t.isSettled) {
+                        // Logic Update for "Credit Card Bill Import" or "Mirror":
+                        // If it's a mirror (I am not payer), 't.amount' is my share.
+                        pendingExpenses += toBRL(t.amount, t);
+                    }
+                }
+                processedAsShared = true;
+            }
         }
 
-        // 2. Shared Debts (Payables) - Others paid, I owe them
-        if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
-            if (t.currency && t.currency !== 'BRL') {
-                // Skip foreign
-            } else {
-                if (!t.isSettled) {
-                    pendingExpenses += toBRL(t.amount, t);
-                }
-            }
-            processedAsShared = true;
+        // Check if we should stop here (if it was a shared item processed above)
+        // NOTE: A transaction can be Shared AND have a personal part?
+        // Usually if I paid 100 and split 50, I still paid 100 from my account.
+        // For "Projected Balance" (Cash Flow):
+        // If I paid 100 today: Current Balance ALREADY has -100.
+        // We only add "Pending Receivables" (+50).
+        // If I pay 100 TOMORROW: It's a standard future expense (-100).
+        // AND we add "Pending Receivables" (+50).
+
+        // The "processedAsShared" logic above handled the "Debt/Credit" accumulation (A Receber/A Pagar).
+        // Does it handle the "Cash Flow Outflow"?
+
+        // Case: I owe 50 (Payer=Other). 
+        // Logic above added +50 to pendingExpenses. Perfect.
+        // It does NOT affect Standard Cash Flow because I didn't pay it from my bank.
+        if (t.type === TransactionType.EXPENSE && t.payerId && t.payerId !== 'me') {
+            return; // It's purely a debt, handled above.
         }
 
-        if (processedAsShared) return;
+        // Case: I paid 100 (Payer=Me).
+        // Logic above checked for "Receivables" (+50).
+        // We STILL need to check if this is a Future Expense for the Standard Flow.
+        // IF it's Past/Today: Already in Current Balance.
+        // IF it's Future: Need to subtract 100 (or effective share?).
+        // "Projected Balance" = Balance + PendingIncome - PendingExpenses.
+        // If I pay 100 tomorrow: Balance - 100.
+        // Receivables is +50.
+        // Net result: -50 to my wealth. Correct.
 
-        // 2. FUTURE ONLY FILTER for regular transactions (Fix Double Counting)
-        // We only sum items that have NOT happened yet (affecting future balance).
-        // Items <= today are assumed to be already reflected in 'currentBalance'.
+        // SO: We continue to Standard Logic even if processed as shared (for Payer=Me),
+        // BUT only if it stands as a valid Standard Transaction.
+
+
+        // STANDARD LOGIC (Cash Flow)
+        // Must be in THIS month (Strict Filter)
+        if (!isViewMonth) return;
+
+        // Must be FUTURE (> Today)
         if (tDate <= today) return;
 
-        // Standard Cash Flow
         if (t.type === TransactionType.TRANSFER) {
             const sourceAccId = t.accountId;
             const isSourceLiquid = sourceAccId ? liquidityAccountIds.has(sourceAccId) : false;

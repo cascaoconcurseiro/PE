@@ -78,14 +78,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
 
 
             {/* Friendly Greeting & Sync Indicator */}
-            {isLoadingHistory && (
-                <div className="flex justify-center -mt-2 mb-2 animate-in fade-in slide-in-from-top-2">
-                    <span className="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs px-3 py-1 rounded-full flex items-center gap-2 font-medium shadow-sm border border-emerald-100 dark:border-emerald-800">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        Sincronizando histórico...
-                    </span>
-                </div>
-            )}
+
 
             {/* Friendly Greeting */}
 
