@@ -385,16 +385,6 @@ export const useDataStore = () => {
             // We should ensure a small buffer or rely on the Layout effect?
             // Actually, simply ensuring we don't 'flash' empty state before this point is key.
 
-            if (!isInitialized.current) {
-                // Determine if we have data to show.
-                // Fix: 'combined' was inside setTransactions scope. Use the source arrays.
-                const hasTransactions = (recentTxs && recentTxs.length > 0) || (unsettledShared && unsettledShared.length > 0);
-                if (hasTransactions || accounts.length > 0) {
-                    setIsLoading(false);
-                    isInitialized.current = true;
-                }
-            }
-
 
             // --- TIER 2: METADATA & CONFIG (Lazy-load safe) ---
             console.time("Tier2_Load");
@@ -422,6 +412,15 @@ export const useDataStore = () => {
             setCustomCategories(cats);
 
             console.timeEnd("Tier2_Load");
+
+            // CRITICAL FIX (2025-12-17): Ultimate Flicker Solution.
+            // Dashboard depends on Trips (Currency), Categories, etc.
+            // We MUST wait for Tier 2 to finish before unlocking UI.
+            // Otherwise, we calculate balances with missing metadata/context.
+            if (!isInitialized.current) {
+                setIsLoading(false);
+                isInitialized.current = true;
+            }
 
             // Consistency Check (Debounced)
             setTimeout(() => {
