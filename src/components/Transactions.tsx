@@ -37,6 +37,7 @@ interface TransactionsProps {
     onNavigateToTrips?: () => void;
     onNavigateToFamily?: () => void;
     currentUserName?: string;
+    currentUserId?: string;
 }
 
 export const Transactions: React.FC<TransactionsProps> = ({
@@ -59,6 +60,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
     onNavigateToTrips,
     onNavigateToFamily,
     currentUserName,
+    currentUserId,
 }) => {
     const currentDate = propDate || new Date();
     const showValues = propShowValues !== undefined ? propShowValues : true;
@@ -184,6 +186,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 onNavigateToTrips={onNavigateToTrips}
                 onNavigateToFamily={onNavigateToFamily}
                 currentUserName={currentUserName}
+                currentUserId={currentUserId}
             />
         );
     }

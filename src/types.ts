@@ -164,6 +164,7 @@ export interface TransactionSplit {
 
 export interface Transaction extends BaseEntity {
   id: string;
+  userId?: string; // Ownership tracking
   date: string;
   amount: number;
   type: TransactionType;
@@ -274,7 +275,7 @@ export interface TripExchangeEntry {
 
 export interface Trip extends BaseEntity {
   id: string;
-  userId: string; // Added for ownership checks
+  userId: string; // Ownership checks
   name: string;
   startDate: string;
   endDate: string;

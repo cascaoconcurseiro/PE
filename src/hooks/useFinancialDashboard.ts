@@ -270,7 +270,21 @@ export const useFinancialDashboard = ({
             d.Acumulado = accumulated;
         });
 
-        return data;
+        // FIX: Mask months before the first transaction text to prevent confusing historical data
+        const minDate = dashboardTransactions.length > 0
+            ? new Date(Math.min(...dashboardTransactions.map(t => new Date(t.date).getTime())))
+            : new Date();
+
+        minDate.setDate(1); // Start of start month
+        minDate.setHours(0, 0, 0, 0);
+
+        return data.map(d => {
+            if (d.date < minDate && d.year <= minDate.getFullYear()) {
+                // If this month is historically before our first transaction, it shouldn't show data
+                return { ...d, Receitas: 0, Despesas: 0, Acumulado: null as any }; // null forces Recharts to break line or show empty
+            }
+            return d;
+        });
     }, [dashboardTransactions, selectedYear, accounts, dashboardAccounts]);
 
     const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0 || d.Acumulado !== 0), [cashFlowData]);

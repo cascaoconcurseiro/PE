@@ -342,8 +342,6 @@ export const useDataStore = () => {
                 balance: account.balance ?? account.initialBalance ?? 0
             }));
             setAccounts(initialAccountsState);
-            // If this is first load, we can set loading false here to show something basic
-            if (!isInitialized.current) setIsLoading(false);
             console.timeEnd("Tier1_Accounts");
 
 
@@ -376,6 +374,9 @@ export const useDataStore = () => {
 
             loadedPeriods.current = new Set([currentPeriod, prevPeriod]);
             console.timeEnd("Tier1_Transactions");
+
+            // CRITICAL FIX: Only stop loading after TRANSACTIONS are ready to avoid 0-value flash
+            if (!isInitialized.current) setIsLoading(false);
 
 
             // --- TIER 2: METADATA & CONFIG (Lazy-load safe) ---

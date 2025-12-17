@@ -23,6 +23,7 @@ interface TransactionFormProps {
     onNavigateToTrips?: () => void;
     onNavigateToFamily?: () => void;
     currentUserName?: string;
+    currentUserId?: string;
 }
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({
@@ -39,9 +40,17 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     onNavigateToAccounts,
     onNavigateToTrips,
     onNavigateToFamily,
-    currentUserName
+    currentUserName,
+    currentUserId
 }) => {
     const topRef = useRef<HTMLDivElement>(null);
+
+    // OWNERSHIP CHECK
+    // If we have initialData (Edit Mode) AND we have IDs to compare:
+    // User can ONLY edit if they are the owner (userId matches).
+    // Legacy support: If initialData.userId is missing, allow edit (assume migration or lax rule).
+    const isOwner = !initialData || !initialData.userId || !currentUserId || initialData.userId === currentUserId;
+    const isReadOnly = !isOwner;
 
     const {
         amountStr, setAmountStr,
@@ -215,10 +224,17 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
             <div className="flex-1 overflow-y-auto custom-scrollbar pb-32">
                 {initialData && (
-                    <div className="px-3 sm:px-5 pt-2 sm:pt-3 animate-in slide-in-from-top-2">
-                        <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 border border-amber-100 dark:border-amber-800">
-                            <Pencil className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Editando
-                        </div>
+                    <div className="px-3 sm:px-5 pt-2 sm:pt-3 animate-in slide-in-from-top-2 space-y-2">
+                        {isReadOnly ? (
+                            <div className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 p-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700">
+                                <User className="w-3 h-3" />
+                                <span>Criado por outro membro (Leitura)</span>
+                            </div>
+                        ) : (
+                            <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 border border-amber-100 dark:border-amber-800">
+                                <Pencil className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Editando
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -253,8 +269,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                             value={amountStr}
                             onChange={(e) => setAmountStr(e.target.value)}
                             placeholder="0,00"
-                            className={`w-full max-w-[180px] sm:max-w-[240px] text-center text-2xl sm:text-3xl md:text-4xl font-black bg-transparent border-none outline-none placeholder-slate-300 dark:placeholder-slate-700 ${mainColor} `}
-                            autoFocus={!initialData}
+                            className={`w-full max-w-[180px] sm:max-w-[240px] text-center text-2xl sm:text-3xl md:text-4xl font-black bg-transparent border-none outline-none placeholder-slate-300 dark:placeholder-slate-700 ${mainColor} disabled:opacity-50`}
+                            autoFocus={!initialData && !isReadOnly}
+                            disabled={isReadOnly}
                         />
                     </div>
                     {errors.amount && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-1 bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full">{errors.amount}</p>}
@@ -274,16 +291,16 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     <div className="space-y-4">
                         <div>
                             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">Descrição</label>
-                            <input placeholder="Ex: Almoço, Uber, Salário" value={description} onChange={e => setDescription(e.target.value)} className="w-full text-base font-medium text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-1 outline-none focus:border-indigo-500 bg-transparent placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-colors rounded-none px-0" />
+                            <input disabled={isReadOnly} placeholder="Ex: Almoço, Uber, Salário" value={description} onChange={e => setDescription(e.target.value)} className="w-full text-base font-medium text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-1 outline-none focus:border-indigo-500 bg-transparent placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-colors rounded-none px-0 disabled:opacity-50" />
                             {errors.description && <p className="text-red-600 text-[10px] mt-1 font-bold">{errors.description}</p>}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">Data</label>
-                                <div className={`bg-slate-50 dark:bg-slate-800 rounded-xl h-10 flex items-center px-3 border ${selectedTrip && (date < (selectedTrip.startDate || '') || date > (selectedTrip.endDate || '')) ? 'border-amber-400 dark:border-amber-600' : 'border-slate-200 dark:border-slate-700'} relative`}>
+                                <div className={`bg-slate-50 dark:bg-slate-800 rounded-xl h-10 flex items-center px-3 border ${selectedTrip && (date < (selectedTrip.startDate || '') || date > (selectedTrip.endDate || '')) ? 'border-amber-400 dark:border-amber-600' : 'border-slate-200 dark:border-slate-700'} relative ${isReadOnly ? 'opacity-50' : ''}`}>
                                     <Calendar className={`w-4 h-4 mr-2 ${selectedTrip && (date < (selectedTrip.startDate || '') || date > (selectedTrip.endDate || '')) ? 'text-amber-500' : 'text-slate-400'} `} />
-                                    <input type="date" value={date} onClick={(e) => { try { e.currentTarget.showPicker() } catch (e) { /* ignore */ } }} onChange={e => setDate(e.target.value)} className="bg-transparent font-bold text-slate-700 dark:text-slate-200 text-sm outline-none w-full h-full" />
+                                    <input disabled={isReadOnly} type="date" value={date} onClick={(e) => { try { if (!isReadOnly) e.currentTarget.showPicker() } catch (e) { /* ignore */ } }} onChange={e => setDate(e.target.value)} className="bg-transparent font-bold text-slate-700 dark:text-slate-200 text-sm outline-none w-full h-full disabled:cursor-not-allowed" />
                                 </div>
                                 {selectedTrip && (date < (selectedTrip.startDate || '') || date > (selectedTrip.endDate || '')) && (
                                     <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1 leading-tight">
@@ -295,9 +312,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                             <div>
                                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">Categoria</label>
                                 {!isTransfer ? (
-                                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl h-10 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative">
+                                    <div className={`bg-slate-50 dark:bg-slate-800 rounded-xl h-10 flex items-center px-3 border border-slate-200 dark:border-slate-700 relative ${isReadOnly ? 'opacity-50' : ''}`}>
                                         <CategoryIcon className="w-4 h-4 text-slate-400 mr-2" />
-                                        <select value={category} onChange={e => setCategory(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900">
+                                        <select disabled={isReadOnly} value={category} onChange={e => setCategory(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900 disabled:cursor-not-allowed">
                                             {isIncome ? (
                                                 <>
                                                     <optgroup label="💰 Entradas">
@@ -404,8 +421,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     {/* Trip Selection (Expense Only) */}
                     {isExpense && (
                         <div className="space-y-1">
-                            <div className="relative z-20">
-                                <div onClick={() => setIsTripSelectorOpen(!isTripSelectorOpen)} className={`border rounded-xl p-3 flex items-center gap-3 shadow-sm relative transition-all cursor-pointer ${tripId ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'} `}>
+                            <div className={`relative z-20 ${isReadOnly ? 'pointer-events-none opacity-60' : ''}`}>
+                                <div onClick={() => !isReadOnly && setIsTripSelectorOpen(!isTripSelectorOpen)} className={`border rounded-xl p-3 flex items-center gap-3 shadow-sm relative transition-all cursor-pointer ${tripId ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'} `}>
                                     <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${tripId ? 'bg-violet-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'} `}><Plane className="w-4 h-4" /></div>
                                     <div className="flex-1 overflow-hidden">
                                         <span className={`block text-sm font-bold truncate mb-0.5 ${tripId ? 'text-violet-900 dark:text-violet-300' : 'text-slate-600 dark:text-slate-300'} `}>{tripId ? trips.find(t => t.id === tripId)?.name : 'Vincular a uma Viagem'}</span>
@@ -486,7 +503,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                 selectedId={accountId}
                                 onSelect={setAccountId}
                                 filterType={(isIncome || isTransfer) ? 'NO_CREDIT' : 'ALL'}
-                                disabled={!!initialData}
+                                disabled={!!initialData || isReadOnly}
                                 emptyMessage={activeCurrency !== 'BRL' ? `Você não possui conta em ${activeCurrency}. Crie uma conta internacional.` : 'Nenhuma conta encontrada.'}
                             />
                         ) : (
@@ -671,9 +688,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 </div>
 
                 <div className="p-4 pb-safe bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 fixed bottom-0 left-0 right-0 md:relative md:border-none md:bg-transparent dark:md:bg-transparent z-20">
-                    <Button onClick={handleSubmit} disabled={isSubmitting} className={`w-full h-12 text-base shadow-xl shadow-slate-200 ${buttonMainBg} hover:opacity-90 transition-opacity`}>
-                        {isSubmitting ? 'Salvando...' : (initialData ? 'Salvar Alterações' : 'Confirmar Transação')}
-                    </Button>
+                    {!isReadOnly && (
+                        <Button onClick={handleSubmit} disabled={isSubmitting} className={`w-full h-12 text-base shadow-xl shadow-slate-200 ${buttonMainBg} hover:opacity-90 transition-opacity`}>
+                            {isSubmitting ? 'Salvando...' : (initialData ? 'Salvar Alterações' : 'Confirmar Transação')}
+                        </Button>
+                    )}
                 </div>
             </div>
 
