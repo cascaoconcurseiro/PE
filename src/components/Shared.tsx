@@ -217,36 +217,34 @@ export const Shared: React.FC<SharedProps> = ({
                     // Filter items for this view (Month + Tab)
                     const memberItems = getFilteredInvoice(member.id);
 
-                    // Group items by currency
-                    const itemsByCurrency: Record<string, InvoiceItem[]> = {};
+                    // FIX: Group items by TRIP + CURRENCY (not just currency)
+                    // This ensures each trip has its own invoice
+                    const itemsByTripAndCurrency: Record<string, InvoiceItem[]> = {};
                     memberItems.forEach(item => {
                         const curr = item.currency || 'BRL';
-                        if (!itemsByCurrency[curr]) itemsByCurrency[curr] = [];
-                        itemsByCurrency[curr].push(item);
+                        const tripKey = item.tripId || 'no-trip';
+                        const groupKey = `${tripKey}::${curr}`;
+                        if (!itemsByTripAndCurrency[groupKey]) itemsByTripAndCurrency[groupKey] = [];
+                        itemsByTripAndCurrency[groupKey].push(item);
                     });
 
-                    // Ensure at least BRL shows up if empty (or handle empty state)
-                    const currencies = Object.keys(itemsByCurrency);
-                    if (currencies.length === 0) currencies.push('BRL');
+                    // Ensure at least one group shows up if empty
+                    const groupKeys = Object.keys(itemsByTripAndCurrency);
+                    if (groupKeys.length === 0) groupKeys.push('no-trip::BRL');
 
-                    return currencies.map(currency => {
-                        const items = itemsByCurrency[currency] || [];
+                    return groupKeys.map(groupKey => {
+                        const items = itemsByTripAndCurrency[groupKey] || [];
 
-                        // Detect trip from items
-                        // If all items belong to same trip, use that name. 
-                        // If mixed trips, say 'Múltiplas Viagens' or just list items.
-                        // Assuming items in a currency bucket for a period usually belong to one context or none.
-                        const tripIds = Array.from(new Set(items.map(i => i.tripId).filter(Boolean)));
-                        let tripName = undefined;
-                        if (tripIds.length === 1) {
-                            tripName = trips.find(t => t.id === tripIds[0])?.name;
-                        } else if (tripIds.length > 1) {
-                            tripName = 'Múltiplas Viagens';
-                        }
+                        // Parse the groupKey to extract tripId and currency
+                        const [tripKey, currency] = groupKey.split('::');
+                        const tripId = tripKey === 'no-trip' ? undefined : tripKey;
+
+                        // Get trip name from the tripId
+                        const tripName = tripId ? trips.find(t => t.id === tripId)?.name : undefined;
 
                         return (
                             <SharedMemberDetail
-                                key={`${member.id}-${currency}`}
+                                key={`${member.id}-${groupKey}`}
                                 member={member}
                                 items={items}
                                 currentDate={currentDate}

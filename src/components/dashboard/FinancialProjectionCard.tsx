@@ -22,6 +22,20 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
     currentDate,
     showValues
 }) => {
+    // Detect if viewing a past month
+    const now = new Date();
+    const viewingMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const isViewingPastMonth = viewingMonthStart < currentMonthStart;
+    const isViewingFutureMonth = viewingMonthStart > currentMonthStart;
+
+    // Adjust labels based on period
+    const balanceLabel = isViewingPastMonth
+        ? 'Resultado do Mês'
+        : isViewingFutureMonth
+            ? 'Saldo Projetado'
+            : 'Saldo Final Previsto';
+
     return (
         <div className="bg-indigo-900 dark:bg-indigo-950 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 opacity-10">
@@ -32,7 +46,7 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                 <div>
                     <div className="flex items-center gap-2 mb-2 text-indigo-300">
                         <Wallet className="w-5 h-5" />
-                        <span className="text-xs font-bold uppercase tracking-widest">Saldo Final Previsto</span>
+                        <span className="text-xs font-bold uppercase tracking-widest">{balanceLabel}</span>
                     </div>
                     <div className="mb-1">
                         <span className={`text-4xl font-black tracking-tight ${projectedBalance < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
@@ -40,7 +54,9 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                         </span>
                     </div>
                     <p className="text-sm text-indigo-200">
-                        Receitas - Despesas em {currentDate.toLocaleDateString('pt-BR', { month: 'long' })}
+                        {isViewingPastMonth
+                            ? `Receitas - Despesas em ${currentDate.toLocaleDateString('pt-BR', { month: 'long' })}`
+                            : `Receitas - Despesas em ${currentDate.toLocaleDateString('pt-BR', { month: 'long' })}`}
                     </p>
                 </div>
 
@@ -48,11 +64,15 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                     <div className="space-y-4 text-xs">
                         <div className="flex justify-between items-center text-emerald-300">
                             <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> A Receber</span>
-                            <span className="font-bold text-sm">+ {formatCurrency(pendingIncome)}</span>
+                            <span className="font-bold text-sm">
+                                <PrivacyBlur showValues={showValues} darkBg={true}>+ {formatCurrency(pendingIncome)}</PrivacyBlur>
+                            </span>
                         </div>
                         <div className="flex justify-between items-center text-red-300">
                             <span className="flex items-center gap-1"><TrendingDown className="w-3 h-3" /> A Pagar</span>
-                            <span className="font-bold text-sm">- {formatCurrency(pendingExpenses)}</span>
+                            <span className="font-bold text-sm">
+                                <PrivacyBlur showValues={showValues} darkBg={true}>- {formatCurrency(pendingExpenses)}</PrivacyBlur>
+                            </span>
                         </div>
                     </div>
                 </div>

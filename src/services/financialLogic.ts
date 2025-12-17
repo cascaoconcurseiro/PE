@@ -168,15 +168,11 @@ export const calculateProjectedBalance = (
             return;
         }
 
-        // 2. FUTURE ONLY FILTER (Fix Double Counting)
-        // We only sum items that have NOT happened yet (affecting future balance).
-        // Items <= today are assumed to be already reflected in 'currentBalance'.
-        if (tDate <= today) return;
-
-        // SHARED LOGIC
+        // SHARED LOGIC - Consider ALL transactions in the month (not just future)
+        // Because "A Receber" and "A Pagar" are monthly metrics, not daily
         let processedAsShared = false;
 
-        // 1. Shared Receivables (Credits)
+        // 1. Shared Receivables (Credits) - I paid, others owe me
         if (t.type === TransactionType.EXPENSE && t.isShared && (!t.payerId || t.payerId === 'me')) {
             if (t.currency && t.currency !== 'BRL') {
                 // Skip foreign
@@ -189,19 +185,27 @@ export const calculateProjectedBalance = (
                     pendingIncome += toBRL(pendingSplitsTotal, t);
                 }
             }
+            processedAsShared = true;
         }
 
-        // 2. Shared Debts (Payables)
+        // 2. Shared Debts (Payables) - Others paid, I owe them
         if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
             if (t.currency && t.currency !== 'BRL') {
                 // Skip foreign
             } else {
-                pendingExpenses += toBRL(t.amount, t);
+                if (!t.isSettled) {
+                    pendingExpenses += toBRL(t.amount, t);
+                }
             }
             processedAsShared = true;
         }
 
         if (processedAsShared) return;
+
+        // 2. FUTURE ONLY FILTER for regular transactions (Fix Double Counting)
+        // We only sum items that have NOT happened yet (affecting future balance).
+        // Items <= today are assumed to be already reflected in 'currentBalance'.
+        if (tDate <= today) return;
 
         // Standard Cash Flow
         if (t.type === TransactionType.TRANSFER) {
