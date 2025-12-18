@@ -20,12 +20,28 @@ export const useTransactionForm = ({
 }: UseTransactionFormProps) => {
     const getDefaultAccount = () => {
         if (initialData) return initialData.accountId || '';
+        
+        // Filtrar contas BRL primeiro (prioridade para contas nacionais)
+        const brlAccounts = accounts.filter(a => !a.currency || a.currency === 'BRL');
+        
         if (formMode === TransactionType.INCOME || formMode === TransactionType.TRANSFER) {
-            const liquid = accounts.find(a => a.type !== AccountType.CREDIT_CARD);
-            return liquid ? liquid.id : '';
+            // Para receitas/transferências, preferir conta corrente BRL
+            const liquid = brlAccounts.find(a => a.type !== AccountType.CREDIT_CARD);
+            if (liquid) return liquid.id;
+            // Fallback: qualquer conta não-cartão
+            const anyLiquid = accounts.find(a => a.type !== AccountType.CREDIT_CARD);
+            return anyLiquid ? anyLiquid.id : '';
         }
-        const prefer = accounts.find(a => a.type === AccountType.CREDIT_CARD || a.type === AccountType.CHECKING);
-        return prefer ? prefer.id : accounts[0]?.id || '';
+        
+        // Para despesas, preferir cartão de crédito ou conta corrente BRL
+        const prefer = brlAccounts.find(a => a.type === AccountType.CREDIT_CARD || a.type === AccountType.CHECKING);
+        if (prefer) return prefer.id;
+        
+        // Fallback: primeira conta BRL
+        if (brlAccounts.length > 0) return brlAccounts[0].id;
+        
+        // Último fallback: primeira conta disponível
+        return accounts[0]?.id || '';
     };
 
     // Helper function to format date locally
