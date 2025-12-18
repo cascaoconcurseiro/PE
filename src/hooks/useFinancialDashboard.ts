@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import { Account, Transaction, TransactionType, AccountType, Category, Trip } from '../types';
+import { Account, Transaction, TransactionType, AccountType, Trip } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
 import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue, calculateTotalReceivables, calculateTotalPayables } from '../services/financialLogic';
 import { shouldShowTransaction } from '../utils/transactionFilters';
-import { isForeignTransaction } from '../utils/transactionUtils';
+import { isCreditCard } from '../utils/accountTypeUtils';
 
 interface UseFinancialDashboardProps {
     accounts: Account[];
@@ -117,7 +117,7 @@ export const useFinancialDashboard = ({
             // STRICT CURRENCY CHECK: Omit if not BRL (or empty/null which implies Default)
             if (curr.currency && curr.currency !== 'BRL') return acc;
 
-            if (curr.type === AccountType.CREDIT_CARD) {
+            if (isCreditCard(curr.type)) {
                 return acc - Math.abs(curr.balance);
             }
             return acc + curr.balance;
@@ -166,7 +166,7 @@ export const useFinancialDashboard = ({
         // the Chart showing Income/Expense from ALL sources (Investments, etc).
         let accumulated = dashboardAccounts.reduce((sum, a) => {
             const val = convertToBRL(a.balance, a.currency || 'BRL');
-            if (a.type === AccountType.CREDIT_CARD) {
+            if (isCreditCard(a.type)) {
                 return sum - Math.abs(val); // Debt reduces accumulated
             }
             return sum + val;
@@ -391,10 +391,10 @@ export const useFinancialDashboard = ({
 
                     let sourceLabel = 'Outros';
                     if (account) {
-                        if (account.type === AccountType.CREDIT_CARD) sourceLabel = 'Cartão de Crédito';
+                        if (isCreditCard(account.type)) sourceLabel = 'Cartão de Crédito';
                         else if (account.type === AccountType.CHECKING || account.type === AccountType.SAVINGS) sourceLabel = 'Conta Bancária';
                         else if (account.type === AccountType.CASH) sourceLabel = 'Dinheiro';
-                        else sourceLabel = account.type;
+                        else sourceLabel = String(account.type);
                     }
 
                     acc[sourceLabel] = (acc[sourceLabel] || 0) + (amount as number);

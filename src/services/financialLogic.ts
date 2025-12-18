@@ -1,6 +1,7 @@
-import { Account, Transaction, TransactionType, AccountType } from '../types';
+import { Account, Transaction, TransactionType } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from './currencyService';
+import { isCreditCard, isLiquidAccount } from '../utils/accountTypeUtils';
 
 /**
  * Calcula o valor efetivo da transação para o usuário (Economia Real).
@@ -108,33 +109,11 @@ export const calculateProjectedBalance = (
     currentDate: Date
 ): { currentBalance: number, projectedBalance: number, pendingIncome: number, pendingExpenses: number } => {
 
-    // Helper para normalizar tipos de conta (case-insensitive, sem acentos)
-    const normalizeType = (type: string | undefined): string => {
-        if (!type) return '';
-        return type.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    };
-    
-    const CHECKING_NORMALIZED = normalizeType(AccountType.CHECKING);
-    const SAVINGS_NORMALIZED = normalizeType(AccountType.SAVINGS);
-    const CASH_NORMALIZED = normalizeType(AccountType.CASH);
-    const CREDIT_CARD_NORMALIZED = normalizeType(AccountType.CREDIT_CARD);
-    
-    // Contas líquidas (checking, savings, cash)
-    const liquidityAccounts = accounts.filter(a => {
-        const typeNorm = normalizeType(a.type);
-        return typeNorm === CHECKING_NORMALIZED ||
-               typeNorm === SAVINGS_NORMALIZED ||
-               typeNorm === CASH_NORMALIZED;
-    });
+    // Contas líquidas (checking, savings, cash) - usando utilitário centralizado
+    const liquidityAccounts = accounts.filter(a => isLiquidAccount(a.type));
 
-    // Cartões de crédito - comparação robusta
-    const creditCardAccounts = accounts.filter(a => {
-        const typeNorm = normalizeType(a.type);
-        return typeNorm === CREDIT_CARD_NORMALIZED ||
-               typeNorm === 'CARTAO DE CREDITO' ||
-               typeNorm === 'CREDIT_CARD' ||
-               (typeNorm.includes('CARTAO') && typeNorm.includes('CREDITO'));
-    });
+    // Cartões de crédito - usando utilitário centralizado
+    const creditCardAccounts = accounts.filter(a => isCreditCard(a.type));
     
     const creditCardIds = new Set(creditCardAccounts.map(a => a.id));
 
