@@ -72,13 +72,50 @@ export const generatePDFReport = (
     });
 
     // Open in new window and print
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-        printWindow.document.write(html);
-        printWindow.document.close();
-        printWindow.onload = () => {
-            printWindow.print();
-        };
+    // Usar abordagem mais robusta para evitar bloqueio de pop-up
+    try {
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        if (printWindow) {
+            printWindow.document.write(html);
+            printWindow.document.close();
+            // Aguardar carregamento completo antes de imprimir
+            setTimeout(() => {
+                try {
+                    printWindow.focus();
+                    printWindow.print();
+                } catch (e) {
+                    // Se print falhar, pelo menos o relatório está visível
+                }
+            }, 500);
+        } else {
+            // Fallback: criar iframe invisível para impressão
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = 'none';
+            document.body.appendChild(iframe);
+            
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (iframeDoc) {
+                iframeDoc.write(html);
+                iframeDoc.close();
+                setTimeout(() => {
+                    iframe.contentWindow?.focus();
+                    iframe.contentWindow?.print();
+                    // Remover iframe após impressão
+                    setTimeout(() => document.body.removeChild(iframe), 1000);
+                }, 500);
+            }
+        }
+    } catch (error) {
+        // Último fallback: abrir em nova aba com data URL
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
     }
 };
 
