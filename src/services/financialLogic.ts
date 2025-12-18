@@ -108,15 +108,22 @@ export const calculateProjectedBalance = (
     currentDate: Date
 ): { currentBalance: number, projectedBalance: number, pendingIncome: number, pendingExpenses: number } => {
 
+    // Helper para verificar tipo de conta (case-insensitive)
+    const isAccountType = (account: Account, ...types: string[]) => {
+        const accountType = String(account.type || '').toUpperCase();
+        return types.some(t => accountType === t.toUpperCase());
+    };
+
     // Saldo Atual Consolidado (Apenas Contas Bancárias e Carteira)
     const liquidityAccounts = accounts.filter(a =>
-        a.type === AccountType.CHECKING ||
-        a.type === AccountType.SAVINGS ||
-        a.type === AccountType.CASH
+        isAccountType(a, AccountType.CHECKING, AccountType.SAVINGS, AccountType.CASH,
+            'CONTA CORRENTE', 'POUPANÇA', 'DINHEIRO')
     );
 
     // Cartões de crédito (para calcular fatura)
-    const creditCardAccounts = accounts.filter(a => a.type === AccountType.CREDIT_CARD);
+    const creditCardAccounts = accounts.filter(a => 
+        isAccountType(a, AccountType.CREDIT_CARD, 'CARTÃO DE CRÉDITO')
+    );
     const creditCardIds = new Set(creditCardAccounts.map(a => a.id));
 
     const liquidityAccountIds = new Set(liquidityAccounts.map(a => a.id));
@@ -136,18 +143,22 @@ export const calculateProjectedBalance = (
         return convertToBRL(amount, t.currency || 'BRL');
     };
 
+    // Filtrar transações do mês visualizado
+    const viewMonth = currentDate.getMonth();
+    const viewYear = currentDate.getFullYear();
+    const monthTransactions = transactions.filter(t => {
+        if (t.deleted) return false;
+        const tDate = new Date(t.date);
+        return tDate.getMonth() === viewMonth && tDate.getFullYear() === viewYear;
+    });
+
     // Calcular fatura prevista do cartão de crédito para o mês
-    // Soma todas as despesas do mês no cartão que ainda não foram pagas
+    // Soma todas as despesas do mês no cartão
     let creditCardBill = 0;
     
-    transactions.forEach(t => {
-        if (t.deleted) return;
-        
-        const tDate = new Date(t.date);
-        const isViewMonth = tDate.getMonth() === currentDate.getMonth() && tDate.getFullYear() === currentDate.getFullYear();
-        
+    monthTransactions.forEach(t => {
         // Despesas no cartão de crédito do mês = fatura a pagar
-        if (isViewMonth && t.type === TransactionType.EXPENSE && t.accountId && creditCardIds.has(t.accountId)) {
+        if (t.type === TransactionType.EXPENSE && t.accountId && creditCardIds.has(t.accountId)) {
             creditCardBill += toBRL(t.amount, t);
         }
     });
@@ -157,21 +168,19 @@ export const calculateProjectedBalance = (
         pendingExpenses += creditCardBill;
     }
 
-    transactions.forEach(t => {
-        if (t.deleted) return;
-
+    // Processar transações do mês para A Receber e A Pagar
+    monthTransactions.forEach(t => {
         const tDate = new Date(t.date);
         tDate.setHours(0, 0, 0, 0);
 
-        // Filtro do mês visualizado
-        const isViewMonth = tDate.getMonth() === currentDate.getMonth() && tDate.getFullYear() === currentDate.getFullYear();
-        if (!isViewMonth) return;
-
         // SHARED LOGIC - A Receber e A Pagar de compartilhados
-        const isSharedContext = t.isShared || (t.payerId && t.payerId !== 'me');
+        // Identificar transações compartilhadas de forma mais abrangente
+        const hasSharedWith = t.sharedWith && t.sharedWith.length > 0;
+        const isSharedContext = t.isShared || hasSharedWith || (t.payerId && t.payerId !== 'me');
 
         if (isSharedContext) {
             // 1. A Receber (Eu paguei, outros me devem) - INCLUI PASSADO E FUTURO DO MÊS
+            // Condição: Despesa + (eu paguei ou não tem pagador definido) + tem splits não liquidados
             if (t.type === TransactionType.EXPENSE && (!t.payerId || t.payerId === 'me')) {
                 if (!t.currency || t.currency === 'BRL') {
                     const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
@@ -185,6 +194,7 @@ export const calculateProjectedBalance = (
             }
 
             // 2. A Pagar (Outros pagaram, eu devo) - INCLUI PASSADO E FUTURO DO MÊS
+            // Condição: Despesa + outro pagou + não está liquidado
             if (t.type === TransactionType.EXPENSE && t.payerId && t.payerId !== 'me') {
                 if (!t.currency || t.currency === 'BRL') {
                     if (!t.isSettled) {

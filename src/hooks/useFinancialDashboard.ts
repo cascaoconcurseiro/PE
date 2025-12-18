@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { Account, Transaction, TransactionType, AccountType, Category, Trip } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
@@ -27,25 +27,11 @@ export const useFinancialDashboard = ({
     const selectedYear = currentDate.getFullYear();
     const selectedMonth = currentDate.getMonth();
     
-    // Cache para evitar recálculos desnecessários
-    const cacheRef = useRef<{
-        txHash: string;
-        accHash: string;
-        dashboardTxs?: Transaction[];
-        dashboardAccs?: Account[];
-    }>({ txHash: '', accHash: '' });
 
-    // Gerar hash simples para detectar mudanças reais
-    const txHash = `${transactions.length}-${transactions[0]?.id || ''}-${transactions[transactions.length - 1]?.id || ''}`;
-    const accHash = `${accounts.length}-${accounts.reduce((s, a) => s + a.balance, 0).toFixed(2)}`;
 
     // 0. GLOBAL FILTER: Dashboard is checking/local only.
-    // OTIMIZADO: Usar cache para evitar filtros repetidos
+    // Filtrar transações nacionais (BRL)
     const dashboardTransactions = useMemo(() => {
-        if (cacheRef.current.txHash === txHash && cacheRef.current.dashboardTxs) {
-            return cacheRef.current.dashboardTxs;
-        }
-        
         // Criar Set de IDs de trips estrangeiras para lookup O(1)
         const foreignTripIds = new Set(
             trips?.filter(tr => tr.currency && tr.currency !== 'BRL').map(tr => tr.id) || []
@@ -56,27 +42,18 @@ export const useFinancialDashboard = ({
             accounts.filter(a => a.currency && a.currency !== 'BRL').map(a => a.id)
         );
         
-        const filtered = transactions.filter(t => {
+        return transactions.filter(t => {
             if (t.deleted) return false;
             if (t.tripId && foreignTripIds.has(t.tripId)) return false;
             if (t.accountId && foreignAccountIds.has(t.accountId)) return false;
             return true;
         });
-        
-        cacheRef.current.txHash = txHash;
-        cacheRef.current.dashboardTxs = filtered;
-        return filtered;
-    }, [transactions, accounts, trips, txHash]);
+    }, [transactions, accounts, trips]);
 
+    // Filtrar contas nacionais (BRL)
     const dashboardAccounts = useMemo(() => {
-        if (cacheRef.current.accHash === accHash && cacheRef.current.dashboardAccs) {
-            return cacheRef.current.dashboardAccs;
-        }
-        const filtered = accounts.filter(a => !a.currency || a.currency === 'BRL');
-        cacheRef.current.accHash = accHash;
-        cacheRef.current.dashboardAccs = filtered;
-        return filtered;
-    }, [accounts, accHash]);
+        return accounts.filter(a => !a.currency || a.currency === 'BRL');
+    }, [accounts]);
 
     // PREPARE PROJECTED ACCOUNTS
     const dashboardProjectedAccounts = useMemo(() =>
@@ -88,21 +65,6 @@ export const useFinancialDashboard = ({
     // 1. Calculate Projection
     // IMPORTANTE: Passar TODAS as contas (incluindo cartões) para calcular fatura
     const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() => {
-        // DEBUG: Log para verificar dados
-        const creditCards = dashboardAccounts.filter(a => a.type === 'CARTÃO DE CRÉDITO');
-        const monthTxs = dashboardTransactions.filter(t => {
-            const d = new Date(t.date);
-            return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
-        });
-        console.log('📊 DEBUG Projeção:', {
-            mes: `${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`,
-            totalContas: dashboardAccounts.length,
-            cartoes: creditCards.length,
-            cartoesIds: creditCards.map(c => c.id),
-            totalTxMes: monthTxs.length,
-            txCartao: monthTxs.filter(t => creditCards.some(c => c.id === t.accountId)).length
-        });
-        
         return calculateProjectedBalance(dashboardAccounts, dashboardTransactions, currentDate);
     }, [dashboardAccounts, dashboardTransactions, currentDate]);
 

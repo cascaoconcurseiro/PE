@@ -339,9 +339,12 @@ export const useDataStore = () => {
             const currentPeriod = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
             const prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
             const prevPeriod = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+            const nextDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+            const nextPeriod = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`;
 
+            // Carregar 3 meses: anterior, atual e próximo
             const startOfWindow = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`;
-            const endOfWindow = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+            const endOfWindow = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).toISOString().split('T')[0];
 
             // CARREGAR TUDO EM PARALELO - reduz tempo total significativamente
             const [
@@ -404,6 +407,7 @@ export const useDataStore = () => {
             // Adicionar períodos carregados (não resetar)
             loadedPeriods.current.add(currentPeriod);
             loadedPeriods.current.add(prevPeriod);
+            loadedPeriods.current.add(nextPeriod);
 
             setTrips(trps);
             setBudgets(bdgts);

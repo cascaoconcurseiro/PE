@@ -143,7 +143,6 @@ const App = () => {
     }, []);
 
     // ONE-TIME: Smart Sync for Month Navigation
-    // ONE-TIME: Smart Sync for Month Navigation
     useEffect(() => {
         if (sessionUser && ensurePeriodLoaded) {
             // Check if we already tried this date recently (deduplication)
@@ -152,10 +151,8 @@ const App = () => {
 
             lastAttemptedDate.current = dateKey;
 
-            const timer = setTimeout(() => {
-                ensurePeriodLoaded(currentDate);
-            }, 300);
-            return () => clearTimeout(timer);
+            // Carregar imediatamente sem delay para evitar flash de R$ 0,00
+            ensurePeriodLoaded(currentDate);
         }
     }, [currentDate, sessionUser, ensurePeriodLoaded]);
 
