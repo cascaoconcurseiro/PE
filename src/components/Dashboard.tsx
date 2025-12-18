@@ -30,19 +30,24 @@ const DebugPanel: React.FC<{ accounts: Account[], transactions: Transaction[], c
                 return type.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             };
             
-            // Encontrar cartões de crédito
+            // Encontrar cartões de crédito - BUSCA MAIS AMPLA
             const allAccountTypes = accounts.map(a => ({
                 name: a.name,
                 type: a.type,
                 typeNormalized: normalizeType(a.type),
+                currency: a.currency,
                 id: a.id
             }));
             
             const creditCards = accounts.filter(a => {
                 const typeNorm = normalizeType(a.type);
+                const typeStr = String(a.type || '').toUpperCase();
+                // Busca mais ampla
                 return typeNorm === 'CARTAO DE CREDITO' || 
                        typeNorm === 'CREDIT_CARD' ||
-                       typeNorm.includes('CARTAO');
+                       typeStr.includes('CARTAO') ||
+                       typeStr.includes('CARTÃO') ||
+                       typeStr.includes('CREDIT');
             });
             
             const creditCardIds = new Set(creditCards.map(c => c.id));
@@ -64,6 +69,11 @@ const DebugPanel: React.FC<{ accounts: Account[], transactions: Transaction[], c
             // Calcular fatura
             const fatura = txsNoCartao.reduce((sum, t) => sum + t.amount, 0);
             
+            // IDs de todas as contas para comparar com transações
+            const allAccountIds = new Set(accounts.map(a => a.id));
+            const txAccountIds = new Set(monthTxs.map(t => t.accountId).filter(Boolean));
+            const orphanTxAccountIds = [...txAccountIds].filter(id => !allAccountIds.has(id));
+            
             setDebugData({
                 timestamp: new Date().toISOString(),
                 enumValue: AccountType.CREDIT_CARD,
@@ -76,7 +86,9 @@ const DebugPanel: React.FC<{ accounts: Account[], transactions: Transaction[], c
                 totalTxMes: monthTxs.length,
                 txNoCartao: txsNoCartao.length,
                 txNoCartaoDetails: txsNoCartao.slice(0, 5).map(t => ({ desc: t.description, amount: t.amount, accountId: t.accountId })),
-                faturaCalculada: fatura
+                faturaCalculada: fatura,
+                orphanTxAccountIds: orphanTxAccountIds.length > 0 ? orphanTxAccountIds : 'nenhum',
+                allTxAccountIds: [...txAccountIds]
             });
         } catch (err: any) {
             setError(err.message || 'Erro desconhecido');
@@ -101,22 +113,30 @@ const DebugPanel: React.FC<{ accounts: Account[], transactions: Transaction[], c
     }
     
     return (
-        <div className="bg-yellow-100 dark:bg-yellow-900/30 border-2 border-yellow-500 rounded-xl p-4 mb-4 text-xs font-mono overflow-auto max-h-64">
-            <p className="font-bold text-yellow-800 dark:text-yellow-200 mb-2">🔍 DEBUG v2 - {debugData.timestamp}</p>
+        <div className="bg-yellow-100 dark:bg-yellow-900/30 border-2 border-yellow-500 rounded-xl p-4 mb-4 text-xs font-mono overflow-auto max-h-80">
+            <p className="font-bold text-yellow-800 dark:text-yellow-200 mb-2">🔍 DEBUG v3 - {debugData.timestamp}</p>
             
             <div className="space-y-1 text-yellow-700 dark:text-yellow-300">
                 <p><strong>Enum CREDIT_CARD:</strong> "{debugData.enumValue}"</p>
-                <p><strong>Total Contas:</strong> {debugData.totalContas}</p>
+                <p><strong>Total Contas Recebidas:</strong> {debugData.totalContas}</p>
                 <p><strong>Cartões Encontrados:</strong> {debugData.creditCardsFound} ({debugData.creditCardNames.join(', ') || 'nenhum'})</p>
                 <p><strong>Período:</strong> {debugData.viewPeriod}</p>
                 <p><strong>TX no Mês:</strong> {debugData.totalTxMes}</p>
                 <p><strong>TX no Cartão:</strong> {debugData.txNoCartao}</p>
                 <p><strong>Fatura Calculada:</strong> R$ {debugData.faturaCalculada?.toFixed(2)}</p>
+                <p><strong>TX com conta órfã:</strong> {JSON.stringify(debugData.orphanTxAccountIds)}</p>
                 
                 <details className="mt-2">
-                    <summary className="cursor-pointer font-bold">Ver todas as contas</summary>
-                    <pre className="mt-1 text-[10px] whitespace-pre-wrap">
+                    <summary className="cursor-pointer font-bold">Ver todas as contas ({debugData.totalContas})</summary>
+                    <pre className="mt-1 text-[10px] whitespace-pre-wrap bg-yellow-50 dark:bg-yellow-900/50 p-2 rounded">
                         {JSON.stringify(debugData.allAccountTypes, null, 2)}
+                    </pre>
+                </details>
+                
+                <details className="mt-2">
+                    <summary className="cursor-pointer font-bold">Ver IDs de contas nas TX</summary>
+                    <pre className="mt-1 text-[10px] whitespace-pre-wrap bg-yellow-50 dark:bg-yellow-900/50 p-2 rounded">
+                        {JSON.stringify(debugData.allTxAccountIds, null, 2)}
                     </pre>
                 </details>
                 
