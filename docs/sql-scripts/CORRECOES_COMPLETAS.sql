@@ -1,285 +1,269 @@
--- ========================================
--- CORREÇÕES COMPLETAS DO SISTEMA
--- ========================================
--- Data: 2025-12-03
--- Execute este script no Supabase Dashboard > SQL Editor
+-- ==============================================================================
+-- SCRIPT CONSOLIDADO DE CORREÇÕES
+-- DATA: 2026-02-18
+-- OBJETIVO: Aplicar todas as correções identificadas na análise global
+-- ==============================================================================
 -- 
--- Este script consolida TODAS as correções necessárias:
--- 1. Correção de tipo do campo payer_id
--- 2. Adição de campos faltantes
--- 3. Validações multi-moeda
--- 4. Índices de performance
--- 5. Constraints de validação
--- ========================================
+-- INSTRUÇÕES:
+-- 1. Acesse o Supabase Dashboard
+-- 2. Vá em SQL Editor
+-- 3. Cole este script COMPLETO
+-- 4. Execute (Ctrl+Enter ou botão Run)
+-- 5. Verifique se não há erros
+--
+-- ==============================================================================
 
-BEGIN;
+-- ==============================================================================
+-- PARTE 1: CORREÇÃO DE TIPOS DE CONTA
+-- ==============================================================================
 
--- ========================================
--- PARTE 1: CORREÇÕES DE SCHEMA
--- ========================================
+-- Remover constraint antiga (se existir)
+ALTER TABLE accounts DROP CONSTRAINT IF EXISTS check_account_type;
 
--- 1.1 Corrigir tipo do campo payer_id (UUID -> TEXT)
--- Problema: Código usa strings genéricas ("me", "user") mas banco espera UUID
-ALTER TABLE public.transactions 
-ALTER COLUMN payer_id TYPE text USING payer_id::text;
+-- Converter valores em inglês para português (se houver)
+UPDATE accounts SET type = 'CONTA CORRENTE' WHERE type = 'CHECKING';
+UPDATE accounts SET type = 'POUPANÇA' WHERE type = 'SAVINGS';
+UPDATE accounts SET type = 'CARTÃO DE CRÉDITO' WHERE type = 'CREDIT_CARD';
+UPDATE accounts SET type = 'DINHEIRO' WHERE type = 'CASH';
+UPDATE accounts SET type = 'INVESTIMENTOS' WHERE type = 'INVESTMENT';
+UPDATE accounts SET type = 'EMPRÉSTIMO' WHERE type = 'LOAN';
+UPDATE accounts SET type = 'OUTROS' WHERE type = 'OTHER';
 
-COMMENT ON COLUMN public.transactions.payer_id IS 
-'ID do pagador. Pode ser: UUID de family_member, "me", "user", ou null';
+-- Adicionar nova constraint com valores em português
+ALTER TABLE accounts
+ADD CONSTRAINT check_account_type
+CHECK (type IN (
+    'CONTA CORRENTE',
+    'POUPANÇA', 
+    'CARTÃO DE CRÉDITO',
+    'DINHEIRO',
+    'INVESTIMENTOS',
+    'EMPRÉSTIMO',
+    'OUTROS'
+));
 
--- 1.2 Adicionar campos faltantes no banco
--- Campos que existem no TypeScript mas não no banco
+-- ==============================================================================
+-- PARTE 2: CORREÇÃO DO TRIGGER DE SALDO (COM SUPORTE A REFUND)
+-- ==============================================================================
 
--- Campo para relacionar transação com membro específico
-ALTER TABLE public.transactions 
-ADD COLUMN IF NOT EXISTS related_member_id text;
+CREATE OR REPLACE FUNCTION public.fn_update_account_balance()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- DELETE ou UPDATE: Reverter efeito da transação antiga
+    IF (TG_OP = 'DELETE' OR TG_OP = 'UPDATE') THEN
+        -- Ignorar se for dívida compartilhada (outro pagou)
+        IF NOT (OLD.is_shared IS TRUE AND OLD.payer_id IS NOT NULL AND OLD.payer_id != 'me' AND OLD.payer_id != OLD.user_id::text) THEN
+            
+            -- RECEITA
+            IF (OLD.type = 'RECEITA') THEN
+                IF (OLD.is_refund IS TRUE) THEN
+                    UPDATE public.accounts SET balance = balance + OLD.amount WHERE id = OLD.account_id::uuid;
+                ELSE
+                    UPDATE public.accounts SET balance = balance - OLD.amount WHERE id = OLD.account_id::uuid;
+                END IF;
+                
+            -- DESPESA
+            ELSIF (OLD.type = 'DESPESA') THEN
+                IF (OLD.is_refund IS TRUE) THEN
+                    UPDATE public.accounts SET balance = balance - OLD.amount WHERE id = OLD.account_id::uuid;
+                ELSE
+                    UPDATE public.accounts SET balance = balance + OLD.amount WHERE id = OLD.account_id::uuid;
+                END IF;
+                
+            -- TRANSFERÊNCIA
+            ELSIF (OLD.type = 'TRANSFERÊNCIA') THEN
+                UPDATE public.accounts SET balance = balance + OLD.amount WHERE id = OLD.account_id::uuid;
+                IF OLD.destination_account_id IS NOT NULL THEN
+                    UPDATE public.accounts 
+                    SET balance = balance - COALESCE(OLD.destination_amount, OLD.amount)
+                    WHERE id = OLD.destination_account_id::uuid;
+                END IF;
+            END IF;
+        END IF;
+    END IF;
 
-COMMENT ON COLUMN public.transactions.related_member_id IS 
-'ID do membro relacionado à transação (ex: acerto de contas)';
+    -- INSERT ou UPDATE: Aplicar efeito da transação nova
+    IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
+        -- Ignorar se for dívida compartilhada (outro pagou)
+        IF NOT (NEW.is_shared IS TRUE AND NEW.payer_id IS NOT NULL AND NEW.payer_id != 'me' AND NEW.payer_id != NEW.user_id::text) THEN
+            
+            -- RECEITA
+            IF (NEW.type = 'RECEITA') THEN
+                IF (NEW.is_refund IS TRUE) THEN
+                    UPDATE public.accounts SET balance = balance - NEW.amount WHERE id = NEW.account_id::uuid;
+                ELSE
+                    UPDATE public.accounts SET balance = balance + NEW.amount WHERE id = NEW.account_id::uuid;
+                END IF;
+                
+            -- DESPESA
+            ELSIF (NEW.type = 'DESPESA') THEN
+                IF (NEW.is_refund IS TRUE) THEN
+                    UPDATE public.accounts SET balance = balance + NEW.amount WHERE id = NEW.account_id::uuid;
+                ELSE
+                    UPDATE public.accounts SET balance = balance - NEW.amount WHERE id = NEW.account_id::uuid;
+                END IF;
+                
+            -- TRANSFERÊNCIA
+            ELSIF (NEW.type = 'TRANSFERÊNCIA') THEN
+                UPDATE public.accounts SET balance = balance - NEW.amount WHERE id = NEW.account_id::uuid;
+                IF NEW.destination_account_id IS NOT NULL THEN
+                    UPDATE public.accounts 
+                    SET balance = balance + COALESCE(NEW.destination_amount, NEW.amount)
+                    WHERE id = NEW.destination_account_id::uuid;
+                END IF;
+            END IF;
+        END IF;
+    END IF;
 
--- Campo para rastrear transação que liquidou esta
-ALTER TABLE public.transactions 
-ADD COLUMN IF NOT EXISTS settled_by_tx_id uuid REFERENCES public.transactions(id);
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON COLUMN public.transactions.settled_by_tx_id IS 
-'ID da transação que liquidou esta dívida';
+-- ==============================================================================
+-- PARTE 3: FUNÇÃO DE RECÁLCULO DE SALDOS (ATUALIZADA)
+-- ==============================================================================
 
--- Campos para reconciliação bancária
-ALTER TABLE public.transactions 
-ADD COLUMN IF NOT EXISTS reconciled boolean DEFAULT false;
+CREATE OR REPLACE FUNCTION public.recalculate_all_balances()
+RETURNS void AS $$
+DECLARE
+    r_account RECORD;
+    v_calc_balance NUMERIC;
+BEGIN
+    -- Desabilitar trigger temporariamente
+    ALTER TABLE public.transactions DISABLE TRIGGER trg_update_account_balance;
 
-ALTER TABLE public.transactions 
-ADD COLUMN IF NOT EXISTS reconciled_with text;
+    FOR r_account IN SELECT id, initial_balance, user_id FROM public.accounts WHERE deleted = false LOOP
+        
+        v_calc_balance := COALESCE(r_account.initial_balance, 0);
 
-COMMENT ON COLUMN public.transactions.reconciled IS 
-'Indica se transação foi reconciliada com extrato bancário';
+        -- Receitas (considerando refunds)
+        v_calc_balance := v_calc_balance + (
+            SELECT COALESCE(SUM(
+                CASE WHEN is_refund = TRUE THEN -amount ELSE amount END
+            ), 0)
+            FROM public.transactions
+            WHERE account_id::uuid = r_account.id 
+            AND type = 'RECEITA'
+            AND deleted = FALSE
+        );
 
-COMMENT ON COLUMN public.transactions.reconciled_with IS 
-'Referência do extrato bancário (ex: ID OFX)';
+        -- Despesas (considerando refunds e dívidas compartilhadas)
+        v_calc_balance := v_calc_balance - (
+            SELECT COALESCE(SUM(
+                CASE WHEN is_refund = TRUE THEN -amount ELSE amount END
+            ), 0)
+            FROM public.transactions
+            WHERE account_id::uuid = r_account.id 
+            AND type = 'DESPESA'
+            AND deleted = FALSE
+            AND NOT (is_shared = TRUE AND payer_id IS NOT NULL AND payer_id != 'me' AND payer_id != user_id::text)
+        );
 
--- 1.3 Garantir campos para transferências multi-moeda
-ALTER TABLE public.transactions 
-ADD COLUMN IF NOT EXISTS destination_amount numeric;
+        -- Transferências (Saída)
+        v_calc_balance := v_calc_balance - (
+            SELECT COALESCE(SUM(amount), 0)
+            FROM public.transactions
+            WHERE account_id::uuid = r_account.id 
+            AND type = 'TRANSFERÊNCIA'
+            AND deleted = FALSE
+        );
 
-ALTER TABLE public.transactions 
-ADD COLUMN IF NOT EXISTS exchange_rate numeric;
+        -- Transferências (Entrada)
+        v_calc_balance := v_calc_balance + (
+            SELECT COALESCE(SUM(COALESCE(destination_amount, amount)), 0)
+            FROM public.transactions
+            WHERE destination_account_id::uuid = r_account.id 
+            AND type = 'TRANSFERÊNCIA'
+            AND deleted = FALSE
+        );
 
-COMMENT ON COLUMN public.transactions.destination_amount IS 
-'Valor que chega na conta destino (para transferências multi-moeda)';
+        UPDATE public.accounts SET balance = v_calc_balance WHERE id = r_account.id;
+        
+    END LOOP;
 
-COMMENT ON COLUMN public.transactions.exchange_rate IS 
-'Taxa de câmbio aplicada na transferência';
+    -- Reabilitar trigger
+    ALTER TABLE public.transactions ENABLE TRIGGER trg_update_account_balance;
+END;
+$$ LANGUAGE plpgsql;
 
--- ========================================
--- PARTE 2: CONSTRAINTS DE VALIDAÇÃO
--- ========================================
+-- ==============================================================================
+-- PARTE 4: ÍNDICES DE PERFORMANCE
+-- ==============================================================================
 
--- 2.1 Validar formato do payer_id
--- Remove constraint antiga se existir
-ALTER TABLE public.transactions 
-DROP CONSTRAINT IF EXISTS check_payer_id_format;
-
--- Adiciona nova constraint
-ALTER TABLE public.transactions 
-ADD CONSTRAINT check_payer_id_format 
-CHECK (
-    payer_id IS NULL OR 
-    payer_id IN ('me', 'user') OR 
-    payer_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-);
-
--- 2.2 Validar exchange_rate positivo
-ALTER TABLE public.transactions 
-DROP CONSTRAINT IF EXISTS check_exchange_rate_positive;
-
-ALTER TABLE public.transactions 
-ADD CONSTRAINT check_exchange_rate_positive 
-CHECK (exchange_rate IS NULL OR exchange_rate > 0);
-
--- 2.3 Validar destination_amount positivo
-ALTER TABLE public.transactions 
-DROP CONSTRAINT IF EXISTS check_destination_amount_positive;
-
-ALTER TABLE public.transactions 
-ADD CONSTRAINT check_destination_amount_positive 
-CHECK (destination_amount IS NULL OR destination_amount > 0);
-
--- 2.4 Validar que amount é sempre positivo
-ALTER TABLE public.transactions 
-DROP CONSTRAINT IF EXISTS check_amount_positive;
-
-ALTER TABLE public.transactions 
-ADD CONSTRAINT check_amount_positive 
-CHECK (amount > 0);
-
--- ========================================
--- PARTE 3: ÍNDICES DE PERFORMANCE
--- ========================================
-
--- 3.1 Índices para TRANSACTIONS (tabela mais consultada)
-
--- Índice composto para consultas principais
-CREATE INDEX IF NOT EXISTS idx_transactions_user_date_deleted 
-ON public.transactions(user_id, date DESC, deleted) 
+-- Índice principal para transações
+CREATE INDEX IF NOT EXISTS idx_transactions_user_date_range 
+ON public.transactions(user_id, deleted, date DESC)
 WHERE deleted = false;
 
--- Índice para filtro por conta
-CREATE INDEX IF NOT EXISTS idx_transactions_account 
-ON public.transactions(account_id) 
-WHERE deleted = false;
+-- Índice para transações compartilhadas não liquidadas
+CREATE INDEX IF NOT EXISTS idx_transactions_unsettled_shared
+ON public.transactions(user_id, is_settled, date DESC)
+WHERE deleted = false AND is_settled = false AND (is_shared = true OR shared_with IS NOT NULL);
 
--- Índice para transferências
-CREATE INDEX IF NOT EXISTS idx_transactions_destination 
-ON public.transactions(destination_account_id) 
-WHERE destination_account_id IS NOT NULL AND deleted = false;
+-- Índice para contas ativas
+CREATE INDEX IF NOT EXISTS idx_accounts_user_active
+ON public.accounts(user_id, name)
+WHERE deleted = false;
 
 -- Índice para viagens
-CREATE INDEX IF NOT EXISTS idx_transactions_trip 
-ON public.transactions(trip_id) 
-WHERE trip_id IS NOT NULL AND deleted = false;
-
--- Índice para categoria
-CREATE INDEX IF NOT EXISTS idx_transactions_category 
-ON public.transactions(category) 
+CREATE INDEX IF NOT EXISTS idx_trips_user_active
+ON public.trips(user_id, created_at DESC)
 WHERE deleted = false;
 
--- Índice para tipo de transação
-CREATE INDEX IF NOT EXISTS idx_transactions_type 
-ON public.transactions(type) 
+-- Índice para membros da família
+CREATE INDEX IF NOT EXISTS idx_family_user_active
+ON public.family_members(user_id)
 WHERE deleted = false;
 
--- Índice para related_member_id (novo campo)
-CREATE INDEX IF NOT EXISTS idx_transactions_related_member 
-ON public.transactions(related_member_id) 
-WHERE related_member_id IS NOT NULL AND deleted = false;
-
--- Índice para settled_by_tx_id (novo campo)
-CREATE INDEX IF NOT EXISTS idx_transactions_settled_by 
-ON public.transactions(settled_by_tx_id) 
-WHERE settled_by_tx_id IS NOT NULL;
-
--- Índice para reconciled (novo campo)
-CREATE INDEX IF NOT EXISTS idx_transactions_reconciled 
-ON public.transactions(user_id, reconciled) 
+-- Índice para orçamentos
+CREATE INDEX IF NOT EXISTS idx_budgets_user_active
+ON public.budgets(user_id)
 WHERE deleted = false;
 
--- 3.2 Índices para ACCOUNTS
-
-CREATE INDEX IF NOT EXISTS idx_accounts_user_deleted 
-ON public.accounts(user_id, deleted) 
+-- Índice para metas
+CREATE INDEX IF NOT EXISTS idx_goals_user_active
+ON public.goals(user_id)
 WHERE deleted = false;
 
-CREATE INDEX IF NOT EXISTS idx_accounts_type 
-ON public.accounts(type) 
+-- Índice para ativos
+CREATE INDEX IF NOT EXISTS idx_assets_user_active
+ON public.assets(user_id, ticker)
 WHERE deleted = false;
 
--- 3.3 Índices para TRIPS
+-- ==============================================================================
+-- PARTE 5: EXECUTAR RECÁLCULO DE SALDOS
+-- ==============================================================================
 
-CREATE INDEX IF NOT EXISTS idx_trips_user_dates 
-ON public.trips(user_id, start_date, end_date) 
-WHERE deleted = false;
+SELECT public.recalculate_all_balances();
 
--- 3.4 Índices para ASSETS (Investimentos)
+-- ==============================================================================
+-- PARTE 6: ATUALIZAR ESTATÍSTICAS
+-- ==============================================================================
 
-CREATE INDEX IF NOT EXISTS idx_assets_user_type 
-ON public.assets(user_id, type) 
-WHERE deleted = false;
+ANALYZE public.transactions;
+ANALYZE public.accounts;
+ANALYZE public.trips;
+ANALYZE public.family_members;
+ANALYZE public.budgets;
+ANALYZE public.goals;
+ANALYZE public.assets;
 
-CREATE INDEX IF NOT EXISTS idx_assets_ticker 
-ON public.assets(ticker) 
-WHERE deleted = false;
+-- ==============================================================================
+-- VERIFICAÇÃO FINAL
+-- ==============================================================================
 
--- 3.5 Índices para BUDGETS
-
-CREATE INDEX IF NOT EXISTS idx_budgets_user_month 
-ON public.budgets(user_id, month) 
-WHERE deleted = false;
-
--- 3.6 Índices para GOALS
-
-CREATE INDEX IF NOT EXISTS idx_goals_user_status 
-ON public.goals(user_id, completed) 
-WHERE deleted = false;
-
--- 3.7 Índices para FAMILY_MEMBERS
-
-CREATE INDEX IF NOT EXISTS idx_family_members_user 
-ON public.family_members(user_id) 
-WHERE deleted = false;
-
--- 3.8 Índices para CUSTOM_CATEGORIES
-
-CREATE INDEX IF NOT EXISTS idx_custom_categories_user 
-ON public.custom_categories(user_id) 
-WHERE deleted = false;
-
--- 3.9 Índices para SNAPSHOTS
-
-CREATE INDEX IF NOT EXISTS idx_snapshots_user_date 
-ON public.snapshots(user_id, date DESC);
-
--- ========================================
--- PARTE 4: VERIFICAÇÕES
--- ========================================
-
--- 4.1 Listar todas as colunas da tabela transactions
-SELECT 
-    column_name,
-    data_type,
-    is_nullable,
-    column_default,
-    character_maximum_length
-FROM information_schema.columns
-WHERE table_schema = 'public' 
-  AND table_name = 'transactions'
-ORDER BY ordinal_position;
-
--- 4.2 Listar todos os índices
-SELECT 
-    schemaname,
-    tablename,
-    indexname,
-    indexdef
-FROM pg_indexes
-WHERE schemaname = 'public'
-  AND tablename = 'transactions'
-ORDER BY indexname;
-
--- 4.3 Listar todas as constraints
-SELECT
-    conname AS constraint_name,
-    contype AS constraint_type,
-    pg_get_constraintdef(oid) AS constraint_definition
-FROM pg_constraint
-WHERE conrelid = 'public.transactions'::regclass
-ORDER BY conname;
-
--- 4.4 Verificar estatísticas de índices
-SELECT 
-    schemaname,
-    tablename,
-    indexname,
-    idx_scan as index_scans,
-    idx_tup_read as tuples_read,
-    idx_tup_fetch as tuples_fetched
-FROM pg_stat_user_indexes
-WHERE schemaname = 'public'
-ORDER BY idx_scan DESC;
-
-COMMIT;
-
--- ========================================
--- MENSAGEM FINAL
--- ========================================
 DO $$
+DECLARE
+    v_accounts INTEGER;
+    v_transactions INTEGER;
+    v_types TEXT;
 BEGIN
+    SELECT COUNT(*) INTO v_accounts FROM accounts WHERE deleted = false;
+    SELECT COUNT(*) INTO v_transactions FROM transactions WHERE deleted = false;
+    SELECT string_agg(DISTINCT type, ', ') INTO v_types FROM accounts WHERE deleted = false;
+    
     RAISE NOTICE '✅ CORREÇÕES APLICADAS COM SUCESSO!';
-    RAISE NOTICE '';
-    RAISE NOTICE 'Resumo das alterações:';
-    RAISE NOTICE '- Campo payer_id alterado para TEXT';
-    RAISE NOTICE '- 4 novos campos adicionados (related_member_id, settled_by_tx_id, reconciled, reconciled_with)';
-    RAISE NOTICE '- 4 constraints de validação adicionadas';
-    RAISE NOTICE '- 18 índices de performance criados';
-    RAISE NOTICE '';
-    RAISE NOTICE '⚡ Performance esperada: 5-10x mais rápida';
-    RAISE NOTICE '✅ Sistema pronto para produção!';
+    RAISE NOTICE '📊 Contas ativas: %', v_accounts;
+    RAISE NOTICE '📊 Transações ativas: %', v_transactions;
+    RAISE NOTICE '📊 Tipos de conta: %', v_types;
 END $$;

@@ -108,21 +108,16 @@ export const calculateProjectedBalance = (
     currentDate: Date
 ): { currentBalance: number, projectedBalance: number, pendingIncome: number, pendingExpenses: number } => {
 
-    // Helper para verificar tipo de conta (case-insensitive)
-    const isAccountType = (account: Account, ...types: string[]) => {
-        const accountType = String(account.type || '').toUpperCase();
-        return types.some(t => accountType === t.toUpperCase());
-    };
-
     // Saldo Atual Consolidado (Apenas Contas Bancárias e Carteira)
     const liquidityAccounts = accounts.filter(a =>
-        isAccountType(a, AccountType.CHECKING, AccountType.SAVINGS, AccountType.CASH,
-            'CONTA CORRENTE', 'POUPANÇA', 'DINHEIRO')
+        a.type === AccountType.CHECKING ||
+        a.type === AccountType.SAVINGS ||
+        a.type === AccountType.CASH
     );
 
     // Cartões de crédito (para calcular fatura)
     const creditCardAccounts = accounts.filter(a => 
-        isAccountType(a, AccountType.CREDIT_CARD, 'CARTÃO DE CRÉDITO')
+        a.type === AccountType.CREDIT_CARD
     );
     const creditCardIds = new Set(creditCardAccounts.map(a => a.id));
 
