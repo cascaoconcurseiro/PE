@@ -106,19 +106,49 @@ export const calculateProjectedBalance = (
     accounts: Account[],
     transactions: Transaction[],
     currentDate: Date
-): { currentBalance: number, projectedBalance: number, pendingIncome: number, pendingExpenses: number } => {
+): { currentBalance: number, projectedBalance: number, pendingIncome: number, pendingExpenses: number, debugInfo?: any } => {
+
+    // DEBUG: Ver tipos de conta recebidos
+    console.log('🔍 DEBUG CONTAS:', accounts.map(a => ({ name: a.name, type: a.type, id: a.id })));
 
     // Saldo Atual Consolidado (Apenas Contas Bancárias e Carteira)
-    const liquidityAccounts = accounts.filter(a =>
-        a.type === AccountType.CHECKING ||
-        a.type === AccountType.SAVINGS ||
-        a.type === AccountType.CASH
-    );
+    // CORREÇÃO: Comparação case-insensitive e normalizada para evitar problemas de encoding
+    const normalizeType = (type: string | undefined): string => {
+        if (!type) return '';
+        return type.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    };
+    
+    const CHECKING_NORMALIZED = normalizeType(AccountType.CHECKING);
+    const SAVINGS_NORMALIZED = normalizeType(AccountType.SAVINGS);
+    const CASH_NORMALIZED = normalizeType(AccountType.CASH);
+    const CREDIT_CARD_NORMALIZED = normalizeType(AccountType.CREDIT_CARD);
+    
+    const liquidityAccounts = accounts.filter(a => {
+        const typeNorm = normalizeType(a.type);
+        return typeNorm === CHECKING_NORMALIZED ||
+               typeNorm === SAVINGS_NORMALIZED ||
+               typeNorm === CASH_NORMALIZED;
+    });
 
     // Cartões de crédito (para calcular fatura)
-    const creditCardAccounts = accounts.filter(a => 
-        a.type === AccountType.CREDIT_CARD
-    );
+    // CORREÇÃO: Usar comparação normalizada
+    const creditCardAccounts = accounts.filter(a => {
+        const typeNorm = normalizeType(a.type);
+        // Aceitar múltiplas variações possíveis
+        return typeNorm === CREDIT_CARD_NORMALIZED ||
+               typeNorm === 'CARTAO DE CREDITO' ||
+               typeNorm === 'CREDIT_CARD' ||
+               typeNorm.includes('CARTAO') && typeNorm.includes('CREDITO');
+    });
+    
+    console.log('💳 DEBUG CARTÕES:', {
+        enumValue: AccountType.CREDIT_CARD,
+        enumNormalized: CREDIT_CARD_NORMALIZED,
+        cartoes: creditCardAccounts.map(c => ({ name: c.name, type: c.type, typeNorm: normalizeType(c.type) })),
+        totalCartoes: creditCardAccounts.length,
+        todasContas: accounts.map(a => ({ name: a.name, type: a.type, typeNorm: normalizeType(a.type) }))
+    });
+    
     const creditCardIds = new Set(creditCardAccounts.map(a => a.id));
 
     const liquidityAccountIds = new Set(liquidityAccounts.map(a => a.id));
@@ -151,17 +181,28 @@ export const calculateProjectedBalance = (
     // Soma todas as despesas do mês no cartão
     let creditCardBill = 0;
     
-    monthTransactions.forEach(t => {
-        // Despesas no cartão de crédito do mês = fatura a pagar
-        if (t.type === TransactionType.EXPENSE && t.accountId && creditCardIds.has(t.accountId)) {
-            creditCardBill += toBRL(t.amount, t);
-        }
+    const txNoCartao = monthTransactions.filter(t => 
+        t.type === TransactionType.EXPENSE && t.accountId && creditCardIds.has(t.accountId)
+    );
+    
+    console.log('📊 DEBUG TX CARTÃO:', {
+        mes: `${viewMonth + 1}/${viewYear}`,
+        totalTxMes: monthTransactions.length,
+        txNoCartao: txNoCartao.length,
+        creditCardIds: Array.from(creditCardIds),
+        txComAccountId: monthTransactions.filter(t => t.accountId).map(t => ({ desc: t.description, accountId: t.accountId }))
+    });
+    
+    txNoCartao.forEach(t => {
+        creditCardBill += toBRL(t.amount, t);
     });
 
     // Adicionar fatura do cartão como despesa pendente
     if (creditCardBill > 0) {
         pendingExpenses += creditCardBill;
     }
+    
+    console.log('💰 DEBUG FATURA:', { creditCardBill, pendingExpenses });
 
     // Processar transações do mês para A Receber e A Pagar
     monthTransactions.forEach(t => {
@@ -255,11 +296,26 @@ export const calculateProjectedBalance = (
 
     const projectedBalance = currentBalance + pendingIncome - pendingExpenses;
 
+    // Debug info para diagnóstico
+    const debugInfo = {
+        totalAccounts: accounts.length,
+        creditCardCount: creditCardAccounts.length,
+        creditCardNames: creditCardAccounts.map(c => c.name),
+        creditCardBill,
+        txNoCartaoCount: monthTransactions.filter(t => 
+            t.type === TransactionType.EXPENSE && t.accountId && creditCardIds.has(t.accountId)
+        ).length,
+        viewMonth: `${viewMonth + 1}/${viewYear}`
+    };
+    
+    console.log('📊 DEBUG RESULTADO:', debugInfo);
+
     return {
         currentBalance,
         projectedBalance,
         pendingIncome,
-        pendingExpenses
+        pendingExpenses,
+        debugInfo
     };
 };
 
