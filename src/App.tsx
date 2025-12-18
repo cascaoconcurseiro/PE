@@ -305,6 +305,17 @@ const App = () => {
         return <Auth onLogin={() => { }} />;
     }
 
+    // CORREÇÃO: Bloquear renderização até dados estarem prontos
+    // Isso evita o flash de R$ 0,00 antes dos dados carregarem
+    if (isDataLoading) {
+        return (
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center">
+                <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
+                <p className="text-slate-600 dark:text-slate-400 font-medium">Carregando dados...</p>
+            </div>
+        );
+    }
+
     // 3. Main Render - Only reached if !loading and user exists
     return (
         <MainLayout
