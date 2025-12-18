@@ -35,6 +35,7 @@ export const useDataStore = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [dataInconsistencies, setDataInconsistencies] = useState<string[]>([]);
     const isInitialized = useRef(false);
+    const dataReady = useRef(false); // Flag para indicar que dados foram carregados pelo menos uma vez
 
     // Wrapper for async operations to handle errors
     const performOperation = async (operation: () => Promise<void>, successMessage?: string, options: { backgroundRefresh?: boolean } = {}) => {
@@ -412,26 +413,19 @@ export const useDataStore = () => {
             setSnapshots(snaps);
             setCustomCategories(cats);
 
-            // Performance tracking removed
+            // Marcar dados como prontos ANTES de atualizar isLoading
+            dataReady.current = true;
+            isInitialized.current = true;
+            
+            // Só atualizar isLoading UMA VEZ no final
+            setIsLoading(false);
 
-            // ✅ REESTRUTURAÇÃO: Garantir que isLoading só vira false quando TUDO está pronto
-            // Isso previne flicker - UI só renderiza quando todos os dados estão carregados
-            if (!isInitialized.current) {
-                setIsLoading(false);
-                isInitialized.current = true;
-            }
-
-            // ✅ REESTRUTURAÇÃO: Consistency Check (Debounced) - não bloqueia renderização
+            // Consistency Check (Debounced) - não bloqueia renderização
             setTimeout(() => {
                 if (signal.aborted) return;
                 const issues = checkDataConsistency(accs, recentTxs);
                 setDataInconsistencies(issues);
-            }, 500);
-
-            // ✅ REESTRUTURAÇÃO: Garantir que isLoading só vira false quando TUDO está carregado
-            // Isso previne flicker - UI só renderiza quando dados estão prontos
-            isInitialized.current = true;
-            setIsLoading(false);
+            }, 1000);
         } catch (error) {
             if (signal.aborted) return;
             logger.error("Error fetching data from Supabase", error);
@@ -444,52 +438,16 @@ export const useDataStore = () => {
     useEffect(() => {
         fetchData();
 
-        // --- REALTIME SUBSCRIPTIONS (OTIMIZADO) ---
-        // Debounce mais longo (1s) para evitar múltiplos refreshes
-        let refreshTimeout: NodeJS.Timeout | null = null;
-        let lastRefresh = Date.now();
-        const MIN_REFRESH_INTERVAL = 2000; // Mínimo 2s entre refreshes
+        // --- REALTIME DESABILITADO TEMPORARIAMENTE ---
+        // O realtime estava causando refreshes que zeravam os valores
+        // TODO: Implementar realtime incremental (só atualizar o que mudou)
         
-        const channel = supabase.channel('global_changes')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public' },
-                (payload) => {
-                    const relevantTables = ['transactions', 'accounts', 'trips', 'family_members'];
-                    if (!relevantTables.includes(payload.table)) return;
-                    
-                    // Evitar refresh se foi feito recentemente
-                    const now = Date.now();
-                    if (now - lastRefresh < MIN_REFRESH_INTERVAL) {
-                        logger.debug('⚡ Realtime: Ignorando (refresh recente)');
-                        return;
-                    }
-                    
-                    if (refreshTimeout) clearTimeout(refreshTimeout);
-                    refreshTimeout = setTimeout(() => {
-                        lastRefresh = Date.now();
-                        fetchData(false);
-                    }, 1000); // Debounce de 1s
-                }
-            )
-            .subscribe();
-
-        // --- FOCUS REVALIDATION (OTIMIZADO) ---
-        let lastFocusRefresh = 0;
-        const onFocus = () => {
-            const now = Date.now();
-            // Só revalidar se passou mais de 30s desde último refresh
-            if (now - lastFocusRefresh > 30000 && now - lastRefresh > 5000) {
-                lastFocusRefresh = now;
-                fetchData(false);
-            }
-        };
-        window.addEventListener('focus', onFocus);
+        // --- FOCUS REVALIDATION (DESABILITADO) ---
+        // Também causava refreshes desnecessários
+        // O usuário pode fazer pull-to-refresh manualmente se precisar
 
         return () => {
-            supabase.removeChannel(channel);
-            window.removeEventListener('focus', onFocus);
-            if (refreshTimeout) clearTimeout(refreshTimeout);
+            // Cleanup vazio por enquanto
         };
     }, [fetchData]);
 

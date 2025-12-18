@@ -69,9 +69,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
         spendingView
     });
 
-    // ✅ OTIMIZADO: Só mostrar skeleton no carregamento inicial
-    // isLoadingHistory NÃO deve causar skeleton - dados existentes continuam visíveis
-    if (isLoading || !accounts || !transactions) {
+    // ✅ CORRIGIDO: Verificar se dados estão REALMENTE carregados
+    // Arrays vazios passam no check !accounts, então verificamos length também
+    const hasData = accounts && accounts.length > 0;
+    
+    // Mostrar skeleton APENAS durante carregamento inicial (isLoading=true)
+    // Não mostrar skeleton se já temos dados (mesmo que esteja recarregando)
+    if (isLoading && !hasData) {
         return <DashboardSkeleton />;
     }
 
