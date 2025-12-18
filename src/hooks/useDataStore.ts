@@ -378,9 +378,31 @@ export const useDataStore = () => {
 
             const combined = [...recentTxs, ...unsettledShared];
             const uniqueTxs = Array.from(new Map(combined.map(item => [item.id, item])).values());
-            setTransactions(uniqueTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            
+            // CORREÇÃO: Manter transações de períodos já carregados (não sobrescrever)
+            setTransactions(prev => {
+                // Se é o primeiro load, usar apenas os novos dados
+                if (!isInitialized.current || prev.length === 0) {
+                    return uniqueTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                }
+                
+                // Mesclar: manter transações antigas de outros períodos + atualizar as recentes
+                const recentIds = new Set(uniqueTxs.map(t => t.id));
+                const olderTxs = prev.filter(t => {
+                    // Manter se não está no período recente E não foi atualizado
+                    if (recentIds.has(t.id)) return false;
+                    const txDate = t.date;
+                    return txDate < startOfWindow; // Manter transações mais antigas
+                });
+                
+                const merged = [...olderTxs, ...uniqueTxs];
+                const unique = Array.from(new Map(merged.map(item => [item.id, item])).values());
+                return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            });
 
-            loadedPeriods.current = new Set([currentPeriod, prevPeriod]);
+            // Adicionar períodos carregados (não resetar)
+            loadedPeriods.current.add(currentPeriod);
+            loadedPeriods.current.add(prevPeriod);
 
             setTrips(trps);
             setBudgets(bdgts);
