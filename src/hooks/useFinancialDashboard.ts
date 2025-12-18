@@ -86,9 +86,25 @@ export const useFinancialDashboard = ({
 
 
     // 1. Calculate Projection
-    const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() =>
-        calculateProjectedBalance(dashboardProjectedAccounts, dashboardTransactions, currentDate),
-        [dashboardProjectedAccounts, dashboardTransactions, currentDate]);
+    // IMPORTANTE: Passar TODAS as contas (incluindo cartões) para calcular fatura
+    const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() => {
+        // DEBUG: Log para verificar dados
+        const creditCards = dashboardAccounts.filter(a => a.type === 'CARTÃO DE CRÉDITO');
+        const monthTxs = dashboardTransactions.filter(t => {
+            const d = new Date(t.date);
+            return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
+        });
+        console.log('📊 DEBUG Projeção:', {
+            mes: `${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`,
+            totalContas: dashboardAccounts.length,
+            cartoes: creditCards.length,
+            cartoesIds: creditCards.map(c => c.id),
+            totalTxMes: monthTxs.length,
+            txCartao: monthTxs.filter(t => creditCards.some(c => c.id === t.accountId)).length
+        });
+        
+        return calculateProjectedBalance(dashboardAccounts, dashboardTransactions, currentDate);
+    }, [dashboardAccounts, dashboardTransactions, currentDate]);
 
     // 2. Filter Transactions for Charts - OTIMIZADO
     const monthlyTransactions = useMemo(() => {
