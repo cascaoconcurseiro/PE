@@ -32,7 +32,7 @@ export const useInvestmentActions = ({
 
     // 1. COMPRA / NOVO APORTE (BUY)
     const handleSaveAsset = async (
-        data: any,
+        data: import('../types').Asset,
         isCreatingAccount: boolean,
         newAccountName: string,
         editingAsset: Asset | null,
@@ -45,22 +45,22 @@ export const useInvestmentActions = ({
                 addToast('Por favor, informe o nome da nova corretora.', 'error');
                 return;
             }
-            const newAccount = { name: newAccountName, type: AccountType.INVESTMENT, balance: 0, initialBalance: 0, currency: 'BRL', color: 'slate' };
+            const newAccount = { name: newAccountName, type: AccountType.INVESTMENT, balance: 0, initialBalance: 0, currency: 'BRL' };
             const tempId = crypto.randomUUID();
-            await (onAddAccount as any)({ ...newAccount, id: tempId });
+            await onAddAccount({ ...newAccount });
             brokerageId = tempId;
         }
 
         // Data extraction
-        const ticker = (data.ticker as string).trim().toUpperCase();
-        const inputQuantity = parseFloat(data.quantity as string);
-        const inputPrice = parseFloat(data.averagePrice as string); // In "Add New", Avg Price field acts as Purchase Price
-        const currentPrice = parseFloat(data.currentPrice as string);
-        const currency = data.currency as string;
-        const type = data.type as AssetType;
-        const name = data.name as string;
+        const ticker = String(data.ticker || '').trim().toUpperCase();
+        const inputQuantity = typeof data.quantity === 'number' ? data.quantity : parseFloat(String(data.quantity));
+        const inputPrice = typeof data.averagePrice === 'number' ? data.averagePrice : parseFloat(String(data.averagePrice)); // In "Add New", Avg Price field acts as Purchase Price
+        const currentPrice = typeof data.currentPrice === 'number' ? data.currentPrice : parseFloat(String(data.currentPrice));
+        const currency = String(data.currency || 'BRL');
+        const type = data.type;
+        const name = String(data.name || '');
         const date = new Date().toISOString();
-        const sourceAccountId = data.sourceAccountId as string; // Money source
+        const sourceAccountId = (data as unknown as Record<string, unknown>).sourceAccountId as string; // Money source
 
         // Validation
         if (!sourceAccountId && !editingAsset) {

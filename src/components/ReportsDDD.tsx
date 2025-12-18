@@ -3,8 +3,8 @@ import { supabaseService } from '../services/supabaseService';
 import { Loader2, TrendingUp, TrendingDown, Landmark, PieChart } from 'lucide-react';
 
 export function ReportsDDD() {
-    const [balanceSheet, setBalanceSheet] = useState<any[]>([]);
-    const [incomeStatement, setIncomeStatement] = useState<any[]>([]);
+    const [balanceSheet, setBalanceSheet] = useState<Array<Record<string, unknown>>>([]);
+    const [incomeStatement, setIncomeStatement] = useState<Array<Record<string, unknown>>>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -26,14 +26,14 @@ export function ReportsDDD() {
     };
 
     // Calculate Totals
-    const assetsTotal = balanceSheet.filter(i => i.account_type === 'ASSET').reduce((acc, curr) => acc + (curr.display_balance || 0), 0);
-    const liabilitiesTotal = balanceSheet.filter(i => i.account_type === 'LIABILITY').reduce((acc, curr) => acc + (curr.display_balance || 0), 0);
-    const equityTotal = balanceSheet.filter(i => i.account_type === 'EQUITY').reduce((acc, curr) => acc + (curr.display_balance || 0), 0);
+    const assetsTotal = balanceSheet.filter(i => i.account_type === 'ASSET').reduce((acc, curr) => acc + (Number(curr.display_balance) || 0), 0);
+    const liabilitiesTotal = balanceSheet.filter(i => i.account_type === 'LIABILITY').reduce((acc, curr) => acc + (Number(curr.display_balance) || 0), 0);
+    const equityTotal = balanceSheet.filter(i => i.account_type === 'EQUITY').reduce((acc, curr) => acc + (Number(curr.display_balance) || 0), 0);
 
     const netWorth = assetsTotal - liabilitiesTotal; // Should match Equity ideally in pure double entry, but Equity is usually "residual" in migrations
 
     // Group DRE by Month
-    const months = Array.from(new Set(incomeStatement.map(i => i.month_year))).sort().reverse();
+    const months = Array.from(new Set(incomeStatement.map(i => String(i.month_year)))).sort().reverse();
 
     if (loading) {
         return <div className="flex justify-center items-center h-96"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
@@ -73,10 +73,10 @@ export function ReportsDDD() {
                         </div>
                         <div className="space-y-2">
                             {balanceSheet.filter(i => i.account_type === 'ASSET').map(acc => (
-                                <div key={acc.account_name} className="flex justify-between text-sm">
-                                    <span className="text-slate-600 dark:text-slate-300">{acc.account_name}</span>
+                                <div key={String(acc.account_name)} className="flex justify-between text-sm">
+                                    <span className="text-slate-600 dark:text-slate-300">{String(acc.account_name)}</span>
                                     <span className="font-medium text-slate-900 dark:text-white">
-                                        {acc.display_balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        {Number(acc.display_balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </span>
                                 </div>
                             ))}
@@ -93,10 +93,10 @@ export function ReportsDDD() {
                         </div>
                         <div className="space-y-2">
                             {balanceSheet.filter(i => i.account_type === 'LIABILITY').map(acc => (
-                                <div key={acc.account_name} className="flex justify-between text-sm">
-                                    <span className="text-slate-600 dark:text-slate-300">{acc.account_name}</span>
+                                <div key={String(acc.account_name)} className="flex justify-between text-sm">
+                                    <span className="text-slate-600 dark:text-slate-300">{String(acc.account_name)}</span>
                                     <span className="font-medium text-slate-900 dark:text-white">
-                                        {acc.display_balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        {Number(acc.display_balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </span>
                                 </div>
                             ))}
@@ -111,10 +111,10 @@ export function ReportsDDD() {
                         </div>
                         <div className="space-y-2 border-t border-slate-700 pt-4">
                             {balanceSheet.filter(i => i.account_type === 'EQUITY').map(acc => (
-                                <div key={acc.account_name} className="flex justify-between text-sm">
-                                    <span className="text-slate-400">{acc.account_name}</span>
+                                <div key={String(acc.account_name)} className="flex justify-between text-sm">
+                                    <span className="text-slate-400">{String(acc.account_name)}</span>
                                     <span className="font-medium">
-                                        {acc.display_balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        {Number(acc.display_balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </span>
                                 </div>
                             ))}
@@ -133,8 +133,8 @@ export function ReportsDDD() {
                 <div className="overflow-x-auto">
                     <div className="flex gap-4 pb-4">
                         {months.map(month => {
-                            const rev = incomeStatement.filter(i => i.month_year === month && i.account_type === 'REVENUE').reduce((a, b) => a + b.period_amount, 0);
-                            const exp = incomeStatement.filter(i => i.month_year === month && i.account_type === 'EXPENSE').reduce((a, b) => a + b.period_amount, 0);
+                            const rev = incomeStatement.filter(i => String(i.month_year) === month && i.account_type === 'REVENUE').reduce((a, b) => a + Number(b.period_amount), 0);
+                            const exp = incomeStatement.filter(i => String(i.month_year) === month && i.account_type === 'EXPENSE').reduce((a, b) => a + Number(b.period_amount), 0);
                             const profit = rev - exp;
                             const isProfit = profit >= 0;
 

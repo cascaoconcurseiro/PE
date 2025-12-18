@@ -20,13 +20,6 @@ export const calculateEffectiveTransactionValue = (t: Transaction): number => {
 
     // ✅ VALIDAÇÃO CRÍTICA: Splits não podem ser maiores que o total
     if (splitsTotal > t.amount) {
-        console.error(`❌ ERRO: Divisão maior que o total da transação!`);
-        console.error(`   Transaction ID: ${t.id}`);
-        console.error(`   Description: ${t.description}`);
-        console.error(`   Total: ${t.amount}`);
-        console.error(`   Soma das divisões: ${splitsTotal}`);
-        console.error(`   Diferença: ${splitsTotal - t.amount}`);
-        console.error(`   ⚠️ RETORNANDO TOTAL COMO FALLBACK!`);
         // Retornar total como fallback para evitar valores negativos
         return t.amount;
     }

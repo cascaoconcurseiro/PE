@@ -16,7 +16,7 @@ interface MainLayoutProps {
     currentDate: Date;
     onDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onMonthChange: (direction: 'prev' | 'next') => void;
-    notifications: Transaction[];
+    notifications: Array<{ id: string; type: string; title?: string; description: string; message?: string; date?: string; amount?: number; enableNotification?: boolean; notificationDate?: string }>;
     onNotificationClick: (id: string) => void;
     onNotificationDismiss: (id: string) => void;
     onNotificationPay: (id: string) => void;

@@ -65,7 +65,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             const installmentValue = parseFloat(amount);
             const numInstallments = parseInt(installments);
 
-            const generatedTransactions: any[] = []; // Allow ID
+            const generatedTransactions: Array<import('../../types').Transaction & { id?: string }> = [];
             const [yearStr, monthStr, dayStr] = date.split('-');
             const startYear = parseInt(yearStr);
             const startMonth = parseInt(monthStr) - 1;
@@ -95,7 +95,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
                 generatedTransactions.push({
                     id: transactionId, // Explicit ID for Idempotency
-                    user_id: 'temp', // Will be overwritten by service
+                    userId: 'temp', // Will be overwritten by service
                     description: `${description} (${i + 1}/${numInstallments})`,
                     amount: currentInstallmentAmount,
                     type: TransactionType.EXPENSE,

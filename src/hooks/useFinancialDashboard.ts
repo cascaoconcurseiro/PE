@@ -281,7 +281,7 @@ export const useFinancialDashboard = ({
         return data.map(d => {
             if (d.date < minDate && d.year <= minDate.getFullYear()) {
                 // If this month is historically before our first transaction, it shouldn't show data
-                return { ...d, Receitas: 0, Despesas: 0, Acumulado: null as any }; // null forces Recharts to break line or show empty
+                return { ...d, Receitas: 0, Despesas: 0, Acumulado: null }; // null forces Recharts to break line or show empty
             }
             return d;
         });

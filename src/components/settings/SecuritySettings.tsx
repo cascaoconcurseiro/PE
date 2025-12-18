@@ -40,8 +40,9 @@ export const SecuritySettings: React.FC = () => {
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
-        } catch (error: any) {
-            addToast(error.message || 'Erro ao alterar senha', 'error');
+        } catch (error) {
+            const err = error as Error;
+            addToast(err.message || 'Erro ao alterar senha', 'error');
         } finally {
             setIsChangingPassword(false);
         }

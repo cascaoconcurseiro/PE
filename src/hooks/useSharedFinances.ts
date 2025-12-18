@@ -71,7 +71,7 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                 const myShare = t.amount - totalSplits;
 
                 if (myShare < 0) {
-                    console.error(`❌ ERRO: Divisão maior que o total da transação!`, t);
+                    // Divisão maior que o total da transação - erro de dados
                 }
 
                 if (myShare > 0.01) {

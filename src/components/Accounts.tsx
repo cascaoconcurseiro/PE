@@ -35,7 +35,7 @@ interface AccountsProps {
     onAnticipate: (ids: string[], date: string, accountId: string) => void;
     initialAccountId?: string | null;
     onClearInitialAccount?: () => void;
-    members?: any[]; // Using any[] temporarily to avoid circular dependency issues if FamilyMember isn't imported, but ideally import it. 
+    members?: import('../types').FamilyMember[]; 
     // Actually Account defines FamilyMember import usually.
     onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
 }
@@ -270,7 +270,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
             </div>
 
             {isFormOpen && (
-                <AccountForm type={activeTab === 'CARDS' ? 'CARDS' : activeTab === 'INTERNATIONAL' ? 'INTERNATIONAL' : 'BANKING'} onSave={(acc) => { onAddAccount(acc as any); setIsFormOpen(false); }} onCancel={() => setIsFormOpen(false)} />
+                <AccountForm type={activeTab === 'CARDS' ? 'CARDS' : activeTab === 'INTERNATIONAL' ? 'INTERNATIONAL' : 'BANKING'} onSave={(acc) => { onAddAccount(acc as Omit<Account, 'id'>); setIsFormOpen(false); }} onCancel={() => setIsFormOpen(false)} />
             )}
 
             <AccountList

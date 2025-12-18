@@ -6,7 +6,7 @@ interface NotificationItem {
     id: string;
     title?: string;
     description: string;
-    date: string;
+    date?: string;
     amount?: number;
     type: string;
     enableNotification?: boolean;
@@ -48,7 +48,7 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
 
     const displayList = [...dbItems, ...legacyItems]
         .filter(n => !n.read) // Hide read/dismissed items
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 
     // Auto-dismiss logic for toasts (optional, if we want to confirm user request 'maximo minutos')
     // But hiding read items satisfies "sumirem" after "dispensar".
@@ -121,7 +121,7 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
                                                     <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{n.title}</p>
                                                     <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{n.description}</p>
                                                     <p className="text-[10px] mt-1 text-slate-400">
-                                                        {new Date(n.date).toLocaleDateString()} {new Date(n.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        {n.date ? `${new Date(n.date).toLocaleDateString()} ${new Date(n.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
                                                     </p>
 
                                                     <div className="flex gap-2 mt-2">

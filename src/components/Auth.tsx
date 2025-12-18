@@ -6,7 +6,7 @@ import { PiggyBank, ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, 
 import { useToast } from './ui/Toast';
 
 interface AuthProps {
-    onLogin: (user: any) => void;
+    onLogin: (user: { id: string; email?: string }) => void;
 }
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {

@@ -29,9 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
         // Enhanced logging
         console.group('🔴 ErrorBoundary Caught Error');
-        console.error('Error:', error.message);
-        console.error('Stack:', error.stack);
-        console.error('Component Stack:', errorInfo.componentStack);
+        console.error('Error Boundary caught error', error, { componentStack: errorInfo.componentStack });
         console.groupEnd();
 
         // Store error in localStorage for persistence across reloads

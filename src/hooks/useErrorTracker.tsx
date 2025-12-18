@@ -100,9 +100,7 @@ export const ErrorTrackerProvider: React.FC<{ children: ReactNode }> = ({ childr
 
             // Enhanced Console Logging
             console.group('%c🚨 ERRO CRÍTICO DETECTADO', 'background: #ef4444; color: white; padding: 4px; border-radius: 4px; font-weight: bold; font-size: 14px;');
-            console.log('%cMensagem:', 'font-weight: bold', error.message);
-            console.log('%cStack:', 'font-weight: bold', error.stack);
-            console.log('%cLocal:', 'font-weight: bold', window.location.href);
+            console.debug('Error tracked', { message: error.message, stack: error.stack, location: window.location.href });
             console.groupEnd();
         };
 
@@ -114,14 +112,13 @@ export const ErrorTrackerProvider: React.FC<{ children: ReactNode }> = ({ childr
 
             // Enhanced Console Logging
             console.group('%c⚠️ UNHANDLED PROMISE REJECTION', 'background: #f59e0b; color: black; padding: 4px; border-radius: 4px; font-weight: bold; font-size: 14px;');
-            console.log('%cReason:', 'font-weight: bold', error.message);
-            console.log('%cStack:', 'font-weight: bold', error.stack);
+            console.debug('Promise rejection tracked', { message: error.message, stack: error.stack });
             console.groupEnd();
         };
 
         // Intercept console.error to capture non-throwing errors (common in React/Supabase)
         const originalConsoleError = console.error;
-        console.error = (...args: any[]) => {
+        console.error = (...args: unknown[]) => {
             // Call original first to preserve default behavior
             originalConsoleError.apply(console, args);
 
@@ -132,7 +129,8 @@ export const ErrorTrackerProvider: React.FC<{ children: ReactNode }> = ({ childr
 
                 // Avoid logging the same error we just caught in onerror
                 // Only track if it doesn't look like a standard error object already caught
-                if (!args[0]?.stack) {
+                const firstArg = args[0] as Record<string, unknown> | null;
+                if (!firstArg?.stack) {
                     const error = new Error(message);
                     error.stack = new Error().stack; // Capture call stack of console.error
                     addError(error, 'runtime', 'Console Error Intercept');

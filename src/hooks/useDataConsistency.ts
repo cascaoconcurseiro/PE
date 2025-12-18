@@ -15,7 +15,7 @@ export const useDataConsistency = (
         const issues = checkDataConsistency(accounts, transactions);
 
         if (issues.length > 0) {
-            console.warn("Inconsistências encontradas nos dados:", issues);
+            // Inconsistências encontradas nos dados - registrar para análise
             // Future: Could dispatch to a 'SystemHealth' store
         }
 

@@ -10,7 +10,7 @@ interface MobileNavProps {
 
 export const MobileNav: React.FC<MobileNavProps> = ({ activeView, setActiveView, onOpenTxModal }) => {
 
-    const NavItem = ({ view, icon: Icon, label, activeColor }: { view: View, icon: any, label: string, activeColor: string }) => {
+    const NavItem = ({ view, icon: Icon, label, activeColor }: { view: View, icon: React.ComponentType<{ className?: string }>, label: string, activeColor: string }) => {
         const isActive = activeView === view;
         return (
             <button
@@ -20,7 +20,6 @@ export const MobileNav: React.FC<MobileNavProps> = ({ activeView, setActiveView,
                 <div className={`p-1.5 rounded-xl transition-all duration-300 ${isActive ? `${activeColor.replace('text-', 'bg-')}/10` : 'bg-transparent'}`}>
                     <Icon
                         className={`w-6 h-6 transition-colors duration-300 ${isActive ? activeColor : 'text-slate-400 dark:text-slate-500'}`}
-                        strokeWidth={isActive ? 2.5 : 2}
                     />
                 </div>
                 <span className={`text-[10px] font-bold mt-0.5 transition-colors duration-300 ${isActive ? activeColor : 'text-slate-400 dark:text-slate-500'}`}>

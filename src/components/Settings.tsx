@@ -100,7 +100,7 @@ export const Settings: React.FC<SettingsProps> = ({
         }
     };
 
-    const handleImportData = async (importData: any, mergeMode: boolean) => {
+    const handleImportData = async (importData: import('../types/common').ImportData, mergeMode: boolean) => {
         addToast(
             mergeMode
                 ? 'Dados mesclados com sucesso!'

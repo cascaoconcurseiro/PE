@@ -117,7 +117,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
         if (onCancel) onCancel();
     };
 
-    const handleSaveTransaction = (data: any, isEdit: boolean, updateFuture: boolean) => {
+    const handleSaveTransaction = (data: import('../types').Transaction, isEdit: boolean, updateFuture: boolean) => {
         if (isEdit && editingTransaction) {
             onUpdateTransaction({ ...data, id: editingTransaction.id });
             if (updateFuture) {

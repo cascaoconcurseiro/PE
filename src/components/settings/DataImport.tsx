@@ -7,15 +7,15 @@ import { useToast } from '../ui/Toast';
 interface ImportData {
     version?: string;
     exportedAt?: string;
-    accounts?: any[];
-    transactions?: any[];
-    trips?: any[];
-    budgets?: any[];
-    goals?: any[];
-    familyMembers?: any[];
-    assets?: any[];
-    snapshots?: any[];
-    customCategories?: any[];
+    accounts?: import('../../types').Account[];
+    transactions?: import('../../types').Transaction[];
+    trips?: import('../../types').Trip[];
+    budgets?: import('../../types').Budget[];
+    goals?: import('../../types').Goal[];
+    familyMembers?: import('../../types').FamilyMember[];
+    assets?: import('../../types').Asset[];
+    snapshots?: import('../../types').Snapshot[];
+    customCategories?: import('../../types').CustomCategory[];
 }
 
 interface DataImportProps {

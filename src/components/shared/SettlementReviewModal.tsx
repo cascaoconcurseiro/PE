@@ -9,11 +9,11 @@ import { formatCurrency } from '../../utils';
 interface SettlementReviewModalProps {
     isOpen: boolean;
     onClose: () => void;
-    request: any; // The Settlement Request Object
+    request: import('../../types/settlement').SettlementRequest;
     accounts: Account[];
     currentUserId: string;
     onSuccess: () => void;
-    onAddTransaction: (t: any) => void;
+    onAddTransaction: (t: import('../../types').Transaction) => void;
 }
 
 export const SettlementReviewModal: React.FC<SettlementReviewModalProps> = ({
@@ -41,9 +41,10 @@ export const SettlementReviewModal: React.FC<SettlementReviewModalProps> = ({
         try {
             // 1. Create Income Transaction via Store (Updates UI)
             await onAddTransaction({
-                description: `Pagamento recebido de ${request.payer_name || 'Usuário'}`,
+                id: crypto.randomUUID(),
+                description: `Pagamento recebido de ${(request as any).payer_name || 'Usuário'}`,
                 amount: request.amount,
-                date: request.date,
+                date: (request as any).date || new Date().toISOString().split('T')[0],
                 type: TransactionType.INCOME,
                 category: Category.INCOME,
                 accountId: destinationAccountId,
@@ -101,7 +102,7 @@ export const SettlementReviewModal: React.FC<SettlementReviewModalProps> = ({
                         Recebimento de Valor
                     </h3>
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
-                        <span className="font-bold text-slate-900 dark:text-white">{request.payer_name}</span> diz que pagou <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(request.amount, request.currency || 'BRL')}</span> em {new Date(request.date).toLocaleDateString()}.
+                        <span className="font-bold text-slate-900 dark:text-white">{(request as any).payer_name}</span> diz que pagou <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(request.amount, (request as any).currency || 'BRL')}</span> em {new Date((request as any).date || (request as any).createdAt || Date.now()).toLocaleDateString()}.
                     </p>
 
                     <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-6 text-left border border-slate-100 dark:border-slate-700">

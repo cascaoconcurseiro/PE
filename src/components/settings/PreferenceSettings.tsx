@@ -49,7 +49,7 @@ export const PreferenceSettings: React.FC = () => {
                 <select
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-white font-medium transition-all"
                     value={settings.preferences.language}
-                    onChange={(e) => handleLanguageChange(e.target.value as any)}
+                    onChange={(e) => handleLanguageChange(e.target.value as 'pt-BR' | 'en-US' | 'es-ES')}
                 >
                     <option value="pt-BR">Português (Brasil)</option>
                     <option value="en-US">English (US)</option>
@@ -71,7 +71,7 @@ export const PreferenceSettings: React.FC = () => {
                 <select
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-slate-900 dark:text-white font-medium transition-all"
                     value={settings.preferences.dateFormat}
-                    onChange={(e) => handleDateFormatChange(e.target.value as any)}
+                    onChange={(e) => handleDateFormatChange(e.target.value as 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD')}
                 >
                     <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2024)</option>
                     <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2024)</option>

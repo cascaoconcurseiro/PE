@@ -11,7 +11,7 @@ interface UseAppLogicProps {
     handlers: {
         handleAddTransaction: (t: Omit<Transaction, 'id'>) => Promise<void>;
         handleUpdateTransaction: (t: Transaction) => Promise<void>;
-        handleAddSnapshot: (s: any) => Promise<void>;
+        handleAddSnapshot: (s: import('../types').Snapshot) => Promise<void>;
     };
 }
 

@@ -37,7 +37,7 @@ export interface DBTransaction extends DBBaseEntity {
 
     observation?: string;
     is_shared?: boolean;
-    shared_with?: any; // JSONB
+    shared_with?: Record<string, unknown>[] | null; // JSONB
     payer_id?: string;
 
     is_settled?: boolean;
@@ -69,11 +69,11 @@ export interface DBTrip extends DBBaseEntity {
     budget: number;
     image_url?: string;
     currency: string;
-    participants: any; // JSONB
-    itinerary?: any; // JSONB
-    checklist?: any; // JSONB
-    shopping_list?: any; // JSONB
-    exchange_entries?: any; // JSONB
+    participants: Record<string, unknown>[] | null; // JSONB
+    itinerary?: Record<string, unknown>[] | null; // JSONB
+    checklist?: Record<string, unknown>[] | null; // JSONB
+    shopping_list?: Record<string, unknown>[] | null; // JSONB
+    exchange_entries?: Record<string, unknown>[] | null; // JSONB
     source_trip_id?: string;
 }
 
@@ -104,7 +104,7 @@ export interface DBAsset extends DBBaseEntity {
     currency: string;
     account_id: string;
     last_update?: string;
-    trade_history?: any; // JSONB
+    trade_history?: Record<string, unknown>[] | null; // JSONB
 }
 
 export interface DBSnapshot extends DBBaseEntity {

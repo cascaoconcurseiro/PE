@@ -19,7 +19,7 @@ if (!container) {
 container.innerHTML = '';
 
 // VERSION MARKER - DEBUGGING
-console.log('🚀 APP VERSION: v2.0 (STRICT FILTERING + PWA ENABLED) - Loaded at ' + new Date().toLocaleTimeString());
+// App version logged via logger in App.tsx
 
 // NOTE: PWA Auto-Update is handled by vite-plugin-pwa. Do not manually unregister workers here,
 // as it conflicts with the auto-update strategy.

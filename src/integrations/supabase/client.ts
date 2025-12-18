@@ -5,13 +5,7 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SU
 
 // Display clear error message if environment variables are missing
 if (!supabaseUrl || !supabaseKey) {
-    console.error(
-        '❌ Supabase configuration missing!\n\n' +
-        'Please create a .env.local file in the project root with:\n\n' +
-        'VITE_SUPABASE_URL=https://mlqzeihukezlozooqhko.supabase.co\n' +
-        'VITE_SUPABASE_ANON_KEY=your-anon-key-here\n\n' +
-        'Get your anon key from: https://supabase.com/dashboard/project/mlqzeihukezlozooqhko/settings/api'
-    );
+    // Supabase configuration missing - check .env.local file
 }
 
 // Robust Storage Adapter
@@ -29,8 +23,8 @@ const robustStorageAdapter = (() => {
             // Use SameSite=None; Secure for broader compatibility in iframes/safari, fallback to Lax
             const sameSite = isSecure ? "SameSite=None; Secure" : "SameSite=Lax";
             document.cookie = `${name}=${encodeURIComponent(value)};${expires};path=/;${sameSite}`;
-        } catch (e) {
-            console.warn("Cookie storage failed:", e);
+        } catch {
+            // Cookie storage failed - fallback to memory
         }
     };
 
@@ -63,8 +57,8 @@ const robustStorageAdapter = (() => {
             try { return localStorage.getItem(key); } catch (e) { return null; }
         },
         setItem: (key: string, value: string): void => {
-            try { localStorage.setItem(key, value); } catch (e) {
-                console.warn("LocalStorage setItem failed (using fallback):", e);
+            try { localStorage.setItem(key, value); } catch {
+                // LocalStorage setItem failed - using fallback
             }
         },
         removeItem: (key: string): void => {

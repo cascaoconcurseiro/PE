@@ -34,14 +34,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         if (isMobile && onCloseMobile) onCloseMobile();
     };
 
-    const SidebarItem = ({ view, icon: Icon, label, activeBg, activeText }: { view: View, icon: any, label: string, activeBg: string, activeText: string }) => {
+    const SidebarItem = ({ view, icon: Icon, label, activeBg, activeText }: { view: View, icon: React.ComponentType<{ className?: string }>, label: string, activeBg: string, activeText: string }) => {
         const isActive = activeView === view;
         return (
             <button
                 onClick={() => handleMenuClick(view)}
                 className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 text-sm font-medium transition-all duration-200 ${isActive ? `${activeBg} ${activeText} shadow-sm` : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'}`}
             >
-                <Icon className={`w-5 h-5 ${isActive ? '' : 'text-slate-400 dark:text-slate-500'}`} strokeWidth={2} />
+                <Icon className={`w-5 h-5 ${isActive ? '' : 'text-slate-400 dark:text-slate-500'}`} />
                 {label}
             </button>
         );

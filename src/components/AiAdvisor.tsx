@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from './ui/Card';
 
 interface AiAdvisorProps {
-    contextData: any;
+    contextData: Record<string, unknown>;
 }
 
 export const AiAdvisor: React.FC<AiAdvisorProps> = ({ contextData }) => {

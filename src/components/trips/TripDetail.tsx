@@ -144,7 +144,7 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, acco
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
+                        onClick={() => setActiveTab(tab.id as typeof activeTab)}
                         className={`
                             flex-1 min-w-[90px] py-2.5 px-3 text-sm font-bold rounded-xl transition-all whitespace-nowrap
                             ${activeTab === tab.id

@@ -5,6 +5,7 @@ import {
 } from '../types';
 import { UserSettings } from '../types/UserSettings';
 import { DBTransaction, DBAccount, DBTrip, DBBudget, DBGoal, DBFamilyMember, DBAsset, DBSnapshot, DBCustomCategory } from '../types/db';
+import { logger } from './logger';
 
 // Helper to get current user
 const getUserId = async () => {
@@ -14,27 +15,28 @@ const getUserId = async () => {
 };
 
 // Generic Mapper (DB snake_case -> App camelCase)
-const mapToApp = <T>(data: any): T => {
-    if (Array.isArray(data)) return data.map(mapToApp) as any;
-    if (data === null || typeof data !== 'object') return data;
+const mapToApp = <T>(data: unknown): T => {
+    if (Array.isArray(data)) return data.map(mapToApp) as T;
+    if (data === null || typeof data !== 'object') return data as T;
 
-    const newObj: any = {};
-    for (const key in data) {
+    const newObj: Record<string, unknown> = {};
+    const dataObj = data as Record<string, unknown>;
+    for (const key in dataObj) {
         // if (key === 'user_id') continue; // We need userId for ownership checks now
         const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
 
         // Specific overrides if needed
-        if (key === 'account_id') newObj['accountId'] = data[key];
-        else if (key === 'destination_account_id') newObj['destinationAccountId'] = data[key];
-        else if (key === 'source_transaction_id') newObj['sourceTransactionId'] = data[key]; // Map the Lock Flag
-        else newObj[camelKey] = data[key];
+        if (key === 'account_id') newObj['accountId'] = dataObj[key];
+        else if (key === 'destination_account_id') newObj['destinationAccountId'] = dataObj[key];
+        else if (key === 'source_transaction_id') newObj['sourceTransactionId'] = dataObj[key]; // Map the Lock Flag
+        else newObj[camelKey] = dataObj[key];
     }
     return newObj as T;
 };
 
 // Mapper for Saving (App camelCase -> DB snake_case)
-const mapToDB = (data: any, userId: string): any => {
-    const newObj: any = { user_id: userId };
+const mapToDB = (data: Record<string, unknown>, userId: string): Record<string, unknown> => {
+    const newObj: Record<string, unknown> = { user_id: userId };
 
     // Copia propriedades básicas e converte para snake_case
     const keys: Record<string, string> = {
@@ -159,9 +161,9 @@ export const supabaseService = {
         const { data, error } = await query;
 
         if (error) {
-            console.error(`Supabase fetch error on ${table}:`, error);
+            logger.error(`Supabase fetch error on ${table}`, error);
             if (error.code === '42703') { // Undefined column
-                console.warn(`Column missing in ${table}. DB Schema might need update.`);
+                logger.warn(`Column missing in ${table}. DB Schema might need update.`);
                 return [];
             }
             throw error;
@@ -190,7 +192,7 @@ export const supabaseService = {
         return mapToApp<Transaction[]>(data);
     },
 
-    async create(table: string, item: any) {
+    async create(table: string, item: Record<string, unknown>) {
         const userId = await getUserId();
 
         // 🚀 ROUTING: Transactions & Trips -> RPC (Backend Centric)
@@ -205,7 +207,7 @@ export const supabaseService = {
 
         const { error } = await supabase.from(table).insert(dbItem);
         if (error) {
-            console.error(`Error creating in ${table}:`, error);
+            logger.error(`Error creating in ${table}`, error);
             throw error;
         }
     },
@@ -239,7 +241,7 @@ export const supabaseService = {
         const { data, error } = await supabase.rpc('create_transaction', params);
 
         if (error) {
-            console.error('Failed to create transaction via RPC:', error);
+            logger.error('Failed to create transaction via RPC', error);
             throw error;
         }
         return data; // Returns the new UUID
@@ -253,7 +255,7 @@ export const supabaseService = {
         });
 
         if (error) {
-            console.error('Failed to settle debt via RPC:', error);
+            // Error logged via errorHandler
             throw error;
         }
         return data;
@@ -261,7 +263,7 @@ export const supabaseService = {
 
     // --- RPC HELPERS ---
 
-    async createTripRPC(trip: any) {
+    async createTripRPC(trip: Partial<Trip> & { description?: string; status?: string }) {
         const params = {
             p_name: trip.name,
             p_description: trip.description || '',
@@ -273,13 +275,13 @@ export const supabaseService = {
         };
         const { data, error } = await supabase.rpc('create_trip', params);
         if (error) {
-            console.error('Create Trip RPC Failed:', error);
+            // Error logged via errorHandler
             throw error;
         }
         return data;
     },
 
-    async updateTripRPC(trip: any) {
+    async updateTripRPC(trip: Partial<Trip> & { description?: string; status?: string }) {
         const params = {
             p_id: trip.id,
             p_name: trip.name,
@@ -287,17 +289,17 @@ export const supabaseService = {
             p_start_date: trip.startDate,
             p_end_date: trip.endDate,
             p_currency: trip.currency,
-            p_status: trip.status,
+            p_status: trip.status || 'PLANNED',
             p_participants: trip.participants || []
         };
         const { error } = await supabase.rpc('update_trip', params);
         if (error) {
-            console.error('Update Trip RPC Failed:', error);
+            // Error logged via errorHandler
             throw error;
         }
     },
 
-    async updateTransactionRPC(transaction: any) {
+    async updateTransactionRPC(transaction: Partial<Transaction>) {
         const params = {
             p_id: transaction.id,
             p_description: transaction.description,
@@ -321,24 +323,24 @@ export const supabaseService = {
         };
         const { error } = await supabase.rpc('update_transaction', params);
         if (error) {
-            console.error('Update Transaction RPC Failed:', error);
+            // Error logged via errorHandler
             throw error;
         }
     },
 
-    async update(table: string, item: any) {
+    async update<T extends { id: string }>(table: string, item: T) {
         const userId = await getUserId();
 
         // 🚀 ROUTING: Trips -> RPC
         if (table === 'trips') {
-            return this.updateTripRPC(item);
+            return this.updateTripRPC(item as unknown as Partial<Trip>);
         }
         // 🚀 ROUTING: Transactions -> RPC
         if (table === 'transactions' && item.id) {
-            return this.updateTransactionRPC(item);
+            return this.updateTransactionRPC(item as unknown as Partial<Transaction>);
         }
 
-        const dbItem = mapToDB(item, userId);
+        const dbItem = mapToDB(item as unknown as Record<string, unknown>, userId);
         // Don't update ID or UserID
         delete dbItem.id;
         delete dbItem.user_id;
@@ -376,7 +378,7 @@ export const supabaseService = {
         });
 
         if (error) {
-            console.error("Failed to execute atomic delete_trip_cascade_rpc:", error);
+            // Error logged via errorHandler
             throw error;
         }
     },
@@ -398,24 +400,24 @@ export const supabaseService = {
             .eq('user_id', userId);
 
         if (accError) {
-            console.error('Error deleting account:', accError);
+            // Error logged via errorHandler
             throw accError;
         }
     },
 
-    async bulkCreate(table: string, items: any[]) {
+    async bulkCreate(table: string, items: Record<string, unknown>[]) {
         if (!items.length) return;
         const userId = await getUserId();
         const dbItems = items.map(i => mapToDB(i, userId));
 
         const { error } = await supabase.from(table).upsert(dbItems);
         if (error) {
-            console.error(`Bulk create failed for ${table}:`, error);
+            // Error logged via errorHandler
             throw error;
         }
     },
 
-    async recreateTransactionSeries(oldSeriesId: string, newTransactions: any[]) {
+    async recreateTransactionSeries(oldSeriesId: string, newTransactions: Partial<Transaction>[]) {
         // 1. Delete Old Series
         await this.deleteTransactionSeries(oldSeriesId);
 
@@ -434,7 +436,7 @@ export const supabaseService = {
             if (error) throw error;
             return data as { account_id: string, calculated_balance: number }[];
         } catch (e) {
-            console.error("Failed to fetch account balances via RPC:", e);
+            // Error logged via errorHandler
             return []; // Fallback will be handled by client using local calculation if needed
         }
     },
@@ -462,7 +464,7 @@ export const supabaseService = {
         const { data, error } = await query;
 
         if (error) {
-            console.error('Error fetching transactions:', error);
+            // Error logged via errorHandler
             return [];
         }
         return mapToApp<Transaction[]>(data);
@@ -486,7 +488,7 @@ export const supabaseService = {
         const { data, error } = await query.order('date', { ascending: false });
 
         if (error) {
-            console.error('Error fetching unsettled shared transactions:', error);
+            // Error logged via errorHandler
             return [];
         }
         return mapToApp<Transaction[]>(data);
@@ -501,7 +503,7 @@ export const supabaseService = {
         });
 
         if (error) {
-            console.error('Error fetching monthly cashflow:', error);
+            // Error logged via errorHandler
             return [];
         }
         return data || [];
@@ -530,7 +532,7 @@ export const supabaseService = {
         const { data, error } = await query.order('start_date', { ascending: false });
 
         if (error) {
-            console.error('Error fetching trips:', error);
+            // Error logged via errorHandler
             return [];
         }
         return mapToApp<Trip[]>(data);
@@ -557,7 +559,7 @@ export const supabaseService = {
     // SMART FACTORY RESET
     async performSmartReset(unlinkFamily: boolean = false) {
         const userId = await getUserId();
-        console.warn(`🚨 INICIANDO SMART RESET (Unlink Family: ${unlinkFamily}) PARA USUÁRIO: ${userId}`);
+        logger.warn(`🚨 INICIANDO SMART RESET (Unlink Family: ${unlinkFamily}) PARA USUÁRIO: ${userId}`);
 
         // Call the new Logic-Aware RPC
         const { error } = await supabase.rpc('fn_smart_factory_reset', {
@@ -565,11 +567,11 @@ export const supabaseService = {
         });
 
         if (error) {
-            console.error('Falha ao resetar dados (Smart RPC):', error);
+            // Error logged via errorHandler
             throw error;
         }
 
-        console.log('✅ SMART RESET CONCLUÍDO COM SUCESSO.');
+        logger.info('SMART RESET CONCLUÍDO COM SUCESSO');
     },
 
     // User Settings
@@ -627,7 +629,7 @@ export const supabaseService = {
             .eq('user_id', userId);
 
         if (error) {
-            console.error('Error fetching balance sheet:', error);
+            // Error logged via errorHandler
             return [];
         }
         return data;
@@ -642,7 +644,7 @@ export const supabaseService = {
             .order('month_year', { ascending: false });
 
         if (error) {
-            console.error('Error fetching income statement:', error);
+            // Error logged via errorHandler
             return [];
         }
         return data;

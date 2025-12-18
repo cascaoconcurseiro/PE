@@ -115,12 +115,11 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                     date: i.date,
                     description: i.description,
                     amount: i.amount,
-
                     type: i.type === 'DEBIT' ? TransactionType.EXPENSE : TransactionType.INCOME,
                     category: i.category as Category,
                     accountId: 'shared',
                     isShared: true
-                } as any))
+                } as Transaction))
             );
         }
     };

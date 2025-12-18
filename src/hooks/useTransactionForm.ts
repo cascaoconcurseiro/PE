@@ -7,7 +7,7 @@ interface UseTransactionFormProps {
     accounts: Account[];
     transactions?: Transaction[];
     trips: Trip[];
-    onSave: (data: any, isEdit: boolean, updateFuture: boolean) => void;
+    onSave: (data: import('../types').Transaction, isEdit: boolean, updateFuture: boolean) => void;
 }
 
 export const useTransactionForm = ({
@@ -286,7 +286,7 @@ export const useTransactionForm = ({
                     assignedAmount: (activeAmount * s.percentage) / 100
                 }));
 
-            const isExternalPayer = payerId && payerId !== 'me';
+            const isExternalPayer = payerId !== '' && payerId !== 'me';
             const shouldBeShared = formMode === TransactionType.EXPENSE && (isShared || finalSplits.length > 0 || isExternalPayer);
 
             let updateFuture = false;
@@ -296,8 +296,8 @@ export const useTransactionForm = ({
                 }
             }
 
-            const data = {
-                id: initialData ? undefined : crypto.randomUUID(), // Idempotency Key for Create
+            const data: Transaction = {
+                id: initialData?.id || crypto.randomUUID(), // Use existing ID for edit, or generate new
                 amount: activeAmount,
                 description: description.trim(),
                 date,
@@ -314,7 +314,7 @@ export const useTransactionForm = ({
                 recurrenceDay: isRecurring ? recurrenceDay : undefined,
                 lastGenerated: isRecurring ? date : undefined,
                 frequency: isRecurring ? frequency : Frequency.ONE_TIME,
-                isInstallment: (isCreditCard || isExternalPayer) ? isInstallment : false,
+                isInstallment: (isCreditCard || isExternalPayer) ? isInstallment : undefined,
                 currentInstallment: isInstallment ? currentInstallment : undefined,
                 totalInstallments: isInstallment ? totalInstallments : undefined,
                 enableNotification,
@@ -326,7 +326,8 @@ export const useTransactionForm = ({
 
             await onSave(data, !!initialData, updateFuture);
         } catch (error) {
-            console.error(error);
+            const logger = (await import('../services/logger')).logger;
+            logger.error('Error saving transaction', error);
             setIsSubmitting(false);
         }
     };

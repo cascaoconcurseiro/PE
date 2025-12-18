@@ -35,7 +35,8 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, a
             const { data, error } = await supabase.rpc('get_shared_requests_v3');
 
             if (error) {
-                console.error('Error fetching shared requests:', error);
+                const logger = (await import('../../utils/logger')).logger;
+                logger.error('Error fetching shared requests', error);
                 // toast.error("Erro ao carregar solicitações pendentes.");
             } else if (data) {
                 // Map db headers to expected format if needed

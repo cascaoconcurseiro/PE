@@ -22,18 +22,20 @@ import {
   Shield
 } from 'lucide-react';
 
+import { FinancialPrecision } from './services/financialPrecision';
+
 /**
- * Fixes JavaScript floating point errors (e.g. 0.1 + 0.2 = 0.30000000000000004)
- * Rounds to 2 decimal places.
+ * @deprecated Use FinancialPrecision.round() instead
+ * Mantido para compatibilidade com código existente
  */
 export const round2dec = (num: number): number => {
-  return Math.round((num + Number.EPSILON) * 100) / 100;
+  return FinancialPrecision.round(num);
 };
 
 export const formatCurrency = (value: number, currency: string = 'BRL') => {
   try {
     // Ensure we format a clean number
-    const cleanValue = round2dec(value);
+    const cleanValue = FinancialPrecision.round(value);
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: currency }).format(cleanValue);
   } catch (e) {
     // Fallback if currency code is invalid

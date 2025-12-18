@@ -38,7 +38,7 @@ export const InvestmentFilters: React.FC<InvestmentFiltersProps> = ({
                     <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                     <select
                         value={filterType}
-                        onChange={e => setFilterType(e.target.value as any)}
+                        onChange={e => setFilterType(e.target.value as 'ALL' | AssetType)}
                         className="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 dark:text-white appearance-none cursor-pointer"
                     >
                         <option value="ALL">Todos os Tipos</option>

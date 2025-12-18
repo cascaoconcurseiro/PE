@@ -79,8 +79,9 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
                     setIsSubmitting(false);
                     return;
                 }
-            } catch (e: any) {
-                console.error("Erro ao verificar duplicidade:", e);
+            } catch (e) {
+                const logger = (await import('../../utils/logger')).logger;
+                logger.error("Erro ao verificar duplicidade", e);
                 // Non-blocking warning? Or block?
                 // Better to block if system is unstable, but user complained about blockage.
                 // Let's allow proceeding if check fails, DB unique constraint (if any) will catch it.

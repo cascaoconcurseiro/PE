@@ -9,16 +9,16 @@ export const ServiceWorkerUpdater: React.FC = () => {
         updateServiceWorker,
     } = useRegisterSW({
         onRegistered(r) {
-            console.log('SW Registered: ' + r);
+            console.debug('Service Worker Registered', { registration: r });
         },
         onRegisterError(error) {
-            console.log('SW registration error', error);
+            console.error('SW registration error', error);
         },
     });
 
     useEffect(() => {
         if (needRefresh) {
-            console.log('🔄 Nova versão detectada! Atualizando...');
+            console.info('Nova versão detectada! Atualizando...');
             addToast('Nova versão disponível! Atualizando...', 'info');
             updateServiceWorker(true);
         }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense, useTr
 import { Loader2 } from 'lucide-react';
 import { supabase } from './integrations/supabase/client';
 import { Auth } from './components/Auth';
-import { View, SyncStatus, TransactionType } from './types';
+import { View, SyncStatus, TransactionType, UserProfile } from './types';
 import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useDataStore } from './hooks/useDataStore';
 import { useAppLogic } from './hooks/useAppLogic';
@@ -17,6 +17,8 @@ import { useToast } from './components/ui/Toast';
 
 import { lazyImport } from './utils/lazyImport';
 import { APP_VERSION } from './config/appVersion';
+import { PendingSettlement, SettlementRequest } from './types/settlement';
+import { logger } from './utils/logger';
 
 // Lazy load heavy components with robust reload protection
 const Dashboard = lazyImport(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -32,7 +34,7 @@ const Investments = lazyImport(() => import('./components/Investments').then(m =
 
 const App = () => {
     // 1. All Hooks Declarations
-    const [sessionUser, setSessionUser] = useState<any>(null);
+    const [sessionUser, setSessionUser] = useState<UserProfile | null>(null);
     const [isSessionLoading, setIsSessionLoading] = useState(true);
     const [isPending, startTransition] = useTransition();
 
@@ -53,9 +55,9 @@ const App = () => {
     const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
     const { notifications: systemNotifications, markAsRead } = useSystemNotifications(sessionUser?.id);
 
-    const [pendingSettlements, setPendingSettlements] = useState<any[]>([]);
-    const [activeSettlementRequest, setActiveSettlementRequest] = useState<any | null>(null);
-    const [settlementToPay, setSettlementToPay] = useState<any | null>(null);
+    const [pendingSettlements, setPendingSettlements] = useState<PendingSettlement[]>([]);
+    const [activeSettlementRequest, setActiveSettlementRequest] = useState<SettlementRequest | null>(null);
+    const [settlementToPay, setSettlementToPay] = useState<SettlementRequest | null>(null);
 
     // SAFETY BRAKE: Prevent infinite loops in effect
     const lastAttemptedDate = useRef<number>(0);
@@ -74,7 +76,7 @@ const App = () => {
 
             // IF VERSION MISMATCH (or first run): FORCE CLEANUP
             if (storedVersion !== APP_VERSION) {
-                console.warn(`⚠️ Detectada nova versão: ${APP_VERSION} (Antiga: ${storedVersion}). Forçando atualização...`);
+                logger.warn(`Detectada nova versão: ${APP_VERSION} (Antiga: ${storedVersion}). Forçando atualização...`);
 
                 // 1. Wipe Local Storage (Cache)
                 localStorage.clear();
@@ -96,7 +98,7 @@ const App = () => {
             try {
                 // RACE CONDITION: Timeout after 3s if Supabase is slow/stuck
                 const sessionPromise = supabase.auth.getSession();
-                const timeoutPromise = new Promise<{ data: { session: null }, error: any }>((resolve) =>
+                const timeoutPromise = new Promise<{ data: { session: null }, error: Error }>((resolve) =>
                     setTimeout(() => resolve({ data: { session: null }, error: new Error("Timeout") }), 3000)
                 );
 
@@ -108,8 +110,8 @@ const App = () => {
                     if (session) {
                         setSessionUser({
                             id: session.user.id,
-                            name: session.user.user_metadata.name || session.user.email?.split('@')[0],
-                            email: session.user.email
+                            name: session.user.user_metadata.name || session.user.email?.split('@')[0] || 'Usuário',
+                            email: session.user.email || ''
                         });
                     }
                     setIsSessionLoading(false);
@@ -126,8 +128,8 @@ const App = () => {
                 if (session) {
                     setSessionUser({
                         id: session.user.id,
-                        name: session.user.user_metadata.name || session.user.email?.split('@')[0],
-                        email: session.user.email
+                        name: session.user.user_metadata.name || session.user.email?.split('@')[0] || 'Usuário',
+                        email: session.user.email || ''
                     });
                     // Ensure loading is cleared on auth change too
                     setIsSessionLoading(false);
@@ -160,56 +162,48 @@ const App = () => {
     // Helper Functions & Memos
     const handleViewChange = (view: View) => startTransition(() => setActiveView(view));
 
+    // ✅ REESTRUTURAÇÃO: Backend é fonte de verdade para saldos
+    // Frontend apenas usa account.balance do banco (já calculado pelo trigger)
     const calculatedAccounts = useMemo(() => {
         return accounts || [];
     }, [accounts]);
 
+    // Projeção de saldo: Usa saldo atual do banco + transações futuras do mês
     const projectedAccounts = useMemo(() => {
         if (!accounts || !transactions) return [];
-        // COMPUTE PROJECTED BALANCE (Optimized: Current DB Balance + Future Txs)
-        // Complexity: O(M) where M is transactions in current view (small)
+        
         const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
         const now = new Date();
         now.setHours(0, 0, 0, 0);
 
         return accounts.map(acc => {
+            // Saldo atual vem do banco (já calculado pelo trigger)
+            const currentBalance = acc.balance || 0;
+            
+            // Calcular impacto de transações futuras (ainda não refletidas no saldo do banco)
             const futureTxs = transactions.filter(t =>
                 t.accountId === acc.id &&
-                new Date(t.date) >= now &&
+                new Date(t.date) > now &&
                 new Date(t.date) <= endOfMonth &&
-                !t.isSettled // Only count unresolved/unpaid items for projection? 
-                // depends on definition. Usually projection includes everything scheduled.
-                // If it's settled, it's already in the balance?
-                // Yes, if settled (paid), it effectively updated the "Current Balance" via Trigger/Update?
-                // Actually, "isSettled" is often used for "Paid".
-                // If I paid it today, it's in stored balance.
-                // If it's scheduled for tomorrow, it's not in stored balance.
-                // So checking date > now is correct.
+                !t.deleted
             );
 
             const futureImpact = futureTxs.reduce((sum, t) => {
-                let amount = t.amount;
-                // Handle Transfers? 
-                // If I transfer out tomorrow, balance decreases.
-                if (t.type === TransactionType.INCOME) return sum + amount;
-                if (t.type === TransactionType.EXPENSE) return sum - amount;
-                if (t.type === TransactionType.TRANSFER) {
-                    // Outgoing transfer
-                    return sum - amount;
+                if (t.type === TransactionType.INCOME) return sum + t.amount;
+                if (t.type === TransactionType.EXPENSE) return sum - t.amount;
+                if (t.type === TransactionType.TRANSFER && t.accountId === acc.id) {
+                    return sum - t.amount; // Transferência de saída
                 }
                 return sum;
             }, 0);
 
-            return { ...acc, balance: (acc.balance || 0) + futureImpact };
+            return { ...acc, balance: currentBalance + futureImpact };
         });
     }, [accounts, transactions, currentDate]);
 
     const activeNotifications = useMemo(() => {
         if (!transactions || !accounts) return [];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayStr = today.toISOString().split('T')[0];
-        const notifs: any[] = [];
+        const notifs: Array<{ id: string; type: string; title?: string; description: string; message?: string; date?: string }> = [];
 
         // Removed pendingSharedRequests logic
 
@@ -219,11 +213,9 @@ const App = () => {
                 .map(sn => ({
                     id: sn.id,
                     title: sn.title,
-                    description: sn.message,
+                    description: sn.message || '',
                     type: sn.type,
-                    data: sn.data,
-                    date: sn.created_at,
-                    isLocal: false
+                    date: sn.created_at
                 }));
             notifs.push(...mapped);
         }
@@ -258,7 +250,7 @@ const App = () => {
                 // If we implemented opening a specific trip, we'd use data.tripId here
             } else if (type === 'TRANSACTION') {
                 setActiveView(View.TRANSACTIONS);
-                if (data?.transactionId) {
+                if (data?.transactionId && typeof data.transactionId === 'string') {
                     setEditTxId(data.transactionId);
                     setIsTxModalOpen(true);
                 }
@@ -284,7 +276,7 @@ const App = () => {
             case View.GOALS: return <Goals goals={goals} accounts={calculatedAccounts} onAddGoal={handlers.handleAddGoal} onUpdateGoal={handlers.handleUpdateGoal} onDeleteGoal={handlers.handleDeleteGoal} onAddTransaction={handlers.handleAddTransaction} />;
             case View.TRIPS: return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onNavigateToShared={() => handleViewChange(View.SHARED)} onEditTransaction={(id) => { setEditTxId(id); setIsTxModalOpen(true); }} currentUserId={sessionUser?.id} />;
             case View.SHARED: return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onAddTransactions={handlers.handleAddTransactions} onUpdateTransaction={handlers.handleUpdateTransaction} onBatchUpdateTransactions={handlers.handleBatchUpdateTransactions} onDeleteTransaction={handlers.handleDeleteTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} currentUserName={sessionUser?.name || 'Eu'} />;
-            case View.FAMILY: return <Family members={familyMembers} transactions={transactions} onAddMember={(m) => handlers.handleAddMember(m as any)} onUpdateMember={(m) => handlers.handleUpdateMember(m as any)} onDeleteMember={handlers.handleDeleteMember} onInviteMember={async (memberId, email) => {
+            case View.FAMILY: return <Family members={familyMembers} transactions={transactions} onAddMember={(m) => handlers.handleAddMember(m as Omit<import('./types').FamilyMember, 'id'>)} onUpdateMember={(m) => handlers.handleUpdateMember(m as import('./types').FamilyMember)} onDeleteMember={handlers.handleDeleteMember} onInviteMember={async (memberId, email) => {
                 const { data, error } = await supabase.rpc('invite_user_to_family', { member_id: memberId, email_to_invite: email });
                 if (error) {
                     alert('Erro ao convidar: ' + error.message);

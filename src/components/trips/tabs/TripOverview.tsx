@@ -5,7 +5,7 @@ import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Target, Pencil, X, Save, Sparkles, Calculator, ArrowRight } from 'lucide-react';
 import { formatCurrency, getCategoryIcon, parseDate } from '../../../utils';
-import { calculateTripDebts } from '../../../services/balanceEngine';
+import { calculateTripDebts } from '../../../services/tripDebtsCalculator';
 
 interface TripOverviewProps {
     trip: Trip;

@@ -49,7 +49,8 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
                 setFoundUserId(null);
             }
         } catch (error) {
-            console.error("Error checking email:", error);
+            const logger = (await import('../utils/logger')).logger;
+            logger.error("Error checking email", error);
             setEmailCheckStatus('NOT_FOUND');
         } finally {
             setIsCheckingEmail(false);

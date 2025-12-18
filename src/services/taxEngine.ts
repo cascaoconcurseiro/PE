@@ -21,6 +21,7 @@ interface Trade {
     total: number;
     assetType: AssetType;
     ticker: string;
+    profit?: number;
 }
 
 export const calculateTaxReport = (assets: Asset[]): MonthlyTaxResult[] => {
@@ -36,7 +37,8 @@ export const calculateTaxReport = (assets: Asset[]): MonthlyTaxResult[] => {
                     price: t.price,
                     total: t.total,
                     assetType: asset.type,
-                    ticker: asset.ticker
+                    ticker: asset.ticker,
+                    profit: t.profit
                 });
             });
         }
@@ -90,8 +92,7 @@ export const calculateTaxReport = (assets: Asset[]): MonthlyTaxResult[] => {
             if (t.type === 'SELL') {
                 // We need the profit. In our `Investments.tsx`, we save `profit` in tradeHistory.
                 // Let's assume `t` has `profit`. We need to cast or check.
-                const tradeWithProfit = t as any;
-                const profit = tradeWithProfit.profit || 0;
+                const profit = t.profit || 0;
 
                 if (t.assetType === AssetType.REIT) {
                     monthlyFIIProfit += profit;

@@ -17,7 +17,7 @@ interface TransactionFormProps {
     trips: Trip[];
     familyMembers: FamilyMember[];
     customCategories: CustomCategory[];
-    onSave: (data: any, isEdit: boolean, updateFuture: boolean) => void;
+    onSave: (data: import('../../types').Transaction, isEdit: boolean, updateFuture: boolean) => void;
     onCancel: () => void;
     onNavigateToAccounts?: () => void;
     onNavigateToTrips?: () => void;

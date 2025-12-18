@@ -80,7 +80,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
                 setSettings(defaultUserSettings);
             }
         } catch (error) {
-            console.error('Error in loadSettings:', error);
+            const logger = (await import('../utils/logger')).logger;
+            logger.error('Error in loadSettings', error);
         } finally {
             setIsLoading(false);
         }
@@ -101,7 +102,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
             // setSettings is called after logic
             setSettings(defaultUserSettings);
         } catch (error) {
-            console.error('Error in createDefaultSettings:', error);
+            const logger = (await import('../utils/logger')).logger;
+            logger.error('Error in createDefaultSettings', error);
         }
     };
 
@@ -117,7 +119,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
                 await supabaseService.upsertUserSettings(user.id, newSettings);
             }
         } catch (error) {
-            console.error('Error in saveSettings:', error);
+            const logger = (await import('../utils/logger')).logger;
+            logger.error('Error in saveSettings', error);
         }
     };
 

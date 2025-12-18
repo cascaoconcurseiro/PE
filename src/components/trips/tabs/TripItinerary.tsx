@@ -81,7 +81,7 @@ export const TripItinerary: React.FC<TripItineraryProps> = ({ trip, onUpdateTrip
                         <select
                             className="w-full rounded-xl border border-slate-300 dark:border-slate-600 p-2.5 text-sm focus:ring-2 focus:ring-violet-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
                             value={itiType}
-                            onChange={e => setItiType(e.target.value as any)}
+                            onChange={e => setItiType(e.target.value as TripItineraryItem['type'])}
                         >
                             <option value="FLIGHT">Voo</option>
                             <option value="LODGING">Hospedagem</option>

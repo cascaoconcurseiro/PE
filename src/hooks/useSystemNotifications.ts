@@ -6,8 +6,8 @@ export interface UserNotification {
     type: string;
     title: string;
     message: string;
-    metadata: any;
-    data?: any;
+    metadata: Record<string, unknown>;
+    data?: Record<string, unknown>;
     is_read: boolean;
     created_at: string;
 }
@@ -26,7 +26,8 @@ export const useSystemNotifications = (userId: string | undefined) => {
             .limit(20);
 
         if (error) {
-            console.error('Error fetching notifications:', error);
+            const logger = (await import('../services/logger')).logger;
+            logger.error('Error fetching notifications', error);
             return;
         }
 
@@ -47,7 +48,8 @@ export const useSystemNotifications = (userId: string | undefined) => {
             .eq('id', id);
 
         if (error) {
-            console.error('Error marking notification as read:', error);
+            const logger = (await import('../utils/logger')).logger;
+            logger.error('Error marking notification as read', error);
             // Revert if needed, but low impact
         }
     };
@@ -77,7 +79,8 @@ export const useSystemNotifications = (userId: string | undefined) => {
             .eq('id', id);
 
         if (error) {
-            console.error('Error deleting notification:', error);
+            const logger = (await import('../utils/logger')).logger;
+            logger.error('Error deleting notification', error);
         }
     };
 
@@ -92,7 +95,8 @@ export const useSystemNotifications = (userId: string | undefined) => {
             .eq('user_id', userId);
 
         if (error) {
-            console.error('Error clearing notifications:', error);
+            const logger = (await import('../utils/logger')).logger;
+            logger.error('Error clearing notifications', error);
         }
     };
 

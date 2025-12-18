@@ -37,14 +37,12 @@ export const generateLedger = (transactions: Transaction[], accounts: Account[])
 
         // ✅ VALIDAÇÃO CRÍTICA: Ignorar transações órfãs (conta deletada)
         if (!tx.accountId || !accountIds.has(tx.accountId)) {
-            console.warn(`⚠️ Transação órfã ignorada no ledger: ${tx.description} (conta: ${tx.accountId})`);
             return;
         }
 
         // ✅ VALIDAÇÃO CRÍTICA: Para transferências, verificar se destino existe
         if (tx.type === TransactionType.TRANSFER && tx.destinationAccountId) {
             if (!accountIds.has(tx.destinationAccountId)) {
-                console.warn(`⚠️ Transação órfã ignorada no ledger: ${tx.description} (destino: ${tx.destinationAccountId})`);
                 return;
             }
         }

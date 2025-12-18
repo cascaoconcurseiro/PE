@@ -1,7 +1,7 @@
 import { Transaction, Account, Asset, Trip } from '../types';
 import { formatCurrency } from '../utils';
 
-export const exportToCSV = (data: any[], headers: string[], filename: string) => {
+export const exportToCSV = (data: (string | number | undefined)[][], headers: string[], filename: string) => {
     const csvContent = [
         headers.join(';'), // CSV Header using semicolon for Excel PT-BR compatibility
         ...data.map(row => row.join(';'))

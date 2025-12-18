@@ -36,17 +36,17 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
 
     const tripTransactions = transactions.filter(t => t.tripId && String(t.tripId) === String(selectedTripId)).sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime());
 
-    const handleCreateOrUpdateTrip = (tripData: any) => {
+    const handleCreateOrUpdateTrip = (tripData: Trip | Omit<Trip, 'id'>) => {
         if (editingTripId && onUpdateTrip) {
             const existingTrip = trips.find(t => t.id === editingTripId);
             if (existingTrip) {
-                onUpdateTrip({ ...existingTrip, ...tripData });
+                onUpdateTrip({ ...existingTrip, ...tripData } as Trip);
             }
         } else {
             onAddTrip({
                 ...tripData,
                 id: crypto.randomUUID(),
-            });
+            } as Trip);
         }
         setIsCreatingTrip(false);
         setEditingTripId(null);

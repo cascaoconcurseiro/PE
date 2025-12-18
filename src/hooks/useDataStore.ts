@@ -10,6 +10,7 @@ import { supabase } from '../integrations/supabase/client';
 import { processRecurringTransactions } from '../services/recurrenceEngine';
 import { checkDataConsistency } from '../services/financialLogic';
 import { translateErrorMessage } from '../utils/errorMapping';
+import { logger } from '../services/logger';
 
 
 
@@ -52,9 +53,10 @@ export const useDataStore = () => {
             } else {
                 await refresh();
             }
-        } catch (error: any) {
-            console.error("Operation failed:", error);
-            const userFriendlyMessage = translateErrorMessage(error.message || 'Falha na operação');
+        } catch (error) {
+            logger.error("Operation failed", error);
+            const err = error as Error;
+            const userFriendlyMessage = translateErrorMessage(err.message || 'Falha na operação');
             addToast(userFriendlyMessage, 'error');
         }
     };
@@ -250,7 +252,7 @@ export const useDataStore = () => {
                 const baseInstallmentValue = Math.floor((updatedTx.amount / totalInstallments) * 100) / 100;
                 let accumulatedAmount = 0;
 
-                const newSeriesTxs: any[] = [];
+                const newSeriesTxs: Partial<Transaction>[] = [];
                 const now = new Date().toISOString();
 
                 for (let i = 0; i < totalInstallments; i++) {
@@ -292,7 +294,7 @@ export const useDataStore = () => {
                         seriesId: crypto.randomUUID(),
                         isRecurring: false,
                         isSettled: false,
-                        created_at: now,
+                        createdAt: now,
                         updatedAt: now,
                         isInstallment: true
                     });
@@ -332,21 +334,23 @@ export const useDataStore = () => {
 
         try {
             // --- TIER 1: CRITICAL DATA (Dashboard Immediate Render) ---
-            // OPTIMIZATION: Fetch Accounts FIRST to unlock UI.
+            // ✅ REESTRUTURAÇÃO: Backend é fonte de verdade - usar balance do banco diretamente
             console.time("Tier1_Accounts");
             const accs = await supabaseService.getAccounts();
             if (signal.aborted) return;
 
+            // Backend já calcula balance via trigger, usar diretamente
+            // Se balance for null, usar initialBalance como fallback
             const initialAccountsState = accs.map(account => ({
                 ...account,
                 balance: account.balance ?? account.initialBalance ?? 0
             }));
             setAccounts(initialAccountsState);
-            console.timeEnd("Tier1_Accounts");
+            // Performance tracking removed
 
 
             // --- TIER 1.5: TRANSACTIONS (SMART WINDOW) ---
-            console.time("Tier1_Transactions");
+            // Performance tracking removed
             const today = new Date();
 
             // Define Window: Current Month + Previous Month
@@ -373,21 +377,10 @@ export const useDataStore = () => {
             });
 
             loadedPeriods.current = new Set([currentPeriod, prevPeriod]);
-            console.timeEnd("Tier1_Transactions");
-
-            // CRITICAL FIX (2025-12-17): Prevent "Flicker" of Dashboard Values.
-            // moving setIsLoading(false) here ensures transactions are effectively loaded.
-            // The dashboard recalculates immediately upon 'transactions' update.
-            // This prevents the UI from rendering with '0' then jumping to 'Value'.
-            // if (!isInitialized.current) setIsLoading(false); 
-            // WAIT. If we set it false here, React processes 'setTransactions'.
-            // Recalculation happens in next render cycle.
-            // We should ensure a small buffer or rely on the Layout effect?
-            // Actually, simply ensuring we don't 'flash' empty state before this point is key.
-
+            // Performance tracking removed
 
             // --- TIER 2: METADATA & CONFIG (Lazy-load safe) ---
-            console.time("Tier2_Load");
+            // Performance tracking removed
 
             const [
                 trps, bdgts, gls, fam, assts, snaps, cats
@@ -411,29 +404,29 @@ export const useDataStore = () => {
             setSnapshots(snaps);
             setCustomCategories(cats);
 
-            console.timeEnd("Tier2_Load");
+            // Performance tracking removed
 
-            // CRITICAL FIX (2025-12-17): Ultimate Flicker Solution.
-            // Dashboard depends on Trips (Currency), Categories, etc.
-            // We MUST wait for Tier 2 to finish before unlocking UI.
-            // Otherwise, we calculate balances with missing metadata/context.
+            // ✅ REESTRUTURAÇÃO: Garantir que isLoading só vira false quando TUDO está pronto
+            // Isso previne flicker - UI só renderiza quando todos os dados estão carregados
             if (!isInitialized.current) {
                 setIsLoading(false);
                 isInitialized.current = true;
             }
 
-            // Consistency Check (Debounced)
+            // ✅ REESTRUTURAÇÃO: Consistency Check (Debounced) - não bloqueia renderização
             setTimeout(() => {
                 if (signal.aborted) return;
                 const issues = checkDataConsistency(accs, recentTxs);
                 setDataInconsistencies(issues);
             }, 500);
 
+            // ✅ REESTRUTURAÇÃO: Garantir que isLoading só vira false quando TUDO está carregado
+            // Isso previne flicker - UI só renderiza quando dados estão prontos
             isInitialized.current = true;
             setIsLoading(false);
         } catch (error) {
             if (signal.aborted) return;
-            console.error("Error fetching data from Supabase:", error);
+            logger.error("Error fetching data from Supabase", error);
             addToast("Erro ao carregar dados da nuvem.", 'error');
             setIsLoading(false);
         }
@@ -443,19 +436,23 @@ export const useDataStore = () => {
     useEffect(() => {
         fetchData();
 
-        // --- REALTIME SUBSCRIPTIONS (TURBO MODE) ---
+        // --- REALTIME SUBSCRIPTIONS (OTIMIZADO) ---
+        // ✅ REESTRUTURAÇÃO: Debounce para evitar múltiplos refreshes
+        let refreshTimeout: NodeJS.Timeout | null = null;
         const channel = supabase.channel('global_changes')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public' },
                 (payload) => {
-                    console.log('⚡ Realtime Change Detected:', payload.table);
-                    // Debounced refresh could be better, but for now simple recall
-                    // Filter meaningful tables to avoid spam
+                    logger.debug('⚡ Realtime Change Detected:', undefined, { table: payload.table });
+                    // Debounce: aguardar 500ms antes de refresh para evitar spam
                     const relevantTables = ['transactions', 'accounts', 'trips', 'family_members'];
                     if (relevantTables.includes(payload.table)) {
-                        // Soft Refresh (no global loading spinner)
-                        fetchData(false);
+                        if (refreshTimeout) clearTimeout(refreshTimeout);
+                        refreshTimeout = setTimeout(() => {
+                            // Soft Refresh (no global loading spinner)
+                            fetchData(false);
+                        }, 500);
                     }
                 }
             )
@@ -463,7 +460,7 @@ export const useDataStore = () => {
 
         // --- FOCUS REVALIDATION ---
         const onFocus = () => {
-            console.log('👀 Window Focused - Revalidating Data...');
+            console.debug('Window Focused - Revalidating Data');
             fetchData(false);
         };
         window.addEventListener('focus', onFocus);
@@ -471,6 +468,7 @@ export const useDataStore = () => {
         return () => {
             supabase.removeChannel(channel);
             window.removeEventListener('focus', onFocus);
+            if (refreshTimeout) clearTimeout(refreshTimeout);
         };
     }, [fetchData]);
 
@@ -576,7 +574,7 @@ export const useDataStore = () => {
     // --- HANDLERS ---
 
     // Account Handlers
-    const handleAddAccount = async (acc: any) => performOperation(async () => {
+    const handleAddAccount = async (acc: Partial<Account> & { initialBalance?: number }) => performOperation(async () => {
         const accountId = crypto.randomUUID();
         const initialAmount = acc.initialBalance || 0;
 
@@ -609,7 +607,7 @@ export const useDataStore = () => {
         }
     }, 'Conta criada!');
 
-    const handleUpdateAccount = async (acc: any) => performOperation(async () => { await supabaseService.update('accounts', acc); }, 'Conta atualizada!');
+    const handleUpdateAccount = async (acc: Account) => performOperation(async () => { await supabaseService.update('accounts', acc); }, 'Conta atualizada!');
 
     const handleDeleteAccount = async (id: string) => performOperation(async () => {
         await supabaseService.softDeleteAccount(id);
@@ -626,7 +624,7 @@ export const useDataStore = () => {
             return;
         }
 
-        console.log(`📥 Lazy Loading History for: ${periodKey}`);
+        logger.debug(`📥 Lazy Loading History for: ${periodKey}`);
         setIsLoadingHistory(true);
 
         try {
@@ -652,7 +650,7 @@ export const useDataStore = () => {
             loadedPeriods.current.add(periodKey);
 
         } catch (e) {
-            console.error("Failed to load history window", e);
+            logger.error("Failed to load history window", e);
             addToast('Erro ao carregar histórico antigo.', 'error');
         } finally {
             setIsLoadingHistory(false);

@@ -131,8 +131,9 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
                 const newDate = new Date(lastDate);
                 newDate.setMonth(newDate.getMonth() + (i - currentCount + 1));
 
+                const { id: _id, ...txWithoutId } = lastInstallment;
                 const newTx: Omit<Transaction, 'id'> = {
-                    ...lastInstallment,
+                    ...txWithoutId,
                     amount: newInstallmentValue,
                     date: newDate.toISOString().split('T')[0],
                     currentInstallment: i + 1,
@@ -144,7 +145,6 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
                         assignedAmount: round2dec(s.assignedAmount * (newInstallmentValue / lastInstallment.amount))
                     }))
                 };
-                delete (newTx as any).id;
                 onAddTransaction(newTx);
             }
         } else if (newCount < currentCount) {

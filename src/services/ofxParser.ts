@@ -44,7 +44,7 @@ export const parseOFX = async (file: File): Promise<OFXTransaction[]> => {
                 description,
                 type,
                 externalId: id // Persistent External ID
-            } as any); // Cast because OFXTransaction interface might update or just use partial Transaction
+            } as OFXTransaction);
         }
     });
 
