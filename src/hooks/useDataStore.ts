@@ -334,7 +334,7 @@ export const useDataStore = () => {
         }
 
         try {
-            // --- OTIMIZADO: CARREGAR TUDO EM PARALELO ---
+            // --- OTIMIZADO: CARREGAMENTO EM DUAS FASES ---
             const today = new Date();
             const currentPeriod = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
             const prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
@@ -346,34 +346,16 @@ export const useDataStore = () => {
             const startOfWindow = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`;
             const endOfWindow = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).toISOString().split('T')[0];
 
-            // CARREGAR TUDO EM PARALELO - reduz tempo total significativamente
-            const [
-                accs,
-                recentTxs,
-                unsettledShared,
-                trps,
-                bdgts,
-                gls,
-                fam,
-                assts,
-                snaps,
-                cats
-            ] = await Promise.all([
+            // === FASE 1: DADOS CRÍTICOS (mostra Dashboard rápido) ===
+            const [accs, recentTxs, unsettledShared] = await Promise.all([
                 supabaseService.getAccounts(),
                 supabaseService.getTransactionsByRange(startOfWindow, endOfWindow),
-                supabaseService.getUnsettledSharedTransactions(startOfWindow),
-                supabaseService.getTrips(),
-                supabaseService.getBudgets(),
-                supabaseService.getGoals(),
-                supabaseService.getFamilyMembers(),
-                supabaseService.getAssets(),
-                supabaseService.getSnapshots(),
-                supabaseService.getCustomCategories()
+                supabaseService.getUnsettledSharedTransactions(startOfWindow)
             ]);
 
             if (signal.aborted) return;
 
-            // BATCH STATE UPDATES - React 18 já faz batching automático
+            // Atualizar estado com dados críticos IMEDIATAMENTE
             const initialAccountsState = accs.map(account => ({
                 ...account,
                 balance: account.balance ?? account.initialBalance ?? 0
@@ -383,20 +365,15 @@ export const useDataStore = () => {
             const combined = [...recentTxs, ...unsettledShared];
             const uniqueTxs = Array.from(new Map(combined.map(item => [item.id, item])).values());
             
-            // CORREÇÃO: Manter transações de períodos já carregados (não sobrescrever)
             setTransactions(prev => {
-                // Se é o primeiro load, usar apenas os novos dados
                 if (!isInitialized.current || prev.length === 0) {
                     return uniqueTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                 }
                 
-                // Mesclar: manter transações antigas de outros períodos + atualizar as recentes
                 const recentIds = new Set(uniqueTxs.map(t => t.id));
                 const olderTxs = prev.filter(t => {
-                    // Manter se não está no período recente E não foi atualizado
                     if (recentIds.has(t.id)) return false;
-                    const txDate = t.date;
-                    return txDate < startOfWindow; // Manter transações mais antigas
+                    return t.date < startOfWindow;
                 });
                 
                 const merged = [...olderTxs, ...uniqueTxs];
@@ -404,25 +381,38 @@ export const useDataStore = () => {
                 return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             });
 
-            // Adicionar períodos carregados (não resetar)
+            // Adicionar períodos carregados
             loadedPeriods.current.add(currentPeriod);
             loadedPeriods.current.add(prevPeriod);
             loadedPeriods.current.add(nextPeriod);
 
-            setTrips(trps);
-            setBudgets(bdgts);
-            setGoals(gls);
-            setFamilyMembers(fam);
-            setAssets(assts);
-            setSnapshots(snaps);
-            setCustomCategories(cats);
-
-            // Marcar dados como prontos ANTES de atualizar isLoading
+            // LIBERAR TELA IMEDIATAMENTE após dados críticos
             dataReady.current = true;
             isInitialized.current = true;
-            
-            // Só atualizar isLoading UMA VEZ no final
             setIsLoading(false);
+
+            // === FASE 2: DADOS SECUNDÁRIOS (background) ===
+            // Carregar em background sem bloquear a UI
+            Promise.all([
+                supabaseService.getTrips(),
+                supabaseService.getBudgets(),
+                supabaseService.getGoals(),
+                supabaseService.getFamilyMembers(),
+                supabaseService.getAssets(),
+                supabaseService.getSnapshots(),
+                supabaseService.getCustomCategories()
+            ]).then(([trps, bdgts, gls, fam, assts, snaps, cats]) => {
+                if (signal.aborted) return;
+                setTrips(trps);
+                setBudgets(bdgts);
+                setGoals(gls);
+                setFamilyMembers(fam);
+                setAssets(assts);
+                setSnapshots(snaps);
+                setCustomCategories(cats);
+            }).catch(err => {
+                logger.error("Error loading secondary data", err);
+            });
 
             // Consistency Check (Debounced) - não bloqueia renderização
             setTimeout(() => {
