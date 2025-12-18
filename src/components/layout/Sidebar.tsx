@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     LayoutDashboard, List, Wallet, TrendingUp, Target, Trophy, Plane, Users, UserCircle,
-    Eye, EyeOff, Settings as SettingsIcon, Sun, Moon, LogOut, X, PiggyBank, FileText
+    Eye, EyeOff, Settings as SettingsIcon, Sun, Moon, LogOut, X, PiggyBank
 } from 'lucide-react';
 import { View, UserProfile } from '../../types';
 import { useTheme } from '../ui/ThemeContext';
@@ -88,7 +88,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <SidebarItem view={View.TRANSACTIONS} icon={List} label="Extrato" activeBg="bg-blue-50 dark:bg-blue-900/20" activeText="text-blue-700 dark:text-blue-400" />
                     <SidebarItem view={View.ACCOUNTS} icon={Wallet} label="Minhas Contas" activeBg="bg-violet-50 dark:bg-violet-900/20" activeText="text-violet-700 dark:text-violet-400" />
                     <SidebarItem view={View.INVESTMENTS} icon={TrendingUp} label="Investimentos" activeBg="bg-indigo-50 dark:bg-indigo-900/20" activeText="text-indigo-700 dark:text-indigo-400" />
-                    <SidebarItem view={View.REPORTS} icon={FileText} label="Relatórios (DDD)" activeBg="bg-orange-50 dark:bg-orange-900/20" activeText="text-orange-700 dark:text-orange-400" />
 
                 </div>
 
