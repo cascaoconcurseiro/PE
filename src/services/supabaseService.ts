@@ -171,17 +171,22 @@ export const supabaseService = {
         return mapToApp(data) as T[];
     },
 
-    // NEW: Time-Windowed Fetching (Scalability)
+    // NEW: Time-Windowed Fetching (Scalability) - OTIMIZADO
     async getTransactionsByRange(startDate: string, endDate: string) {
         const userId = await getUserId();
 
-        // Ensure inclusive range (00:00:00 to 23:59:59) if passed as date strings
-        // But usually input is YYYY-MM-DD. Supabase date column is DATE or TIMESTAMP?
-        // Schema says DATE. So strict comparison works.
-
+        // Selecionar apenas campos necessários para melhor performance
         const { data, error } = await supabase
             .from('transactions')
-            .select('*')
+            .select(`
+                id, description, amount, type, category, date,
+                account_id, destination_account_id, trip_id,
+                is_recurring, frequency, is_installment, current_installment, total_installments, series_id,
+                enable_notification, notification_date, observation,
+                is_shared, shared_with, payer_id, is_settled, settled_at,
+                is_refund, destination_amount, exchange_rate, domain,
+                created_at, updated_at, deleted
+            `)
             .eq('user_id', userId)
             .eq('deleted', false)
             .gte('date', startDate)
@@ -508,7 +513,24 @@ export const supabaseService = {
         }
         return data || [];
     },
-    async getAccounts(): Promise<Account[]> { return this.getAll<Account>('accounts'); },
+    
+    // OTIMIZADO: Query específica para contas com campos necessários
+    async getAccounts(): Promise<Account[]> {
+        const userId = await getUserId();
+        const { data, error } = await supabase
+            .from('accounts')
+            .select(`
+                id, name, type, currency, balance, initial_balance,
+                credit_limit, closing_day, due_day, is_international,
+                created_at, updated_at, deleted
+            `)
+            .eq('user_id', userId)
+            .eq('deleted', false)
+            .order('name', { ascending: true });
+            
+        if (error) throw error;
+        return mapToApp<Account[]>(data);
+    },
     async getTrips(): Promise<Trip[]> {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return [];

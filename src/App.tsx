@@ -319,14 +319,22 @@ const App = () => {
             onDateChange={(e) => {
                 if (e.target.value) {
                     const [year, month] = e.target.value.split('-');
-                    setCurrentDate(new Date(parseInt(year), parseInt(month) - 1, 1));
+                    // Usar startTransition para não bloquear UI
+                    startTransition(() => {
+                        setCurrentDate(new Date(parseInt(year), parseInt(month) - 1, 1));
+                    });
                 }
             }}
             onMonthChange={(dir) => {
-                const d = new Date(currentDate);
-                d.setDate(1);
-                d.setMonth(d.getMonth() + (dir === 'next' ? 1 : -1));
-                setCurrentDate(d);
+                // Usar startTransition para transição suave sem flicker
+                startTransition(() => {
+                    setCurrentDate(prev => {
+                        const d = new Date(prev);
+                        d.setDate(1);
+                        d.setMonth(d.getMonth() + (dir === 'next' ? 1 : -1));
+                        return d;
+                    });
+                });
             }}
             notifications={activeNotifications}
             onNotificationClick={handleNotificationClick}

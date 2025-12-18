@@ -69,9 +69,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
         spendingView
     });
 
-    // ✅ REESTRUTURAÇÃO: Garantir que dados estão prontos antes de renderizar
-    // Isso previne flicker - valores só aparecem quando estão corretos
-    if (isLoading || isLoadingHistory || !accounts || !transactions) {
+    // ✅ OTIMIZADO: Só mostrar skeleton no carregamento inicial
+    // isLoadingHistory NÃO deve causar skeleton - dados existentes continuam visíveis
+    if (isLoading || !accounts || !transactions) {
         return <DashboardSkeleton />;
     }
 

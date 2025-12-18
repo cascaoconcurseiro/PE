@@ -333,28 +333,8 @@ export const useDataStore = () => {
         }
 
         try {
-            // --- TIER 1: CRITICAL DATA (Dashboard Immediate Render) ---
-            // ✅ REESTRUTURAÇÃO: Backend é fonte de verdade - usar balance do banco diretamente
-            console.time("Tier1_Accounts");
-            const accs = await supabaseService.getAccounts();
-            if (signal.aborted) return;
-
-            // Backend já calcula balance via trigger, usar diretamente
-            // Se balance for null, usar initialBalance como fallback
-            const initialAccountsState = accs.map(account => ({
-                ...account,
-                balance: account.balance ?? account.initialBalance ?? 0
-            }));
-            setAccounts(initialAccountsState);
-            // Performance tracking removed
-
-
-            // --- TIER 1.5: TRANSACTIONS (SMART WINDOW) ---
-            // Performance tracking removed
+            // --- OTIMIZADO: CARREGAR TUDO EM PARALELO ---
             const today = new Date();
-
-            // Define Window: Current Month + Previous Month
-            // This provides immediate context for trends without heavy load
             const currentPeriod = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
             const prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
             const prevPeriod = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
@@ -362,29 +342,22 @@ export const useDataStore = () => {
             const startOfWindow = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`;
             const endOfWindow = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
 
-            const [recentTxs, unsettledShared] = await Promise.all([
-                supabaseService.getTransactionsByRange(startOfWindow, endOfWindow),
-                supabaseService.getUnsettledSharedTransactions(startOfWindow) // Fetch older debts separately
-            ]);
-
-            if (signal.aborted) return;
-
-            setTransactions(prev => {
-                const combined = [...recentTxs, ...unsettledShared];
-                // Deduplicate
-                const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
-                return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            });
-
-            loadedPeriods.current = new Set([currentPeriod, prevPeriod]);
-            // Performance tracking removed
-
-            // --- TIER 2: METADATA & CONFIG (Lazy-load safe) ---
-            // Performance tracking removed
-
+            // CARREGAR TUDO EM PARALELO - reduz tempo total significativamente
             const [
-                trps, bdgts, gls, fam, assts, snaps, cats
+                accs,
+                recentTxs,
+                unsettledShared,
+                trps,
+                bdgts,
+                gls,
+                fam,
+                assts,
+                snaps,
+                cats
             ] = await Promise.all([
+                supabaseService.getAccounts(),
+                supabaseService.getTransactionsByRange(startOfWindow, endOfWindow),
+                supabaseService.getUnsettledSharedTransactions(startOfWindow),
                 supabaseService.getTrips(),
                 supabaseService.getBudgets(),
                 supabaseService.getGoals(),
@@ -395,6 +368,19 @@ export const useDataStore = () => {
             ]);
 
             if (signal.aborted) return;
+
+            // BATCH STATE UPDATES - React 18 já faz batching automático
+            const initialAccountsState = accs.map(account => ({
+                ...account,
+                balance: account.balance ?? account.initialBalance ?? 0
+            }));
+            setAccounts(initialAccountsState);
+
+            const combined = [...recentTxs, ...unsettledShared];
+            const uniqueTxs = Array.from(new Map(combined.map(item => [item.id, item])).values());
+            setTransactions(uniqueTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+
+            loadedPeriods.current = new Set([currentPeriod, prevPeriod]);
 
             setTrips(trps);
             setBudgets(bdgts);
@@ -437,31 +423,44 @@ export const useDataStore = () => {
         fetchData();
 
         // --- REALTIME SUBSCRIPTIONS (OTIMIZADO) ---
-        // ✅ REESTRUTURAÇÃO: Debounce para evitar múltiplos refreshes
+        // Debounce mais longo (1s) para evitar múltiplos refreshes
         let refreshTimeout: NodeJS.Timeout | null = null;
+        let lastRefresh = Date.now();
+        const MIN_REFRESH_INTERVAL = 2000; // Mínimo 2s entre refreshes
+        
         const channel = supabase.channel('global_changes')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public' },
                 (payload) => {
-                    logger.debug('⚡ Realtime Change Detected:', undefined, { table: payload.table });
-                    // Debounce: aguardar 500ms antes de refresh para evitar spam
                     const relevantTables = ['transactions', 'accounts', 'trips', 'family_members'];
-                    if (relevantTables.includes(payload.table)) {
-                        if (refreshTimeout) clearTimeout(refreshTimeout);
-                        refreshTimeout = setTimeout(() => {
-                            // Soft Refresh (no global loading spinner)
-                            fetchData(false);
-                        }, 500);
+                    if (!relevantTables.includes(payload.table)) return;
+                    
+                    // Evitar refresh se foi feito recentemente
+                    const now = Date.now();
+                    if (now - lastRefresh < MIN_REFRESH_INTERVAL) {
+                        logger.debug('⚡ Realtime: Ignorando (refresh recente)');
+                        return;
                     }
+                    
+                    if (refreshTimeout) clearTimeout(refreshTimeout);
+                    refreshTimeout = setTimeout(() => {
+                        lastRefresh = Date.now();
+                        fetchData(false);
+                    }, 1000); // Debounce de 1s
                 }
             )
             .subscribe();
 
-        // --- FOCUS REVALIDATION ---
+        // --- FOCUS REVALIDATION (OTIMIZADO) ---
+        let lastFocusRefresh = 0;
         const onFocus = () => {
-            console.debug('Window Focused - Revalidating Data');
-            fetchData(false);
+            const now = Date.now();
+            // Só revalidar se passou mais de 30s desde último refresh
+            if (now - lastFocusRefresh > 30000 && now - lastRefresh > 5000) {
+                lastFocusRefresh = now;
+                fetchData(false);
+            }
         };
         window.addEventListener('focus', onFocus);
 
@@ -613,47 +612,52 @@ export const useDataStore = () => {
         await supabaseService.softDeleteAccount(id);
     }, 'Conta excluída com sucesso.');
 
-    // PHASE 5: SMART HYDRATION (LAZY LOADING)
+    // PHASE 5: SMART HYDRATION (LAZY LOADING) - OTIMIZADO
     const ensurePeriodLoaded = useCallback(async (date: Date) => {
         if (!isOnline) return;
 
         const periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
         if (loadedPeriods.current.has(periodKey)) {
-            // Already loaded, skip
+            // Already loaded, skip - SEM re-render
             return;
         }
 
+        // Marcar como carregando ANTES de iniciar (evita chamadas duplicadas)
+        loadedPeriods.current.add(periodKey);
+
         logger.debug(`📥 Lazy Loading History for: ${periodKey}`);
-        setIsLoadingHistory(true);
+        
+        // NÃO usar setIsLoadingHistory aqui - evita flicker
+        // O skeleton só aparece se realmente não houver dados
 
         try {
-            // Calculate Range: Start to End of requested month
             const year = date.getFullYear();
             const month = date.getMonth();
-            const start = new Date(year, month, 1);
-            const end = new Date(year, month + 1, 0); // Last day of month
-
-            const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-01`;
-            const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+            const startStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+            const endDay = new Date(year, month + 1, 0).getDate();
+            const endStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
 
             const newTxs = await supabaseService.getTransactionsByRange(startStr, endStr);
 
-            setTransactions(prev => {
-                const all = [...prev, ...newTxs];
-                // Deduplicate by ID
-                const unique = Array.from(new Map(all.map(item => [item.id, item])).values());
-                return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            });
-
-            // Mark as loaded
-            loadedPeriods.current.add(periodKey);
+            // Só atualizar se houver dados novos
+            if (newTxs.length > 0) {
+                setTransactions(prev => {
+                    // Verificar se realmente há novos dados
+                    const existingIds = new Set(prev.map(t => t.id));
+                    const trulyNew = newTxs.filter(t => !existingIds.has(t.id));
+                    
+                    if (trulyNew.length === 0) return prev; // Sem mudança = sem re-render
+                    
+                    const all = [...prev, ...trulyNew];
+                    return all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                });
+            }
 
         } catch (e) {
+            // Remover da lista se falhou (permite retry)
+            loadedPeriods.current.delete(periodKey);
             logger.error("Failed to load history window", e);
-            addToast('Erro ao carregar histórico antigo.', 'error');
-        } finally {
-            setIsLoadingHistory(false);
         }
     }, [isOnline]);
 

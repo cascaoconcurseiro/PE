@@ -1,11 +1,10 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useRef } from 'react';
 import { Account, Transaction, TransactionType, AccountType, Category, Trip } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
 import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue, calculateTotalReceivables, calculateTotalPayables } from '../services/financialLogic';
 import { shouldShowTransaction } from '../utils/transactionFilters';
 import { isForeignTransaction } from '../utils/transactionUtils';
-import { supabaseService } from '../services/supabaseService';
 
 interface UseFinancialDashboardProps {
     accounts: Account[];
@@ -19,41 +18,65 @@ interface UseFinancialDashboardProps {
 export const useFinancialDashboard = ({
     accounts,
     transactions,
-    trips, // NEW
+    trips,
     projectedAccounts,
     currentDate,
     spendingView
 }: UseFinancialDashboardProps) => {
 
     const selectedYear = currentDate.getFullYear();
+    const selectedMonth = currentDate.getMonth();
+    
+    // Cache para evitar recálculos desnecessários
+    const cacheRef = useRef<{
+        txHash: string;
+        accHash: string;
+        dashboardTxs?: Transaction[];
+        dashboardAccs?: Account[];
+    }>({ txHash: '', accHash: '' });
 
+    // Gerar hash simples para detectar mudanças reais
+    const txHash = `${transactions.length}-${transactions[0]?.id || ''}-${transactions[transactions.length - 1]?.id || ''}`;
+    const accHash = `${accounts.length}-${accounts.reduce((s, a) => s + a.balance, 0).toFixed(2)}`;
 
     // 0. GLOBAL FILTER: Dashboard is checking/local only.
-    const dashboardTransactions = useMemo(() =>
-        transactions.filter(t => {
+    // OTIMIZADO: Usar cache para evitar filtros repetidos
+    const dashboardTransactions = useMemo(() => {
+        if (cacheRef.current.txHash === txHash && cacheRef.current.dashboardTxs) {
+            return cacheRef.current.dashboardTxs;
+        }
+        
+        // Criar Set de IDs de trips estrangeiras para lookup O(1)
+        const foreignTripIds = new Set(
+            trips?.filter(tr => tr.currency && tr.currency !== 'BRL').map(tr => tr.id) || []
+        );
+        
+        // Criar Set de IDs de contas estrangeiras para lookup O(1)
+        const foreignAccountIds = new Set(
+            accounts.filter(a => a.currency && a.currency !== 'BRL').map(a => a.id)
+        );
+        
+        const filtered = transactions.filter(t => {
             if (t.deleted) return false;
-            if (isForeignTransaction(t, accounts)) return false;
-
-            // STRICT TRIP CHECK: If tx belongs to a Foreign Trip, exclude it from BRL Dashboard
-            // (Even if tx itself has no currency set, the Context is Foreign)
-            if (t.tripId && trips) {
-                const trip = trips.find(tr => tr.id === t.tripId);
-                // If trip exists and is NOT BRL, exclude this transaction
-                if (trip && trip.currency && trip.currency !== 'BRL') return false;
-            }
-
-            // Redundant Safety Check
-            if (t.accountId) {
-                const acc = accounts.find(a => a.id === t.accountId);
-                if (acc && acc.currency && acc.currency !== 'BRL') return false;
-            }
+            if (t.tripId && foreignTripIds.has(t.tripId)) return false;
+            if (t.accountId && foreignAccountIds.has(t.accountId)) return false;
             return true;
-        }),
-        [transactions, accounts, trips]);
+        });
+        
+        cacheRef.current.txHash = txHash;
+        cacheRef.current.dashboardTxs = filtered;
+        return filtered;
+    }, [transactions, accounts, trips, txHash]);
 
-    const dashboardAccounts = useMemo(() =>
-        accounts.filter(a => !a.currency || a.currency === 'BRL'),
-        [accounts]);
+    const dashboardAccounts = useMemo(() => {
+        if (cacheRef.current.accHash === accHash && cacheRef.current.dashboardAccs) {
+            return cacheRef.current.dashboardAccs;
+        }
+        const filtered = accounts.filter(a => !a.currency || a.currency === 'BRL');
+        cacheRef.current.accHash = accHash;
+        cacheRef.current.dashboardAccs = filtered;
+        return filtered;
+    }, [accounts, accHash]);
 
     // PREPARE PROJECTED ACCOUNTS
     const dashboardProjectedAccounts = useMemo(() =>
@@ -67,12 +90,18 @@ export const useFinancialDashboard = ({
         calculateProjectedBalance(dashboardProjectedAccounts, dashboardTransactions, currentDate),
         [dashboardProjectedAccounts, dashboardTransactions, currentDate]);
 
-    // 2. Filter Transactions for Charts
-    const monthlyTransactions = useMemo(() =>
-        dashboardTransactions
-            .filter(shouldShowTransaction)
-            .filter(t => isSameMonth(t.date, currentDate)),
-        [dashboardTransactions, currentDate]);
+    // 2. Filter Transactions for Charts - OTIMIZADO
+    const monthlyTransactions = useMemo(() => {
+        // Pré-calcular range do mês para comparação rápida
+        const monthStart = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+        const monthEnd = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-31`;
+        
+        return dashboardTransactions.filter(t => {
+            if (!shouldShowTransaction(t)) return false;
+            // Comparação de string é mais rápida que criar Date objects
+            return t.date >= monthStart && t.date <= monthEnd;
+        });
+    }, [dashboardTransactions, selectedYear, selectedMonth]);
 
     // 3. Realized Totals
     const monthlyIncome = useMemo(() => monthlyTransactions
