@@ -105,8 +105,6 @@ export const useDataStore = () => {
             if (!isInitialized.current || forceLoading) {
                 setIsLoading(true);
             }
-
-        try {
             // Calcular janela de tempo (3 meses)
             const today = new Date();
             const currentPeriod = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
