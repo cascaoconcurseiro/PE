@@ -32,9 +32,6 @@ BEGIN
     SELECT COALESCE(raw_user_meta_data->>'name', email, 'Usuário') INTO v_user_name
     FROM auth.users WHERE id = v_user_id;
 
-    -- Desabilitar triggers temporariamente para performance
-    SET session_replication_role = 'replica';
-
     -- ========================================================================
     -- FASE 1: RESOLVER PENDÊNCIAS COMPARTILHADAS
     -- ========================================================================
@@ -224,12 +221,7 @@ BEGIN
     -- 5.1 Limpar logs de auditoria (opcional - comentar se quiser manter)
     DELETE FROM public.audit_logs WHERE changed_by = v_user_id;
 
-    -- Restaurar triggers
-    SET session_replication_role = 'origin';
-
 EXCEPTION WHEN OTHERS THEN
-    -- Garantir que triggers são restaurados mesmo em caso de erro
-    SET session_replication_role = 'origin';
     RAISE;
 END;
 $$;
