@@ -581,22 +581,29 @@ export const supabaseService = {
     },
 
     // DANGER: WIPE ALL DATA (SAFE MODE)
-    // SMART FACTORY RESET
+    // SMART FACTORY RESET V2
     async performSmartReset(unlinkFamily: boolean = false) {
         const userId = await getUserId();
         logger.warn(`🚨 INICIANDO SMART RESET (Unlink Family: ${unlinkFamily}) PARA USUÁRIO: ${userId}`);
 
-        // Call the new Logic-Aware RPC
-        const { error } = await supabase.rpc('fn_smart_factory_reset', {
+        // Call the new Logic-Aware RPC with explicit user_id
+        const { data, error } = await supabase.rpc('fn_smart_factory_reset', {
+            p_user_id: userId,
             p_unlink_family: unlinkFamily
         });
 
         if (error) {
-            // Error logged via errorHandler
+            logger.error('Erro no factory reset:', error);
             throw error;
         }
 
-        logger.info('SMART RESET CONCLUÍDO COM SUCESSO');
+        // Check response
+        if (data && !data.success) {
+            logger.error('Factory reset falhou:', data.error);
+            throw new Error(data.error || 'Factory reset falhou');
+        }
+
+        logger.info('SMART RESET CONCLUÍDO:', data);
     },
 
     // User Settings
