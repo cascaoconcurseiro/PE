@@ -104,7 +104,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     category: category,
                     date: dateStr,
                     accountId: accountId || undefined,
-                    payerId: 'me', // Implicit: I paid
+                    payerId: undefined, // NULL = Eu paguei (não enviar 'me' para o banco)
                     isShared: true,
                     sharedWith: sharedWith, // They owe me
                     isInstallment: numInstallments > 1,
