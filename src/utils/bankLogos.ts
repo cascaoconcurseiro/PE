@@ -94,6 +94,50 @@ const BANK_SVGS: Record<string, string> = {
   
   // 99Pay - Amarelo #FFCB05
   '99pay': `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#FFCB05"/><text x="50" y="62" text-anchor="middle" fill="#1a1a1a" font-family="Arial" font-weight="bold" font-size="24">99</text></svg>`,
+  
+  // ========== BANDEIRAS DE CARTÃO ==========
+  
+  // Visa - Azul #1A1F71
+  visa: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1A1F71"/><text x="50" y="62" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="28" font-style="italic">VISA</text></svg>`,
+  
+  // Mastercard - Vermelho/Laranja
+  mastercard: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1a1a1a"/><circle cx="38" cy="50" r="22" fill="#EB001B"/><circle cx="62" cy="50" r="22" fill="#F79E1B"/><path d="M50 32c5.5 4.5 9 11.2 9 18s-3.5 13.5-9 18c-5.5-4.5-9-11.2-9-18s3.5-13.5 9-18z" fill="#FF5F00"/></svg>`,
+  
+  // Elo - Amarelo/Preto
+  elo: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1a1a1a"/><circle cx="35" cy="50" r="15" fill="#FFCB05"/><circle cx="55" cy="50" r="15" fill="#00A4E0"/><circle cx="75" cy="50" r="15" fill="#EF4123"/><text x="50" y="85" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="16">elo</text></svg>`,
+  
+  // American Express - Azul
+  amex: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#006FCF"/><text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="14">AMERICAN</text><text x="50" y="72" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="14">EXPRESS</text></svg>`,
+  
+  // Hipercard - Vermelho
+  hipercard: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#B3131B"/><text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">HIPER</text><text x="50" y="70" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">CARD</text></svg>`,
+  
+  // Diners Club - Azul
+  diners: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#0079BE"/><circle cx="50" cy="50" r="25" fill="white"/><rect x="35" y="40" width="5" height="20" fill="#0079BE"/><rect x="60" y="40" width="5" height="20" fill="#0079BE"/></svg>`,
+  
+  // Alelo - Verde
+  alelo: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00A651"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="22">alelo</text></svg>`,
+  
+  // Sodexo - Vermelho
+  sodexo: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#ED1C24"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">Sodexo</text></svg>`,
+  
+  // VR - Azul
+  vr: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#003399"/><text x="50" y="65" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="36">VR</text></svg>`,
+  
+  // Ticket - Vermelho
+  ticket: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#E30613"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">Ticket</text></svg>`,
+  
+  // Flash - Laranja
+  flash: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#FF6B00"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="20">Flash</text></svg>`,
+  
+  // Caju - Verde
+  caju: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00C896"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="22">Caju</text></svg>`,
+  
+  // iFood Benefícios - Vermelho
+  ifoodbeneficios: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#EA1D2C"/><text x="50" y="50" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="16">iFood</text><text x="50" y="68" text-anchor="middle" fill="white" font-family="Arial" font-size="12">Benefícios</text></svg>`,
+  
+  // Swile - Roxo
+  swile: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#6B4EFF"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="20">Swile</text></svg>`,
 };
 
 // Mapeamento de palavras-chave para identificar o banco
@@ -128,6 +172,22 @@ const BANK_KEYWORDS: Record<string, string[]> = {
   ame: ['ame digital', 'ame '],
   recargapay: ['recargapay', 'recarga pay'],
   '99pay': ['99pay', '99 pay', '99'],
+  
+  // Bandeiras de cartão
+  visa: ['visa'],
+  mastercard: ['mastercard', 'master card', 'master'],
+  elo: ['elo '],
+  amex: ['amex', 'american express', 'americanexpress'],
+  hipercard: ['hipercard', 'hiper card', 'hiper'],
+  diners: ['diners', 'diners club'],
+  alelo: ['alelo'],
+  sodexo: ['sodexo'],
+  vr: ['vr ', ' vr'],
+  ticket: ['ticket'],
+  flash: ['flash'],
+  caju: ['caju'],
+  ifoodbeneficios: ['ifood beneficio', 'ifood benefícios'],
+  swile: ['swile'],
 };
 
 /**
