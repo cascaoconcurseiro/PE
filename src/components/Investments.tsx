@@ -166,6 +166,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
                 })}
                 editingAsset={editingAsset}
                 accounts={accounts}
+                assets={assets}
             />
 
             <SellAssetModal

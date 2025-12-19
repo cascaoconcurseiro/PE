@@ -50,6 +50,42 @@ export const SellAssetModal: React.FC<SellAssetModalProps> = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Quantidade</label>
+                        <input 
+                            type="number" 
+                            step="any" 
+                            required 
+                            value={quantity} 
+                            onChange={e => setQuantity(e.target.value)} 
+                            max={selectedAsset.quantity}
+                            placeholder="0.00" 
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none font-bold" 
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Preço de Venda</label>
+                        <input 
+                            type="number" 
+                            step="any" 
+                            required 
+                            value={price} 
+                            onChange={e => setPrice(e.target.value)} 
+                            placeholder="0.00" 
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none font-bold" 
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Data da Venda</label>
+                    <input 
+                        type="date" 
+                        required 
+                        value={date} 
+                        onChange={e => setDate(e.target.value)} 
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none font-bold" 
+                    />
                 </div>
 
                 <div>
