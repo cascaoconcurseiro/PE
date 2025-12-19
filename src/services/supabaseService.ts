@@ -219,30 +219,27 @@ export const supabaseService = {
 
     // NEW (Phase 8): RPC-Based Transaction Creation
     async createTransactionWithValidation(transaction: Partial<Transaction>) {
-        const userId = await getUserId();
-
         // Map Application Object to RPC Parameters
+        // NOTA: A função usa auth.uid() internamente, não precisa passar p_user_id
         const params = {
-            p_user_id: userId, // ✅ CRÍTICO: Passar userId para ownership tracking
             p_description: transaction.description,
             p_amount: transaction.amount,
             p_type: transaction.type,
             p_category: transaction.category,
             p_date: transaction.date,
-            p_account_id: transaction.accountId,
+            p_account_id: transaction.accountId || null,
             p_destination_account_id: transaction.destinationAccountId || null,
             p_trip_id: transaction.tripId || null,
             p_is_shared: transaction.isShared || false,
             p_domain: transaction.domain || null,
-            // Extended Fields (Phase 8 Fix)
             p_is_installment: transaction.isInstallment || false,
             p_current_installment: transaction.currentInstallment || null,
             p_total_installments: transaction.totalInstallments || null,
-            p_series_id: transaction.seriesId || null,
+            p_series_id: transaction.seriesId || null,  // TEXT no banco
             p_is_recurring: transaction.isRecurring || false,
             p_frequency: transaction.frequency || null,
-            p_shared_with: transaction.sharedWith || [], // Enabling Mirroring Data
-            p_payer_id: transaction.payerId || null, // Quem pagou (para compartilhadas)
+            p_shared_with: transaction.sharedWith || [],
+            p_payer_id: transaction.payerId || null,  // TEXT no banco, 'me' vira null
             p_currency: transaction.currency || 'BRL'
         };
 
