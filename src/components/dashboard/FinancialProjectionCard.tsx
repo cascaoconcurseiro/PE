@@ -54,49 +54,49 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
     const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long' });
 
     return (
-        <div className="bg-indigo-900 dark:bg-indigo-950 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-6 opacity-10">
-                <LineChart className="w-40 h-40 text-white" />
+        <div className="bg-indigo-900 dark:bg-indigo-950 rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 sm:p-6 opacity-10">
+                <LineChart className="w-24 h-24 sm:w-40 sm:h-40 text-white" />
             </div>
 
             <div className="relative z-10">
                 {/* Header com Resultado do Mês */}
-                <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-2 text-indigo-300">
-                        <Wallet className="w-5 h-5" />
-                        <span className="text-xs font-bold uppercase tracking-widest">{resultLabel}</span>
+                <div className="mb-4 sm:mb-6">
+                    <div className="flex items-center gap-2 mb-1.5 sm:mb-2 text-indigo-300">
+                        <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">{resultLabel}</span>
                     </div>
                     <div className="mb-1">
-                        <span className={`text-4xl font-black tracking-tight ${monthResult < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
+                        <span className={`text-2xl sm:text-4xl font-black tracking-tight ${monthResult < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
                             <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(monthResult)}</PrivacyBlur>
                         </span>
                     </div>
-                    <p className="text-sm text-indigo-200">
+                    <p className="text-xs sm:text-sm text-indigo-200">
                         Receitas - Despesas em {monthName}
                     </p>
                 </div>
 
-                {/* Grid com Receitas e Despesas */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* Grid com Receitas e Despesas - responsivo */}
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     {/* Total a Receber */}
-                    <div className="bg-emerald-500/20 rounded-2xl p-4 border border-emerald-500/30">
-                        <div className="flex items-center gap-2 mb-3">
-                            <TrendingUp className="w-4 h-4 text-emerald-300" />
-                            <span className="text-xs font-semibold text-emerald-200 uppercase">Total a Receber</span>
+                    <div className="bg-emerald-500/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-emerald-500/30">
+                        <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                            <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300" />
+                            <span className="text-[10px] sm:text-xs font-semibold text-emerald-200 uppercase">Receitas</span>
                         </div>
-                        <div className="text-2xl font-bold text-emerald-300 mb-3">
+                        <div className="text-lg sm:text-2xl font-bold text-emerald-300 mb-2 sm:mb-3">
                             <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(totalMonthIncome)}</PrivacyBlur>
                         </div>
-                        <div className="space-y-1 text-xs">
+                        <div className="space-y-1 text-[10px] sm:text-xs">
                             <div className="flex justify-between text-emerald-200/80">
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" /> Recebido
+                                    <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> <span className="hidden xs:inline">Recebido</span><span className="xs:hidden">✓</span>
                                 </span>
                                 <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(realizedIncome)}</PrivacyBlur></span>
                             </div>
                             <div className="flex justify-between text-emerald-200/80">
                                 <span className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" /> Pendente
+                                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> <span className="hidden xs:inline">Pendente</span><span className="xs:hidden">⏱</span>
                                 </span>
                                 <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(pendingIncome)}</PrivacyBlur></span>
                             </div>
@@ -104,24 +104,24 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                     </div>
 
                     {/* Total a Pagar */}
-                    <div className="bg-red-500/20 rounded-2xl p-4 border border-red-500/30">
-                        <div className="flex items-center gap-2 mb-3">
-                            <TrendingDown className="w-4 h-4 text-red-300" />
-                            <span className="text-xs font-semibold text-red-200 uppercase">Total a Pagar</span>
+                    <div className="bg-red-500/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-red-500/30">
+                        <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                            <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-300" />
+                            <span className="text-[10px] sm:text-xs font-semibold text-red-200 uppercase">Despesas</span>
                         </div>
-                        <div className="text-2xl font-bold text-red-300 mb-3">
+                        <div className="text-lg sm:text-2xl font-bold text-red-300 mb-2 sm:mb-3">
                             <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(totalMonthExpenses)}</PrivacyBlur>
                         </div>
-                        <div className="space-y-1 text-xs">
+                        <div className="space-y-1 text-[10px] sm:text-xs">
                             <div className="flex justify-between text-red-200/80">
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" /> Pago
+                                    <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> <span className="hidden xs:inline">Pago</span><span className="xs:hidden">✓</span>
                                 </span>
                                 <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(realizedExpenses)}</PrivacyBlur></span>
                             </div>
                             <div className="flex justify-between text-red-200/80">
                                 <span className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" /> Pendente
+                                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> <span className="hidden xs:inline">Pendente</span><span className="xs:hidden">⏱</span>
                                 </span>
                                 <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(pendingExpenses)}</PrivacyBlur></span>
                             </div>
