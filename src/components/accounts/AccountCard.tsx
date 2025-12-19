@@ -3,6 +3,7 @@ import { Account, AccountType, Transaction } from '../../types';
 import { CreditCard, Wallet, Banknote, Landmark, MoreHorizontal, Plus } from 'lucide-react';
 import { formatCurrency } from '../../utils';
 import { getInvoiceData } from '../../services/accountUtils';
+import { BankLogo } from '../ui/BankLogo';
 
 interface AccountCardProps {
     account: Account;
@@ -45,7 +46,15 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
                     }}></div>
                 </div>
                 <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
-                <div className="relative z-10 flex justify-between items-start"><h3 className="font-bold text-lg tracking-wider uppercase opacity-90">{account.name}</h3><CreditCard className="w-6 h-6 opacity-60" /></div>
+                <div className="relative z-10 flex justify-between items-start">
+                    <h3 className="font-bold text-lg tracking-wider uppercase opacity-90">{account.name}</h3>
+                    <BankLogo 
+                        accountName={account.name} 
+                        size="md"
+                        className="opacity-80 group-hover:opacity-100 transition-opacity"
+                        fallbackIcon={<CreditCard className="w-6 h-6 opacity-60" />}
+                    />
+                </div>
                 <div className="relative z-10 flex justify-between items-end"><div><p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Fatura Atual</p><p className="font-mono font-bold text-lg tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(invoiceTotal, account.currency)}</PrivacyBlur></p></div><div className="flex flex-col items-end"><span className="text-[10px] font-bold opacity-60">{percentageUsed.toFixed(0)}% Limite</span></div></div>
                 <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-700/50"><div className={`h-full transition-all duration-1000 ${percentageUsed > 90 ? 'bg-red-500' : 'bg-emerald-400'}`} style={{ width: `${percentageUsed}%` }}></div></div>
             </div>
@@ -57,7 +66,19 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
         return (
             <div onClick={() => onClick(account)} className="group bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 dark:bg-blue-900/20 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
-                <div className="relative z-10 flex justify-between items-start mb-8"><div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl text-blue-700 dark:text-blue-400 group-hover:bg-blue-200 transition-colors">{getIcon(account.type)}</div><button className="text-slate-300 dark:text-slate-500 hover:text-slate-600 transition-colors"><MoreHorizontal className="w-5 h-5" /></button></div>
+                <div className="relative z-10 flex justify-between items-start mb-8">
+                    <BankLogo 
+                        accountName={account.name} 
+                        size="lg"
+                        className="group-hover:scale-110 transition-transform"
+                        fallbackIcon={
+                            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl text-blue-700 dark:text-blue-400 group-hover:bg-blue-200 transition-colors">
+                                {getIcon(account.type)}
+                            </div>
+                        }
+                    />
+                    <button className="text-slate-300 dark:text-slate-500 hover:text-slate-600 transition-colors"><MoreHorizontal className="w-5 h-5" /></button>
+                </div>
                 <div className="relative z-10"><h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{account.name}</h3><p className="text-xs text-slate-500 dark:text-slate-300 font-medium uppercase tracking-wider mb-4">{account.type === AccountType.CHECKING ? 'Conta Global' : account.type}</p><p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(account.balance, account.currency)}</PrivacyBlur></p></div>
             </div>
         );
@@ -67,7 +88,19 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
     return (
         <div onClick={() => onClick(account)} className="group bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 dark:bg-slate-700 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
-            <div className="relative z-10 flex justify-between items-start mb-8"><div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-2xl text-slate-700 dark:text-slate-300 group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">{getIcon(account.type)}</div><button className="text-slate-300 dark:text-slate-500 hover:text-slate-600 transition-colors"><MoreHorizontal className="w-5 h-5" /></button></div>
+            <div className="relative z-10 flex justify-between items-start mb-8">
+                <BankLogo 
+                    accountName={account.name} 
+                    size="lg"
+                    className="group-hover:scale-110 transition-transform"
+                    fallbackIcon={
+                        <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-2xl text-slate-700 dark:text-slate-300 group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">
+                            {getIcon(account.type)}
+                        </div>
+                    }
+                />
+                <button className="text-slate-300 dark:text-slate-500 hover:text-slate-600 transition-colors"><MoreHorizontal className="w-5 h-5" /></button>
+            </div>
             <div className="relative z-10"><h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{account.name}</h3><p className="text-xs text-slate-500 dark:text-slate-300 font-medium uppercase tracking-wider mb-4">{account.type}</p><p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight"><PrivacyBlur showValues={showValues}>{formatCurrency(account.balance, account.currency)}</PrivacyBlur></p></div>
         </div>
     );
