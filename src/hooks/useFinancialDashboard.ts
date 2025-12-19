@@ -225,8 +225,11 @@ export const useFinancialDashboard = ({
         }
 
         // Calculate starting balance (Jan 1st of selected year)
-        // Current balance - all transactions from Jan 1st until today
+        // We need to reverse ALL transactions from Jan 1st of selected year until today
+        // to get what the balance was at the start of the year
         const todayStr = new Date().toISOString().split('T')[0];
+        const currentYear = new Date().getFullYear();
+        
         let startingBalance = dashboardAccounts.reduce((sum, a) => {
             const val = convertToBRL(a.balance, a.currency || 'BRL');
             if (isCreditCard(a.type)) {
@@ -235,13 +238,15 @@ export const useFinancialDashboard = ({
             return sum + val;
         }, 0);
         
-        // Reverse all transactions from start of year until today to get Jan 1st balance
+        // Reverse all transactions from Jan 1st of selected year until today to get Jan 1st balance
+        // This works for current year and past years
         for (const t of dashboardTransactions) {
             if (!shouldShowTransaction(t)) continue;
             
             const dateStr = t.date.split('T')[0];
             
-            // Only reverse transactions from Jan 1st of selected year until today
+            // Reverse transactions that happened FROM start of selected year TO today
+            // This gives us the balance at Jan 1st of selected year
             if (dateStr < startOfYearStr || dateStr > todayStr) continue;
             
             const account = accountMap.get(t.accountId);
@@ -258,6 +263,35 @@ export const useFinancialDashboard = ({
                 startingBalance -= t.isRefund ? -amountBRL : amountBRL;
             } else if (t.type === TransactionType.EXPENSE) {
                 startingBalance += t.isRefund ? -amountBRL : amountBRL;
+            }
+        }
+        
+        // For future years, we need to ADD transactions that will happen between now and start of that year
+        if (selectedYear > currentYear) {
+            const futureStartStr = `${currentYear + 1}-01-01`;
+            for (const t of dashboardTransactions) {
+                if (!shouldShowTransaction(t)) continue;
+                
+                const dateStr = t.date.split('T')[0];
+                
+                // Add transactions between today and start of selected year
+                if (dateStr <= todayStr || dateStr >= startOfYearStr) continue;
+                
+                const account = accountMap.get(t.accountId);
+                if (account && account.currency && account.currency !== 'BRL') continue;
+                
+                let amount = t.amount;
+                if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
+                    amount = calculateEffectiveTransactionValue(t);
+                }
+                const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
+                
+                // Add the effect for future transactions
+                if (t.type === TransactionType.INCOME) {
+                    startingBalance += t.isRefund ? -amountBRL : amountBRL;
+                } else if (t.type === TransactionType.EXPENSE) {
+                    startingBalance -= t.isRefund ? -amountBRL : amountBRL;
+                }
             }
         }
 
