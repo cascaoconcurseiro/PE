@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Calendar, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Save, Calendar, DollarSign, ChevronLeft, ChevronRight, Tag } from 'lucide-react';
 import { Account, Transaction, TransactionType, Category } from '../../types';
 import { Button } from '../ui/Button';
+
+// Categorias de despesa agrupadas (sem receitas)
+const EXPENSE_CATEGORIES = [
+    { group: '🏠 Moradia', items: [Category.HOUSING, Category.RENT, Category.MAINTENANCE, Category.FURNITURE, Category.UTILITIES] },
+    { group: '🍽️ Alimentação', items: [Category.FOOD, Category.RESTAURANTS, Category.GROCERY, Category.SNACKS] },
+    { group: '🚗 Transporte', items: [Category.TRANSPORTATION, Category.UBER, Category.FUEL, Category.PUBLIC_TRANSPORT, Category.VEHICLE_MAINTENANCE, Category.PARKING] },
+    { group: '❤️ Saúde', items: [Category.HEALTH, Category.PHARMACY, Category.DOCTOR, Category.EXAMS, Category.GYM] },
+    { group: '🎉 Lazer', items: [Category.LEISURE, Category.ENTERTAINMENT, Category.STREAMING, Category.TRAVEL, Category.HOBBIES] },
+    { group: '🛍️ Compras', items: [Category.SHOPPING, Category.CLOTHING, Category.ELECTRONICS, Category.BEAUTY, Category.HOME_SHOPPING] },
+    { group: '📚 Educação', items: [Category.EDUCATION, Category.COURSES, Category.BOOKS] },
+    { group: '👤 Pessoal', items: [Category.PERSONAL, Category.PERSONAL_CARE, Category.PETS, Category.GIFTS, Category.DONATION] },
+    { group: '💰 Financeiro', items: [Category.FINANCIAL, Category.INSURANCE, Category.TAXES, Category.FEES, Category.LOANS] },
+    { group: '📦 Especiais', items: [Category.MISCELLANEOUS, Category.ADJUSTMENT, Category.OPENING_BALANCE] },
+];
 
 interface CreditCardImportModalProps {
     isOpen: boolean;
@@ -12,6 +26,7 @@ interface CreditCardImportModalProps {
 
 export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ isOpen, onClose, account, onImport }) => {
     const [year, setYear] = useState(new Date().getFullYear());
+    const [category, setCategory] = useState<Category>(Category.OPENING_BALANCE);
     // Add isPast to state structure
     const [months, setMonths] = useState<{ date: string; label: string; amount: string; isPast: boolean }[]>([]);
 
@@ -70,7 +85,7 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                 date: m.date,
                 amount: parseFloat(m.amount),
                 type: TransactionType.EXPENSE,
-                category: Category.OPENING_BALANCE,
+                category: category,
                 description: `Fatura Importada - ${m.label}`,
                 accountId: account.id,
                 isSettled: false,
@@ -117,23 +132,41 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                     </button>
                 </div>
 
-                {/* Year Selector */}
-                <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-center gap-4 border-b border-slate-100 dark:border-slate-800">
-                    <button
-                        onClick={() => setYear(y => y - 1)}
-                        className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
-                    >
-                        <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                    </button>
-                    <span className="text-lg font-bold text-slate-800 dark:text-white tabular-nums">
-                        {year}
-                    </span>
-                    <button
-                        onClick={() => setYear(y => y + 1)}
-                        className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
-                    >
-                        <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                    </button>
+                {/* Year Selector & Category */}
+                <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => setYear(y => y - 1)}
+                            className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                        >
+                            <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                        </button>
+                        <span className="text-lg font-bold text-slate-800 dark:text-white tabular-nums">
+                            {year}
+                        </span>
+                        <button
+                            onClick={() => setYear(y => y + 1)}
+                            className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                        >
+                            <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-slate-400" />
+                        <select 
+                            value={category} 
+                            onChange={e => setCategory(e.target.value as Category)}
+                            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 dark:text-slate-300"
+                        >
+                            {EXPENSE_CATEGORIES.map(group => (
+                                <optgroup key={group.group} label={group.group}>
+                                    {group.items.map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </optgroup>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
