@@ -41,7 +41,16 @@ export const useSmartNotifications = ({
     notificationSettings
 }: UseSmartNotificationsProps): SmartNotification[] => {
     
+    // Criar chaves estáveis para dependências
+    const txCount = transactions?.length || 0;
+    const budgetCount = budgets?.length || 0;
+    const goalCount = goals?.length || 0;
+    const dateKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDate()}`;
+    const settingsKey = `${notificationSettings.enableBillReminders}-${notificationSettings.enableBudgetAlerts}-${notificationSettings.enableGoalReminders}-${notificationSettings.reminderDaysBefore}`;
+    
     return useMemo(() => {
+        if (!transactions || transactions.length === 0) return [];
+        
         const notifications: SmartNotification[] = [];
         const today = new Date(currentDate);
         today.setHours(0, 0, 0, 0);
@@ -211,5 +220,6 @@ export const useSmartNotifications = ({
             }
             return new Date(a.date).getTime() - new Date(b.date).getTime();
         });
-    }, [transactions, budgets, goals, accounts, currentDate, notificationSettings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [txCount, budgetCount, goalCount, dateKey, settingsKey, accounts?.length]);
 };

@@ -63,7 +63,8 @@ export const useDataStore = () => {
         const handleOnline = () => {
             setIsOnline(true);
             addToast('Você está online.', 'success');
-            refresh();
+            // Não fazer refresh automático ao voltar online para evitar loops
+            // O usuário pode fazer refresh manual se necessário
         };
         const handleOffline = () => {
             setIsOnline(false);
@@ -76,25 +77,34 @@ export const useDataStore = () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
         };
-    }, []);
+    }, [addToast]);
 
     // ========== FETCH DATA (TIERED LOADING) ==========
+    const isFetchingRef = useRef(false);
     const fetchData = useCallback(async (forceLoading = false) => {
+        // Prevenir chamadas simultâneas
+        if (isFetchingRef.current) {
+            return;
+        }
+        isFetchingRef.current = true;
+
         if (fetchAbortController.current) {
             fetchAbortController.current.abort();
         }
         fetchAbortController.current = new AbortController();
         const signal = fetchAbortController.current.signal;
 
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session || signal.aborted) {
-            setIsLoading(false);
-            return;
-        }
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session || signal.aborted) {
+                setIsLoading(false);
+                isFetchingRef.current = false;
+                return;
+            }
 
-        if (!isInitialized.current || forceLoading) {
-            setIsLoading(true);
-        }
+            if (!isInitialized.current || forceLoading) {
+                setIsLoading(true);
+            }
 
         try {
             // Calcular janela de tempo (3 meses)
@@ -187,18 +197,24 @@ export const useDataStore = () => {
             logger.error("Error fetching data from Supabase", error);
             addToast("Erro ao carregar dados da nuvem.", 'error');
             setIsLoading(false);
+        } finally {
+            isFetchingRef.current = false;
         }
     }, [accountStore, transactionStore, tripStore, familyStore, budgetGoalStore, addToast]);
 
-    // Initial Load
+    // Initial Load - Executar apenas uma vez
+    const hasInitializedRef = useRef(false);
     useEffect(() => {
+        if (hasInitializedRef.current) return;
+        hasInitializedRef.current = true;
+        
         fetchData();
         return () => {
             if (fetchAbortController.current) {
                 fetchAbortController.current.abort();
             }
         };
-    }, [fetchData]);
+    }, []); // Dependências vazias para executar apenas uma vez
 
     // ========== ACTIONS ==========
     const refresh = () => fetchData(false);

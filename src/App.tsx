@@ -157,17 +157,22 @@ const App = () => {
 
     // ONE-TIME: Smart Sync for Month Navigation
     useEffect(() => {
-        if (sessionUser && ensurePeriodLoaded) {
-            // Check if we already tried this date recently (deduplication)
-            const dateKey = currentDate.getTime();
-            if (lastAttemptedDate.current === dateKey) return;
+        if (!sessionUser || !ensurePeriodLoaded || isDataLoading) return;
+        
+        // Check if we already tried this date recently (deduplication)
+        const dateKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+        const lastKey = lastAttemptedDate.current;
+        
+        if (lastKey === currentDate.getTime()) return;
+        lastAttemptedDate.current = currentDate.getTime();
 
-            lastAttemptedDate.current = dateKey;
-
-            // Carregar imediatamente sem delay para evitar flash de R$ 0,00
+        // Carregar período com pequeno delay para evitar múltiplas chamadas
+        const timer = setTimeout(() => {
             ensurePeriodLoaded(currentDate);
-        }
-    }, [currentDate, sessionUser, ensurePeriodLoaded]);
+        }, 100);
+        
+        return () => clearTimeout(timer);
+    }, [currentDate, sessionUser, isDataLoading]); // Removido ensurePeriodLoaded das deps para evitar loop
 
     // Helper Functions & Memos
     const handleViewChange = (view: View) => startTransition(() => setActiveView(view));
