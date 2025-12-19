@@ -64,7 +64,7 @@ BEGIN
 
     -- Cancelar settlement requests pendentes
     UPDATE public.settlement_requests
-    SET status = 'CANCELLED', responded_at = NOW()
+    SET status = 'CANCELLED', updated_at = NOW()
     WHERE (payer_id = v_user_id OR receiver_id = v_user_id)
       AND status = 'PENDING';
 
