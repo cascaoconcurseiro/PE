@@ -79,7 +79,9 @@ export const Goals: React.FC<GoalsProps> = ({ goals, accounts, onAddGoal, onUpda
             type: transactionType === 'DEPOSIT' ? TransactionType.EXPENSE : TransactionType.INCOME,
             accountId: selectedAccountId,
             category: Category.INVESTMENT,
-            isRecurring: false
+            isRecurring: false,
+            currency: 'BRL',
+            domain: 'PERSONAL'
         };
 
         onAddTransaction(transaction);

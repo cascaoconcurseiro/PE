@@ -112,7 +112,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     originalAmount: totalAmount,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
-                    syncStatus: SyncStatus.PENDING
+                    syncStatus: SyncStatus.PENDING,
+                    currency: 'BRL',
+                    domain: 'SHARED'
                 });
             }
             onImport(generatedTransactions);

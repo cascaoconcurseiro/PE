@@ -123,7 +123,9 @@ export const useInvestmentActions = ({
                         category: Category.INVESTMENT,
                         accountId: sourceAccountId,
                         isRecurring: false,
-                        exchangeRate: exchangeRate !== 1 ? exchangeRate : undefined
+                        exchangeRate: exchangeRate !== 1 ? exchangeRate : undefined,
+                        currency: currency,
+                        domain: 'PERSONAL'
                     });
 
                     addToast(`${ticker} atualizado! Novo Preço Médio: ${formatCurrency(newAveragePrice, currency)}`, 'success');
@@ -180,7 +182,9 @@ export const useInvestmentActions = ({
                     category: Category.INVESTMENT,
                     accountId: sourceAccountId,
                     isRecurring: false,
-                    exchangeRate: exchangeRate !== 1 ? exchangeRate : undefined
+                    exchangeRate: exchangeRate !== 1 ? exchangeRate : undefined,
+                    currency: currency,
+                    domain: 'PERSONAL'
                 });
             }
             onSuccess();
@@ -221,7 +225,9 @@ export const useInvestmentActions = ({
             category: Category.INVESTMENT,
             accountId: destAccountId, // Money goes here
             isRecurring: false,
-            exchangeRate: exchangeRate !== 1 ? exchangeRate : undefined
+            exchangeRate: exchangeRate !== 1 ? exchangeRate : undefined,
+            currency: asset.currency,
+            domain: 'PERSONAL'
         });
 
         // 2. Update Asset (Sell doesn't change Avg Price, only reduces Qty)
@@ -269,7 +275,9 @@ export const useInvestmentActions = ({
             type: TransactionType.INCOME,
             category: Category.INVESTMENT,
             accountId: destAccountId, // Money goes here
-            isRecurring: false
+            isRecurring: false,
+            currency: asset.currency,
+            domain: 'PERSONAL'
         });
 
         onSuccess();

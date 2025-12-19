@@ -31,7 +31,15 @@ export const useAccountActions = ({ selectedAccount, onAddTransaction, currentDa
         }
 
         const date = new Date().toISOString();
-        const commonProps = { amount, date, accountId: selectedAccount.id, isRecurring: false };
+        const accountCurrency = selectedAccount.currency || 'BRL';
+        const commonProps = { 
+            amount, 
+            date, 
+            accountId: selectedAccount.id, 
+            isRecurring: false,
+            currency: accountCurrency,
+            domain: 'PERSONAL' as const
+        };
 
         switch (actionModal.type) {
             case 'DEPOSIT':
@@ -99,7 +107,9 @@ export const useAccountActions = ({ selectedAccount, onAddTransaction, currentDa
                     category: Category.TRANSFER,
                     accountId: sourceId,
                     destinationAccountId: selectedAccount.id,
-                    isRecurring: false
+                    isRecurring: false,
+                    currency: accountCurrency,
+                    domain: 'PERSONAL' as const
                 });
                 addToast('Pagamento de fatura registrado!', 'success');
                 break;

@@ -49,7 +49,9 @@ export const SettlementReviewModal: React.FC<SettlementReviewModalProps> = ({
                 category: Category.INCOME,
                 accountId: destinationAccountId,
                 isSettled: true, // It is money in hand
-                observation: `[SETTLEMENT:${request.id}] Recebimento confirmado.`
+                observation: `[SETTLEMENT:${request.id}] Recebimento confirmado.`,
+                currency: requestCurrency,
+                domain: 'SHARED'
             });
 
             // 2. Update Request Status
