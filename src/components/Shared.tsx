@@ -7,6 +7,7 @@ import { SharedInstallmentImport } from './shared/SharedInstallmentImport';
 import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal';
 import { TransactionDeleteModal } from './transactions/TransactionDeleteModal';
 import { SharedMemberDetail } from './shared/SharedMemberDetail';
+import { ConfirmModal } from './ui/ConfirmModal';
 
 interface SharedProps {
     transactions: Transaction[];
@@ -49,6 +50,8 @@ export const Shared: React.FC<SharedProps> = ({
 
     // Bulk Delete State
     const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState<{ isOpen: boolean; ids: string[] }>({ isOpen: false, ids: [] });
+    const [undoSettlementConfirm, setUndoSettlementConfirm] = useState<{ isOpen: boolean; item: InvoiceItem | null }>({ isOpen: false, item: null });
 
     // Use Custom Hook for Calculation Logic
     const { getFilteredInvoice, getTotals } = useSharedFinances({
@@ -180,13 +183,22 @@ export const Shared: React.FC<SharedProps> = ({
 
     const handleBulkDelete = (ids: string[]) => {
         if (!onDeleteTransaction) return;
-        if (confirm(`Tem certeza que deseja excluir ${ids.length} itens?`)) {
-            ids.forEach(id => onDeleteTransaction(id, 'SINGLE'));
-        }
+        setBulkDeleteConfirm({ isOpen: true, ids });
+    };
+
+    const confirmBulkDelete = () => {
+        if (!onDeleteTransaction) return;
+        bulkDeleteConfirm.ids.forEach(id => onDeleteTransaction(id, 'SINGLE'));
+        setBulkDeleteConfirm({ isOpen: false, ids: [] });
     };
 
     const handleUndoSettlement = (item: InvoiceItem) => {
-        if (!confirm('Deseja desfazer o acerto deste item? Ele voltará a aparecer como pendente.')) return;
+        setUndoSettlementConfirm({ isOpen: true, item });
+    };
+
+    const confirmUndoSettlement = () => {
+        const item = undoSettlementConfirm.item;
+        if (!item) return;
 
         const originalTx = transactions.find(t => t.id === item.originalTxId);
         if (!originalTx) return;
@@ -204,6 +216,7 @@ export const Shared: React.FC<SharedProps> = ({
             // Unsettle the transaction itself
             onUpdateTransaction({ ...originalTx, isSettled: false, settledAt: undefined });
         }
+        setUndoSettlementConfirm({ isOpen: false, item: null });
     };
 
     return (
@@ -359,6 +372,25 @@ export const Shared: React.FC<SharedProps> = ({
                     }}
                 />
             )}
+
+            <ConfirmModal
+                isOpen={bulkDeleteConfirm.isOpen}
+                onCancel={() => setBulkDeleteConfirm({ isOpen: false, ids: [] })}
+                onConfirm={confirmBulkDelete}
+                title="Excluir Itens"
+                message={`Tem certeza que deseja excluir ${bulkDeleteConfirm.ids.length} itens?`}
+                confirmLabel="Excluir"
+                isDanger
+            />
+
+            <ConfirmModal
+                isOpen={undoSettlementConfirm.isOpen}
+                onCancel={() => setUndoSettlementConfirm({ isOpen: false, item: null })}
+                onConfirm={confirmUndoSettlement}
+                title="Desfazer Acerto"
+                message="Deseja desfazer o acerto deste item? Ele voltará a aparecer como pendente."
+                confirmLabel="Desfazer"
+            />
         </div >
     );
 };

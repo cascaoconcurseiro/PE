@@ -3,6 +3,7 @@ import { Transaction, FamilyMember, Account, Category, TransactionType, SyncStat
 import { Button } from '../ui/Button';
 import { round2dec } from '../../utils';
 import { X, Calendar, DollarSign, CreditCard, Layers, Check } from 'lucide-react';
+import { useToast } from '../ui/Toast';
 
 // Helper for currency format inside component
 const formatCurrency = (val: number) => {
@@ -22,6 +23,7 @@ interface SharedInstallmentImportProps {
 export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = ({
     isOpen, onClose, onImport, members, accounts, currentUserId, currentUserName
 }) => {
+    const { addToast } = useToast();
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
     const [installments, setInstallments] = useState('1');
@@ -55,7 +57,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         if (isSubmitting) return; // Prevent double click
 
         if (!amount || !description || !assigneeId) {
-            alert('Preencha todos os campos obrigatórios.');
+            addToast('Preencha todos os campos obrigatórios.', 'warning');
             return;
         }
 

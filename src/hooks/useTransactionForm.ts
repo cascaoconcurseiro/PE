@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Transaction, TransactionType, Category, Account, Trip, TransactionSplit, Frequency, AccountType } from '../types';
 
 interface UseTransactionFormProps {
@@ -205,6 +205,8 @@ export const useTransactionForm = ({
 
     const [duplicateWarning, setDuplicateWarning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSeriesConfirm, setShowSeriesConfirm] = useState(false);
+    const [pendingSeriesUpdate, setPendingSeriesUpdate] = useState(false);
 
     // Reset warning when form changes
     useEffect(() => {
@@ -264,8 +266,7 @@ export const useTransactionForm = ({
             } else {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
-            // Explicitly warn user as requested
-            alert(`Não foi possível salvar a transação:\n\n${newErrors[firstErrorKey]}`);
+            // Error is shown via the errors state object in the UI
             return;
         }
 
@@ -307,9 +308,8 @@ export const useTransactionForm = ({
 
             let updateFuture = false;
             if (initialData && (initialData.seriesId || initialData.isRecurring)) {
-                if (confirm(`Esta transação faz parte de uma série/recorrência.\n\nDeseja aplicar as alterações para TODAS as transações futuras desta série?`)) {
-                    updateFuture = true;
-                }
+                // Series update confirmation is handled via confirmSeriesUpdate state
+                updateFuture = pendingSeriesUpdate;
             }
 
             const data: Transaction = {
@@ -388,6 +388,10 @@ export const useTransactionForm = ({
         handleSubmit,
         setManualExchangeRate, // Export setter
         duplicateWarning, // ✅ Export for UI Blinking Alert
-        isSubmitting // ✅ Export isSubmitting
+        isSubmitting, // ✅ Export isSubmitting
+        showSeriesConfirm,
+        setShowSeriesConfirm,
+        setPendingSeriesUpdate,
+        isSeriesTransaction: !!(initialData && (initialData.seriesId || initialData.isRecurring))
     };
 };

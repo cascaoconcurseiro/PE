@@ -4,6 +4,7 @@ import { Card } from '../ui/Card';
 import { X, Clock, Check, Wallet, AlertCircle, ChevronDown } from 'lucide-react';
 import { Transaction, Account, AccountType } from '../../types';
 import { formatCurrency, parseDate } from '../../utils';
+import { useToast } from '../ui/Toast';
 
 interface AnticipateInstallmentsModalProps {
     isOpen: boolean;
@@ -29,6 +30,7 @@ export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalPr
         if (currentAcc?.type === AccountType.CREDIT_CARD) return currentAcc.id;
         return accounts.find(a => a.type !== AccountType.CREDIT_CARD)?.id || '';
     });
+    const { addToast } = useToast();
 
     // Filter future installments from the same series
     const futureInstallments = useMemo(() => {
@@ -57,11 +59,11 @@ export const AnticipateInstallmentsModal: React.FC<AnticipateInstallmentsModalPr
 
     const handleConfirm = () => {
         if (selectedInstallments.length === 0) {
-            alert('Selecione pelo menos uma parcela para antecipar.');
+            addToast('Selecione pelo menos uma parcela para antecipar.', 'warning');
             return;
         }
         if (!selectedAccountId) {
-            alert('Selecione a conta de onde o pagamento será feito.');
+            addToast('Selecione a conta de onde o pagamento será feito.', 'warning');
             return;
         }
 

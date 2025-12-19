@@ -4,6 +4,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { formatCurrency, parseDate, round2dec } from '../../utils';
 import { Calendar, Edit3, FastForward, Check, AlertCircle, DollarSign, Hash } from 'lucide-react';
+import { useToast } from '../ui/Toast';
 
 interface SharedInstallmentEditModalProps {
     isOpen: boolean;
@@ -28,6 +29,7 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
     onDeleteTransaction,
     onAddTransaction
 }) => {
+    const { addToast } = useToast();
     const [editMode, setEditMode] = useState<'view' | 'editValue' | 'editCount' | 'anticipate'>('view');
     const [newTotalValue, setNewTotalValue] = useState('');
     const [newInstallmentCount, setNewInstallmentCount] = useState('');
@@ -61,7 +63,7 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
     const handleEditValue = () => {
         const newTotal = parseFloat(newTotalValue);
         if (isNaN(newTotal) || newTotal <= 0) {
-            alert('Digite um valor válido.');
+            addToast('Digite um valor válido.', 'warning');
             return;
         }
 
@@ -95,7 +97,7 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
     const handleEditCount = () => {
         const newCount = parseInt(newInstallmentCount);
         if (isNaN(newCount) || newCount < 1) {
-            alert('Digite uma quantidade válida (mínimo 1).');
+            addToast('Digite uma quantidade válida (mínimo 1).', 'warning');
             return;
         }
 
@@ -200,7 +202,7 @@ export const SharedInstallmentEditModal: React.FC<SharedInstallmentEditModalProp
 
     const handleAnticipate = () => {
         if (selectedInstallments.length === 0) {
-            alert('Selecione pelo menos uma parcela.');
+            addToast('Selecione pelo menos uma parcela.', 'warning');
             return;
         }
 

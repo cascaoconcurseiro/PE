@@ -3,6 +3,7 @@ import { Transaction, TransactionType, Account, FamilyMember, AccountType } from
 import { formatCurrency, getCategoryIcon, parseDate } from '../../utils';
 import { RefreshCcw, ScanLine, Plus, Plane, Users, Trash2, ArrowRight, User, CreditCard, Wallet, ArrowDownLeft, ArrowUpRight, Clock, CalendarDays, Lock } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { ConfirmModal } from '../ui/ConfirmModal';
 
 interface TransactionListProps {
     groupedTxs: Record<string, Transaction[]>;
@@ -40,6 +41,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     const [visibleDays, setVisibleDays] = useState(5);
     const visibleDates = dates.slice(0, visibleDays);
     const hasMore = visibleDays < dates.length;
+    const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; txId: string | null }>({ isOpen: false, txId: null });
 
     if (dates.length === 0) {
         return (
@@ -160,8 +162,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             return (
                                 <div
                                     key={t.id}
-                                    className="relative p-4 flex justify-between items-start transition-all group hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer"
-                                    onClick={() => onEdit(t)}
+                                    className={`relative p-4 flex justify-between items-start transition-all group ${t.sourceTransactionId ? 'cursor-default' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/80'}`}
+                                    onClick={() => {
+                                        if (t.sourceTransactionId) {
+                                            // Transação espelhada - não permite edição
+                                            return;
+                                        }
+                                        onEdit(t);
+                                    }}
                                 >
                                     {/* Left: Icon + Text Block */}
                                     <div className="flex gap-4 flex-1 min-w-0">
@@ -206,6 +214,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                             {/* Line 3: Badges row */}
                                             <div className="flex items-center gap-2 pt-0.5">
                                                 {typeBadge}
+
+                                                {t.sourceTransactionId && (
+                                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 flex items-center gap-1">
+                                                        <Lock className="w-3 h-3" />
+                                                        Somente Leitura
+                                                    </span>
+                                                )}
 
                                                 {isInstallment && (
                                                     <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded border border-purple-100 dark:border-purple-500/20 flex items-center gap-1">
@@ -260,7 +275,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                                         </button>
                                                     )}
                                                     <button
-                                                        onClick={(e) => { e.stopPropagation(); if (confirm('Excluir?')) onDelete(t.id); }}
+                                                        onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, txId: t.id }); }}
                                                         className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
                                                         title="Excluir"
                                                     >
@@ -289,6 +304,19 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     </Button>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={deleteConfirm.isOpen}
+                onCancel={() => setDeleteConfirm({ isOpen: false, txId: null })}
+                onConfirm={() => {
+                    if (deleteConfirm.txId) onDelete(deleteConfirm.txId);
+                    setDeleteConfirm({ isOpen: false, txId: null });
+                }}
+                title="Excluir Transação"
+                message="Tem certeza que deseja excluir esta transação?"
+                confirmLabel="Excluir"
+                isDanger
+            />
         </div>
     );
 };

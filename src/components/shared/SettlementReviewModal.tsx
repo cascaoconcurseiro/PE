@@ -5,6 +5,7 @@ import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../ui/Toast';
 import { Account, TransactionType, Category } from '../../types';
 import { formatCurrency } from '../../utils';
+import { ConfirmModal } from '../ui/ConfirmModal';
 
 interface SettlementReviewModalProps {
     isOpen: boolean;
@@ -22,6 +23,7 @@ export const SettlementReviewModal: React.FC<SettlementReviewModalProps> = ({
     const { addToast } = useToast();
     const [destinationAccountId, setDestinationAccountId] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
+    const [rejectConfirm, setRejectConfirm] = useState(false);
 
     // Filter accounts to match request currency
     // Since we added currency column to settlement_requests, it should be in request object.
@@ -75,7 +77,11 @@ export const SettlementReviewModal: React.FC<SettlementReviewModalProps> = ({
     };
 
     const handleReject = async () => {
-        if (!window.confirm("Tem certeza que deseja recusar este pagamento?")) return;
+        setRejectConfirm(true);
+    };
+
+    const confirmReject = async () => {
+        setRejectConfirm(false);
         setIsLoading(true);
         try {
             await supabase
@@ -142,6 +148,16 @@ export const SettlementReviewModal: React.FC<SettlementReviewModalProps> = ({
                     </div>
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={rejectConfirm}
+                onCancel={() => setRejectConfirm(false)}
+                onConfirm={confirmReject}
+                title="Recusar Pagamento"
+                message="Tem certeza que deseja recusar este pagamento?"
+                confirmLabel="Recusar"
+                isDanger
+            />
         </div>
     );
 };

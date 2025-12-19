@@ -149,6 +149,7 @@ export interface Account extends BaseEntity {
   dueDay?: number;
   isInternational?: boolean;
   cardBrand?: CardBrand; // Bandeira do cartão (apenas para CREDIT_CARD)
+  bankCode?: string; // Código do banco para exibir logo
 }
 
 export interface FamilyMember extends BaseEntity {

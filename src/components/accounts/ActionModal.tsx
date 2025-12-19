@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Account, AccountType } from '../../types';
 import { formatCurrency } from '../../utils';
 import { ChevronDown, Wallet, Calendar, ArrowRightLeft } from 'lucide-react';
+import { useToast } from '../ui/Toast';
 
 export type ActionType = 'PAY_INVOICE' | 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER';
 
@@ -20,6 +21,7 @@ interface ActionModalProps {
 export const ActionModal: React.FC<ActionModalProps> = ({
     isOpen, type, account, accounts, initialAmount = '', onClose, onConfirm
 }) => {
+    const { addToast } = useToast();
     const [amount, setAmount] = useState(initialAmount);
     const [destinationAmount, setDestinationAmount] = useState('');
     const [description, setDescription] = useState('');
@@ -75,11 +77,11 @@ export const ActionModal: React.FC<ActionModalProps> = ({
         if (val > 0) {
             if (isInternationalTransfer) {
                 if (!destVal || destVal <= 0) {
-                    alert('Valor final inválido!');
+                    addToast('Valor final inválido!', 'error');
                     return;
                 }
                 if (!rateVal || rateVal <= 0) {
-                    alert('Informe a cotação!');
+                    addToast('Informe a cotação!', 'error');
                     return;
                 }
             }

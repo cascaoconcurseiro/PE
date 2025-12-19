@@ -49,8 +49,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     // If we have initialData (Edit Mode) AND we have IDs to compare:
     // User can ONLY edit if they are the owner (userId matches).
     // Legacy support: If initialData.userId is missing, allow edit (assume migration or lax rule).
+    // Also check if it's a mirror transaction (sourceTransactionId exists)
     const isOwner = !initialData || !initialData.userId || !currentUserId || initialData.userId === currentUserId;
-    const isReadOnly = !isOwner;
+    const isMirror = !!initialData?.sourceTransactionId;
+    const isReadOnly = !isOwner || isMirror;
 
     const {
         amountStr, setAmountStr,
@@ -228,7 +230,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         {isReadOnly ? (
                             <div className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 p-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700">
                                 <User className="w-3 h-3" />
-                                <span>Criado por outro membro (Leitura)</span>
+                                <span>{isMirror ? 'Transação compartilhada (Somente Leitura)' : 'Criado por outro membro (Leitura)'}</span>
                             </div>
                         ) : (
                             <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 border border-amber-100 dark:border-amber-800">

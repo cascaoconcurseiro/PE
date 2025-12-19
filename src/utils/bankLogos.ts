@@ -3,6 +3,60 @@
  * Logos simplificados para identificação visual
  */
 
+export interface BankInfo {
+  code: string;
+  name: string;
+}
+
+// Lista de bancos brasileiros
+export const BRAZILIAN_BANKS: BankInfo[] = [
+  { code: 'nubank', name: 'Nubank' },
+  { code: 'inter', name: 'Banco Inter' },
+  { code: 'c6', name: 'C6 Bank' },
+  { code: 'itau', name: 'Itaú' },
+  { code: 'bradesco', name: 'Bradesco' },
+  { code: 'santander', name: 'Santander' },
+  { code: 'caixa', name: 'Caixa' },
+  { code: 'bb', name: 'Banco do Brasil' },
+  { code: 'neon', name: 'Neon' },
+  { code: 'picpay', name: 'PicPay' },
+  { code: 'mercadopago', name: 'Mercado Pago' },
+  { code: 'pagbank', name: 'PagBank' },
+  { code: 'stone', name: 'Stone' },
+  { code: 'btg', name: 'BTG Pactual' },
+  { code: 'xp', name: 'XP Investimentos' },
+  { code: 'safra', name: 'Safra' },
+  { code: 'original', name: 'Original' },
+  { code: 'sicoob', name: 'Sicoob' },
+  { code: 'sicredi', name: 'Sicredi' },
+  { code: 'banrisul', name: 'Banrisul' },
+  { code: 'bmg', name: 'BMG' },
+  { code: 'daycoval', name: 'Daycoval' },
+  { code: 'sofisa', name: 'Sofisa' },
+  { code: 'unicred', name: 'Unicred' },
+  { code: 'will', name: 'Will Bank' },
+  { code: 'cora', name: 'Cora' },
+  { code: 'ame', name: 'Ame Digital' },
+  { code: 'recargapay', name: 'RecargaPay' },
+  { code: '99pay', name: '99Pay' },
+];
+
+// Lista de bancos/instituições internacionais
+export const INTERNATIONAL_BANKS: BankInfo[] = [
+  { code: 'wise', name: 'Wise' },
+  { code: 'nomad', name: 'Nomad' },
+  { code: 'paypal', name: 'PayPal' },
+  { code: 'revolut', name: 'Revolut' },
+  { code: 'n26', name: 'N26' },
+  { code: 'avenue', name: 'Avenue' },
+  { code: 'passfolio', name: 'Passfolio' },
+  { code: 'remessa', name: 'Remessa Online' },
+  { code: 'husky', name: 'Husky' },
+  { code: 'bs2', name: 'BS2' },
+  { code: 'inter', name: 'Inter Global' },
+  { code: 'c6global', name: 'C6 Global' },
+];
+
 // SVGs inline dos bancos mais populares (cores oficiais)
 const BANK_SVGS: Record<string, string> = {
   // Nubank - Roxo #820AD1
@@ -138,6 +192,41 @@ const BANK_SVGS: Record<string, string> = {
   
   // Swile - Roxo
   swile: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#6B4EFF"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="20">Swile</text></svg>`,
+  
+  // ========== BANCOS INTERNACIONAIS ==========
+  
+  // Wise - Verde
+  wise: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#9FE870"/><text x="50" y="60" text-anchor="middle" fill="#163300" font-family="Arial" font-weight="bold" font-size="20">Wise</text></svg>`,
+  
+  // Nomad - Azul
+  nomad: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#0066FF"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">Nomad</text></svg>`,
+  
+  // PayPal - Azul
+  paypal: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#003087"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">PayPal</text></svg>`,
+  
+  // Revolut - Preto
+  revolut: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#191C1F"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="16">Revolut</text></svg>`,
+  
+  // N26 - Verde água
+  n26: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#36A18B"/><text x="50" y="62" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="28">N26</text></svg>`,
+  
+  // Avenue - Roxo
+  avenue: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#6B21A8"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="16">Avenue</text></svg>`,
+  
+  // Passfolio - Azul
+  passfolio: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1E40AF"/><text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">Pass</text><text x="50" y="70" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">folio</text></svg>`,
+  
+  // Remessa Online - Verde
+  remessa: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00A651"/><text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">Remessa</text><text x="50" y="70" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">Online</text></svg>`,
+  
+  // Husky - Azul
+  husky: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#2563EB"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">Husky</text></svg>`,
+  
+  // BS2 - Azul escuro
+  bs2: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1E3A5F"/><text x="50" y="62" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="28">BS2</text></svg>`,
+  
+  // C6 Global - Preto com detalhe azul
+  c6global: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1a1a1a"/><text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="24">C6</text><text x="50" y="72" text-anchor="middle" fill="#00B1EA" font-family="Arial" font-weight="bold" font-size="14">Global</text></svg>`,
 };
 
 // Mapeamento de palavras-chave para identificar o banco

@@ -107,6 +107,10 @@ export const Transactions: React.FC<TransactionsProps> = ({
     }, [initialEditId, transactions, onClearEditId]);
 
     const handleEditRequest = (t: Transaction) => {
+        // Não permite editar transações espelhadas (criadas por outro usuário)
+        if (t.sourceTransactionId) {
+            return;
+        }
         setEditingTransaction(t);
         setFormMode(t.type);
     };
@@ -146,6 +150,10 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
     const handleDeleteRequest = (id: string) => {
         const tx = transactions.find(t => t.id === id);
+        // Não permite excluir transações espelhadas (criadas por outro usuário)
+        if (tx?.sourceTransactionId) {
+            return;
+        }
         const isSeries = !!tx?.seriesId;
         setDeleteModal({ isOpen: true, id, isSeries });
     };

@@ -7,6 +7,7 @@ import { Target, Pencil, X, Save, Sparkles, Calculator, ArrowRight, User } from 
 import { formatCurrency, getCategoryIcon, parseDate } from '../../../utils';
 import { calculateTripDebts } from '../../../services/tripDebtsCalculator';
 import { supabaseService } from '../../../services/supabaseService';
+import { useToast } from '../../ui/Toast';
 
 interface TripOverviewProps {
     trip: Trip;
@@ -20,6 +21,7 @@ interface TripOverviewProps {
 }
 
 export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, accounts, familyMembers, onUpdateTrip, onNavigateToShared, onEditTransaction, onDeleteTransaction }) => {
+    const { addToast } = useToast();
     const [isEditingBudget, setIsEditingBudget] = useState(false);
     const [tempBudget, setTempBudget] = useState('');
     const [personalBudget, setPersonalBudget] = useState<number>(0);
@@ -60,7 +62,7 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
     const handleSaveBudget = async () => {
         const budgetVal = parseFloat(tempBudget);
         if (isNaN(budgetVal) || budgetVal < 0) {
-            alert("Orçamento inválido.");
+            addToast("Orçamento inválido.", "error");
             return;
         }
         

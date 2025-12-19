@@ -38,8 +38,8 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
         const committedBalance = Math.abs(account.balance);
         const percentageUsed = limit > 0 ? Math.min((committedBalance / limit) * 100, 100) : 0;
         
-        // Pegar logo do banco e bandeira
-        const bankSvg = getBankSvg(account.name);
+        // Pegar logo do banco (prioriza bankCode, depois tenta pelo nome)
+        const bankSvg = account.bankCode ? getBankSvg(account.bankCode) : getBankSvg(account.name);
         const brandSvg = account.cardBrand ? getBankSvg(account.cardBrand) : null;
 
         return (
@@ -101,7 +101,8 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
         ? 'from-blue-600 via-blue-700 to-blue-800' 
         : 'from-emerald-600 via-emerald-700 to-emerald-800';
     
-    const bankSvg = getBankSvg(account.name);
+    // Pegar logo do banco (prioriza bankCode, depois tenta pelo nome)
+    const bankSvg = account.bankCode ? getBankSvg(account.bankCode) : getBankSvg(account.name);
     
     return (
         <div 

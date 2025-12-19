@@ -4,6 +4,7 @@ import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Save, Plus, Trash2, Pencil } from 'lucide-react';
 import { formatCurrency, parseDate } from '../../../utils';
+import { useToast } from '../../ui/Toast';
 
 interface TripExchangeProps {
     trip: Trip;
@@ -11,6 +12,7 @@ interface TripExchangeProps {
 }
 
 export const TripExchange: React.FC<TripExchangeProps> = ({ trip, onUpdateTrip }) => {
+    const { addToast } = useToast();
     const [exchangeDate, setExchangeDate] = useState(new Date().toISOString().split('T')[0]);
     const [exchangeBRL, setExchangeBRL] = useState('');
     const [exchangeForeign, setExchangeForeign] = useState('');
@@ -35,12 +37,12 @@ export const TripExchange: React.FC<TripExchangeProps> = ({ trip, onUpdateTrip }
 
         // Validation
         if (isNaN(brl) || brl <= 0) {
-            alert('Valor em BRL deve ser maior que zero');
+            addToast('Valor em BRL deve ser maior que zero', 'error');
             return;
         }
 
         if (isNaN(foreign) || foreign <= 0) {
-            alert(`Valor em ${trip.currency} deve ser maior que zero`);
+            addToast(`Valor em ${trip.currency} deve ser maior que zero`, 'error');
             return;
         }
 

@@ -74,6 +74,22 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
     }
 
     if (selectedTrip) {
+        // Handler para editar transação com verificação de ownership
+        const handleEditTransactionSafe = (id: string) => {
+            const tx = tripTransactions.find(t => t.id === id);
+            // Não permite editar transações espelhadas
+            if (tx?.sourceTransactionId) return;
+            if (onEditTransaction) onEditTransaction(id);
+        };
+
+        // Handler para excluir transação com verificação de ownership
+        const handleDeleteTransactionSafe = (id: string) => {
+            const tx = tripTransactions.find(t => t.id === id);
+            // Não permite excluir transações espelhadas
+            if (tx?.sourceTransactionId) return;
+            onDeleteTransaction(id);
+        };
+
         return (
             <TripDetail
                 trip={selectedTrip}
@@ -90,9 +106,9 @@ export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, fam
                 }}
                 onUpdateTrip={(t) => onUpdateTrip && onUpdateTrip(t)}
                 onNavigateToShared={onNavigateToShared}
-                onEditTransaction={onEditTransaction} // Keep this for legacy or specialized modal trigger if needed
+                onEditTransaction={handleEditTransactionSafe}
                 onUpdateTransactionInternal={onUpdateTransaction}
-                onDeleteTransactionInternal={onDeleteTransaction}
+                onDeleteTransactionInternal={handleDeleteTransactionSafe}
                 userId={currentUserId}
             />
         );

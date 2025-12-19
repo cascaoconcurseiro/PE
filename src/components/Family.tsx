@@ -6,6 +6,7 @@ import { Plus, Users, User, Trash2, Mail, Pencil, X, Check, Loader2, UserCheck, 
 import { supabase } from '../integrations/supabase/client';
 import { FamilySummary } from './family/FamilySummary';
 import { ConfirmModal } from './ui/ConfirmModal';
+import { useToast } from './ui/Toast';
 
 interface FamilyProps {
     members: FamilyMember[];
@@ -17,6 +18,7 @@ interface FamilyProps {
 }
 
 export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAddMember, onUpdateMember, onDeleteMember, onInviteMember }) => {
+    const { addToast } = useToast();
     const [name, setName] = useState('');
     const [role, setRole] = useState('');
     const [email, setEmail] = useState('');
@@ -32,6 +34,9 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
     const [emailCheckStatus, setEmailCheckStatus] = useState<'IDLE' | 'FOUND' | 'NOT_FOUND'>('IDLE');
     const [lastCheckedEmail, setLastCheckedEmail] = useState('');
     const [foundUserId, setFoundUserId] = useState<string | null>(null);
+
+    // Invite Confirmation State
+    const [inviteConfirm, setInviteConfirm] = useState<{ isOpen: boolean; memberId: string; email: string }>({ isOpen: false, memberId: '', email: '' });
 
     const checkEmail = async (emailToCheck: string) => {
         const cleanEmail = emailToCheck.trim();
@@ -106,10 +111,9 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
                 }
 
                 if (inviteeId) {
-                    const confirmInvite = window.confirm(`O usuário com e-mail ${currentEmail} foi encontrado no sistema.\n\nDeseja enviar uma solicitação para compartilhar todas as despesas vinculadas a este membro?`);
-                    if (confirmInvite) {
-                        shouldInvite = true;
-                    }
+                    // Will show confirmation modal after member is saved
+                    const memberId = editingId || crypto.randomUUID();
+                    setInviteConfirm({ isOpen: true, memberId, email: currentEmail });
                 }
             }
 
@@ -133,10 +137,6 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
                 });
             }
 
-            if (shouldInvite && finalMemberId && currentEmail && onInviteMember) {
-                await onInviteMember(finalMemberId, currentEmail);
-            }
-
             // Reset form
             setName('');
             setRole('');
@@ -151,9 +151,9 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
             console.error("Error saving member:", error);
             // Handle unique violation (Postgres code 23505)
             if (error?.code === '23505' || error?.message?.includes('violates unique constraint') || error?.message?.includes('already exists')) {
-                alert('Este usuário (e-mail) já está cadastrado na sua família.');
+                addToast('Este usuário (e-mail) já está cadastrado na sua família.', 'error');
             } else {
-                alert('Erro ao salvar membro. Tente novamente.');
+                addToast('Erro ao salvar membro. Tente novamente.', 'error');
             }
         }
     };
@@ -394,6 +394,21 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
                 message={`Tem certeza que deseja excluir ${memberToDelete?.name} da sua família?`}
                 confirmLabel="Excluir Membro"
                 isDanger
+            />
+
+            {/* Invite Confirmation Modal */}
+            <ConfirmModal
+                isOpen={inviteConfirm.isOpen}
+                onCancel={() => setInviteConfirm({ isOpen: false, memberId: '', email: '' })}
+                onConfirm={async () => {
+                    if (onInviteMember && inviteConfirm.memberId && inviteConfirm.email) {
+                        await onInviteMember(inviteConfirm.memberId, inviteConfirm.email);
+                    }
+                    setInviteConfirm({ isOpen: false, memberId: '', email: '' });
+                }}
+                title="Convidar Usuário"
+                message={`O usuário com e-mail ${inviteConfirm.email} foi encontrado no sistema.\n\nDeseja enviar uma solicitação para compartilhar todas as despesas vinculadas a este membro?`}
+                confirmLabel="Enviar Convite"
             />
         </div>
     );

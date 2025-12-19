@@ -57,6 +57,7 @@ const App = () => {
     const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
     const { notifications: systemNotifications, markAsRead } = useSystemNotifications(sessionUser?.id);
     const { settings: userSettings } = useSettings();
+    const { addToast } = useToast();
 
     // Smart Notifications based on user settings
     const smartNotifications = useSmartNotifications({
@@ -257,6 +258,16 @@ const App = () => {
         window.location.reload();
     }, [handlers]);
 
+    const handleInviteMember = useCallback(async (memberId: string, email: string) => {
+        const { data, error } = await supabase.rpc('invite_user_to_family', { member_id: memberId, email_to_invite: email });
+        if (error) {
+            addToast('Erro ao convidar: ' + error.message, 'error');
+        } else {
+            if (data?.success) addToast(data.message, 'success');
+            else addToast('Falha: ' + (data?.message || 'Erro desconhecido'), 'error');
+        }
+    }, [addToast]);
+
     const handleNotificationPay = useCallback(() => { }, []);
     const handleNotificationClick = useCallback(async (id: string) => {
         const sysNotif = systemNotifications?.find(n => n.id === id);
@@ -303,15 +314,7 @@ const App = () => {
             case View.GOALS: return <Goals goals={goals} accounts={calculatedAccounts} onAddGoal={handlers.handleAddGoal} onUpdateGoal={handlers.handleUpdateGoal} onDeleteGoal={handlers.handleDeleteGoal} onAddTransaction={handlers.handleAddTransaction} />;
             case View.TRIPS: return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onNavigateToShared={() => handleViewChange(View.SHARED)} onEditTransaction={(id) => { setEditTxId(id); setIsTxModalOpen(true); }} currentUserId={sessionUser?.id} />;
             case View.SHARED: return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onAddTransactions={handlers.handleAddTransactions} onUpdateTransaction={handlers.handleUpdateTransaction} onBatchUpdateTransactions={handlers.handleBatchUpdateTransactions} onDeleteTransaction={handlers.handleDeleteTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} currentUserName={sessionUser?.name || 'Eu'} currentUserId={sessionUser?.id} />;
-            case View.FAMILY: return <Family members={familyMembers} transactions={transactions} onAddMember={(m) => handlers.handleAddMember(m as Omit<import('./types').FamilyMember, 'id'>)} onUpdateMember={(m) => handlers.handleUpdateMember(m as import('./types').FamilyMember)} onDeleteMember={handlers.handleDeleteMember} onInviteMember={async (memberId, email) => {
-                const { data, error } = await supabase.rpc('invite_user_to_family', { member_id: memberId, email_to_invite: email });
-                if (error) {
-                    alert('Erro ao convidar: ' + error.message);
-                } else {
-                    if (data?.success) alert(data.message);
-                    else alert('Falha: ' + (data?.message || 'Erro desconhecido'));
-                }
-            }} />;
+            case View.FAMILY: return <Family members={familyMembers} transactions={transactions} onAddMember={(m) => handlers.handleAddMember(m as Omit<import('./types').FamilyMember, 'id'>)} onUpdateMember={(m) => handlers.handleUpdateMember(m as import('./types').FamilyMember)} onDeleteMember={handlers.handleDeleteMember} onInviteMember={handleInviteMember} />;
             case View.INVESTMENTS: return <Investments accounts={calculatedAccounts} transactions={transactions} assets={assets} onAddAsset={handlers.handleAddAsset} onUpdateAsset={handlers.handleUpdateAsset} onDeleteAsset={handlers.handleDeleteAsset} onAddTransaction={handlers.handleAddTransaction} onAddAccount={handlers.handleAddAccount} currentDate={currentDate} showValues={showValues} />;
             case View.SETTINGS: return <Settings customCategories={customCategories} onAddCategory={handlers.handleAddCategory} onDeleteCategory={handlers.handleDeleteCategory} accounts={accounts} transactions={transactions} trips={trips} budgets={budgets} goals={goals} familyMembers={familyMembers} assets={assets} snapshots={snapshots} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onFactoryReset={handlers.handleFactoryReset} currentUserName={sessionUser?.name} currentUserEmail={sessionUser?.email} />;
             default: return <Dashboard accounts={calculatedAccounts} transactions={transactions} trips={trips} goals={goals} currentDate={currentDate} showValues={showValues} />;
