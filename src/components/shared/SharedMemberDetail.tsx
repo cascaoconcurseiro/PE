@@ -72,26 +72,58 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
     }, [items]);
 
     const handleToggleSelect = (id: string) => {
+        const item = items.find(i => i.originalTxId === id);
+        
+        // Se está tentando selecionar (não desmarcar) um item que não é dele
+        if (item && !selectedItems.has(id) && item.creatorUserId && item.creatorUserId !== currentUserId) {
+            addToast('Você não pode excluir este item pois foi criado por outra pessoa.', 'warning');
+            return;
+        }
+        
         const newSet = new Set(selectedItems);
         if (newSet.has(id)) newSet.delete(id);
         else newSet.add(id);
         setSelectedItems(newSet);
     };
 
+    // Filtrar apenas itens que o usuário atual pode excluir (criou)
+    const deletableItems = items.filter(i => !i.creatorUserId || i.creatorUserId === currentUserId);
+
     const handleSelectAll = () => {
-        if (selectedItems.size === items.length) {
+        if (selectedItems.size === deletableItems.length) {
             setSelectedItems(new Set());
         } else {
-            setSelectedItems(new Set(items.map(i => i.originalTxId)));
+            // Só selecionar itens que o usuário pode excluir
+            setSelectedItems(new Set(deletableItems.map(i => i.originalTxId)));
         }
     };
 
     const handleBulkDelete = () => {
-        if (onBulkDelete) {
+        if (!onBulkDelete) return;
+        
+        // Verificar se algum item selecionado não pertence ao usuário
+        const selectedInvoiceItems = items.filter(i => selectedItems.has(i.originalTxId));
+        const notOwnedItems = selectedInvoiceItems.filter(i => i.creatorUserId && i.creatorUserId !== currentUserId);
+        
+        if (notOwnedItems.length > 0) {
+            addToast(`${notOwnedItems.length} item(s) não pode(m) ser excluído(s) pois foi(ram) criado(s) por outra pessoa.`, 'error');
+            // Remover itens não permitidos da seleção
+            const allowedIds = selectedInvoiceItems
+                .filter(i => !i.creatorUserId || i.creatorUserId === currentUserId)
+                .map(i => i.originalTxId);
+            
+            if (allowedIds.length === 0) {
+                return;
+            }
+            
+            // Excluir apenas os permitidos
+            onBulkDelete(allowedIds);
+        } else {
             onBulkDelete(Array.from(selectedItems));
-            setIsSelectionMode(false);
-            setSelectedItems(new Set());
         }
+        
+        setIsSelectionMode(false);
+        setSelectedItems(new Set());
     };
 
     const handleExport = (format: 'CSV' | 'PDF') => {
