@@ -53,7 +53,7 @@ export const INTERNATIONAL_BANKS: BankInfo[] = [
   { code: 'remessa', name: 'Remessa Online' },
   { code: 'husky', name: 'Husky' },
   { code: 'bs2', name: 'BS2' },
-  { code: 'inter', name: 'Inter Global' },
+  { code: 'interglobal', name: 'Inter Global' },
   { code: 'c6global', name: 'C6 Global' },
 ];
 
@@ -195,38 +195,41 @@ const BANK_SVGS: Record<string, string> = {
   
   // ========== BANCOS INTERNACIONAIS ==========
   
-  // Wise - Verde
-  wise: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#9FE870"/><text x="50" y="60" text-anchor="middle" fill="#163300" font-family="Arial" font-weight="bold" font-size="20">Wise</text></svg>`,
+  // Wise - Verde Bright #9FE870 e Forest #163300
+  wise: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#9FE870"/><path d="M25 55 L35 35 L50 55 L65 35 L75 55" stroke="#163300" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><text x="50" y="78" text-anchor="middle" fill="#163300" font-family="Arial" font-weight="bold" font-size="14">wise</text></svg>`,
   
-  // Nomad - Azul
-  nomad: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#0066FF"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">Nomad</text></svg>`,
+  // Nomad - Azul #0066FF com ícone de globo
+  nomad: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#0066FF"/><circle cx="50" cy="42" r="18" stroke="white" stroke-width="3" fill="none"/><ellipse cx="50" cy="42" rx="8" ry="18" stroke="white" stroke-width="2" fill="none"/><line x1="32" y1="42" x2="68" y2="42" stroke="white" stroke-width="2"/><text x="50" y="78" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="14">Nomad</text></svg>`,
   
-  // PayPal - Azul
-  paypal: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#003087"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">PayPal</text></svg>`,
+  // PayPal - Azul #003087 e #009CDE com PP estilizado
+  paypal: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#003087"/><text x="35" y="58" fill="#009CDE" font-family="Arial" font-weight="bold" font-size="36">P</text><text x="50" y="58" fill="white" font-family="Arial" font-weight="bold" font-size="36">P</text><text x="50" y="80" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">PayPal</text></svg>`,
   
-  // Revolut - Preto
-  revolut: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#191C1F"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="16">Revolut</text></svg>`,
+  // Revolut - Preto #191C1F com R estilizado
+  revolut: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#191C1F"/><circle cx="50" cy="50" r="25" stroke="url(#revGrad)" stroke-width="4" fill="none"/><defs><linearGradient id="revGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#00D4FF"/><stop offset="100%" style="stop-color:#0075FF"/></linearGradient></defs><text x="50" y="56" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="20">R</text></svg>`,
   
-  // N26 - Verde água
-  n26: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#36A18B"/><text x="50" y="62" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="28">N26</text></svg>`,
+  // N26 - Teal #2B697A (Paradiso)
+  n26: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#2B697A"/><text x="50" y="62" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="32">N26</text></svg>`,
   
-  // Avenue - Roxo
-  avenue: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#6B21A8"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="16">Avenue</text></svg>`,
+  // Avenue - Roxo/Violeta com A estilizado
+  avenue: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#6B21A8"/><path d="M35 70 L50 30 L65 70 M40 55 L60 55" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><text x="50" y="88" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="11">Avenue</text></svg>`,
   
-  // Passfolio - Azul
-  passfolio: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1E40AF"/><text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">Pass</text><text x="50" y="70" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">folio</text></svg>`,
+  // Passfolio - Azul com ícone de gráfico
+  passfolio: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1E40AF"/><path d="M30 65 L45 50 L55 58 L70 35" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="70" cy="35" r="5" fill="#10B981"/><text x="50" y="85" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="11">Passfolio</text></svg>`,
   
-  // Remessa Online - Verde
-  remessa: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00A651"/><text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">Remessa</text><text x="50" y="70" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">Online</text></svg>`,
+  // Remessa Online - Verde com setas
+  remessa: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00A651"/><path d="M30 50 L50 35 L50 45 L70 45 L70 55 L50 55 L50 65 Z" fill="white"/><text x="50" y="85" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="10">Remessa</text></svg>`,
   
-  // Husky - Azul
-  husky: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#2563EB"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">Husky</text></svg>`,
+  // Husky - Azul com ícone de cachorro estilizado
+  husky: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#2563EB"/><ellipse cx="50" cy="42" rx="20" ry="18" fill="white"/><circle cx="42" cy="38" r="4" fill="#2563EB"/><circle cx="58" cy="38" r="4" fill="#2563EB"/><ellipse cx="50" cy="48" rx="6" ry="4" fill="#2563EB"/><path d="M30 30 L38 42 M70 30 L62 42" stroke="white" stroke-width="4" stroke-linecap="round"/><text x="50" y="80" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="14">Husky</text></svg>`,
   
   // BS2 - Azul escuro
-  bs2: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1E3A5F"/><text x="50" y="62" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="28">BS2</text></svg>`,
+  bs2: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1E3A5F"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="28">BS2</text><rect x="25" y="65" width="50" height="4" rx="2" fill="#00A3E0"/></svg>`,
   
   // C6 Global - Preto com detalhe azul
-  c6global: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1a1a1a"/><text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="24">C6</text><text x="50" y="72" text-anchor="middle" fill="#00B1EA" font-family="Arial" font-weight="bold" font-size="14">Global</text></svg>`,
+  c6global: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1a1a1a"/><text x="50" y="50" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="28">C6</text><circle cx="50" cy="68" r="8" stroke="#00B1EA" stroke-width="2" fill="none"/><line x1="42" y1="68" x2="58" y2="68" stroke="#00B1EA" stroke-width="2"/></svg>`,
+  
+  // Inter Global - Laranja com globo
+  interglobal: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#FF7A00"/><circle cx="50" cy="45" r="20" stroke="white" stroke-width="3" fill="none"/><ellipse cx="50" cy="45" rx="10" ry="20" stroke="white" stroke-width="2" fill="none"/><line x1="30" y1="45" x2="70" y2="45" stroke="white" stroke-width="2"/><text x="50" y="82" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="11">Inter Global</text></svg>`,
 };
 
 // Mapeamento de palavras-chave para identificar o banco
