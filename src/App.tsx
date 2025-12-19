@@ -13,6 +13,8 @@ import { GlobalSearch } from './components/GlobalSearch';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSystemNotifications } from './hooks/useSystemNotifications';
+import { useSmartNotifications } from './hooks/useSmartNotifications';
+import { useSettings } from './hooks/useSettings';
 import { useToast } from './components/ui/Toast';
 
 import { lazyImport } from './utils/lazyImport';
@@ -54,6 +56,17 @@ const App = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
     const { notifications: systemNotifications, markAsRead } = useSystemNotifications(sessionUser?.id);
+    const { settings: userSettings } = useSettings();
+
+    // Smart Notifications based on user settings
+    const smartNotifications = useSmartNotifications({
+        transactions: transactions || [],
+        budgets: budgets || [],
+        goals: goals || [],
+        accounts: accounts || [],
+        currentDate,
+        notificationSettings: userSettings.notifications
+    });
 
     const [pendingSettlements, setPendingSettlements] = useState<PendingSettlement[]>([]);
     const [activeSettlementRequest, setActiveSettlementRequest] = useState<SettlementRequest | null>(null);
@@ -202,8 +215,20 @@ const App = () => {
         if (!transactions || !accounts) return [];
         const notifs: Array<{ id: string; type: string; title?: string; description: string; message?: string; date?: string }> = [];
 
-        // Removed pendingSharedRequests logic
+        // 1. Smart Notifications (baseadas nas configurações do usuário)
+        // Filtrar notificações já dispensadas
+        const filteredSmartNotifs = smartNotifications
+            .filter(sn => !dismissedNotifications.includes(sn.id))
+            .map(sn => ({
+                id: sn.id,
+                title: sn.title,
+                description: sn.description,
+                type: sn.type,
+                date: sn.date
+            }));
+        notifs.push(...filteredSmartNotifs);
 
+        // 2. System Notifications (do banco de dados)
         if (systemNotifications) {
             const mapped = systemNotifications
                 .filter(sn => !sn.is_read) // ONLY SHOW UNREAD
@@ -217,7 +242,7 @@ const App = () => {
             notifs.push(...mapped);
         }
         return notifs;
-    }, [transactions, accounts, dismissedNotifications, systemNotifications]);
+    }, [transactions, accounts, dismissedNotifications, systemNotifications, smartNotifications]);
 
     // Re-implementing critical handlers
     const handleLogout = useCallback(async () => {

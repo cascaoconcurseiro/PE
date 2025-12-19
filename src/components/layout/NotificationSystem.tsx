@@ -110,39 +110,49 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifica
                                 <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
                                     {displayList.map(n => {
                                         const isSystem = (type: string) => type === 'TRANSACTION' || type === 'TRIP';
+                                        const isBillReminder = n.type === 'BILL_REMINDER';
+                                        const isBudgetAlert = n.type === 'BUDGET_ALERT';
+                                        const isGoalReminder = n.type === 'GOAL_REMINDER';
+                                        const isSmartNotif = isBillReminder || isBudgetAlert || isGoalReminder;
                                         const systemItem = isSystem(n.type);
 
+                                        // Cores baseadas no tipo
+                                        const getIconStyle = () => {
+                                            if (isBillReminder) return 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400';
+                                            if (isBudgetAlert) return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+                                            if (isGoalReminder) return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400';
+                                            if (systemItem) return 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400';
+                                            return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400';
+                                        };
+
                                         return (
-                                            <div key={n.id} className={`p-3 transition-colors flex gap-3 ${n.read ? 'opacity-60 bg-white' : 'bg-indigo-50/30 hover:bg-indigo-50/50'}`}>
-                                                <div className={`mt-1 p-1.5 rounded-lg h-fit ${systemItem ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'}`}>
-                                                    {systemItem ? <BellRing className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                                            <div key={n.id} className={`p-3 transition-colors flex gap-3 ${n.read ? 'opacity-60 bg-white dark:bg-slate-800' : 'bg-indigo-50/30 dark:bg-indigo-900/10 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20'}`}>
+                                                <div className={`mt-1 p-1.5 rounded-lg h-fit ${getIconStyle()}`}>
+                                                    {isBillReminder && <AlertTriangle className="w-3 h-3" />}
+                                                    {isBudgetAlert && <AlertTriangle className="w-3 h-3" />}
+                                                    {isGoalReminder && <Sparkles className="w-3 h-3" />}
+                                                    {systemItem && <BellRing className="w-3 h-3" />}
+                                                    {!isSmartNotif && !systemItem && <Bell className="w-3 h-3" />}
                                                 </div>
                                                 <div className="flex-1">
                                                     <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{n.title}</p>
                                                     <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{n.description}</p>
                                                     <p className="text-[10px] mt-1 text-slate-400">
-                                                        {n.date ? `${new Date(n.date).toLocaleDateString()} ${new Date(n.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                                                        {n.date ? `${new Date(n.date).toLocaleDateString('pt-BR')}` : ''}
                                                     </p>
 
                                                     <div className="flex gap-2 mt-2">
-                                                        {systemItem ? (
+                                                        {systemItem && (
                                                             <button
                                                                 onClick={() => handleClick(n.id, n.isDb)}
-                                                                className="text-[10px] font-bold px-2 py-1 rounded bg-white border border-slate-200 shadow-sm text-slate-700 hover:bg-slate-50"
+                                                                className="text-[10px] font-bold px-2 py-1 rounded bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 shadow-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600"
                                                             >
                                                                 {n.type === 'TRANSACTION' ? 'Ver Despesa' : (n.type === 'TRIP' ? 'Ver Viagem' : 'Ver')}
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => handleClick(n.id, n.isDb)}
-                                                                className="text-[10px] font-bold px-2 py-1 rounded bg-white border border-slate-200 shadow-sm text-slate-700 hover:bg-slate-50"
-                                                            >
-                                                                Ver
                                                             </button>
                                                         )}
                                                         <button
                                                             onClick={() => handleDismiss(n.id, n.isDb)}
-                                                            className="text-[10px] text-slate-400 hover:text-slate-600"
+                                                            className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                                                         >
                                                             Dispensar
                                                         </button>
