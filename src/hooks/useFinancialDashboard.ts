@@ -163,20 +163,6 @@ export const useFinancialDashboard = ({
         // Pre-compute account map for O(1) lookups
         const accountMap = new Map(accounts.map(a => [a.id, a]));
         
-        // 1. Get Current Net Worth Balance (The Anchor)
-        let accumulated = dashboardAccounts.reduce((sum, a) => {
-            const val = convertToBRL(a.balance, a.currency || 'BRL');
-            if (isCreditCard(a.type)) {
-                return sum - Math.abs(val);
-            }
-            return sum + val;
-        }, 0);
-
-        // 2. Pre-filter transactions for the year and prepare date strings
-        const startOfYearStr = `${selectedYear}-01-01`;
-        const endOfYearStr = `${selectedYear}-12-31`;
-        const nowStr = new Date().toISOString().split('T')[0];
-        
         // Initialize 12 months with pre-computed month names
         const monthNames = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
         const data = monthNames.map((month, i) => ({
@@ -189,62 +175,101 @@ export const useFinancialDashboard = ({
             Acumulado: 0
         }));
 
-        // 3. Single pass through transactions - calculate both time-travel adjustment AND monthly aggregation
+        // Pre-filter transactions for the year
+        const startOfYearStr = `${selectedYear}-01-01`;
+        const endOfYearStr = `${selectedYear}-12-31`;
+        
+        // Track min date for masking empty months
         let minDateStr = '9999-12-31';
         
+        // Single pass: aggregate monthly data
         for (const t of dashboardTransactions) {
             if (!shouldShowTransaction(t)) continue;
             
             const dateStr = t.date.split('T')[0];
+            
+            // Track min date
+            if (dateStr < minDateStr) minDateStr = dateStr;
+            
+            // Only process transactions from selected year
+            if (dateStr < startOfYearStr || dateStr > endOfYearStr) continue;
+            
             const account = accountMap.get(t.accountId);
             
             // Skip non-BRL accounts
             if (account && account.currency && account.currency !== 'BRL') continue;
             
-            // Track min date for masking
-            if (dateStr < minDateStr) minDateStr = dateStr;
-            
-            // Calculate effective amount once
+            // Calculate effective amount
             let amount = t.amount;
             if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
                 amount = calculateEffectiveTransactionValue(t);
             }
             const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
             
-            // Time-travel adjustment (to get Jan 1st balance)
-            if (dateStr >= startOfYearStr && dateStr <= nowStr) {
-                if (t.type === TransactionType.INCOME) accumulated -= amountBRL;
-                if (t.type === TransactionType.EXPENSE) accumulated += amountBRL;
-            }
+            // Extract month index from date string (YYYY-MM-DD)
+            const monthIndex = parseInt(dateStr.substring(5, 7)) - 1;
             
-            // Monthly aggregation (only for selected year)
-            if (dateStr >= startOfYearStr && dateStr <= endOfYearStr) {
-                const monthIndex = parseInt(dateStr.substring(5, 7)) - 1; // Extract month from YYYY-MM-DD
-                
-                if (t.type === TransactionType.INCOME) {
-                    if (t.isRefund) {
-                        data[monthIndex].Despesas -= amountBRL;
-                    } else {
-                        data[monthIndex].Receitas += amountBRL;
-                    }
-                } else if (t.type === TransactionType.EXPENSE) {
-                    if (t.isRefund) {
-                        data[monthIndex].Despesas -= amountBRL;
-                    } else {
-                        data[monthIndex].Despesas += amountBRL;
-                    }
+            if (t.type === TransactionType.INCOME) {
+                if (t.isRefund) {
+                    data[monthIndex].Despesas -= amountBRL;
+                } else {
+                    data[monthIndex].Receitas += amountBRL;
+                }
+            } else if (t.type === TransactionType.EXPENSE) {
+                if (t.isRefund) {
+                    data[monthIndex].Despesas -= amountBRL;
+                } else {
+                    data[monthIndex].Despesas += amountBRL;
                 }
             }
         }
 
-        // 4. Compute accumulated balance for each month
+        // Calculate starting balance (Jan 1st of selected year)
+        // Current balance - all transactions from Jan 1st until today
+        const todayStr = new Date().toISOString().split('T')[0];
+        let startingBalance = dashboardAccounts.reduce((sum, a) => {
+            const val = convertToBRL(a.balance, a.currency || 'BRL');
+            if (isCreditCard(a.type)) {
+                return sum - Math.abs(val);
+            }
+            return sum + val;
+        }, 0);
+        
+        // Reverse all transactions from start of year until today to get Jan 1st balance
+        for (const t of dashboardTransactions) {
+            if (!shouldShowTransaction(t)) continue;
+            
+            const dateStr = t.date.split('T')[0];
+            
+            // Only reverse transactions from Jan 1st of selected year until today
+            if (dateStr < startOfYearStr || dateStr > todayStr) continue;
+            
+            const account = accountMap.get(t.accountId);
+            if (account && account.currency && account.currency !== 'BRL') continue;
+            
+            let amount = t.amount;
+            if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
+                amount = calculateEffectiveTransactionValue(t);
+            }
+            const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
+            
+            // Reverse the effect: Income added to balance, so subtract. Expense subtracted, so add.
+            if (t.type === TransactionType.INCOME) {
+                startingBalance -= t.isRefund ? -amountBRL : amountBRL;
+            } else if (t.type === TransactionType.EXPENSE) {
+                startingBalance += t.isRefund ? -amountBRL : amountBRL;
+            }
+        }
+
+        // Compute accumulated balance for each month
+        let accumulated = startingBalance;
         for (const d of data) {
-            const result = d.Receitas - d.Despesas;
-            accumulated += result;
+            const monthResult = d.Receitas - d.Despesas;
+            accumulated += monthResult;
             d.Acumulado = accumulated;
         }
 
-        // 5. Mask months before first transaction
+        // Mask months before first transaction
         const minDate = new Date(minDateStr === '9999-12-31' ? Date.now() : minDateStr);
         minDate.setDate(1);
         
