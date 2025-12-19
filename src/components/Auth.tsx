@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
+import { EmailInput } from './ui/EmailInput';
 import { PiggyBank, ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Cloud } from 'lucide-react';
 import { useToast } from './ui/Toast';
 
@@ -165,20 +166,13 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1">E-mail</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Mail className="h-5 w-5 text-slate-400" />
-                                    </div>
-                                    <input
-                                        type="email"
-                                        required
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-slate-900 dark:text-white font-medium transition-all"
-                                        placeholder="seu@email.com"
-                                        autoComplete="username"
-                                    />
-                                </div>
+                                <EmailInput
+                                    value={email}
+                                    onChange={setEmail}
+                                    required
+                                    placeholder="seu@email.com"
+                                    autoComplete="username"
+                                />
                             </div>
 
                             <div>
