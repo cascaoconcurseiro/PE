@@ -38,7 +38,7 @@ export const useDataStore = () => {
     const dataReady = useRef(false); // Flag para indicar que dados foram carregados pelo menos uma vez
 
     // Wrapper for async operations to handle errors
-    const performOperation = async (operation: () => Promise<void>, successMessage?: string, options: { backgroundRefresh?: boolean } = {}) => {
+    const performOperation = async (operation: () => Promise<void>, successMessage?: string, options: { backgroundRefresh?: boolean, skipRefresh?: boolean } = {}) => {
         if (!isOnline) {
             addToast('Funcionalidade indisponível offline.', 'error');
             return;
@@ -47,6 +47,11 @@ export const useDataStore = () => {
         try {
             await operation();
             if (successMessage) addToast(successMessage, 'success');
+
+            // Se skipRefresh=true, não faz refresh (usado com optimistic updates)
+            if (options.skipRefresh) {
+                return;
+            }
 
             if (options.backgroundRefresh) {
                 // Fire and forget refresh to not block UI
@@ -228,7 +233,7 @@ export const useDataStore = () => {
 
                 await supabaseService.createTransactionWithValidation(tx);
             }
-        }, 'Transação adicionada com sucesso!', { backgroundRefresh: true });
+        }, 'Transação adicionada com sucesso!', { skipRefresh: true });
     };
 
     const handleUpdateTransaction = async (updatedTx: Transaction) => {
@@ -317,7 +322,7 @@ export const useDataStore = () => {
 
             // Standard Update
             await supabaseService.update('transactions', { ...updatedTx, updatedAt: new Date().toISOString() });
-        }, 'Transação atualizada!', { backgroundRefresh: true });
+        }, 'Transação atualizada!', { skipRefresh: true });
     };
 
     // --- FETCH DATA FROM SUPABASE (TIERED LOADING STRATEGY) ---
@@ -494,7 +499,7 @@ export const useDataStore = () => {
             } else {
                 await supabaseService.update('transactions', { ...txToDelete, deleted: true, updatedAt: new Date().toISOString() });
             }
-        }, deleteScope === 'SERIES' ? 'Série excluída.' : 'Transação excluída.', { backgroundRefresh: true });
+        }, deleteScope === 'SERIES' ? 'Série excluída.' : 'Transação excluída.', { skipRefresh: true });
     };
 
     const handleAddTransactions = async (newTxs: (Omit<Transaction, 'id'> & { id?: string })[]) => {
@@ -514,15 +519,23 @@ export const useDataStore = () => {
             for (const tx of txsToCreate) {
                 await supabaseService.createTransactionWithValidation(tx);
             }
-        }, `${newTxs.length} transações adicionadas!`);
+        }, `${newTxs.length} transações adicionadas!`, { skipRefresh: true });
     };
 
     const handleBatchUpdateTransactions = async (txs: Transaction[]) => {
         if (txs.length === 0) return;
+        
+        // Optimistic Update
+        setTransactions(prev => {
+            const updatedIds = new Set(txs.map(t => t.id));
+            const unchanged = prev.filter(t => !updatedIds.has(t.id));
+            return [...unchanged, ...txs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        });
+        
         await performOperation(async () => {
             const updates = txs.map(t => ({ ...t, updatedAt: new Date().toISOString() }));
             await supabaseService.bulkCreate('transactions', updates); // bulkCreate uses upsert
-        }, `${txs.length} transações atualizadas!`, { backgroundRefresh: true });
+        }, `${txs.length} transações atualizadas!`, { skipRefresh: true });
     };
 
     const handleAnticipateInstallments = async (ids: string[], targetDate: string, targetAccountId?: string) => {
