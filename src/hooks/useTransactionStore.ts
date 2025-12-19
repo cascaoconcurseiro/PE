@@ -33,6 +33,23 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
         if (!tx.date) {
             throw new Error('Data obrigatória.');
         }
+        
+        // ✅ Validar se a data é válida
+        const txDate = new Date(tx.date);
+        if (isNaN(txDate.getTime())) {
+            throw new Error('Data inválida.');
+        }
+        
+        // Validar se a data faz sentido (ex: 2024-02-30 seria inválida)
+        const [year, month, day] = tx.date.split('-').map(Number);
+        const reconstructedDate = new Date(year, month - 1, day);
+        if (
+            reconstructedDate.getFullYear() !== year ||
+            reconstructedDate.getMonth() !== month - 1 ||
+            reconstructedDate.getDate() !== day
+        ) {
+            throw new Error('Data inválida (dia não existe no mês).');
+        }
 
         if (tx.type === TransactionType.TRANSFER) {
             if (!tx.accountId) {

@@ -37,18 +37,35 @@ export const validateTransaction = (
     // Date validations
     if (transaction.date) {
         const txDate = new Date(transaction.date);
-        const today = new Date();
-        const oneYearAgo = new Date();
-        oneYearAgo.setFullYear(today.getFullYear() - 1);
-        const oneYearAhead = new Date();
-        oneYearAhead.setFullYear(today.getFullYear() + 1);
+        
+        // ✅ VALIDAÇÃO CRÍTICA: Verificar se a data é válida
+        if (isNaN(txDate.getTime())) {
+            errors.push('Data inválida');
+        } else {
+            // Validar se a data faz sentido (ex: 2024-02-30 seria inválida)
+            const [year, month, day] = transaction.date.split('-').map(Number);
+            const reconstructedDate = new Date(year, month - 1, day);
+            if (
+                reconstructedDate.getFullYear() !== year ||
+                reconstructedDate.getMonth() !== month - 1 ||
+                reconstructedDate.getDate() !== day
+            ) {
+                errors.push('Data inválida (dia não existe no mês)');
+            }
+            
+            const today = new Date();
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(today.getFullYear() - 1);
+            const oneYearAhead = new Date();
+            oneYearAhead.setFullYear(today.getFullYear() + 1);
 
-        if (txDate > oneYearAhead) {
-            warnings.push('Data está muito no futuro (mais de 1 ano)');
-        }
+            if (txDate > oneYearAhead) {
+                warnings.push('Data está muito no futuro (mais de 1 ano)');
+            }
 
-        if (txDate < oneYearAgo) {
-            warnings.push('Data está muito no passado (mais de 1 ano)');
+            if (txDate < oneYearAgo) {
+                warnings.push('Data está muito no passado (mais de 1 ano)');
+            }
         }
     }
 

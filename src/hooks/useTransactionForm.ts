@@ -219,10 +219,29 @@ export const useTransactionForm = ({
 
         const newErrors: { [key: string]: string } = {};
 
-        // ... (standard validations)
+        // Validações padrão
         if (!activeAmount || activeAmount <= 0) newErrors.amount = 'Valor inválido';
         if (!description.trim()) newErrors.description = 'Descrição obrigatória';
-        if (!date) newErrors.date = 'Data obrigatória';
+        if (!date) {
+            newErrors.date = 'Data obrigatória';
+        } else {
+            // ✅ Validar se a data é válida
+            const txDate = new Date(date);
+            if (isNaN(txDate.getTime())) {
+                newErrors.date = 'Data inválida';
+            } else {
+                // Validar se a data faz sentido (ex: 2024-02-30 seria inválida)
+                const [year, month, day] = date.split('-').map(Number);
+                const reconstructedDate = new Date(year, month - 1, day);
+                if (
+                    reconstructedDate.getFullYear() !== year ||
+                    reconstructedDate.getMonth() !== month - 1 ||
+                    reconstructedDate.getDate() !== day
+                ) {
+                    newErrors.date = 'Data inválida (dia não existe no mês)';
+                }
+            }
+        }
         if (!accountId && payerId === 'me' && !isShared) newErrors.account = 'Conta obrigatória';
 
         // STRICT TRANSFER VALIDATION
@@ -250,9 +269,13 @@ export const useTransactionForm = ({
         // STRICT SPLIT VALIDATION
         if (splits.length > 0) {
             const totalSplitAmount = splits.reduce((sum, s) => sum + s.assignedAmount, 0);
-            // Allow 0.05 margin for float errors
-            if (totalSplitAmount > activeAmount + 0.05) {
+            // Allow 0.01 margin for float errors (1 centavo)
+            if (totalSplitAmount > activeAmount + 0.01) {
                 newErrors.amount = `Erro: A soma das divisões (R$ ${totalSplitAmount.toFixed(2)}) excede o valor da transação!`;
+            }
+            // Também validar se a soma é muito menor que o valor (mais de 1 centavo de diferença)
+            if (totalSplitAmount < activeAmount - 0.01 && totalSplitAmount > 0) {
+                newErrors.amount = `Atenção: A soma das divisões (R$ ${totalSplitAmount.toFixed(2)}) é menor que o valor total. Verifique os valores.`;
             }
         }
 
@@ -344,6 +367,9 @@ export const useTransactionForm = ({
         } catch (error) {
             const logger = (await import('../services/logger')).logger;
             logger.error('Error saving transaction', error);
+            // Mostrar erro no formulário
+            setErrors({ description: (error as Error).message || 'Erro ao salvar transação' });
+        } finally {
             setIsSubmitting(false);
         }
     };

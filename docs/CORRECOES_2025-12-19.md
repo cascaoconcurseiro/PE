@@ -46,6 +46,33 @@ O hook `useDataStore.ts` foi refatorado de ~700 linhas para ~280 linhas usando c
 - Criado `CHANGELOG.md` para rastrear mudanças
 - Atualizado `REFATORACAO_COMPLETA_RESUMO.md`
 
+### 6. Correções de Bugs (Sessão 2) ✅ NOVO
+
+#### 6.1 Validação de Data Inválida
+- **Arquivo:** `src/services/validationService.ts`
+- **Problema:** Datas como `2024-02-30` eram aceitas sem validação
+- **Solução:** Adicionada validação que reconstrói a data e compara com os valores originais
+
+#### 6.2 Validação de Data no Hook de Transação
+- **Arquivo:** `src/hooks/useTransactionStore.ts`
+- **Problema:** Transações com datas inválidas podiam ser criadas
+- **Solução:** Adicionada validação de data válida antes de criar/atualizar transações
+
+#### 6.3 Validação de Data no Formulário
+- **Arquivo:** `src/hooks/useTransactionForm.ts`
+- **Problema:** Formulário não validava datas inválidas
+- **Solução:** Adicionada validação de data no submit do formulário
+
+#### 6.4 Tratamento de Erro no Formulário
+- **Arquivo:** `src/hooks/useTransactionForm.ts`
+- **Problema:** Erros de salvamento não eram exibidos ao usuário
+- **Solução:** Erros agora são capturados e exibidos no formulário
+
+#### 6.5 Console.log em Produção
+- **Arquivo:** `src/index.tsx`
+- **Problema:** `console.log` sendo executado em produção
+- **Solução:** Substituído por `logger.debug` que só executa em desenvolvimento
+
 ## 📊 Métricas
 
 | Métrica | Antes | Depois |

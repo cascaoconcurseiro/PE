@@ -229,7 +229,16 @@ export const calculateProjectedBalance = (
 
             if (isSourceLiquid && !isDestLiquid) {
                 if (!creditCardIds.has(destAccId || '')) {
-                    pendingExpenses += toBRL(t.amount, t);
+                    // Usar destinationAmount se disponível (transferência multi-moeda)
+                    const amountToUse = t.destinationAmount && t.destinationAmount > 0 
+                        ? t.destinationAmount 
+                        : t.amount;
+                    const destAcc = accounts.find(a => a.id === destAccId);
+                    if (destAcc && destAcc.currency !== 'BRL') {
+                        pendingExpenses += convertToBRL(amountToUse, destAcc.currency);
+                    } else {
+                        pendingExpenses += toBRL(t.amount, t);
+                    }
                 }
             }
             else if (!isSourceLiquid && isDestLiquid) {
