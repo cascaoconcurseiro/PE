@@ -1,9 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Account, AccountType } from '../../types';
+import { Account, AccountType, CardBrand } from '../../types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Check, AlertCircle, Globe, CreditCard, Landmark } from 'lucide-react';
 import { AVAILABLE_CURRENCIES } from '../../services/currencyService';
+import { getBankSvg } from '../../utils/bankLogos';
+
+// Bandeiras de cartão disponíveis
+const CARD_BRANDS: { value: CardBrand; label: string }[] = [
+  { value: 'visa', label: 'Visa' },
+  { value: 'mastercard', label: 'Mastercard' },
+  { value: 'elo', label: 'Elo' },
+  { value: 'amex', label: 'American Express' },
+  { value: 'hipercard', label: 'Hipercard' },
+  { value: 'diners', label: 'Diners Club' },
+  { value: 'alelo', label: 'Alelo' },
+  { value: 'sodexo', label: 'Sodexo' },
+  { value: 'vr', label: 'VR' },
+  { value: 'ticket', label: 'Ticket' },
+  { value: 'flash', label: 'Flash' },
+  { value: 'caju', label: 'Caju' },
+  { value: 'swile', label: 'Swile' },
+];
 
 interface AccountFormProps {
     type: 'BANKING' | 'CARDS' | 'INTERNATIONAL';
@@ -24,7 +42,8 @@ export const AccountForm: React.FC<AccountFormProps> = ({ type, initialData, onS
         initialBalance: 0,
         limit: 0,
         closingDay: 1,
-        dueDay: 10
+        dueDay: 10,
+        cardBrand: undefined
     });
     const [formError, setFormError] = useState<string | null>(null);
 
@@ -201,6 +220,40 @@ export const AccountForm: React.FC<AccountFormProps> = ({ type, initialData, onS
                                 <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dia Fechamento</label><input type="number" min="1" max="31" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 text-sm font-normal" placeholder="Dia" value={newAccount.closingDay || ''} onChange={e => setNewAccount({ ...newAccount, closingDay: parseInt(e.target.value) })} required /></div>
                                 <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dia Vencimento</label><input type="number" min="1" max="31" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 text-sm font-normal" placeholder="Dia" value={newAccount.dueDay || ''} onChange={e => setNewAccount({ ...newAccount, dueDay: parseInt(e.target.value) })} required /></div>
                             </div>
+                            
+                            {/* Seletor de Bandeira */}
+                            <div className="col-span-full">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Bandeira do Cartão</label>
+                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-2">
+                                    {CARD_BRANDS.map(brand => {
+                                        const svg = getBankSvg(brand.value);
+                                        const isSelected = newAccount.cardBrand === brand.value;
+                                        return (
+                                            <button
+                                                key={brand.value}
+                                                type="button"
+                                                onClick={() => setNewAccount({ ...newAccount, cardBrand: brand.value })}
+                                                className={`p-2 rounded-lg border-2 transition-all flex flex-col items-center gap-1 ${
+                                                    isSelected 
+                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+                                                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                                }`}
+                                                title={brand.label}
+                                            >
+                                                {svg ? (
+                                                    <div className="w-10 h-10" dangerouslySetInnerHTML={{ __html: svg }} />
+                                                ) : (
+                                                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded flex items-center justify-center text-xs font-bold text-slate-500">
+                                                        {brand.label.substring(0, 2)}
+                                                    </div>
+                                                )}
+                                                <span className="text-[9px] font-medium text-slate-600 dark:text-slate-400 truncate w-full text-center">{brand.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            
                             <div className="flex items-center gap-2 mt-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
                                 <input
                                     type="checkbox"

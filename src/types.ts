@@ -135,6 +135,8 @@ export interface Goal extends BaseEntity {
   color?: string;
 }
 
+export type CardBrand = 'visa' | 'mastercard' | 'elo' | 'amex' | 'hipercard' | 'diners' | 'alelo' | 'sodexo' | 'vr' | 'ticket' | 'flash' | 'caju' | 'swile';
+
 export interface Account extends BaseEntity {
   id: string;
   name: string;
@@ -146,6 +148,7 @@ export interface Account extends BaseEntity {
   closingDay?: number;
   dueDay?: number;
   isInternational?: boolean;
+  cardBrand?: CardBrand; // Bandeira do cartão (apenas para CREDIT_CARD)
 }
 
 export interface FamilyMember extends BaseEntity {
