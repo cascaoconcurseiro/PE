@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Upload, FileJson, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { Upload, FileJson, CheckCircle, AlertCircle, Loader, ShieldAlert } from 'lucide-react';
 import { useToast } from '../ui/Toast';
+import { BackupSchema } from '../../services/schemas';
+import { z } from 'zod';
 
 interface ImportData {
     version?: string;
@@ -22,6 +24,81 @@ interface DataImportProps {
     onImportComplete: (data: ImportData, mergeMode: boolean) => void;
 }
 
+// Security: Maximum file size (10MB)
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+// Security: Maximum number of records per entity type
+const MAX_RECORDS = {
+    accounts: 100,
+    transactions: 50000,
+    trips: 500,
+    budgets: 100,
+    goals: 100,
+    familyMembers: 50,
+    assets: 1000,
+    snapshots: 365,
+    customCategories: 100,
+};
+
+/**
+ * Sanitize string to prevent XSS and injection attacks
+ */
+const sanitizeString = (str: string): string => {
+    if (typeof str !== 'string') return '';
+    return str
+        .replace(/[<>]/g, '') // Remove HTML tags
+        .replace(/javascript:/gi, '') // Remove javascript: protocol
+        .replace(/on\w+=/gi, '') // Remove event handlers
+        .trim()
+        .slice(0, 1000); // Limit string length
+};
+
+/**
+ * Sanitize an object recursively
+ */
+const sanitizeObject = <T extends Record<string, unknown>>(obj: T): T => {
+    const sanitized: Record<string, unknown> = {};
+    
+    for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === 'string') {
+            sanitized[key] = sanitizeString(value);
+        } else if (typeof value === 'number') {
+            // Validate number is finite and within reasonable bounds
+            sanitized[key] = Number.isFinite(value) ? Math.max(-1e12, Math.min(1e12, value)) : 0;
+        } else if (Array.isArray(value)) {
+            sanitized[key] = value.map(item => 
+                typeof item === 'object' && item !== null 
+                    ? sanitizeObject(item as Record<string, unknown>)
+                    : typeof item === 'string' 
+                        ? sanitizeString(item)
+                        : item
+            );
+        } else if (typeof value === 'object' && value !== null) {
+            sanitized[key] = sanitizeObject(value as Record<string, unknown>);
+        } else {
+            sanitized[key] = value;
+        }
+    }
+    
+    return sanitized as T;
+};
+
+/**
+ * Validate UUID format
+ */
+const isValidUUID = (id: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id);
+};
+
+/**
+ * Validate date format (ISO 8601)
+ */
+const isValidDate = (date: string): boolean => {
+    const parsed = Date.parse(date);
+    return !isNaN(parsed) && parsed > 0 && parsed < Date.now() + 365 * 24 * 60 * 60 * 1000 * 10; // Max 10 years in future
+};
+
 export const DataImport: React.FC<DataImportProps> = ({ onImportComplete }) => {
     const { addToast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,8 +114,21 @@ export const DataImport: React.FC<DataImportProps> = ({ onImportComplete }) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        // Security: Validate file extension
         if (!file.name.endsWith('.json')) {
             addToast('Por favor, selecione um arquivo JSON válido!', 'error');
+            return;
+        }
+
+        // Security: Validate file size
+        if (file.size > MAX_FILE_SIZE) {
+            addToast(`Arquivo muito grande! Máximo permitido: ${MAX_FILE_SIZE / 1024 / 1024}MB`, 'error');
+            return;
+        }
+
+        // Security: Validate MIME type
+        if (file.type && !['application/json', 'text/json', 'text/plain'].includes(file.type)) {
+            addToast('Tipo de arquivo inválido!', 'error');
             return;
         }
 
@@ -48,22 +138,84 @@ export const DataImport: React.FC<DataImportProps> = ({ onImportComplete }) => {
 
         try {
             const text = await file.text();
-            const data = JSON.parse(text);
-
-            // Validate structure
-            const errors: string[] = [];
-
-            if (!data.version) {
-                errors.push('Arquivo não contém informação de versão');
+            
+            // Security: Basic JSON structure validation before parsing
+            if (!text.trim().startsWith('{') || !text.trim().endsWith('}')) {
+                throw new Error('Formato JSON inválido');
             }
 
-            if (!data.exportedAt) {
-                errors.push('Arquivo não contém data de exportação');
+            let data: unknown;
+            try {
+                data = JSON.parse(text);
+            } catch {
+                throw new Error('JSON malformado - verifique a sintaxe do arquivo');
+            }
+
+            // Security: Ensure it's an object
+            if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+                throw new Error('Formato de backup inválido - esperado um objeto');
+            }
+
+            const errors: string[] = [];
+            const warnings: string[] = [];
+
+            // Validate with Zod schema (type-safe validation)
+            const schemaResult = BackupSchema.safeParse(data);
+            
+            if (!schemaResult.success) {
+                // Extract meaningful error messages from Zod
+                const zodIssues = schemaResult.error.issues;
+                const zodErrors = zodIssues.slice(0, 5).map((issue: z.ZodIssue) => 
+                    `${issue.path.join('.')}: ${issue.message}`
+                );
+                errors.push(...zodErrors);
+                
+                if (zodIssues.length > 5) {
+                    errors.push(`... e mais ${zodIssues.length - 5} erros`);
+                }
+            }
+
+            const typedData = data as Record<string, unknown>;
+
+            // Security: Validate record counts
+            const entityKeys = ['accounts', 'transactions', 'trips', 'budgets', 'goals', 'familyMembers', 'assets', 'snapshots', 'customCategories'] as const;
+            
+            for (const key of entityKeys) {
+                const records = typedData[key];
+                if (Array.isArray(records)) {
+                    const maxAllowed = MAX_RECORDS[key];
+                    if (records.length > maxAllowed) {
+                        errors.push(`${key}: máximo de ${maxAllowed} registros permitidos (encontrado: ${records.length})`);
+                    }
+                    
+                    // Security: Validate IDs are proper UUIDs
+                    const invalidIds = records.filter((r: unknown) => {
+                        const record = r as Record<string, unknown>;
+                        return record.id && typeof record.id === 'string' && !isValidUUID(record.id);
+                    });
+                    
+                    if (invalidIds.length > 0) {
+                        warnings.push(`${key}: ${invalidIds.length} registro(s) com ID inválido serão regenerados`);
+                    }
+                }
+            }
+
+            // Validate version and export date
+            if (!typedData.version) {
+                warnings.push('Arquivo não contém informação de versão');
+            }
+
+            if (!typedData.exportedAt) {
+                warnings.push('Arquivo não contém data de exportação');
+            } else if (typeof typedData.exportedAt === 'string' && !isValidDate(typedData.exportedAt)) {
+                warnings.push('Data de exportação inválida');
             }
 
             // Check for at least one data type
-            const hasData = ['accounts', 'transactions', 'trips', 'budgets', 'goals', 'familyMembers', 'assets', 'snapshots', 'customCategories']
-                .some(key => Array.isArray(data[key]) && data[key].length > 0);
+            const hasData = entityKeys.some(key => {
+                const records = typedData[key];
+                return Array.isArray(records) && records.length > 0;
+            });
 
             if (!hasData) {
                 errors.push('Arquivo não contém dados válidos para importar');
@@ -72,14 +224,35 @@ export const DataImport: React.FC<DataImportProps> = ({ onImportComplete }) => {
             setValidationErrors(errors);
 
             if (errors.length === 0) {
-                setImportData(data);
-                addToast('Arquivo validado com sucesso!', 'success');
+                // Security: Sanitize all data before storing
+                const sanitizedData = sanitizeObject(typedData as Record<string, unknown>) as ImportData;
+                
+                // Regenerate invalid UUIDs
+                for (const key of entityKeys) {
+                    const records = sanitizedData[key as keyof ImportData];
+                    if (Array.isArray(records)) {
+                        records.forEach((record: { id?: string }) => {
+                            if (!record.id || !isValidUUID(record.id)) {
+                                record.id = crypto.randomUUID();
+                            }
+                        });
+                    }
+                }
+                
+                setImportData(sanitizedData);
+                
+                if (warnings.length > 0) {
+                    addToast(`Arquivo validado com ${warnings.length} aviso(s)`, 'warning');
+                } else {
+                    addToast('Arquivo validado com sucesso!', 'success');
+                }
             } else {
                 addToast('Arquivo contém erros de validação', 'error');
             }
         } catch (error) {
-            setValidationErrors(['Erro ao ler arquivo: formato JSON inválido']);
-            addToast('Erro ao ler arquivo JSON!', 'error');
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            setValidationErrors([`Erro ao processar arquivo: ${message}`]);
+            addToast('Erro ao processar arquivo!', 'error');
         } finally {
             setIsValidating(false);
         }
@@ -266,6 +439,22 @@ export const DataImport: React.FC<DataImportProps> = ({ onImportComplete }) => {
                             </Button>
                         </div>
                     )}
+
+                    {/* Security Warning */}
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-start gap-3">
+                            <ShieldAlert className="w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                            <div className="text-sm text-slate-600 dark:text-slate-400">
+                                <p className="font-bold mb-1">Segurança da Importação:</p>
+                                <ul className="list-disc list-inside space-y-1 text-xs">
+                                    <li>Apenas arquivos JSON de até 10MB são aceitos</li>
+                                    <li>Todos os dados são validados e sanitizados</li>
+                                    <li>IDs inválidos são regenerados automaticamente</li>
+                                    <li>Importe apenas arquivos de fontes confiáveis</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Warning */}
                     <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">

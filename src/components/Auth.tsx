@@ -35,21 +35,63 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         setIsLoading(true);
         setError(null);
 
+        // Security: Basic input validation
+        const trimmedEmail = email.trim().toLowerCase();
+        const trimmedPassword = password;
+
+        // Security: Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+            setError('Por favor, insira um e-mail válido.');
+            setIsLoading(false);
+            return;
+        }
+
+        // Security: Password strength validation for signup
+        if (isSignUp) {
+            if (trimmedPassword.length < 8) {
+                setError('A senha deve ter pelo menos 8 caracteres.');
+                setIsLoading(false);
+                return;
+            }
+            
+            // Check for at least one number and one letter
+            if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(trimmedPassword)) {
+                setError('A senha deve conter letras e números.');
+                setIsLoading(false);
+                return;
+            }
+        }
+
         // Save or Remove Email based on "Remember Me"
-        if (rememberMe && email) {
-            localStorage.setItem('saved_email', email);
+        if (rememberMe && trimmedEmail) {
+            try {
+                localStorage.setItem('saved_email', trimmedEmail);
+            } catch {
+                // Storage not available, ignore
+            }
         } else {
-            localStorage.removeItem('saved_email');
+            try {
+                localStorage.removeItem('saved_email');
+            } catch {
+                // Storage not available, ignore
+            }
         }
 
         try {
             if (isSignUp) {
+                // Security: Sanitize name input
+                const sanitizedName = (name || trimmedEmail.split('@')[0])
+                    .replace(/[<>]/g, '')
+                    .trim()
+                    .slice(0, 100);
+
                 const { data, error } = await supabase.auth.signUp({
-                    email,
-                    password,
+                    email: trimmedEmail,
+                    password: trimmedPassword,
                     options: {
                         data: {
-                            name: name || email.split('@')[0],
+                            name: sanitizedName,
                         }
                     }
                 });
@@ -57,14 +99,21 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 addToast('Conta criada! Verifique seu e-mail para confirmar.', 'success');
             } else {
                 const { data, error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
+                    email: trimmedEmail,
+                    password: trimmedPassword,
                 });
                 if (error) throw error;
             }
         } catch (err: any) {
-            setError(err.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : err.message);
-            addToast(err.message, 'error');
+            // Security: Generic error message to prevent user enumeration
+            const errorMessage = err.message === 'Invalid login credentials' 
+                ? 'E-mail ou senha incorretos.' 
+                : err.message?.includes('Email not confirmed')
+                    ? 'Por favor, confirme seu e-mail antes de fazer login.'
+                    : 'Erro ao autenticar. Tente novamente.';
+            
+            setError(errorMessage);
+            addToast(errorMessage, 'error');
         } finally {
             setIsLoading(false);
         }

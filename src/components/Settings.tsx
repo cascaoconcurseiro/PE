@@ -189,7 +189,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                     <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie suas informações pessoais.</p>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nome de Exibição</label>
                                     <div className="flex gap-2">
@@ -198,21 +198,21 @@ export const Settings: React.FC<SettingsProps> = ({
                                             value={newName}
                                             onChange={(e) => setNewName(e.target.value)}
                                             disabled={!isEditingName}
-                                            className={`flex-1 px-4 py-3 bg-slate-50 dark:bg-slate-900 border ${isEditingName ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-700'} rounded-xl focus:outline-none text-slate-900 dark:text-white font-medium transition-all`}
+                                            className={`flex-1 min-w-0 px-3 md:px-4 py-3 bg-slate-50 dark:bg-slate-900 border ${isEditingName ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-700'} rounded-xl focus:outline-none text-slate-900 dark:text-white font-medium transition-all text-sm md:text-base`}
                                             placeholder="Seu nome"
                                         />
                                         {isEditingName ? (
-                                            <>
-                                                <Button onClick={handleUpdateName} className="w-12 h-12 flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700">
-                                                    <Check className="w-5 h-5" />
+                                            <div className="flex gap-1 md:gap-2 shrink-0">
+                                                <Button onClick={handleUpdateName} className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 p-0">
+                                                    <Check className="w-4 h-4 md:w-5 md:h-5" />
                                                 </Button>
-                                                <Button onClick={() => { setIsEditingName(false); setNewName(currentUserName || ''); }} variant="secondary" className="w-12 h-12 flex items-center justify-center rounded-xl">
-                                                    <X className="w-5 h-5" />
+                                                <Button onClick={() => { setIsEditingName(false); setNewName(currentUserName || ''); }} variant="secondary" className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl p-0">
+                                                    <X className="w-4 h-4 md:w-5 md:h-5" />
                                                 </Button>
-                                            </>
+                                            </div>
                                         ) : (
-                                            <Button onClick={() => setIsEditingName(true)} variant="secondary" className="w-12 h-12 flex items-center justify-center rounded-xl">
-                                                <Edit2 className="w-5 h-5" />
+                                            <Button onClick={() => setIsEditingName(true)} variant="secondary" className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl shrink-0 p-0">
+                                                <Edit2 className="w-4 h-4 md:w-5 md:h-5" />
                                             </Button>
                                         )}
                                     </div>

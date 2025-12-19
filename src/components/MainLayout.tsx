@@ -74,6 +74,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                             <div className="w-9 h-9 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center shadow-lg shrink-0 text-white dark:text-slate-900">
                                 <PiggyBank className="w-5 h-5" />
                             </div>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-xs text-slate-500 dark:text-slate-400 leading-tight">
+                                    {(() => {
+                                        const h = new Date().getHours();
+                                        if (h < 12) return 'Bom dia';
+                                        if (h < 18) return 'Boa tarde';
+                                        return 'Boa noite';
+                                    })()}
+                                </span>
+                                <span className="text-sm font-bold text-slate-800 dark:text-white truncate max-w-[100px]">
+                                    {user?.name && user.name !== 'Carregando...' ? user.name.split(' ')[0] : 'Visitante'}
+                                </span>
+                            </div>
                         </div>
 
                         <div className="hidden md:block">
