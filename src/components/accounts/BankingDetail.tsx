@@ -31,8 +31,32 @@ export const BankingDetail: React.FC<BankingDetailProps> = ({
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id: string | null, isSeries: boolean }>({ isOpen: false, id: null, isSeries: false });
 
     const extractTxs = getBankExtract(account.id, transactions, currentDate);
-    const income = extractTxs.filter(t => t.type === TransactionType.INCOME).reduce((a, b) => a + (b.isRefund ? -b.amount : b.amount), 0);
-    const expense = extractTxs.filter(t => t.type === TransactionType.EXPENSE).reduce((a, b) => a + (b.isRefund ? -b.amount : b.amount), 0);
+    
+    // Calculate income: INCOME transactions + Transfer IN (when this account is destination)
+    const income = extractTxs.reduce((acc, t) => {
+        // Transfer IN (this account is destination)
+        if (t.type === TransactionType.TRANSFER && t.destinationAccountId === account.id) {
+            return acc + (t.destinationAmount || t.amount);
+        }
+        // Regular income
+        if (t.type === TransactionType.INCOME && t.accountId === account.id) {
+            return acc + (t.isRefund ? -t.amount : t.amount);
+        }
+        return acc;
+    }, 0);
+    
+    // Calculate expense: EXPENSE transactions + Transfer OUT (when this account is source)
+    const expense = extractTxs.reduce((acc, t) => {
+        // Transfer OUT (this account is source)
+        if (t.type === TransactionType.TRANSFER && t.accountId === account.id) {
+            return acc + t.amount;
+        }
+        // Regular expense
+        if (t.type === TransactionType.EXPENSE && t.accountId === account.id) {
+            return acc + (t.isRefund ? -t.amount : t.amount);
+        }
+        return acc;
+    }, 0);
 
     // Calculate historical balance for the end of the selected month
     const displayBalance = calculateHistoricalBalance(account, transactions, currentDate);

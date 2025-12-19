@@ -203,22 +203,28 @@ export const calculateHistoricalBalance = (account: Account, transactions: Trans
 
 export const getBankExtract = (accountId: string, transactions: Transaction[], referenceDate?: Date) => {
     // Filter out deleted transactions and unpaid debts
-    let txs = transactions
-        .filter(t => shouldShowTransaction(t) && t.accountId === accountId);
+    // Include transactions where this account is SOURCE or DESTINATION (for transfers)
+    let txs = transactions.filter(t => {
+        if (!shouldShowTransaction(t)) return false;
+        // Include if this account is the source
+        if (t.accountId === accountId) return true;
+        // Include if this account is the destination of a transfer
+        if (t.destinationAccountId === accountId && t.type === TransactionType.TRANSFER) return true;
+        return false;
+    });
 
     if (referenceDate) {
         // Filter by month/year of referenceDate
-        const targetMonth = referenceDate.getMonth();
         const targetYear = referenceDate.getFullYear();
+        const targetMonth = referenceDate.getMonth();
+        
+        // Use string comparison for consistency and timezone safety
+        const monthStart = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-01`;
+        const monthEnd = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-31`;
 
         txs = txs.filter(t => {
-            const tDate = new Date(t.date);
-            // Use local date parts to match user expectation (avoid timezone shifts)
-            // Ideally we should use ISO strings or a utility like isSameMonth
-            // But here raw date parts usually work since inputs are YYYY-MM-DD
-            // Let's use string checks for safety against timezone shifts
-            const [y, m] = t.date.split('-').map(Number);
-            return y === targetYear && (m - 1) === targetMonth; // m is 1-indexed in split
+            const dateStr = t.date.split('T')[0];
+            return dateStr >= monthStart && dateStr <= monthEnd;
         });
     }
 
