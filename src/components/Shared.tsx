@@ -21,6 +21,7 @@ interface SharedProps {
     onDeleteTransaction?: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
     onNavigateToTrips: () => void;
     currentUserName?: string;
+    currentUserId?: string;
 }
 
 export const Shared: React.FC<SharedProps> = ({
@@ -35,7 +36,8 @@ export const Shared: React.FC<SharedProps> = ({
     onBatchUpdateTransactions,
     onDeleteTransaction,
     onNavigateToTrips,
-    currentUserName
+    currentUserName,
+    currentUserId
 }) => {
     const [activeTab, setActiveTab] = useState<'REGULAR' | 'TRAVEL' | 'HISTORY'>('REGULAR');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -251,6 +253,7 @@ export const Shared: React.FC<SharedProps> = ({
                                 showValues={true}
                                 currency={currency}
                                 tripName={tripName}
+                                currentUserId={currentUserId}
                                 onSettle={(type, amount) => handleOpenSettleModal(member.id, type, currency)}
                                 onBulkSettle={(items) => {
                                     // Calculate net of selected items

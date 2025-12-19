@@ -192,10 +192,16 @@ export const useDataStore = () => {
             return txs;
         };
 
-        // Online execution using normal flow
-        await performOperation(async () => {
-            const txsToCreate = generateTransactions();
+        // Online execution using normal flow with OPTIMISTIC UPDATE
+        const txsToCreate = generateTransactions();
+        
+        // OPTIMISTIC UPDATE: Adicionar imediatamente na UI
+        setTransactions(prev => {
+            const newTxs = [...prev, ...txsToCreate];
+            return newTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        });
 
+        await performOperation(async () => {
             // Sequential insert to ensure validation (Backend-Centric)
             // We iterate and call the validated RPC for each item.
             for (const tx of txsToCreate) {
@@ -222,11 +228,14 @@ export const useDataStore = () => {
 
                 await supabaseService.createTransactionWithValidation(tx);
             }
-        }, 'Transação adicionada com sucesso!');
+        }, 'Transação adicionada com sucesso!', { backgroundRefresh: true });
     };
 
     const handleUpdateTransaction = async (updatedTx: Transaction) => {
         validateTransaction(updatedTx);
+
+        // OPTIMISTIC UPDATE: Atualizar imediatamente na UI
+        setTransactions(prev => prev.map(t => t.id === updatedTx.id ? { ...updatedTx, updatedAt: new Date().toISOString() } : t));
 
         await performOperation(async () => {
             // CHECK FOR SERIES REGENERATION (Change in Total Installments)
@@ -308,7 +317,7 @@ export const useDataStore = () => {
 
             // Standard Update
             await supabaseService.update('transactions', { ...updatedTx, updatedAt: new Date().toISOString() });
-        }, 'Transação atualizada!');
+        }, 'Transação atualizada!', { backgroundRefresh: true });
     };
 
     // --- FETCH DATA FROM SUPABASE (TIERED LOADING STRATEGY) ---

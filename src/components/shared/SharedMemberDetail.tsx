@@ -21,6 +21,7 @@ interface SharedMemberDetailProps {
     showValues: boolean;
     currency: string;
     tripName?: string;
+    currentUserId?: string; // ID do usuário logado para verificar ownership
 
     // Actions
     onSettle: (type: 'PAY' | 'RECEIVE', amount: number) => void;
@@ -34,7 +35,7 @@ interface SharedMemberDetailProps {
 }
 
 export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
-    member, items, currentDate, showValues, currency, tripName,
+    member, items, currentDate, showValues, currency, tripName, currentUserId,
     onSettle, onBulkSettle, allowIndividualSettlement, onImport, onEditTransaction, onDeleteTransaction, onBulkDelete, onUndoSettlement
 }) => {
     const { addToast } = useToast();
@@ -412,26 +413,30 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                                             )}
                                                                         </>
                                                                     ) : (
-                                                                        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                                                            <Button
-                                                                                size="sm"
-                                                                                variant="ghost"
-                                                                                onClick={(e) => { e.stopPropagation(); onEditTransaction(item.originalTxId); }}
-                                                                                className="h-9 w-9 p-0 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800/50"
-                                                                                title="Editar"
-                                                                            >
-                                                                                <Edit2 className="w-4 h-4" />
-                                                                            </Button>
-                                                                            <Button
-                                                                                size="sm"
-                                                                                variant="ghost"
-                                                                                onClick={(e) => { e.stopPropagation(); onDeleteTransaction(item.originalTxId); }}
-                                                                                className="h-9 w-9 p-0 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/50"
-                                                                                title="Excluir"
-                                                                            >
-                                                                                <Trash2 className="w-4 h-4" />
-                                                                            </Button>
-                                                                        </div>
+                                                                        // Só mostrar botões de editar/excluir se o usuário atual é o criador
+                                                                        // Se creatorUserId não existe, assume que é do usuário atual (compatibilidade)
+                                                                        (!item.creatorUserId || item.creatorUserId === currentUserId) ? (
+                                                                            <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="ghost"
+                                                                                    onClick={(e) => { e.stopPropagation(); onEditTransaction(item.originalTxId); }}
+                                                                                    className="h-9 w-9 p-0 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800/50"
+                                                                                    title="Editar"
+                                                                                >
+                                                                                    <Edit2 className="w-4 h-4" />
+                                                                                </Button>
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="ghost"
+                                                                                    onClick={(e) => { e.stopPropagation(); onDeleteTransaction(item.originalTxId); }}
+                                                                                    className="h-9 w-9 p-0 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/50"
+                                                                                    title="Excluir"
+                                                                                >
+                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        ) : null
                                                                     )}
                                                                 </div>
                                                             )}

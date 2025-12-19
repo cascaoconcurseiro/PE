@@ -350,6 +350,7 @@ export interface InvoiceItem {
   seriesId?: string;
   installmentNumber?: number;
   totalInstallments?: number;
+  creatorUserId?: string; // ID do usuário que criou a transação original
 }
 
 export interface SettlementRequest extends BaseEntity {
