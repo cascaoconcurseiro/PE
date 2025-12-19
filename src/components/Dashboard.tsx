@@ -50,6 +50,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
         projectedBalance,
         pendingIncome,
         pendingExpenses,
+        totalMonthIncome,
+        totalMonthExpenses,
+        realizedIncome,
+        realizedExpenses,
         healthStatus,
         netWorth,
         monthlyIncome,
@@ -125,6 +129,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
                 currentBalance={currentBalance}
                 pendingIncome={pendingIncome}
                 pendingExpenses={pendingExpenses}
+                totalMonthIncome={totalMonthIncome}
+                totalMonthExpenses={totalMonthExpenses}
+                realizedIncome={realizedIncome}
+                realizedExpenses={realizedExpenses}
                 monthlyIncome={monthlyIncome}
                 monthlyExpense={monthlyExpense}
                 healthStatus={healthStatus}

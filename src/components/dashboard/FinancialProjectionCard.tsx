@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wallet, TrendingUp, TrendingDown, LineChart, AlertCircle } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, LineChart, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { formatCurrency } from '../../utils';
 import { PrivacyBlur } from '../ui/PrivacyBlur';
 
@@ -8,6 +8,10 @@ interface FinancialProjectionCardProps {
     currentBalance: number;
     pendingIncome: number;
     pendingExpenses: number;
+    totalMonthIncome: number;
+    totalMonthExpenses: number;
+    realizedIncome: number;
+    realizedExpenses: number;
     monthlyIncome: number;
     monthlyExpense: number;
     healthStatus: 'POSITIVE' | 'WARNING' | 'CRITICAL';
@@ -20,6 +24,10 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
     currentBalance,
     pendingIncome,
     pendingExpenses,
+    totalMonthIncome,
+    totalMonthExpenses,
+    realizedIncome,
+    realizedExpenses,
     monthlyIncome,
     monthlyExpense,
     healthStatus,
@@ -33,18 +41,17 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
     const isViewingPastMonth = viewingMonthStart < currentMonthStart;
     const isViewingFutureMonth = viewingMonthStart > currentMonthStart;
 
-    // Adjust labels based on period
-    const balanceLabel = isViewingPastMonth
+    // Resultado do mês
+    const monthResult = totalMonthIncome - totalMonthExpenses;
+
+    // Labels baseados no período
+    const resultLabel = isViewingPastMonth
         ? 'Resultado do Mês'
         : isViewingFutureMonth
-            ? 'Saldo Projetado'
-            : 'Saldo Final Previsto';
+            ? 'Resultado Projetado'
+            : 'Resultado Previsto';
 
-    // For past months, show actual monthly result (income - expense), not projected balance
-    // For current/future months, show projected balance
-    const displayBalance = isViewingPastMonth
-        ? (monthlyIncome - monthlyExpense)
-        : projectedBalance;
+    const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long' });
 
     return (
         <div className="bg-indigo-900 dark:bg-indigo-950 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
@@ -52,51 +59,87 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                 <LineChart className="w-40 h-40 text-white" />
             </div>
 
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div>
+            <div className="relative z-10">
+                {/* Header com Resultado do Mês */}
+                <div className="mb-6">
                     <div className="flex items-center gap-2 mb-2 text-indigo-300">
                         <Wallet className="w-5 h-5" />
-                        <span className="text-xs font-bold uppercase tracking-widest">{balanceLabel}</span>
+                        <span className="text-xs font-bold uppercase tracking-widest">{resultLabel}</span>
                     </div>
                     <div className="mb-1">
-                        <span className={`text-4xl font-black tracking-tight ${displayBalance < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
-                            <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(displayBalance)}</PrivacyBlur>
+                        <span className={`text-4xl font-black tracking-tight ${monthResult < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
+                            <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(monthResult)}</PrivacyBlur>
                         </span>
                     </div>
                     <p className="text-sm text-indigo-200">
-                        {isViewingPastMonth
-                            ? `Receitas - Despesas em ${currentDate.toLocaleDateString('pt-BR', { month: 'long' })}`
-                            : `Receitas - Despesas em ${currentDate.toLocaleDateString('pt-BR', { month: 'long' })}`}
+                        Receitas - Despesas em {monthName}
                     </p>
                 </div>
 
-                <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10">
-                    <div className="space-y-4 text-xs">
-                        <div className="flex justify-between items-center text-emerald-300">
-                            <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> A Receber</span>
-                            <span className="font-bold text-sm">
-                                <PrivacyBlur showValues={showValues} darkBg={true}>+ {formatCurrency(pendingIncome)}</PrivacyBlur>
-                            </span>
+                {/* Grid com Receitas e Despesas */}
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Total a Receber */}
+                    <div className="bg-emerald-500/20 rounded-2xl p-4 border border-emerald-500/30">
+                        <div className="flex items-center gap-2 mb-3">
+                            <TrendingUp className="w-4 h-4 text-emerald-300" />
+                            <span className="text-xs font-semibold text-emerald-200 uppercase">Total a Receber</span>
                         </div>
-                        <div className="flex justify-between items-center text-red-300">
-                            <span className="flex items-center gap-1"><TrendingDown className="w-3 h-3" /> A Pagar</span>
-                            <span className="font-bold text-sm">
-                                <PrivacyBlur showValues={showValues} darkBg={true}>- {formatCurrency(pendingExpenses)}</PrivacyBlur>
-                            </span>
+                        <div className="text-2xl font-bold text-emerald-300 mb-3">
+                            <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(totalMonthIncome)}</PrivacyBlur>
+                        </div>
+                        <div className="space-y-1 text-xs">
+                            <div className="flex justify-between text-emerald-200/80">
+                                <span className="flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" /> Recebido
+                                </span>
+                                <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(realizedIncome)}</PrivacyBlur></span>
+                            </div>
+                            <div className="flex justify-between text-emerald-200/80">
+                                <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" /> Pendente
+                                </span>
+                                <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(pendingIncome)}</PrivacyBlur></span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            {healthStatus === 'CRITICAL' && (
-                <div className="mt-4 bg-red-500/20 border border-red-500/30 rounded-xl p-3 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-300 shrink-0" />
-                    <div>
-                        <p className="text-sm font-bold text-red-100">Atenção ao Orçamento</p>
-                        <p className="text-xs text-red-200">Suas despesas projetadas superam suas receitas este mês. Revise seus gastos.</p>
+                    {/* Total a Pagar */}
+                    <div className="bg-red-500/20 rounded-2xl p-4 border border-red-500/30">
+                        <div className="flex items-center gap-2 mb-3">
+                            <TrendingDown className="w-4 h-4 text-red-300" />
+                            <span className="text-xs font-semibold text-red-200 uppercase">Total a Pagar</span>
+                        </div>
+                        <div className="text-2xl font-bold text-red-300 mb-3">
+                            <PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(totalMonthExpenses)}</PrivacyBlur>
+                        </div>
+                        <div className="space-y-1 text-xs">
+                            <div className="flex justify-between text-red-200/80">
+                                <span className="flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" /> Pago
+                                </span>
+                                <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(realizedExpenses)}</PrivacyBlur></span>
+                            </div>
+                            <div className="flex justify-between text-red-200/80">
+                                <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" /> Pendente
+                                </span>
+                                <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(pendingExpenses)}</PrivacyBlur></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            )}
+
+                {/* Alerta de saúde financeira */}
+                {healthStatus === 'CRITICAL' && (
+                    <div className="mt-4 bg-red-500/20 border border-red-500/30 rounded-xl p-3 flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-300 shrink-0" />
+                        <div>
+                            <p className="text-sm font-bold text-red-100">Atenção ao Orçamento</p>
+                            <p className="text-xs text-red-200">Suas despesas superam suas receitas este mês. Revise seus gastos.</p>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

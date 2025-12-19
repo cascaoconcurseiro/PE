@@ -64,7 +64,16 @@ export const useFinancialDashboard = ({
 
     // 1. Calculate Projection
     // IMPORTANTE: Passar TODAS as contas (incluindo cartões) para calcular fatura
-    const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() => {
+    const { 
+        currentBalance, 
+        projectedBalance, 
+        pendingIncome, 
+        pendingExpenses,
+        totalMonthIncome,
+        totalMonthExpenses,
+        realizedIncome,
+        realizedExpenses
+    } = useMemo(() => {
         return calculateProjectedBalance(dashboardAccounts, dashboardTransactions, currentDate);
     }, [dashboardAccounts, dashboardTransactions, currentDate]);
 
@@ -436,6 +445,10 @@ export const useFinancialDashboard = ({
         projectedBalance,
         pendingIncome,
         pendingExpenses,
+        totalMonthIncome,
+        totalMonthExpenses,
+        realizedIncome,
+        realizedExpenses,
         healthStatus,
         netWorth,
         monthlyIncome,
