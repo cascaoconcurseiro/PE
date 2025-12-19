@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { getBankLogoUrl } from '../../utils/bankLogos';
+import React from 'react';
+import { getBankSvg } from '../../utils/bankLogos';
 import { Building2 } from 'lucide-react';
 
 interface BankLogoProps {
@@ -21,13 +21,11 @@ export const BankLogo: React.FC<BankLogoProps> = ({
   className = '',
   fallbackIcon
 }) => {
-  const [hasError, setHasError] = useState(false);
-  const logoUrl = getBankLogoUrl(accountName);
-  
+  const svgString = getBankSvg(accountName);
   const sizeClass = sizeClasses[size];
   
-  // Se não tem logo ou deu erro, mostra fallback
-  if (!logoUrl || hasError) {
+  // Se não tem logo, mostra fallback
+  if (!svgString) {
     return fallbackIcon ? (
       <>{fallbackIcon}</>
     ) : (
@@ -38,12 +36,9 @@ export const BankLogo: React.FC<BankLogoProps> = ({
   }
   
   return (
-    <img
-      src={logoUrl}
-      alt={`Logo ${accountName}`}
-      className={`${sizeClass} ${className} object-contain rounded-lg`}
-      onError={() => setHasError(true)}
-      loading="lazy"
+    <div 
+      className={`${sizeClass} ${className} rounded-lg overflow-hidden`}
+      dangerouslySetInnerHTML={{ __html: svgString }}
     />
   );
 };

@@ -1,118 +1,151 @@
 /**
- * Mapeamento de logos de bancos brasileiros
- * Fonte: https://github.com/Tgentil/Bancos-em-SVG
+ * Logos de bancos brasileiros em SVG inline
+ * Logos simplificados para identificação visual
  */
 
-const BASE_URL = 'https://raw.githubusercontent.com/Tgentil/Bancos-em-SVG/main/Bancos/';
+// SVGs inline dos bancos mais populares (cores oficiais)
+const BANK_SVGS: Record<string, string> = {
+  // Nubank - Roxo #820AD1
+  nubank: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#820AD1"/><path d="M30 65V40c0-5.5 4.5-10 10-10h5c5.5 0 10 4.5 10 10v25M55 35v30c0 5.5 4.5 10 10 10h5c5.5 0 10-4.5 10-10V35" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>`,
+  
+  // Inter - Laranja #FF7A00
+  inter: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#FF7A00"/><circle cx="50" cy="50" r="25" stroke="white" stroke-width="6"/><circle cx="50" cy="50" r="8" fill="white"/></svg>`,
+  
+  // C6 Bank - Preto/Cinza
+  c6: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1a1a1a"/><text x="50" y="62" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="32">C6</text></svg>`,
+  
+  // Itaú - Laranja/Azul #003399 e #FF6600
+  itau: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#003399"/><rect x="20" y="30" width="60" height="40" rx="8" fill="#FF6600"/><text x="50" y="58" text-anchor="middle" fill="#003399" font-family="Arial" font-weight="bold" font-size="20">itaú</text></svg>`,
+  
+  // Bradesco - Vermelho #CC092F
+  bradesco: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#CC092F"/><path d="M25 50 L50 30 L75 50 L50 70 Z" fill="white"/></svg>`,
+  
+  // Santander - Vermelho #EC0000
+  santander: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#EC0000"/><path d="M50 25 L65 50 L50 75 L35 50 Z" fill="white"/><circle cx="50" cy="50" r="8" fill="#EC0000"/></svg>`,
+  
+  // Caixa - Azul #005CA9
+  caixa: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#005CA9"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="16">CAIXA</text></svg>`,
+  
+  // Banco do Brasil - Amarelo #FFCC00
+  bb: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#FFCC00"/><text x="50" y="62" text-anchor="middle" fill="#003366" font-family="Arial" font-weight="bold" font-size="36">BB</text></svg>`,
+  
+  // Neon - Verde #00E88F
+  neon: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00E88F"/><text x="50" y="60" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="22">neon</text></svg>`,
+  
+  // PicPay - Verde #21C25E
+  picpay: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#21C25E"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="16">PicPay</text></svg>`,
+  
+  // Mercado Pago - Azul claro #00B1EA
+  mercadopago: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00B1EA"/><text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="14">Mercado</text><text x="50" y="72" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="14">Pago</text></svg>`,
+  
+  // PagBank/PagSeguro - Verde #00A94F
+  pagbank: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00A94F"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="16">PagBank</text></svg>`,
+  
+  // Stone - Verde #00A868
+  stone: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00A868"/><rect x="30" y="35" width="40" height="30" rx="4" fill="white"/></svg>`,
+  
+  // BTG Pactual - Azul escuro #00263A
+  btg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00263A"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">BTG</text></svg>`,
+  
+  // XP Investimentos - Preto/Amarelo
+  xp: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#1a1a1a"/><text x="50" y="62" text-anchor="middle" fill="#FFD100" font-family="Arial" font-weight="bold" font-size="32">XP</text></svg>`,
+  
+  // Safra - Verde escuro #006341
+  safra: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#006341"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">SAFRA</text></svg>`,
+  
+  // Original - Verde #00A651
+  original: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00A651"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="14">Original</text></svg>`,
+  
+  // Sicoob - Verde #003641
+  sicoob: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#003641"/><text x="50" y="58" text-anchor="middle" fill="#00A651" font-family="Arial" font-weight="bold" font-size="16">Sicoob</text></svg>`,
+  
+  // Sicredi - Verde #00543E
+  sicredi: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#00543E"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="16">Sicredi</text></svg>`,
+  
+  // Banrisul - Azul #003366
+  banrisul: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#003366"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="14">Banrisul</text></svg>`,
+  
+  // BMG - Laranja #F37021
+  bmg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#F37021"/><text x="50" y="62" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="28">BMG</text></svg>`,
+  
+  // Daycoval - Azul #003B71
+  daycoval: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#003B71"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">Daycoval</text></svg>`,
+  
+  // Sofisa - Azul #0033A0
+  sofisa: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#0033A0"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="16">Sofisa</text></svg>`,
+  
+  // Unicred - Azul #003087
+  unicred: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#003087"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="14">Unicred</text></svg>`,
+  
+  // Will Bank - Rosa #FF0066
+  will: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#FF0066"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">Will</text></svg>`,
+  
+  // Cora - Rosa #FF3366
+  cora: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#FF3366"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="20">Cora</text></svg>`,
+  
+  // iFood - Vermelho #EA1D2C
+  ifood: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#EA1D2C"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="18">iFood</text></svg>`,
+  
+  // Ame Digital - Magenta #E6007E
+  ame: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#E6007E"/><text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="20">Ame</text></svg>`,
+  
+  // RecargaPay - Azul #0066FF
+  recargapay: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#0066FF"/><text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">Recarga</text><text x="50" y="70" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="12">Pay</text></svg>`,
+  
+  // 99Pay - Amarelo #FFCB05
+  '99pay': `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#FFCB05"/><text x="50" y="62" text-anchor="middle" fill="#1a1a1a" font-family="Arial" font-weight="bold" font-size="24">99</text></svg>`,
+};
 
-// Mapeamento de palavras-chave para arquivos de logo
-const BANK_LOGOS: Record<string, string> = {
-  // Bancos Digitais
-  'nubank': 'Nu%20Pagamentos%20S.A%20(Nubank).svg',
-  'nu': 'Nu%20Pagamentos%20S.A%20(Nubank).svg',
-  'inter': 'Banco%20Inter%20S.A.svg',
-  'c6': 'Banco%20C6%20S.A.svg',
-  'c6 bank': 'Banco%20C6%20S.A.svg',
-  'neon': 'Neon.svg',
-  'original': 'Banco%20Original%20S.A.svg',
-  'next': 'Bradesco%20S.A.svg', // Next é do Bradesco
-  'picpay': 'PicPay.svg',
-  'mercado pago': 'Mercado%20Pago.svg',
-  'mercadopago': 'Mercado%20Pago.svg',
-  'pagseguro': 'PagSeguro%20Internet%20S.A.svg',
-  'pagbank': 'PagSeguro%20Internet%20S.A.svg',
-  'stone': 'Stone%20Pagamentos%20S.A.svg',
-  'will': 'Will%20Bank.svg',
-  'will bank': 'Will%20Bank.svg',
-  'iti': 'Itaú%20Unibanco%20S.A.svg', // iti é do Itaú
-  'cora': 'Cora%20Sociedade%20Crédito%20Direto%20S.A.svg',
-  'recargapay': 'RecargaPay.svg',
-  'infinitepay': 'InfinitePay.svg',
-  'ifood': 'Ifood%20Pago.svg',
-  
-  // Bancos Tradicionais
-  'itau': 'Itaú%20Unibanco%20S.A.svg',
-  'itaú': 'Itaú%20Unibanco%20S.A.svg',
-  'bradesco': 'Bradesco%20S.A.svg',
-  'santander': 'Banco%20Santander%20Brasil%20S.A.svg',
-  'caixa': 'Caixa%20Econômica%20Federal.svg',
-  'cef': 'Caixa%20Econômica%20Federal.svg',
-  'bb': 'Banco%20do%20Brasil%20S.A.svg',
-  'banco do brasil': 'Banco%20do%20Brasil%20S.A.svg',
-  'safra': 'Banco%20Safra%20S.A.svg',
-  'btg': 'Banco%20BTG%20Pactual.svg',
-  'btg pactual': 'Banco%20BTG%20Pactual.svg',
-  'xp': 'XP%20Investimentos.svg',
-  'xp investimentos': 'XP%20Investimentos.svg',
-  'banrisul': 'Banrisul.svg',
-  'brb': 'BRB%20-%20Banco%20de%20Brasília.svg',
-  'daycoval': 'Banco%20Daycoval.svg',
-  'votorantim': 'Banco%20Votorantim.svg',
-  'bmg': 'BMG.svg',
-  'sofisa': 'Banco%20Sofisa.svg',
-  'bs2': 'Banco%20BS2%20S.A.svg',
-  'pine': 'Banco%20Pine.svg',
-  'abc': 'ABC%20Brasil.svg',
-  'abc brasil': 'ABC%20Brasil.svg',
-  'rendimento': 'Banco%20Rendimento.svg',
-  'mercantil': 'Banco%20Mercantil%20do%20Brasil.svg',
-  'nordeste': 'Banco%20do%20Nordeste%20do%20Brasil%20S.A.svg',
-  'bnb': 'Banco%20do%20Nordeste%20do%20Brasil%20S.A.svg',
-  'amazonia': 'Banco%20da%20Amazônia%20S.A.svg',
-  'basa': 'Banco%20da%20Amazônia%20S.A.svg',
-  'banestes': 'Banco%20do%20Estado%20do%20Espírito%20Santo.svg',
-  'banpara': 'Banco%20do%20Estado%20do%20Pará.svg',
-  'banese': 'Banco%20do%20Estado%20do%20Sergipe.svg',
-  
-  // Cooperativas
-  'sicoob': 'Sicoob.svg',
-  'sicredi': 'Sicredi.svg',
-  'unicred': 'Unicred.svg',
-  'cresol': 'Cresol.svg',
-  'ailos': 'Ailos.svg',
-  'uniprime': 'Uniprime.svg',
-  'credisis': 'Credisis.svg',
-  
-  // Fintechs e Outros
-  'asaas': 'Asaas%20IP%20S.A.svg',
-  'efi': 'Efí%20-%20Gerencianet.svg',
-  'gerencianet': 'Efí%20-%20Gerencianet.svg',
-  'iugu': 'Iugu%20IP%20S.A.svg',
-  'omie': 'Omie.cash.svg',
-  'conta simples': 'Conta%20Simples%20Soluções%20em%20Pagamentos.svg',
-  'magalu': 'MagaluPay.svg',
-  'magalupay': 'MagaluPay.svg',
-  'bnp': 'BNP%20Paribas.svg',
-  'bnp paribas': 'BNP%20Paribas.svg',
-  
-  // Cartões
-  'elo': 'Elo.svg',
-  'visa': 'Visa.svg',
-  'mastercard': 'Mastercard.svg',
-  'amex': 'American%20Express.svg',
-  'american express': 'American%20Express.svg',
-  'hipercard': 'Hipercard.svg',
+// Mapeamento de palavras-chave para identificar o banco
+const BANK_KEYWORDS: Record<string, string[]> = {
+  nubank: ['nubank', 'nu ', 'roxinho'],
+  inter: ['inter', 'banco inter'],
+  c6: ['c6', 'c6 bank'],
+  itau: ['itau', 'itaú', 'iti'],
+  bradesco: ['bradesco', 'next'],
+  santander: ['santander'],
+  caixa: ['caixa', 'cef', 'caixa economica'],
+  bb: ['banco do brasil', 'bb ', ' bb'],
+  neon: ['neon'],
+  picpay: ['picpay', 'pic pay'],
+  mercadopago: ['mercado pago', 'mercadopago', 'mp '],
+  pagbank: ['pagbank', 'pagseguro', 'pag bank'],
+  stone: ['stone', 'ton '],
+  btg: ['btg', 'btg pactual'],
+  xp: ['xp ', ' xp', 'xp investimentos'],
+  safra: ['safra'],
+  original: ['original', 'banco original'],
+  sicoob: ['sicoob'],
+  sicredi: ['sicredi'],
+  banrisul: ['banrisul'],
+  bmg: ['bmg'],
+  daycoval: ['daycoval'],
+  sofisa: ['sofisa'],
+  unicred: ['unicred'],
+  will: ['will bank', 'will '],
+  cora: ['cora'],
+  ifood: ['ifood', 'i food'],
+  ame: ['ame digital', 'ame '],
+  recargapay: ['recargapay', 'recarga pay'],
+  '99pay': ['99pay', '99 pay', '99'],
 };
 
 /**
- * Busca o logo do banco baseado no nome da conta
- * @param accountName Nome da conta (ex: "Nubank", "Conta Itaú", "Cartão Bradesco")
- * @returns URL do logo ou null se não encontrado
+ * Busca o SVG do banco baseado no nome da conta
+ * @param accountName Nome da conta
+ * @returns SVG string ou null
  */
-export const getBankLogoUrl = (accountName: string): string | null => {
+export const getBankSvg = (accountName: string): string | null => {
   if (!accountName) return null;
   
   const normalizedName = accountName.toLowerCase().trim();
   
-  // Busca direta
-  if (BANK_LOGOS[normalizedName]) {
-    return BASE_URL + BANK_LOGOS[normalizedName];
-  }
-  
-  // Busca por palavra-chave contida no nome
-  for (const [keyword, logoFile] of Object.entries(BANK_LOGOS)) {
-    if (normalizedName.includes(keyword)) {
-      return BASE_URL + logoFile;
+  // Busca por palavra-chave
+  for (const [bankKey, keywords] of Object.entries(BANK_KEYWORDS)) {
+    for (const keyword of keywords) {
+      if (normalizedName.includes(keyword) || normalizedName === keyword.trim()) {
+        return BANK_SVGS[bankKey] || null;
+      }
     }
   }
   
@@ -120,31 +153,37 @@ export const getBankLogoUrl = (accountName: string): string | null => {
 };
 
 /**
- * Lista de bancos disponíveis para autocomplete/sugestão
+ * Lista de bancos disponíveis para sugestão
  */
 export const AVAILABLE_BANKS = [
   'Nubank',
   'Banco Inter',
   'C6 Bank',
-  'Neon',
-  'PicPay',
-  'Mercado Pago',
-  'PagBank',
-  'Stone',
   'Itaú',
   'Bradesco',
   'Santander',
   'Caixa',
   'Banco do Brasil',
-  'Safra',
+  'Neon',
+  'PicPay',
+  'Mercado Pago',
+  'PagBank',
+  'Stone',
   'BTG Pactual',
   'XP Investimentos',
-  'Banrisul',
+  'Safra',
+  'Original',
   'Sicoob',
   'Sicredi',
-  'Unicred',
-  'Original',
+  'Banrisul',
   'BMG',
-  'Sofisa',
   'Daycoval',
+  'Sofisa',
+  'Unicred',
+  'Will Bank',
+  'Cora',
+  'iFood',
+  'Ame Digital',
+  'RecargaPay',
+  '99Pay',
 ];
