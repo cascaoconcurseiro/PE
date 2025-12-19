@@ -26,7 +26,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
     const [amount, setAmount] = useState('');
     const [installments, setInstallments] = useState('1');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [category, setCategory] = useState<Category>(Category.OTHER);
+    const [category, setCategory] = useState<Category>(Category.SHOPPING);
 
     // Simplification: Implicit 'me' as payer, select only the debtor (assignee)
     const [assigneeId, setAssigneeId] = useState<string>('');
@@ -43,7 +43,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             setAmount('');
             setInstallments('1');
             setDate(new Date().toISOString().split('T')[0]);
-            setCategory(Category.OTHER);
+            setCategory(Category.SHOPPING);
             setAccountId('');
             setIsSubmitting(false); // Reset on open
             // Default to first available member

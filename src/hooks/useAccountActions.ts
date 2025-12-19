@@ -65,7 +65,7 @@ export const useAccountActions = ({ selectedAccount, onAddTransaction, currentDa
                     }
                     onAddTransaction({ ...commonProps, description: description || 'Saque para Carteira', type: TransactionType.TRANSFER, category: Category.TRANSFER, destinationAccountId: sourceId });
                 } else {
-                    onAddTransaction({ ...commonProps, description: description || 'Saque em Espécie', type: TransactionType.EXPENSE, category: Category.OTHER });
+                    onAddTransaction({ ...commonProps, description: description || 'Saque em Espécie', type: TransactionType.EXPENSE, category: Category.MISCELLANEOUS });
                 }
                 addToast('Saque registrado!', 'success');
                 break;

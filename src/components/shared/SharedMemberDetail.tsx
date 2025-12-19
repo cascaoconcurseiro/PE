@@ -142,7 +142,7 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
             exportToCSV(data, headers, `Fatura_${member.name}_${currentDate.getMonth() + 1}_${currentDate.getFullYear()}`);
         } else {
             // printAccountStatement expects Account + Transactions.
-            printAccountStatement({ ...member, name: member.name, type: 'OTHER', currency } as any,
+            printAccountStatement({ ...member, name: member.name, type: 'SHARED', currency } as any,
                 items.map(i => ({
                     id: i.originalTxId,
                     date: i.date,

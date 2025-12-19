@@ -87,7 +87,8 @@ export const TripItinerary: React.FC<TripItineraryProps> = ({ trip, onUpdateTrip
                             <option value="LODGING">Hospedagem</option>
                             <option value="ACTIVITY">Passeio</option>
                             <option value="FOOD">Comida</option>
-                            <option value="OTHER">Outro</option>
+                            <option value="TRANSPORT">Transporte</option>
+                            <option value="EVENT">Evento</option>
                         </select>
                     </div>
                     <div className="flex gap-2">

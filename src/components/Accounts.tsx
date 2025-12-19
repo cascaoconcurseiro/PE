@@ -152,7 +152,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
                     description: tx.description,
                     date: tx.date,
                     type: tx.type,
-                    category: Category.OTHER,
+                    category: Category.ADJUSTMENT,
                     accountId: selectedAccount.id,
                     isRecurring: false,
                     currency: accountCurrency,

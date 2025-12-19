@@ -31,7 +31,7 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
     date: new Date().toISOString().split('T')[0],
     amount: 100,
     type: TransactionType.EXPENSE,
-    category: 'Outros',
+    category: 'Alimentação',
     description: 'Transação Teste',
     accountId: 'acc-1',
     ...overrides

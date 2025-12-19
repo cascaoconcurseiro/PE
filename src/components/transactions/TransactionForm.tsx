@@ -327,10 +327,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                                         <option value={Category.DIVIDENDS}>{Category.DIVIDENDS}</option>
                                                         <option value={Category.INVESTMENT}>{Category.INVESTMENT}</option>
                                                     </optgroup>
-                                                    <optgroup label="↩️ Outros">
+                                                    <optgroup label="↩️ Extras">
                                                         <option value={Category.REFUND}>{Category.REFUND}</option>
                                                         <option value={Category.GIFT_RECEIVED}>{Category.GIFT_RECEIVED}</option>
-                                                        <option value={Category.OTHER}>{Category.OTHER}</option>
+                                                        <option value={Category.MISCELLANEOUS}>{Category.MISCELLANEOUS}</option>
                                                     </optgroup>
                                                 </>
                                             ) : (
@@ -397,8 +397,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                                         <option value={Category.FEES}>{Category.FEES}</option>
                                                         <option value={Category.LOANS}>{Category.LOANS}</option>
                                                     </optgroup>
-                                                    <optgroup label="📦 Outros">
-                                                        <option value={Category.OTHER}>{Category.OTHER}</option>
+                                                    <optgroup label="📦 Especiais">
+                                                        <option value={Category.MISCELLANEOUS}>{Category.MISCELLANEOUS}</option>
+                                                        <option value={Category.ADJUSTMENT}>{Category.ADJUSTMENT}</option>
                                                     </optgroup>
                                                 </>
                                             )}

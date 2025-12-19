@@ -421,11 +421,12 @@ export const useFinancialDashboard = ({
                     const amountBRL = convertToBRL(expenseValue, account?.currency || 'BRL');
                     const amount = t.isRefund ? -amountBRL : amountBRL;
 
-                    let sourceLabel = 'Outros';
+                    let sourceLabel = 'Sem Conta';
                     if (account) {
                         if (isCreditCard(account.type)) sourceLabel = 'Cartão de Crédito';
                         else if (account.type === AccountType.CHECKING || account.type === AccountType.SAVINGS) sourceLabel = 'Conta Bancária';
                         else if (account.type === AccountType.CASH) sourceLabel = 'Dinheiro';
+                        else if (account.type === AccountType.INVESTMENT) sourceLabel = 'Investimentos';
                         else sourceLabel = String(account.type);
                     }
 

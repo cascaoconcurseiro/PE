@@ -41,7 +41,7 @@ export const generatePDFReport = (
     filteredTxs
         .filter(t => t.type === TransactionType.EXPENSE && !t.isRefund)
         .forEach(t => {
-            const cat = t.category || 'Outros';
+            const cat = t.category || 'Sem Categoria';
             categoryMap.set(cat, (categoryMap.get(cat) || 0) + t.amount);
         });
 

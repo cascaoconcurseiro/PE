@@ -88,7 +88,10 @@ export enum Category {
   GIFT_RECEIVED = 'Presente Recebido',
   SALES = 'Vendas',
 
-  OTHER = 'Outros',
+  // CATEGORIAS ESPECIAIS (não usar como fallback)
+  MISCELLANEOUS = 'Diversos',
+  ADJUSTMENT = 'Ajuste/Correção',
+  
   TRANSFER = 'Transferência',
   OPENING_BALANCE = 'Saldo Inicial / Ajuste'
 }
@@ -247,7 +250,7 @@ export interface TripItineraryItem {
   time?: string;
   description: string;
   location?: string;
-  type: 'FLIGHT' | 'LODGING' | 'ACTIVITY' | 'FOOD' | 'OTHER';
+  type: 'FLIGHT' | 'LODGING' | 'ACTIVITY' | 'FOOD' | 'TRANSPORT' | 'EVENT';
 }
 
 export interface TripChecklistItem {

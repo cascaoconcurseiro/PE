@@ -66,5 +66,5 @@ export const getAccountTypeLabel = (type: string | undefined): string => {
         if (typeNorm === NORMALIZED_TYPES.CASH) return 'Dinheiro';
     }
     if (isInvestmentAccount(type)) return 'Investimentos';
-    return 'Outros';
+    return 'Conta';
 };

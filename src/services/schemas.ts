@@ -77,7 +77,7 @@ export const TripItineraryItemSchema = z.object({
     time: z.string().optional(),
     description: z.string(),
     location: z.string().optional(),
-    type: z.enum(['FLIGHT', 'LODGING', 'ACTIVITY', 'FOOD', 'OTHER']),
+    type: z.enum(['FLIGHT', 'LODGING', 'ACTIVITY', 'FOOD', 'TRANSPORT', 'EVENT']),
 });
 
 export const TripChecklistItemSchema = z.object({
