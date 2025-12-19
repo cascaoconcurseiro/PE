@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trip, Transaction, TransactionType, Account, FamilyMember } from '../../../types';
 import { TransactionList } from '../../transactions/TransactionList';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
-import { Target, Pencil, X, Save, Sparkles, Calculator, ArrowRight } from 'lucide-react';
+import { Target, Pencil, X, Save, Sparkles, Calculator, ArrowRight, User } from 'lucide-react';
 import { formatCurrency, getCategoryIcon, parseDate } from '../../../utils';
 import { calculateTripDebts } from '../../../services/tripDebtsCalculator';
+import { supabaseService } from '../../../services/supabaseService';
 
 interface TripOverviewProps {
     trip: Trip;
@@ -21,8 +22,23 @@ interface TripOverviewProps {
 export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, accounts, familyMembers, onUpdateTrip, onNavigateToShared, onEditTransaction, onDeleteTransaction }) => {
     const [isEditingBudget, setIsEditingBudget] = useState(false);
     const [tempBudget, setTempBudget] = useState('');
+    const [personalBudget, setPersonalBudget] = useState<number>(0);
     const [aiAnalysis, setAiAnalysis] = useState<string>('');
     const [loadingAi, setLoadingAi] = useState(false);
+
+    // Carregar orçamento pessoal do usuário para esta viagem
+    useEffect(() => {
+        const loadPersonalBudget = async () => {
+            try {
+                const budget = await supabaseService.getMyTripBudget(trip.id);
+                setPersonalBudget(budget);
+            } catch (e) {
+                // Fallback para orçamento da viagem se RPC não existir ainda
+                setPersonalBudget(trip.budget || 0);
+            }
+        };
+        loadPersonalBudget();
+    }, [trip.id, trip.budget]);
 
     // Calculate totals in the TRIP'S currency (e.g. USD)
     const totalSpent = transactions.reduce((acc, t) => {
@@ -34,24 +50,36 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
         }
         return acc;
     }, 0);
-    const budget = trip.budget || 0;
+    
+    // Usar orçamento pessoal (cada participante tem o seu)
+    const budget = personalBudget || 0;
     const percentUsed = budget > 0 ? (totalSpent / budget) * 100 : 0;
     const isOverBudget = totalSpent > budget && budget > 0;
     const remaining = budget - totalSpent;
 
-    const handleSaveBudget = () => {
-        if (!onUpdateTrip) return;
+    const handleSaveBudget = async () => {
         const budgetVal = parseFloat(tempBudget);
         if (isNaN(budgetVal) || budgetVal < 0) {
             alert("Orçamento inválido.");
             return;
         }
-        onUpdateTrip({ ...trip, budget: budgetVal });
+        
+        try {
+            // Salvar orçamento pessoal via RPC
+            await supabaseService.setMyTripBudget(trip.id, budgetVal);
+            setPersonalBudget(budgetVal);
+        } catch (e) {
+            // Fallback: salvar no trip.budget se RPC não existir
+            if (onUpdateTrip) {
+                onUpdateTrip({ ...trip, budget: budgetVal });
+            }
+            setPersonalBudget(budgetVal);
+        }
         setIsEditingBudget(false);
     };
 
     const startEditingBudget = () => {
-        setTempBudget(trip.budget?.toString() || '');
+        setTempBudget(personalBudget?.toString() || '');
         setIsEditingBudget(true);
     };
 
@@ -72,7 +100,9 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
 
                     <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
                         <div>
-                            <span className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1 block">Orçamento Total</span>
+                            <span className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1 flex items-center gap-1">
+                                <User className="w-3 h-3" /> Meu Orçamento
+                            </span>
                             <div className="flex items-baseline gap-2">
                                 {isEditingBudget ? (
                                     <div className="flex items-center gap-2">

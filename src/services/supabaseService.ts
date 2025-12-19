@@ -223,6 +223,7 @@ export const supabaseService = {
 
         // Map Application Object to RPC Parameters
         const params = {
+            p_user_id: userId, // ✅ CRÍTICO: Passar userId para ownership tracking
             p_description: transaction.description,
             p_amount: transaction.amount,
             p_type: transaction.type,
@@ -240,7 +241,9 @@ export const supabaseService = {
             p_series_id: transaction.seriesId || null,
             p_is_recurring: transaction.isRecurring || false,
             p_frequency: transaction.frequency || null,
-            p_shared_with: transaction.sharedWith || [] // Enabling Mirroring Data
+            p_shared_with: transaction.sharedWith || [], // Enabling Mirroring Data
+            p_payer_id: transaction.payerId || null, // Quem pagou (para compartilhadas)
+            p_currency: transaction.currency || 'BRL'
         };
 
         const { data, error } = await supabase.rpc('create_transaction', params);
@@ -670,5 +673,71 @@ export const supabaseService = {
             return [];
         }
         return data;
+    },
+
+    // ========================================
+    // ORÇAMENTO PESSOAL POR VIAGEM
+    // ========================================
+    
+    async getMyTripBudget(tripId: string): Promise<number> {
+        const { data, error } = await supabase.rpc('get_my_trip_budget', {
+            p_trip_id: tripId
+        });
+
+        if (error) {
+            logger.error('Erro ao buscar orçamento da viagem', error);
+            return 0;
+        }
+        return data || 0;
+    },
+
+    async setMyTripBudget(tripId: string, budget: number): Promise<boolean> {
+        const { data, error } = await supabase.rpc('set_trip_budget', {
+            p_trip_id: tripId,
+            p_budget: budget
+        });
+
+        if (error) {
+            logger.error('Erro ao salvar orçamento da viagem', error);
+            throw error;
+        }
+        return true;
+    },
+
+    // ========================================
+    // TRANSAÇÕES COM VALIDAÇÃO DE OWNERSHIP
+    // ========================================
+    
+    async updateTransactionSafe(transaction: Partial<Transaction>): Promise<boolean> {
+        const { data, error } = await supabase.rpc('update_transaction_safe', {
+            p_id: transaction.id,
+            p_description: transaction.description || null,
+            p_amount: transaction.amount || null,
+            p_type: transaction.type || null,
+            p_category: transaction.category || null,
+            p_date: transaction.date || null,
+            p_account_id: transaction.accountId || null,
+            p_is_settled: transaction.isSettled ?? null,
+            p_settled_at: transaction.settledAt || null,
+            p_shared_with: transaction.sharedWith || null
+        });
+
+        if (error) {
+            logger.error('Erro ao atualizar transação', error);
+            throw error;
+        }
+        return true;
+    },
+
+    async deleteTransactionSafe(id: string): Promise<boolean> {
+        const { data, error } = await supabase.rpc('delete_transaction_safe', {
+            p_id: id
+        });
+
+        if (error) {
+            logger.error('Erro ao excluir transação', error);
+            throw error;
+        }
+        return true;
     }
 };
