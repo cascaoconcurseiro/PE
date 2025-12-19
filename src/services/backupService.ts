@@ -79,7 +79,7 @@ export const backupToLocal = async (
       const request = store.put(entry);
 
       request.onsuccess = () => {
-        logger.info('Backup local criado', undefined, { backupId, description });
+        logger.info('Backup local criado', { backupId, description });
         resolve(backupId);
       };
 
@@ -109,7 +109,7 @@ export const restoreFromLocal = async (backupId: number): Promise<BackupData | n
       request.onsuccess = () => {
         const entry = request.result as BackupEntry | undefined;
         if (entry) {
-          logger.info('Backup restaurado', undefined, { backupId });
+          logger.info('Backup restaurado', { backupId });
           resolve(entry.data);
         } else {
           resolve(null);
@@ -174,7 +174,7 @@ export const deleteBackup = async (backupId: number): Promise<void> => {
       const request = store.delete(backupId);
 
       request.onsuccess = () => {
-        logger.info('Backup removido', undefined, { backupId });
+        logger.info('Backup removido', { backupId });
         resolve();
       };
 
@@ -208,7 +208,7 @@ export const cleanupOldBackups = async (keepCount: number = 5): Promise<number> 
       deletedCount++;
     }
 
-    logger.info('Backups antigos removidos', undefined, { deletedCount });
+    logger.info('Backups antigos removidos', { deletedCount });
     return deletedCount;
   } catch (error) {
     logger.error('Erro ao limpar backups antigos', error);

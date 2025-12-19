@@ -194,7 +194,7 @@ export const useFinancialDashboard = ({
             // Only process transactions from selected year
             if (dateStr < startOfYearStr || dateStr > endOfYearStr) continue;
             
-            const account = accountMap.get(t.accountId);
+            const account = t.accountId ? accountMap.get(t.accountId) : undefined;
             
             // Skip non-BRL accounts
             if (account && account.currency && account.currency !== 'BRL') continue;
@@ -249,7 +249,7 @@ export const useFinancialDashboard = ({
             // This gives us the balance at Jan 1st of selected year
             if (dateStr < startOfYearStr || dateStr > todayStr) continue;
             
-            const account = accountMap.get(t.accountId);
+            const account = t.accountId ? accountMap.get(t.accountId) : undefined;
             if (account && account.currency && account.currency !== 'BRL') continue;
             
             let amount = t.amount;
@@ -277,7 +277,7 @@ export const useFinancialDashboard = ({
                 // Add transactions between today and start of selected year
                 if (dateStr <= todayStr || dateStr >= startOfYearStr) continue;
                 
-                const account = accountMap.get(t.accountId);
+                const account = t.accountId ? accountMap.get(t.accountId) : undefined;
                 if (account && account.currency && account.currency !== 'BRL') continue;
                 
                 let amount = t.amount;

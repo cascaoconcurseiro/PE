@@ -593,14 +593,17 @@ export const supabaseService = {
         });
 
         if (error) {
-            logger.error('Erro no factory reset:', error);
+            logger.error('Erro no factory reset (RPC):', error);
             throw error;
         }
 
-        // Check response
+        // Check response - now includes step info for debugging
         if (data && !data.success) {
-            logger.error('Factory reset falhou:', data.error);
-            throw new Error(data.error || 'Factory reset falhou');
+            const errorMsg = data.step 
+                ? `Factory reset falhou no passo: ${data.step} - ${data.error} (${data.detail})`
+                : data.error || 'Factory reset falhou';
+            logger.error('Factory reset falhou:', { step: data.step, error: data.error, detail: data.detail });
+            throw new Error(errorMsg);
         }
 
         logger.info('SMART RESET CONCLUÍDO:', data);
