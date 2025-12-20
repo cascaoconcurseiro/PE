@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { checkDataConsistency } from '../services/financialLogic';
+import { checkDataConsistency } from '../core/engines/financialLogic';
 import { Account, Transaction } from '../types';
 
 export const useDataConsistency = (

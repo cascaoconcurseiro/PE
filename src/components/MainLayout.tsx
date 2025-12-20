@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { PiggyBank, ChevronLeft, ChevronRight, AlertTriangle, Menu, Plus, Eye, EyeOff } from 'lucide-react';
 import { View, UserProfile, Transaction } from '../types';
 import { Sidebar } from './layout/Sidebar';
 import { MobileNav } from './layout/MobileNav';
+import { checkDataConsistency } from '../core/engines/financialLogic';
 import { NotificationSystem } from './layout/NotificationSystem';
 
 interface MainLayoutProps {
@@ -49,7 +51,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     const getMonthInputValue = (date: Date) => {
         const year = date.getFullYear();
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        return `${year}-${month}`;
+        return `${year} -${month} `;
     };
 
     return (
@@ -123,7 +125,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                                 <button
                                     onClick={onOpenInconsistenciesModal}
                                     className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors relative shadow-sm active:scale-95"
-                                    title={`${dataInconsistencies.length} inconsistência${dataInconsistencies.length !== 1 ? 's' : ''} detectada${dataInconsistencies.length !== 1 ? 's' : ''}`}
+                                    title={`${dataInconsistencies.length} inconsistência${dataInconsistencies.length !== 1 ? 's' : ''} detectada${dataInconsistencies.length !== 1 ? 's' : ''} `}
                                 >
                                     <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
                                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900">

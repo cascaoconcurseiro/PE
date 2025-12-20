@@ -5,7 +5,7 @@ import { Button } from './ui/Button';
 import { Plus, Edit2, Trash2, AlertTriangle, PieChart } from 'lucide-react';
 import { formatCurrency, getCategoryIcon, parseDate } from '../utils';
 import { shouldShowTransaction } from '../utils/transactionFilters';
-import { calculateEffectiveTransactionValue } from '../services/financialLogic';
+import { calculateEffectiveTransactionValue } from '../core/engines/financialLogic';
 
 interface BudgetsProps {
     transactions: Transaction[];
