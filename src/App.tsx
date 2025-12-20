@@ -28,7 +28,7 @@ const Transactions = lazyImport(() => import('./features/transactions/Transactio
 const Budgets = lazyImport(() => import('./components/Budgets').then(m => ({ default: m.Budgets })));
 const Goals = lazyImport(() => import('./components/Goals').then(m => ({ default: m.Goals })));
 const Trips = lazyImport(() => import('./features/trips/Trips').then(m => ({ default: m.Trips })));
-const Shared = lazyImport(() => import('./components/Shared').then(m => ({ default: m.Shared })));
+const Shared = lazyImport(() => import('./components/Shared'));
 const Family = lazyImport(() => import('./components/Family').then(m => ({ default: m.Family })));
 const Settings = lazyImport(() => import('./components/Settings').then(m => ({ default: m.Settings })));
 const Investments = lazyImport(() => import('./components/Investments').then(m => ({ default: m.Investments })));

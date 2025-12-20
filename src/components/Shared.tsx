@@ -5,7 +5,7 @@ import { SharedFilters } from './shared/SharedFilters';
 import { SettlementModal } from './shared/SettlementModal';
 import { SharedInstallmentImport } from './shared/SharedInstallmentImport';
 import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal';
-import { TransactionDeleteModal } from './transactions/TransactionDeleteModal';
+import { TransactionDeleteModal } from '../features/transactions/TransactionDeleteModal';
 import { SharedMemberDetail } from './shared/SharedMemberDetail';
 import { ConfirmModal } from './ui/ConfirmModal';
 
@@ -394,3 +394,5 @@ export const Shared: React.FC<SharedProps> = ({
         </div >
     );
 };
+
+export default Shared;

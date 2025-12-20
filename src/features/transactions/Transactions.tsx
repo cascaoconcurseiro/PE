@@ -9,7 +9,7 @@ import { TransactionDeleteModal } from './TransactionDeleteModal';
 import { TransactionFilters } from './TransactionFilters';
 import { InstallmentAnticipationModal } from './InstallmentAnticipationModal';
 
-import { useTransactionFilters } from '../../hooks/useTransactionFilters';
+import { useTransactionFilters } from './useTransactionFilters';
 
 // Export PrivacyBlur for reuse if needed, though mostly handled internally now
 export const PrivacyBlur = ({ children, showValues }: { children: React.ReactNode, showValues: boolean }) => {
