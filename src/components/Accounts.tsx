@@ -142,7 +142,6 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
 
         const txsToImport: Omit<Transaction, 'id'>[] = [];
         let count = 0;
-        const accountCurrency = selectedAccount.currency || 'BRL';
 
         importedTxs.forEach(tx => {
             const isDuplicate = transactions.some(t => t.accountId === selectedAccount.id && t.amount === tx.amount && t.date === tx.date && t.type === tx.type);
@@ -152,11 +151,9 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
                     description: tx.description,
                     date: tx.date,
                     type: tx.type,
-                    category: Category.ADJUSTMENT,
+                    category: Category.OTHER,
                     accountId: selectedAccount.id,
-                    isRecurring: false,
-                    currency: accountCurrency,
-                    domain: 'PERSONAL'
+                    isRecurring: false
                 });
                 count++;
             }

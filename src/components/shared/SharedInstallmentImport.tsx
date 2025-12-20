@@ -3,7 +3,6 @@ import { Transaction, FamilyMember, Account, Category, TransactionType, SyncStat
 import { Button } from '../ui/Button';
 import { round2dec } from '../../utils';
 import { X, Calendar, DollarSign, CreditCard, Layers, Check } from 'lucide-react';
-import { useToast } from '../ui/Toast';
 
 // Helper for currency format inside component
 const formatCurrency = (val: number) => {
@@ -23,12 +22,11 @@ interface SharedInstallmentImportProps {
 export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = ({
     isOpen, onClose, onImport, members, accounts, currentUserId, currentUserName
 }) => {
-    const { addToast } = useToast();
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
     const [installments, setInstallments] = useState('1');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [category, setCategory] = useState<Category>(Category.SHOPPING);
+    const [category, setCategory] = useState<Category>(Category.OTHER);
 
     // Simplification: Implicit 'me' as payer, select only the debtor (assignee)
     const [assigneeId, setAssigneeId] = useState<string>('');
@@ -45,7 +43,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             setAmount('');
             setInstallments('1');
             setDate(new Date().toISOString().split('T')[0]);
-            setCategory(Category.SHOPPING);
+            setCategory(Category.OTHER);
             setAccountId('');
             setIsSubmitting(false); // Reset on open
             // Default to first available member
@@ -57,7 +55,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         if (isSubmitting) return; // Prevent double click
 
         if (!amount || !description || !assigneeId) {
-            addToast('Preencha todos os campos obrigatórios.', 'warning');
+            alert('Preencha todos os campos obrigatórios.');
             return;
         }
 
@@ -87,12 +85,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 const dateStr = utcDate.toISOString().split('T')[0];
                 const transactionId = crypto.randomUUID(); // Idempotency Key
 
-                // For shared installment imports, when user selects "assignee" as who will pay,
-                // it means the assignee owes money to the current user (current user will receive money)
-                // So the current user should see this as CREDIT (income they will receive)
-                // This means the current user should be the payer and assignee should be in sharedWith
+                // 100% Assignment to Selected Member
                 const sharedWith: TransactionSplit[] = [{
-                    memberId: assigneeId, // Assignee owes money to current user
+                    memberId: assigneeId,
                     assignedAmount: currentInstallmentAmount,
                     percentage: 100,
                     isSettled: false
@@ -107,9 +102,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     category: category,
                     date: dateStr,
                     accountId: accountId || undefined,
-                    payerId: undefined, // Current user is the payer (will receive money back)
+                    payerId: 'me', // Implicit: I paid
                     isShared: true,
-                    sharedWith: sharedWith, // Assignee owes money to current user
+                    sharedWith: sharedWith, // They owe me
                     isInstallment: numInstallments > 1,
                     currentInstallment: i + 1,
                     totalInstallments: numInstallments,
@@ -117,17 +112,11 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     originalAmount: totalAmount,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
-                    syncStatus: SyncStatus.PENDING,
-                    currency: 'BRL',
-                    domain: 'SHARED'
+                    syncStatus: SyncStatus.PENDING
                 });
             }
             onImport(generatedTransactions);
-            // Close modal after a brief delay to ensure UI updates properly
-            setTimeout(() => {
-                setIsSubmitting(false);
-                onClose(); // Close the modal to ensure proper cleanup
-            }, 150);
+            // Modal closes via parent calling onClose or effect, but we keep state coherent
         } catch (e) {
             console.error("Error importing:", e);
             setIsSubmitting(false); // Re-enable on error
@@ -174,75 +163,11 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         </div>
                     </div>
 
-                    {/* Category - Apenas despesas, agrupadas */}
+                    {/* Category */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">Categoria</label>
                         <select disabled={isSubmitting} className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white" value={category} onChange={e => setCategory(e.target.value as Category)}>
-                            <optgroup label="🏠 Moradia">
-                                <option value={Category.HOUSING}>{Category.HOUSING}</option>
-                                <option value={Category.RENT}>{Category.RENT}</option>
-                                <option value={Category.MAINTENANCE}>{Category.MAINTENANCE}</option>
-                                <option value={Category.FURNITURE}>{Category.FURNITURE}</option>
-                                <option value={Category.UTILITIES}>{Category.UTILITIES}</option>
-                            </optgroup>
-                            <optgroup label="🍽️ Alimentação">
-                                <option value={Category.FOOD}>{Category.FOOD}</option>
-                                <option value={Category.RESTAURANTS}>{Category.RESTAURANTS}</option>
-                                <option value={Category.GROCERY}>{Category.GROCERY}</option>
-                                <option value={Category.SNACKS}>{Category.SNACKS}</option>
-                            </optgroup>
-                            <optgroup label="🚗 Transporte">
-                                <option value={Category.TRANSPORTATION}>{Category.TRANSPORTATION}</option>
-                                <option value={Category.UBER}>{Category.UBER}</option>
-                                <option value={Category.FUEL}>{Category.FUEL}</option>
-                                <option value={Category.PUBLIC_TRANSPORT}>{Category.PUBLIC_TRANSPORT}</option>
-                                <option value={Category.VEHICLE_MAINTENANCE}>{Category.VEHICLE_MAINTENANCE}</option>
-                                <option value={Category.PARKING}>{Category.PARKING}</option>
-                            </optgroup>
-                            <optgroup label="❤️ Saúde">
-                                <option value={Category.HEALTH}>{Category.HEALTH}</option>
-                                <option value={Category.PHARMACY}>{Category.PHARMACY}</option>
-                                <option value={Category.DOCTOR}>{Category.DOCTOR}</option>
-                                <option value={Category.EXAMS}>{Category.EXAMS}</option>
-                                <option value={Category.GYM}>{Category.GYM}</option>
-                            </optgroup>
-                            <optgroup label="🎉 Lazer">
-                                <option value={Category.LEISURE}>{Category.LEISURE}</option>
-                                <option value={Category.ENTERTAINMENT}>{Category.ENTERTAINMENT}</option>
-                                <option value={Category.STREAMING}>{Category.STREAMING}</option>
-                                <option value={Category.TRAVEL}>{Category.TRAVEL}</option>
-                                <option value={Category.HOBBIES}>{Category.HOBBIES}</option>
-                            </optgroup>
-                            <optgroup label="🛍️ Compras">
-                                <option value={Category.SHOPPING}>{Category.SHOPPING}</option>
-                                <option value={Category.CLOTHING}>{Category.CLOTHING}</option>
-                                <option value={Category.ELECTRONICS}>{Category.ELECTRONICS}</option>
-                                <option value={Category.BEAUTY}>{Category.BEAUTY}</option>
-                                <option value={Category.HOME_SHOPPING}>{Category.HOME_SHOPPING}</option>
-                            </optgroup>
-                            <optgroup label="📚 Educação">
-                                <option value={Category.EDUCATION}>{Category.EDUCATION}</option>
-                                <option value={Category.COURSES}>{Category.COURSES}</option>
-                                <option value={Category.BOOKS}>{Category.BOOKS}</option>
-                            </optgroup>
-                            <optgroup label="👤 Pessoal">
-                                <option value={Category.PERSONAL}>{Category.PERSONAL}</option>
-                                <option value={Category.PERSONAL_CARE}>{Category.PERSONAL_CARE}</option>
-                                <option value={Category.PETS}>{Category.PETS}</option>
-                                <option value={Category.GIFTS}>{Category.GIFTS}</option>
-                                <option value={Category.DONATION}>{Category.DONATION}</option>
-                            </optgroup>
-                            <optgroup label="💰 Financeiro">
-                                <option value={Category.FINANCIAL}>{Category.FINANCIAL}</option>
-                                <option value={Category.INSURANCE}>{Category.INSURANCE}</option>
-                                <option value={Category.TAXES}>{Category.TAXES}</option>
-                                <option value={Category.FEES}>{Category.FEES}</option>
-                                <option value={Category.LOANS}>{Category.LOANS}</option>
-                            </optgroup>
-                            <optgroup label="📦 Especiais">
-                                <option value={Category.MISCELLANEOUS}>{Category.MISCELLANEOUS}</option>
-                                <option value={Category.ADJUSTMENT}>{Category.ADJUSTMENT}</option>
-                            </optgroup>
+                            {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
 

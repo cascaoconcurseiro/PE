@@ -50,10 +50,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
         projectedBalance,
         pendingIncome,
         pendingExpenses,
-        totalMonthIncome,
-        totalMonthExpenses,
-        realizedIncome,
-        realizedExpenses,
         healthStatus,
         netWorth,
         monthlyIncome,
@@ -68,18 +64,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
         accounts,
         transactions,
         projectedAccounts,
-        trips,
+        trips, // NEW
         currentDate,
         spendingView
     });
 
-    // ✅ CORRIGIDO: Verificar se dados estão REALMENTE carregados
-    // Arrays vazios passam no check !accounts, então verificamos length também
-    const hasData = accounts && accounts.length > 0;
-    
-    // Mostrar skeleton APENAS durante carregamento inicial (isLoading=true)
-    // Não mostrar skeleton se já temos dados (mesmo que esteja recarregando)
-    if (isLoading && !hasData) {
+    // ✅ REESTRUTURAÇÃO: Garantir que dados estão prontos antes de renderizar
+    // Isso previne flicker - valores só aparecem quando estão corretos
+    if (isLoading || isLoadingHistory || !accounts || !transactions) {
         return <DashboardSkeleton />;
     }
 
@@ -129,10 +121,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
                 currentBalance={currentBalance}
                 pendingIncome={pendingIncome}
                 pendingExpenses={pendingExpenses}
-                totalMonthIncome={totalMonthIncome}
-                totalMonthExpenses={totalMonthExpenses}
-                realizedIncome={realizedIncome}
-                realizedExpenses={realizedExpenses}
                 monthlyIncome={monthlyIncome}
                 monthlyExpense={monthlyExpense}
                 healthStatus={healthStatus}

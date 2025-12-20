@@ -5,7 +5,6 @@ import { Check, X, Bell } from 'lucide-react';
 import { useToast } from '../ui/Toast';
 import { Transaction, Account, AccountType } from '../../types';
 import { formatCurrency } from '../../utils';
-import { ConfirmModal } from '../ui/ConfirmModal';
 
 interface SharedRequest {
     id: string;
@@ -29,7 +28,6 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, a
     const [requests, setRequests] = useState<SharedRequest[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { addToast } = useToast();
-    const [acceptAllConfirm, setAcceptAllConfirm] = useState(false);
 
     const fetchRequests = async () => {
         try {
@@ -130,7 +128,41 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, a
                         size="sm"
                         variant="ghost"
                         className="text-amber-700 hover:bg-amber-100 hover:text-amber-900 h-7 px-2 text-xs"
-                        onClick={() => setAcceptAllConfirm(true)}
+                        onClick={async () => {
+                            if (!window.confirm("Aceitar todas as solicitações pendentes?")) return;
+
+                            try {
+                                const defaultAccount = accounts.find(a => a.type === AccountType.CHECKING || a.type === AccountType.CASH) || accounts[0];
+                                if (!defaultAccount) {
+                                    addToast("Erro: Nenhuma conta encontrada para registrar as despesas.", "error");
+                                    return;
+                                }
+
+                                const updates = requests.map(r =>
+                                    supabase.rpc('respond_to_shared_request', {
+                                        p_request_id: r.id,
+                                        p_status: 'ACCEPTED',
+                                        p_account_id: defaultAccount.id
+                                    })
+                                );
+
+                                const results = await Promise.all(updates);
+                                const failures = results.filter(r => r.error);
+
+                                if (failures.length > 0) {
+                                    console.error('Some requests failed:', failures);
+                                    addToast(`${failures.length} solicitações falharam. Verifique o console.`, 'warning');
+                                } else {
+                                    addToast("Todas as solicitações foram aceitas!", 'success');
+                                }
+
+                                setRequests([]);
+                                onStatusChange();
+                            } catch (e) {
+                                console.error(e);
+                                addToast("Erro ao aceitar tudo.", 'error');
+                            }
+                        }}
                     >
                         Aceitar Tudo
                     </Button>
@@ -170,48 +202,6 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({ currentUserId, a
                     </div>
                 ))}
             </div>
-
-            <ConfirmModal
-                isOpen={acceptAllConfirm}
-                onCancel={() => setAcceptAllConfirm(false)}
-                onConfirm={async () => {
-                    setAcceptAllConfirm(false);
-                    try {
-                        const defaultAccount = accounts.find(a => a.type === AccountType.CHECKING || a.type === AccountType.CASH) || accounts[0];
-                        if (!defaultAccount) {
-                            addToast("Erro: Nenhuma conta encontrada para registrar as despesas.", "error");
-                            return;
-                        }
-
-                        const updates = requests.map(r =>
-                            supabase.rpc('respond_to_shared_request', {
-                                p_request_id: r.id,
-                                p_status: 'ACCEPTED',
-                                p_account_id: defaultAccount.id
-                            })
-                        );
-
-                        const results = await Promise.all(updates);
-                        const failures = results.filter(r => r.error);
-
-                        if (failures.length > 0) {
-                            console.error('Some requests failed:', failures);
-                            addToast(`${failures.length} solicitações falharam. Verifique o console.`, 'warning');
-                        } else {
-                            addToast("Todas as solicitações foram aceitas!", 'success');
-                        }
-
-                        setRequests([]);
-                        onStatusChange();
-                    } catch (e) {
-                        console.error(e);
-                        addToast("Erro ao aceitar tudo.", 'error');
-                    }
-                }}
-                title="Aceitar Todas"
-                message="Aceitar todas as solicitações pendentes?"
-                confirmLabel="Aceitar Tudo"
-            />
         </div>
     );
 };

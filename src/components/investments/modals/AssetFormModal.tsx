@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../../ui/Modal';
 import { Button } from '../../ui/Button';
 import { Asset, AssetType, Account, AccountType } from '../../../types';
-import { Plus, Save, AlertCircle } from 'lucide-react';
-import { formatCurrency } from '../../../utils';
+import { Plus, Save } from 'lucide-react';
 
 interface AssetFormModalProps {
     isOpen: boolean;
@@ -11,7 +10,6 @@ interface AssetFormModalProps {
     onSave: (assetData: import('../../../types').Asset, isCreatingAccount: boolean, newAccountName: string) => void;
     editingAsset: Asset | null;
     accounts: Account[];
-    assets?: Asset[]; // Optional: for ticker detection
 }
 
 export const AssetFormModal: React.FC<AssetFormModalProps> = ({
@@ -19,35 +17,18 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
     onClose,
     onSave,
     editingAsset,
-    accounts,
-    assets = []
+    accounts
 }) => {
     const [isCreatingAccount, setIsCreatingAccount] = useState(false);
     const [newAccountName, setNewAccountName] = useState('');
-    const [ticker, setTicker] = useState('');
-    const [selectedBrokerage, setSelectedBrokerage] = useState('');
 
     // Reset state when modal opens/closes
     useEffect(() => {
         if (!isOpen) {
             setIsCreatingAccount(false);
             setNewAccountName('');
-            setTicker('');
-            setSelectedBrokerage('');
-        } else if (editingAsset) {
-            setTicker(editingAsset.ticker);
-            setSelectedBrokerage(editingAsset.accountId);
         }
-    }, [isOpen, editingAsset]);
-
-    // Detect if ticker already exists in selected brokerage
-    const existingAsset = useMemo(() => {
-        if (!ticker || !selectedBrokerage || editingAsset) return null;
-        return assets.find(a => 
-            a.ticker.toUpperCase() === ticker.toUpperCase() && 
-            a.accountId === selectedBrokerage
-        );
-    }, [ticker, selectedBrokerage, assets, editingAsset]);
+    }, [isOpen]);
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -72,32 +53,9 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={editingAsset ? "Editar Ativo" : "Novo Aporte"}>
             <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Existing Asset Alert */}
-                {existingAsset && (
-                    <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                        <div className="text-sm">
-                            <p className="font-bold text-amber-800 dark:text-amber-300">Ativo já existe nesta corretora!</p>
-                            <p className="text-amber-700 dark:text-amber-400 mt-1">
-                                Você possui <strong>{existingAsset.quantity}</strong> unidades de <strong>{existingAsset.ticker}</strong> com preço médio de <strong>{formatCurrency(existingAsset.averagePrice, existingAsset.currency)}</strong>.
-                            </p>
-                            <p className="text-amber-600 dark:text-amber-500 mt-1 text-xs">
-                                Ao salvar, o sistema irá somar a quantidade e recalcular o preço médio automaticamente.
-                            </p>
-                        </div>
-                    </div>
-                )}
-
                 <div>
                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Ticker / Código</label>
-                    <input 
-                        name="ticker" 
-                        required 
-                        value={ticker}
-                        onChange={e => setTicker(e.target.value.toUpperCase())}
-                        placeholder="Ex: PETR4, AAPL, BTC" 
-                        className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white placeholder:text-slate-400 uppercase ${existingAsset ? 'border-amber-400 dark:border-amber-600' : 'border-slate-200 dark:border-slate-700'}`} 
-                    />
+                    <input name="ticker" required defaultValue={editingAsset?.ticker} placeholder="Ex: PETR4, AAPL, BTC" className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white placeholder:text-slate-400 uppercase" />
                 </div>
 
                 <div>
@@ -143,8 +101,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                             <select
                                 name="accountId"
                                 required
-                                value={selectedBrokerage}
-                                onChange={e => setSelectedBrokerage(e.target.value)}
+                                defaultValue={editingAsset?.accountId}
                                 className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white"
                             >
                                 <option value="">Selecione a corretora...</option>

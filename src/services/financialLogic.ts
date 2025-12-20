@@ -1,7 +1,6 @@
-import { Account, Transaction, TransactionType } from '../types';
+import { Account, Transaction, TransactionType, AccountType } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from './currencyService';
-import { isCreditCard, isLiquidAccount } from '../utils/accountTypeUtils';
 
 /**
  * Calcula o valor efetivo da transação para o usuário (Economia Real).
@@ -99,45 +98,37 @@ export const checkDataConsistency = (accounts: Account[], transactions: Transact
 };
 
 /**
- * 2. VISÃO FINANCEIRA DO MÊS
- * Calcula totais de receitas e despesas do mês (realizadas + previstas)
- * e o saldo projetado para o final do mês.
+ * 2. PREVISÃO DE SALDO (FORECASTING)
+ * Calcula o "Saldo Projetado" para o final do mês atual.
+ * Lógica: Saldo Atual + Receitas Pendentes - Despesas Pendentes
  */
 export const calculateProjectedBalance = (
     accounts: Account[],
     transactions: Transaction[],
     currentDate: Date
-): { 
-    currentBalance: number, 
-    projectedBalance: number, 
-    pendingIncome: number, 
-    pendingExpenses: number,
-    totalMonthIncome: number,
-    totalMonthExpenses: number,
-    realizedIncome: number,
-    realizedExpenses: number
-} => {
+): { currentBalance: number, projectedBalance: number, pendingIncome: number, pendingExpenses: number } => {
 
-    // Contas líquidas (checking, savings, cash) - usando utilitário centralizado
-    const liquidityAccounts = accounts.filter(a => isLiquidAccount(a.type));
-
-    // Cartões de crédito - usando utilitário centralizado
-    const creditCardAccounts = accounts.filter(a => isCreditCard(a.type));
-    
-    const creditCardIds = new Set(creditCardAccounts.map(a => a.id));
+    // Saldo Atual Consolidado (Apenas Contas Bancárias e Carteira, ignora Cartão de Crédito e Investimentos para fluxo de caixa)
+    const liquidityAccounts = accounts.filter(a =>
+        a.type === AccountType.CHECKING ||
+        a.type === AccountType.SAVINGS ||
+        a.type === AccountType.CASH
+    );
 
     const liquidityAccountIds = new Set(liquidityAccounts.map(a => a.id));
     const currentBalance = liquidityAccounts.reduce((acc, a) => acc + convertToBRL(a.balance, a.currency), 0);
 
+    // Definir intervalo de tempo (Hoje até Fim do Mês)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
+
     let pendingIncome = 0;
     let pendingExpenses = 0;
-    let realizedIncome = 0;
-    let realizedExpenses = 0;
 
-    // Helper to convert transaction amount to BRL
+    // Helper to convert transaction amount to BRL using stored rate or fallback
     const toBRL = (amount: number, t: Transaction) => {
         if (t.exchangeRate && t.exchangeRate > 0) {
             return amount * t.exchangeRate;
@@ -145,29 +136,42 @@ export const calculateProjectedBalance = (
         return convertToBRL(amount, t.currency || 'BRL');
     };
 
-    // Filtrar transações do mês visualizado
-    const viewMonth = currentDate.getMonth();
-    const viewYear = currentDate.getFullYear();
-    const monthTransactions = transactions.filter(t => {
-        if (t.deleted) return false;
-        const tDate = new Date(t.date);
-        return tDate.getMonth() === viewMonth && tDate.getFullYear() === viewYear;
-    });
+    // Define the Time Window for Projection:
+    // Start: NOW (Current Real Time)
+    // End: End of the Viewed Month (e.g. If viewing Feb 2026, End is Feb 28 2026)
+    // Goal: Accumulate all changes from Now until the target date to get the true future balance.
 
-    // Processar TODAS as transações do mês
-    monthTransactions.forEach(t => {
+    const viewMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    viewMonthEnd.setHours(23, 59, 59, 999);
+
+    // today is likely already defined above in this function scope or passed in. 
+    // If not, use a different name or just rely on 'today' if previously defined.
+    // Checked file: 'today' IS defined at line 129. 
+    // So we just reset it or use existing variable.
+    today.setHours(0, 0, 0, 0);
+
+    transactions.forEach(t => {
+        if (t.deleted) return;
+
         const tDate = new Date(t.date);
         tDate.setHours(0, 0, 0, 0);
-        const isFuture = tDate > today;
 
-        // SHARED LOGIC - A Receber e A Pagar de compartilhados
-        const hasSharedWith = t.sharedWith && t.sharedWith.length > 0;
-        const isSharedContext = t.isShared || hasSharedWith || (t.payerId && t.payerId !== 'me');
+        // STRICT MONTH FILTER (User Request: "Só aparecer o projeto do mês")
+        const isViewMonth = tDate.getMonth() === currentDate.getMonth() && tDate.getFullYear() === currentDate.getFullYear();
+        if (!isViewMonth) return;
+
+        // SHARED LOGIC
+        // We check for Shared Unsettled items within THIS MONTH.
+        let processedAsShared = false;
+
+        const isSharedContext = t.isShared || (t.payerId && t.payerId !== 'me');
 
         if (isSharedContext) {
-            // A Receber (Eu paguei, outros me devem)
+            // 1. Receivables (I paid, others owe me)
             if (t.type === TransactionType.EXPENSE && (!t.payerId || t.payerId === 'me')) {
-                if (!t.currency || t.currency === 'BRL') {
+                if (t.currency && t.currency !== 'BRL') {
+                    // Skip foreign
+                } else {
                     const pendingSplitsTotal = t.sharedWith?.reduce((sum, s) => {
                         return sum + (!s.isSettled ? s.assignedAmount : 0);
                     }, 0) || 0;
@@ -176,72 +180,58 @@ export const calculateProjectedBalance = (
                         pendingIncome += toBRL(pendingSplitsTotal, t);
                     }
                 }
+                processedAsShared = true;
             }
 
-            // A Pagar (Outros pagaram, eu devo)
+            // 2. Payables (Others paid, I owe them)
             if (t.type === TransactionType.EXPENSE && t.payerId && t.payerId !== 'me') {
-                if (!t.currency || t.currency === 'BRL') {
+                if (t.currency && t.currency !== 'BRL') {
+                    // Skip foreign
+                } else {
                     if (!t.isSettled) {
                         pendingExpenses += toBRL(t.amount, t);
                     }
                 }
+                processedAsShared = true;
             }
         }
 
-        // Pular dívidas compartilhadas para contagem normal (já processado acima)
+        // Cash Flow Impact Logic
+        // IF I am the Payer (or Personal Expense), it affects my Cash Flow.
+        // IF I am NOT the Payer (Debt), it does NOT affect my Cash Flow (Liquidity) YET (until I pay it).
+        // The "processedAsShared" block above handled the "A Pagar" (Liability) visualization.
+        // But for "Projected Balance", we usually exclude non-cash liabilities unless they are due?
+
+        // Filter out non-cash debts from "Pending Expenses" calculation for PROJECTION?
+        // Pending Expenses = Sum of Liquid Withdrawals to come.
+        // A Shared Debt (I owe Friend) is NOT a bank withdrawal yet. 
+        // However, User usually wants to see it in "A Pagar".
+
+        // If processedAsShared (I owe someone), we added to pendingExpenses. 
+        // Does this reduce Projected Balance? Yes (Balance - Expenses).
+        // This is correct: My projected wealth at end of month is lower because I owe money.
+
         if (t.type === TransactionType.EXPENSE && t.payerId && t.payerId !== 'me') {
-            return;
+            return; // Purely debt/credit logic, no personal bank flow.
         }
 
-        // RECEITAS - todas do mês (passadas e futuras)
-        if (t.type === TransactionType.INCOME) {
-            const accId = t.accountId;
-            if (accId && liquidityAccountIds.has(accId)) {
-                const amount = toBRL(t.amount, t);
-                if (isFuture) {
-                    pendingIncome += amount;
-                } else {
-                    realizedIncome += amount;
-                }
-            }
-        }
-        
-        // DESPESAS - todas do mês (passadas e futuras)
-        if (t.type === TransactionType.EXPENSE) {
-            const accId = t.accountId;
-            // Despesas em contas líquidas OU cartão de crédito
-            if (accId && (liquidityAccountIds.has(accId) || creditCardIds.has(accId))) {
-                const amount = toBRL(t.amount, t);
-                if (isFuture) {
-                    pendingExpenses += amount;
-                } else {
-                    realizedExpenses += amount;
-                }
-            }
-        }
+        // STANDARD LOGIC (Cash Flow)
+        // Must be FUTURE (> Today) to be "Pending"
+        if (tDate <= today) return;
 
-        // TRANSFERÊNCIAS - só futuras afetam projeção
-        if (t.type === TransactionType.TRANSFER && isFuture) {
+        if (t.type === TransactionType.TRANSFER) {
             const sourceAccId = t.accountId;
             const isSourceLiquid = sourceAccId ? liquidityAccountIds.has(sourceAccId) : false;
             const destAccId = t.destinationAccountId;
             const isDestLiquid = destAccId ? liquidityAccountIds.has(destAccId) : false;
 
             if (isSourceLiquid && !isDestLiquid) {
-                if (!creditCardIds.has(destAccId || '')) {
-                    // Usar destinationAmount se disponível (transferência multi-moeda)
-                    const amountToUse = t.destinationAmount && t.destinationAmount > 0 
-                        ? t.destinationAmount 
-                        : t.amount;
-                    const destAcc = accounts.find(a => a.id === destAccId);
-                    if (destAcc && destAcc.currency !== 'BRL') {
-                        pendingExpenses += convertToBRL(amountToUse, destAcc.currency);
-                    } else {
-                        pendingExpenses += toBRL(t.amount, t);
-                    }
-                }
+                // Logic Update 2025-12-17: Transfer to Credit Card IS an Expense (Bill Payment)
+                // in the context of Cash Flow for the Checking Account.
+                pendingExpenses += toBRL(t.amount, t);
             }
             else if (!isSourceLiquid && isDestLiquid) {
+                // Receiving from non-liquid (e.g. Loan, Investment Withdrawal) is Income
                 if (t.destinationAmount && t.destinationAmount > 0) {
                     const destAcc = accounts.find(a => a.id === t.destinationAccountId);
                     if (destAcc && destAcc.currency !== 'BRL') {
@@ -253,24 +243,36 @@ export const calculateProjectedBalance = (
                     pendingIncome += toBRL(t.amount, t);
                 }
             }
+            // Logic Update: What if Source is Liquid AND Dest is Credit Card?
+            // Already covered by first 'if' (SourceLiquid && !DestLiquid).
+            // Credit Card accounts are NOT in 'liquidityAccountIds'.
+            // So Transfer Checking -> Credit Card = PendingExpense. CORRECT.
+
+            return;
+        }
+
+        // Standard Income/Expense
+        if (t.type === TransactionType.INCOME) {
+            const accId = t.accountId;
+            if (accId && liquidityAccountIds.has(accId)) {
+                pendingIncome += toBRL(t.amount, t);
+            }
+        } else if (t.type === TransactionType.EXPENSE) {
+            const accId = t.accountId;
+            if (accId && liquidityAccountIds.has(accId)) {
+                pendingExpenses += toBRL(t.amount, t);
+            }
         }
     });
 
-    // Totais do mês (realizados + pendentes)
-    const totalMonthIncome = realizedIncome + pendingIncome;
-    const totalMonthExpenses = realizedExpenses + pendingExpenses;
-
+    // Calculate final projected balance
     const projectedBalance = currentBalance + pendingIncome - pendingExpenses;
 
     return {
         currentBalance,
         projectedBalance,
         pendingIncome,
-        pendingExpenses,
-        totalMonthIncome,
-        totalMonthExpenses,
-        realizedIncome,
-        realizedExpenses
+        pendingExpenses
     };
 };
 

@@ -6,7 +6,6 @@ import { SettingsProvider } from './hooks/useSettings';
 import { ErrorTrackerProvider } from './hooks/useErrorTracker';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { logger } from './services/logger';
 import './index.css';
 
 // Root mounting logic
@@ -25,9 +24,9 @@ container.innerHTML = '';
 // NOTE: PWA Auto-Update is handled by vite-plugin-pwa. Do not manually unregister workers here,
 // as it conflicts with the auto-update strategy.
 if ('serviceWorker' in navigator) {
-    // Log apenas em desenvolvimento
+    // Just log for debugging
     navigator.serviceWorker.getRegistrations().then(regs => {
-        logger.debug('📱 Active Service Workers:', { count: regs.length });
+        console.log('📱 Active Service Workers:', regs.length);
     });
 }
 

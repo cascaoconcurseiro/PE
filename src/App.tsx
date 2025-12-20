@@ -13,8 +13,6 @@ import { GlobalSearch } from './components/GlobalSearch';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSystemNotifications } from './hooks/useSystemNotifications';
-import { useSmartNotifications } from './hooks/useSmartNotifications';
-import { useSettings } from './hooks/useSettings';
 import { useToast } from './components/ui/Toast';
 
 import { lazyImport } from './utils/lazyImport';
@@ -56,18 +54,6 @@ const App = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
     const { notifications: systemNotifications, markAsRead } = useSystemNotifications(sessionUser?.id);
-    const { settings: userSettings } = useSettings();
-    const { addToast } = useToast();
-
-    // Smart Notifications based on user settings
-    const smartNotifications = useSmartNotifications({
-        transactions: transactions || [],
-        budgets: budgets || [],
-        goals: goals || [],
-        accounts: accounts || [],
-        currentDate,
-        notificationSettings: userSettings.notifications
-    });
 
     const [pendingSettlements, setPendingSettlements] = useState<PendingSettlement[]>([]);
     const [activeSettlementRequest, setActiveSettlementRequest] = useState<SettlementRequest | null>(null);
@@ -157,23 +143,21 @@ const App = () => {
     }, []);
 
     // ONE-TIME: Smart Sync for Month Navigation
+    // ONE-TIME: Smart Sync for Month Navigation
     useEffect(() => {
-        if (!sessionUser || !ensurePeriodLoaded || isDataLoading) return;
-        
-        // Check if we already tried this date recently (deduplication)
-        const dateKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
-        const lastKey = lastAttemptedDate.current;
-        
-        if (lastKey === currentDate.getTime()) return;
-        lastAttemptedDate.current = currentDate.getTime();
+        if (sessionUser && ensurePeriodLoaded) {
+            // Check if we already tried this date recently (deduplication)
+            const dateKey = currentDate.getTime();
+            if (lastAttemptedDate.current === dateKey) return;
 
-        // Carregar período com pequeno delay para evitar múltiplas chamadas
-        const timer = setTimeout(() => {
-            ensurePeriodLoaded(currentDate);
-        }, 100);
-        
-        return () => clearTimeout(timer);
-    }, [currentDate, sessionUser, isDataLoading]); // Removido ensurePeriodLoaded das deps para evitar loop
+            lastAttemptedDate.current = dateKey;
+
+            const timer = setTimeout(() => {
+                ensurePeriodLoaded(currentDate);
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [currentDate, sessionUser, ensurePeriodLoaded]);
 
     // Helper Functions & Memos
     const handleViewChange = (view: View) => startTransition(() => setActiveView(view));
@@ -187,7 +171,7 @@ const App = () => {
     // Projeção de saldo: Usa saldo atual do banco + transações futuras do mês
     const projectedAccounts = useMemo(() => {
         if (!accounts || !transactions) return [];
-        
+
         const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
         const now = new Date();
         now.setHours(0, 0, 0, 0);
@@ -195,7 +179,7 @@ const App = () => {
         return accounts.map(acc => {
             // Saldo atual vem do banco (já calculado pelo trigger)
             const currentBalance = acc.balance || 0;
-            
+
             // Calcular impacto de transações futuras (ainda não refletidas no saldo do banco)
             const futureTxs = transactions.filter(t =>
                 t.accountId === acc.id &&
@@ -221,20 +205,8 @@ const App = () => {
         if (!transactions || !accounts) return [];
         const notifs: Array<{ id: string; type: string; title?: string; description: string; message?: string; date?: string }> = [];
 
-        // 1. Smart Notifications (baseadas nas configurações do usuário)
-        // Filtrar notificações já dispensadas
-        const filteredSmartNotifs = smartNotifications
-            .filter(sn => !dismissedNotifications.includes(sn.id))
-            .map(sn => ({
-                id: sn.id,
-                title: sn.title,
-                description: sn.description,
-                type: sn.type,
-                date: sn.date
-            }));
-        notifs.push(...filteredSmartNotifs);
+        // Removed pendingSharedRequests logic
 
-        // 2. System Notifications (do banco de dados)
         if (systemNotifications) {
             const mapped = systemNotifications
                 .filter(sn => !sn.is_read) // ONLY SHOW UNREAD
@@ -248,7 +220,7 @@ const App = () => {
             notifs.push(...mapped);
         }
         return notifs;
-    }, [transactions, accounts, dismissedNotifications, systemNotifications, smartNotifications]);
+    }, [transactions, accounts, dismissedNotifications, systemNotifications]);
 
     // Re-implementing critical handlers
     const handleLogout = useCallback(async () => {
@@ -258,16 +230,6 @@ const App = () => {
         window.location.reload();
     }, [handlers]);
 
-    const handleInviteMember = useCallback(async (memberId: string, email: string) => {
-        const { data, error } = await supabase.rpc('invite_user_to_family', { member_id: memberId, email_to_invite: email });
-        if (error) {
-            addToast('Erro ao convidar: ' + error.message, 'error');
-        } else {
-            if (data?.success) addToast(data.message, 'success');
-            else addToast('Falha: ' + (data?.message || 'Erro desconhecido'), 'error');
-        }
-    }, [addToast]);
-
     const handleNotificationPay = useCallback(() => { }, []);
     const handleNotificationClick = useCallback(async (id: string) => {
         const sysNotif = systemNotifications?.find(n => n.id === id);
@@ -276,7 +238,10 @@ const App = () => {
             // 1. Mark as Read
             await markAsRead(id);
 
-            // 2. Perform Navigation Action
+            // 2. Refresh data to ensure destination view has latest info
+            handlers.refresh();
+
+            // 3. Perform Navigation Action
             const { type, data } = sysNotif;
 
             if (type === 'INVITE') {
@@ -313,8 +278,16 @@ const App = () => {
             case View.BUDGETS: return <Budgets budgets={budgets} transactions={transactions} onAddBudget={handlers.handleAddBudget} onUpdateBudget={handlers.handleUpdateBudget} onDeleteBudget={handlers.handleDeleteBudget} currentDate={currentDate} />;
             case View.GOALS: return <Goals goals={goals} accounts={calculatedAccounts} onAddGoal={handlers.handleAddGoal} onUpdateGoal={handlers.handleUpdateGoal} onDeleteGoal={handlers.handleDeleteGoal} onAddTransaction={handlers.handleAddTransaction} />;
             case View.TRIPS: return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onNavigateToShared={() => handleViewChange(View.SHARED)} onEditTransaction={(id) => { setEditTxId(id); setIsTxModalOpen(true); }} currentUserId={sessionUser?.id} />;
-            case View.SHARED: return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onAddTransactions={handlers.handleAddTransactions} onUpdateTransaction={handlers.handleUpdateTransaction} onBatchUpdateTransactions={handlers.handleBatchUpdateTransactions} onDeleteTransaction={handlers.handleDeleteTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} currentUserName={sessionUser?.name || 'Eu'} currentUserId={sessionUser?.id} />;
-            case View.FAMILY: return <Family members={familyMembers} transactions={transactions} onAddMember={(m) => handlers.handleAddMember(m as Omit<import('./types').FamilyMember, 'id'>)} onUpdateMember={(m) => handlers.handleUpdateMember(m as import('./types').FamilyMember)} onDeleteMember={handlers.handleDeleteMember} onInviteMember={handleInviteMember} />;
+            case View.SHARED: return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onAddTransactions={handlers.handleAddTransactions} onUpdateTransaction={handlers.handleUpdateTransaction} onBatchUpdateTransactions={handlers.handleBatchUpdateTransactions} onDeleteTransaction={handlers.handleDeleteTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} currentUserName={sessionUser?.name || 'Eu'} />;
+            case View.FAMILY: return <Family members={familyMembers} transactions={transactions} onAddMember={(m) => handlers.handleAddMember(m as Omit<import('./types').FamilyMember, 'id'>)} onUpdateMember={(m) => handlers.handleUpdateMember(m as import('./types').FamilyMember)} onDeleteMember={handlers.handleDeleteMember} onInviteMember={async (memberId, email) => {
+                const { data, error } = await supabase.rpc('invite_user_to_family', { member_id: memberId, email_to_invite: email });
+                if (error) {
+                    alert('Erro ao convidar: ' + error.message);
+                } else {
+                    if (data?.success) alert(data.message);
+                    else alert('Falha: ' + (data?.message || 'Erro desconhecido'));
+                }
+            }} />;
             case View.INVESTMENTS: return <Investments accounts={calculatedAccounts} transactions={transactions} assets={assets} onAddAsset={handlers.handleAddAsset} onUpdateAsset={handlers.handleUpdateAsset} onDeleteAsset={handlers.handleDeleteAsset} onAddTransaction={handlers.handleAddTransaction} onAddAccount={handlers.handleAddAccount} currentDate={currentDate} showValues={showValues} />;
             case View.SETTINGS: return <Settings customCategories={customCategories} onAddCategory={handlers.handleAddCategory} onDeleteCategory={handlers.handleDeleteCategory} accounts={accounts} transactions={transactions} trips={trips} budgets={budgets} goals={goals} familyMembers={familyMembers} assets={assets} snapshots={snapshots} onUpdateAccount={handlers.handleUpdateAccount} onDeleteAccount={handlers.handleDeleteAccount} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onFactoryReset={handlers.handleFactoryReset} currentUserName={sessionUser?.name} currentUserEmail={sessionUser?.email} />;
             default: return <Dashboard accounts={calculatedAccounts} transactions={transactions} trips={trips} goals={goals} currentDate={currentDate} showValues={showValues} />;
@@ -335,17 +308,6 @@ const App = () => {
         return <Auth onLogin={() => { }} />;
     }
 
-    // CORREÇÃO: Bloquear renderização até dados estarem prontos
-    // Isso evita o flash de R$ 0,00 antes dos dados carregarem
-    if (isDataLoading) {
-        return (
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center">
-                <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
-                <p className="text-slate-600 dark:text-slate-400 font-medium">Carregando dados...</p>
-            </div>
-        );
-    }
-
     // 3. Main Render - Only reached if !loading and user exists
     return (
         <MainLayout
@@ -360,22 +322,14 @@ const App = () => {
             onDateChange={(e) => {
                 if (e.target.value) {
                     const [year, month] = e.target.value.split('-');
-                    // Usar startTransition para não bloquear UI
-                    startTransition(() => {
-                        setCurrentDate(new Date(parseInt(year), parseInt(month) - 1, 1));
-                    });
+                    setCurrentDate(new Date(parseInt(year), parseInt(month) - 1, 1));
                 }
             }}
             onMonthChange={(dir) => {
-                // Usar startTransition para transição suave sem flicker
-                startTransition(() => {
-                    setCurrentDate(prev => {
-                        const d = new Date(prev);
-                        d.setDate(1);
-                        d.setMonth(d.getMonth() + (dir === 'next' ? 1 : -1));
-                        return d;
-                    });
-                });
+                const d = new Date(currentDate);
+                d.setDate(1);
+                d.setMonth(d.getMonth() + (dir === 'next' ? 1 : -1));
+                setCurrentDate(d);
             }}
             notifications={activeNotifications}
             onNotificationClick={handleNotificationClick}

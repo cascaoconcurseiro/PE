@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card } from '../ui/Card';
 import { Globe, Calendar, Clock, DollarSign } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 import { useToast } from '../ui/Toast';
-import { ConfirmModal } from '../ui/ConfirmModal';
 
 export const PreferenceSettings: React.FC = () => {
     const { settings, updatePreferences } = useSettings();
     const { addToast } = useToast();
-    const [clearCacheConfirm, setClearCacheConfirm] = useState(false);
 
     const handleLanguageChange = async (language: 'pt-BR' | 'en-US' | 'es-ES') => {
         await updatePreferences({ language });
@@ -183,33 +181,28 @@ export const PreferenceSettings: React.FC = () => {
                     Versão Atual: <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">{new Date().toLocaleDateString()} (Build {Math.floor(Date.now() / 1000)})</span>
                 </p>
                 <button
-                    onClick={() => setClearCacheConfirm(true)}
+                    onClick={async () => {
+                        if (confirm('Isso irá recarregar a aplicação e limpar o cache do navegador. Deseja continuar?')) {
+                            // Unregister Service Workers
+                            if ('serviceWorker' in navigator) {
+                                const registrations = await navigator.serviceWorker.getRegistrations();
+                                for (const registration of registrations) {
+                                    await registration.unregister();
+                                }
+                            }
+                            // Clear Local/Session Storage (Optional, strictly we only need to clear SW and HTTP cache)
+                            // localStorage.clear(); // CAREFUL: might wipe settings not synced.
+                            // sessionStorage.clear();
+
+                            // Force Reload ignoring cache
+                            window.location.reload();
+                        }
+                    }}
                     className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all"
                 >
                     Forçar Atualização (Limpar Cache)
                 </button>
             </Card>
-
-            <ConfirmModal
-                isOpen={clearCacheConfirm}
-                onCancel={() => setClearCacheConfirm(false)}
-                onConfirm={async () => {
-                    setClearCacheConfirm(false);
-                    // Unregister Service Workers
-                    if ('serviceWorker' in navigator) {
-                        const registrations = await navigator.serviceWorker.getRegistrations();
-                        for (const registration of registrations) {
-                            await registration.unregister();
-                        }
-                    }
-                    // Force Reload ignoring cache
-                    window.location.reload();
-                }}
-                title="Limpar Cache"
-                message="Isso irá recarregar a aplicação e limpar o cache do navegador. Deseja continuar?"
-                confirmLabel="Limpar e Recarregar"
-                isDanger
-            />
         </div>
     );
 };

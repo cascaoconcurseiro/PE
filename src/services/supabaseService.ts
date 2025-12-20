@@ -171,22 +171,17 @@ export const supabaseService = {
         return mapToApp(data) as T[];
     },
 
-    // NEW: Time-Windowed Fetching (Scalability) - OTIMIZADO
+    // NEW: Time-Windowed Fetching (Scalability)
     async getTransactionsByRange(startDate: string, endDate: string) {
         const userId = await getUserId();
 
-        // Selecionar apenas campos necessários para melhor performance
+        // Ensure inclusive range (00:00:00 to 23:59:59) if passed as date strings
+        // But usually input is YYYY-MM-DD. Supabase date column is DATE or TIMESTAMP?
+        // Schema says DATE. So strict comparison works.
+
         const { data, error } = await supabase
             .from('transactions')
-            .select(`
-                id, description, amount, type, category, date,
-                account_id, destination_account_id, trip_id,
-                is_recurring, frequency, is_installment, current_installment, total_installments, series_id,
-                enable_notification, notification_date, observation,
-                is_shared, shared_with, payer_id, is_settled, settled_at,
-                is_refund, destination_amount, exchange_rate, domain,
-                created_at, updated_at, deleted
-            `)
+            .select('*')
             .eq('user_id', userId)
             .eq('deleted', false)
             .gte('date', startDate)
@@ -219,28 +214,28 @@ export const supabaseService = {
 
     // NEW (Phase 8): RPC-Based Transaction Creation
     async createTransactionWithValidation(transaction: Partial<Transaction>) {
+        const userId = await getUserId();
+
         // Map Application Object to RPC Parameters
-        // NOTA: A função usa auth.uid() internamente, não precisa passar p_user_id
         const params = {
             p_description: transaction.description,
             p_amount: transaction.amount,
             p_type: transaction.type,
             p_category: transaction.category,
             p_date: transaction.date,
-            p_account_id: transaction.accountId || null,
+            p_account_id: transaction.accountId,
             p_destination_account_id: transaction.destinationAccountId || null,
             p_trip_id: transaction.tripId || null,
             p_is_shared: transaction.isShared || false,
             p_domain: transaction.domain || null,
+            // Extended Fields (Phase 8 Fix)
             p_is_installment: transaction.isInstallment || false,
             p_current_installment: transaction.currentInstallment || null,
             p_total_installments: transaction.totalInstallments || null,
-            p_series_id: transaction.seriesId || null,  // TEXT no banco
+            p_series_id: transaction.seriesId || null,
             p_is_recurring: transaction.isRecurring || false,
             p_frequency: transaction.frequency || null,
-            p_shared_with: transaction.sharedWith || [],
-            p_payer_id: transaction.payerId || null,  // TEXT no banco, 'me' vira null
-            p_currency: transaction.currency || 'BRL'
+            p_shared_with: transaction.sharedWith || [] // Enabling Mirroring Data
         };
 
         const { data, error } = await supabase.rpc('create_transaction', params);
@@ -268,7 +263,7 @@ export const supabaseService = {
 
     // --- RPC HELPERS ---
 
-    async createTripRPC(trip: Partial<Trip> & { description?: string; status?: string }) {
+    async createTripRPC(trip: Partial<Trip>) {
         const params = {
             p_name: trip.name,
             p_description: trip.description || '',
@@ -286,7 +281,7 @@ export const supabaseService = {
         return data;
     },
 
-    async updateTripRPC(trip: Partial<Trip> & { description?: string; status?: string }) {
+    async updateTripRPC(trip: Partial<Trip>) {
         const params = {
             p_id: trip.id,
             p_name: trip.name,
@@ -294,7 +289,7 @@ export const supabaseService = {
             p_start_date: trip.startDate,
             p_end_date: trip.endDate,
             p_currency: trip.currency,
-            p_status: trip.status || 'PLANNED',
+            p_status: trip.status,
             p_participants: trip.participants || []
         };
         const { error } = await supabase.rpc('update_trip', params);
@@ -333,19 +328,19 @@ export const supabaseService = {
         }
     },
 
-    async update<T extends { id: string }>(table: string, item: T) {
+    async update(table: string, item: Record<string, unknown> & { id: string }) {
         const userId = await getUserId();
 
         // 🚀 ROUTING: Trips -> RPC
         if (table === 'trips') {
-            return this.updateTripRPC(item as unknown as Partial<Trip>);
+            return this.updateTripRPC(item);
         }
         // 🚀 ROUTING: Transactions -> RPC
         if (table === 'transactions' && item.id) {
-            return this.updateTransactionRPC(item as unknown as Partial<Transaction>);
+            return this.updateTransactionRPC(item);
         }
 
-        const dbItem = mapToDB(item as unknown as Record<string, unknown>, userId);
+        const dbItem = mapToDB(item, userId);
         // Don't update ID or UserID
         delete dbItem.id;
         delete dbItem.user_id;
@@ -513,24 +508,7 @@ export const supabaseService = {
         }
         return data || [];
     },
-    
-    // OTIMIZADO: Query específica para contas com campos necessários
-    async getAccounts(): Promise<Account[]> {
-        const userId = await getUserId();
-        const { data, error } = await supabase
-            .from('accounts')
-            .select(`
-                id, name, type, currency, balance, initial_balance,
-                credit_limit, closing_day, due_day, is_international,
-                created_at, updated_at, deleted
-            `)
-            .eq('user_id', userId)
-            .eq('deleted', false)
-            .order('name', { ascending: true });
-            
-        if (error) throw error;
-        return mapToApp<Account[]>(data);
-    },
+    async getAccounts(): Promise<Account[]> { return this.getAll<Account>('accounts'); },
     async getTrips(): Promise<Trip[]> {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return [];
@@ -578,32 +556,22 @@ export const supabaseService = {
     },
 
     // DANGER: WIPE ALL DATA (SAFE MODE)
-    // SMART FACTORY RESET V2
+    // SMART FACTORY RESET
     async performSmartReset(unlinkFamily: boolean = false) {
         const userId = await getUserId();
         logger.warn(`🚨 INICIANDO SMART RESET (Unlink Family: ${unlinkFamily}) PARA USUÁRIO: ${userId}`);
 
-        // Call the new Logic-Aware RPC with explicit user_id
-        const { data, error } = await supabase.rpc('fn_smart_factory_reset', {
-            p_user_id: userId,
+        // Call the new Logic-Aware RPC
+        const { error } = await supabase.rpc('fn_smart_factory_reset', {
             p_unlink_family: unlinkFamily
         });
 
         if (error) {
-            logger.error('Erro no factory reset (RPC):', error);
+            // Error logged via errorHandler
             throw error;
         }
 
-        // Check response - now includes step info for debugging
-        if (data && !data.success) {
-            const errorMsg = data.step 
-                ? `Factory reset falhou no passo: ${data.step} - ${data.error} (${data.detail})`
-                : data.error || 'Factory reset falhou';
-            logger.error('Factory reset falhou:', { step: data.step, error: data.error, detail: data.detail });
-            throw new Error(errorMsg);
-        }
-
-        logger.info('SMART RESET CONCLUÍDO:', data);
+        logger.info('SMART RESET CONCLUÍDO COM SUCESSO');
     },
 
     // User Settings
@@ -680,71 +648,5 @@ export const supabaseService = {
             return [];
         }
         return data;
-    },
-
-    // ========================================
-    // ORÇAMENTO PESSOAL POR VIAGEM
-    // ========================================
-    
-    async getMyTripBudget(tripId: string): Promise<number> {
-        const { data, error } = await supabase.rpc('get_my_trip_budget', {
-            p_trip_id: tripId
-        });
-
-        if (error) {
-            logger.error('Erro ao buscar orçamento da viagem', error);
-            return 0;
-        }
-        return data || 0;
-    },
-
-    async setMyTripBudget(tripId: string, budget: number): Promise<boolean> {
-        const { data, error } = await supabase.rpc('set_trip_budget', {
-            p_trip_id: tripId,
-            p_budget: budget
-        });
-
-        if (error) {
-            logger.error('Erro ao salvar orçamento da viagem', error);
-            throw error;
-        }
-        return true;
-    },
-
-    // ========================================
-    // TRANSAÇÕES COM VALIDAÇÃO DE OWNERSHIP
-    // ========================================
-    
-    async updateTransactionSafe(transaction: Partial<Transaction>): Promise<boolean> {
-        const { data, error } = await supabase.rpc('update_transaction_safe', {
-            p_id: transaction.id,
-            p_description: transaction.description || null,
-            p_amount: transaction.amount || null,
-            p_type: transaction.type || null,
-            p_category: transaction.category || null,
-            p_date: transaction.date || null,
-            p_account_id: transaction.accountId || null,
-            p_is_settled: transaction.isSettled ?? null,
-            p_settled_at: transaction.settledAt || null,
-            p_shared_with: transaction.sharedWith || null
-        });
-
-        if (error) {
-            logger.error('Erro ao atualizar transação', error);
-            throw error;
-        }
-        return true;
-    },
-
-    async deleteTransactionSafe(id: string): Promise<boolean> {
-        const { data, error } = await supabase.rpc('delete_transaction_safe', {
-            p_id: id
-        });
-
-        if (error) {
-            logger.error('Erro ao excluir transação', error);
-            throw error;
-        }
-        return true;
     }
 };

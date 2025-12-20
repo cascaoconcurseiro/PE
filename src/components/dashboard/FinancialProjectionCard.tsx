@@ -63,7 +63,6 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                 {/* Header com Resultado do Mês */}
                 <div className="mb-4 sm:mb-6">
                     <div className="flex items-center gap-2 mb-1.5 sm:mb-2 text-indigo-300">
-                        <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">{resultLabel}</span>
                     </div>
                     <div className="mb-1">
@@ -81,7 +80,6 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                     {/* Total a Receber */}
                     <div className="bg-emerald-500/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-emerald-500/30">
                         <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                            <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300" />
                             <span className="text-[10px] sm:text-xs font-semibold text-emerald-200 uppercase">Receitas</span>
                         </div>
                         <div className="text-lg sm:text-2xl font-bold text-emerald-300 mb-2 sm:mb-3">
@@ -89,15 +87,11 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                         </div>
                         <div className="space-y-1 text-[10px] sm:text-xs">
                             <div className="flex justify-between text-emerald-200/80">
-                                <span className="flex items-center gap-1">
-                                    <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> <span className="hidden xs:inline">Recebido</span><span className="xs:hidden">✓</span>
-                                </span>
+                                <span className="font-medium text-[9px] sm:text-xs">Recebido</span>
                                 <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(realizedIncome)}</PrivacyBlur></span>
                             </div>
                             <div className="flex justify-between text-emerald-200/80">
-                                <span className="flex items-center gap-1">
-                                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> <span className="hidden xs:inline">Pendente</span><span className="xs:hidden">⏱</span>
-                                </span>
+                                <span className="font-medium text-[9px] sm:text-xs">Pendente</span>
                                 <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(pendingIncome)}</PrivacyBlur></span>
                             </div>
                         </div>
@@ -106,7 +100,6 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                     {/* Total a Pagar */}
                     <div className="bg-red-500/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-red-500/30">
                         <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                            <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-300" />
                             <span className="text-[10px] sm:text-xs font-semibold text-red-200 uppercase">Despesas</span>
                         </div>
                         <div className="text-lg sm:text-2xl font-bold text-red-300 mb-2 sm:mb-3">
@@ -114,15 +107,11 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
                         </div>
                         <div className="space-y-1 text-[10px] sm:text-xs">
                             <div className="flex justify-between text-red-200/80">
-                                <span className="flex items-center gap-1">
-                                    <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> <span className="hidden xs:inline">Pago</span><span className="xs:hidden">✓</span>
-                                </span>
+                                <span className="font-medium text-[9px] sm:text-xs">Pago</span>
                                 <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(realizedExpenses)}</PrivacyBlur></span>
                             </div>
                             <div className="flex justify-between text-red-200/80">
-                                <span className="flex items-center gap-1">
-                                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> <span className="hidden xs:inline">Pendente</span><span className="xs:hidden">⏱</span>
-                                </span>
+                                <span className="font-medium text-[9px] sm:text-xs">Pendente</span>
                                 <span><PrivacyBlur showValues={showValues} darkBg={true}>{formatCurrency(pendingExpenses)}</PrivacyBlur></span>
                             </div>
                         </div>

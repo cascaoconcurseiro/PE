@@ -5,8 +5,7 @@ import { logger } from '../services/logger';
 // If a new deployment happens, old chunks (filename hashes) disappear.
 // This wrapper catches the error and reloads the page to fetch the new index.html.
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const lazyImport = <T extends ComponentType<any>>(
+export const lazyImport = <T extends ComponentType<unknown>>(
     importFunction: () => Promise<{ default: T }>
 ) => {
     return lazy(async () => {

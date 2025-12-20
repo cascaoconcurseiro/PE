@@ -21,7 +21,6 @@ interface SharedMemberDetailProps {
     showValues: boolean;
     currency: string;
     tripName?: string;
-    currentUserId?: string; // ID do usuário logado para verificar ownership
 
     // Actions
     onSettle: (type: 'PAY' | 'RECEIVE', amount: number) => void;
@@ -35,7 +34,7 @@ interface SharedMemberDetailProps {
 }
 
 export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
-    member, items, currentDate, showValues, currency, tripName, currentUserId,
+    member, items, currentDate, showValues, currency, tripName,
     onSettle, onBulkSettle, allowIndividualSettlement, onImport, onEditTransaction, onDeleteTransaction, onBulkDelete, onUndoSettlement
 }) => {
     const { addToast } = useToast();
@@ -72,58 +71,26 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
     }, [items]);
 
     const handleToggleSelect = (id: string) => {
-        const item = items.find(i => i.originalTxId === id);
-        
-        // Se está tentando selecionar (não desmarcar) um item que não é dele
-        if (item && !selectedItems.has(id) && item.creatorUserId && item.creatorUserId !== currentUserId) {
-            addToast('Você não pode excluir este item pois foi criado por outra pessoa.', 'warning');
-            return;
-        }
-        
         const newSet = new Set(selectedItems);
         if (newSet.has(id)) newSet.delete(id);
         else newSet.add(id);
         setSelectedItems(newSet);
     };
 
-    // Filtrar apenas itens que o usuário atual pode excluir (criou)
-    const deletableItems = items.filter(i => !i.creatorUserId || i.creatorUserId === currentUserId);
-
     const handleSelectAll = () => {
-        if (selectedItems.size === deletableItems.length) {
+        if (selectedItems.size === items.length) {
             setSelectedItems(new Set());
         } else {
-            // Só selecionar itens que o usuário pode excluir
-            setSelectedItems(new Set(deletableItems.map(i => i.originalTxId)));
+            setSelectedItems(new Set(items.map(i => i.originalTxId)));
         }
     };
 
     const handleBulkDelete = () => {
-        if (!onBulkDelete) return;
-        
-        // Verificar se algum item selecionado não pertence ao usuário
-        const selectedInvoiceItems = items.filter(i => selectedItems.has(i.originalTxId));
-        const notOwnedItems = selectedInvoiceItems.filter(i => i.creatorUserId && i.creatorUserId !== currentUserId);
-        
-        if (notOwnedItems.length > 0) {
-            addToast(`${notOwnedItems.length} item(s) não pode(m) ser excluído(s) pois foi(ram) criado(s) por outra pessoa.`, 'error');
-            // Remover itens não permitidos da seleção
-            const allowedIds = selectedInvoiceItems
-                .filter(i => !i.creatorUserId || i.creatorUserId === currentUserId)
-                .map(i => i.originalTxId);
-            
-            if (allowedIds.length === 0) {
-                return;
-            }
-            
-            // Excluir apenas os permitidos
-            onBulkDelete(allowedIds);
-        } else {
+        if (onBulkDelete) {
             onBulkDelete(Array.from(selectedItems));
+            setIsSelectionMode(false);
+            setSelectedItems(new Set());
         }
-        
-        setIsSelectionMode(false);
-        setSelectedItems(new Set());
     };
 
     const handleExport = (format: 'CSV' | 'PDF') => {
@@ -142,7 +109,7 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
             exportToCSV(data, headers, `Fatura_${member.name}_${currentDate.getMonth() + 1}_${currentDate.getFullYear()}`);
         } else {
             // printAccountStatement expects Account + Transactions.
-            printAccountStatement({ ...member, name: member.name, type: 'SHARED', currency } as any,
+            printAccountStatement({ ...member, name: member.name, type: 'OTHER', currency } as any,
                 items.map(i => ({
                     id: i.originalTxId,
                     date: i.date,
@@ -445,30 +412,26 @@ export const SharedMemberDetail: React.FC<SharedMemberDetailProps> = ({
                                                                             )}
                                                                         </>
                                                                     ) : (
-                                                                        // Só mostrar botões de editar/excluir se o usuário atual é o criador
-                                                                        // Se creatorUserId não existe, assume que é do usuário atual (compatibilidade)
-                                                                        (!item.creatorUserId || item.creatorUserId === currentUserId) ? (
-                                                                            <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    variant="ghost"
-                                                                                    onClick={(e) => { e.stopPropagation(); onEditTransaction(item.originalTxId); }}
-                                                                                    className="h-9 w-9 p-0 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800/50"
-                                                                                    title="Editar"
-                                                                                >
-                                                                                    <Edit2 className="w-4 h-4" />
-                                                                                </Button>
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    variant="ghost"
-                                                                                    onClick={(e) => { e.stopPropagation(); onDeleteTransaction(item.originalTxId); }}
-                                                                                    className="h-9 w-9 p-0 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/50"
-                                                                                    title="Excluir"
-                                                                                >
-                                                                                    <Trash2 className="w-4 h-4" />
-                                                                                </Button>
-                                                                            </div>
-                                                                        ) : null
+                                                                        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="ghost"
+                                                                                onClick={(e) => { e.stopPropagation(); onEditTransaction(item.originalTxId); }}
+                                                                                className="h-9 w-9 p-0 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800/50"
+                                                                                title="Editar"
+                                                                            >
+                                                                                <Edit2 className="w-4 h-4" />
+                                                                            </Button>
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="ghost"
+                                                                                onClick={(e) => { e.stopPropagation(); onDeleteTransaction(item.originalTxId); }}
+                                                                                className="h-9 w-9 p-0 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/50"
+                                                                                title="Excluir"
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </Button>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             )}

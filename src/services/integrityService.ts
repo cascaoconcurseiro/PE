@@ -8,8 +8,7 @@
 import { supabaseService } from './supabaseService';
 import { supabase } from '../integrations/supabase/client';
 import { FinancialPrecision } from './financialPrecision';
-import { Transaction, TransactionType } from '../types';
-import { isCreditCard } from '../utils/accountTypeUtils';
+import { Transaction, AccountType } from '../types';
 
 export interface IntegrityIssue {
   type: string;
@@ -66,9 +65,8 @@ export class IntegrityService {
       }
 
       // Verificar saldos negativos em contas que não permitem
-      // Usando utilitário centralizado para comparação robusta de tipos
       const invalidNegativeBalances = accounts.filter(a => 
-        !isCreditCard(a.type) && 
+        a.type !== AccountType.CREDIT_CARD && 
         a.balance < 0
       );
       if (invalidNegativeBalances.length > 0) {
@@ -82,7 +80,7 @@ export class IntegrityService {
 
       // Verificar limites de cartão de crédito
       const creditCardsWithoutLimit = accounts.filter(a => 
-        isCreditCard(a.type) && 
+        a.type === AccountType.CREDIT_CARD && 
         (!a.limit || a.limit <= 0)
       );
       if (creditCardsWithoutLimit.length > 0) {
@@ -114,13 +112,11 @@ export class IntegrityService {
     try {
       const transactions = await supabaseService.getAll<Transaction>('transactions');
 
-      // Verificar transações sem conta (exceto compartilhadas pendentes)
+      // Verificar transações sem conta
       const transactionsWithoutAccount = transactions.filter(t => 
         !t.deleted && 
         !t.accountId && 
-        t.type !== TransactionType.TRANSFER &&
-        !t.isShared && // Compartilhadas podem não ter conta inicialmente
-        (!t.payerId || t.payerId === 'me') // Dívidas de outros não precisam de conta
+        t.type !== 'TRANSFERÊNCIA' // Transferências podem não ter conta de origem em alguns casos
       );
       if (transactionsWithoutAccount.length > 0) {
         issues.push({
@@ -134,7 +130,7 @@ export class IntegrityService {
       // Verificar transferências sem destino
       const transfersWithoutDestination = transactions.filter(t => 
         !t.deleted && 
-        t.type === TransactionType.TRANSFER && 
+        t.type === 'TRANSFERÊNCIA' && 
         !t.destinationAccountId
       );
       if (transfersWithoutDestination.length > 0) {
@@ -163,7 +159,7 @@ export class IntegrityService {
       // Verificar transferências circulares
       const circularTransfers = transactions.filter(t => 
         !t.deleted && 
-        t.type === TransactionType.TRANSFER && 
+        t.type === 'TRANSFERÊNCIA' && 
         t.accountId === t.destinationAccountId
       );
       if (circularTransfers.length > 0) {

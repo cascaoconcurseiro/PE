@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Transaction, TransactionType, Category, Account, Trip, TransactionSplit, Frequency, AccountType } from '../types';
 
 interface UseTransactionFormProps {
@@ -20,28 +20,12 @@ export const useTransactionForm = ({
 }: UseTransactionFormProps) => {
     const getDefaultAccount = () => {
         if (initialData) return initialData.accountId || '';
-        
-        // Filtrar contas BRL primeiro (prioridade para contas nacionais)
-        const brlAccounts = accounts.filter(a => !a.currency || a.currency === 'BRL');
-        
         if (formMode === TransactionType.INCOME || formMode === TransactionType.TRANSFER) {
-            // Para receitas/transferências, preferir conta corrente BRL
-            const liquid = brlAccounts.find(a => a.type !== AccountType.CREDIT_CARD);
-            if (liquid) return liquid.id;
-            // Fallback: qualquer conta não-cartão
-            const anyLiquid = accounts.find(a => a.type !== AccountType.CREDIT_CARD);
-            return anyLiquid ? anyLiquid.id : '';
+            const liquid = accounts.find(a => a.type !== AccountType.CREDIT_CARD);
+            return liquid ? liquid.id : '';
         }
-        
-        // Para despesas, preferir cartão de crédito ou conta corrente BRL
-        const prefer = brlAccounts.find(a => a.type === AccountType.CREDIT_CARD || a.type === AccountType.CHECKING);
-        if (prefer) return prefer.id;
-        
-        // Fallback: primeira conta BRL
-        if (brlAccounts.length > 0) return brlAccounts[0].id;
-        
-        // Último fallback: primeira conta disponível
-        return accounts[0]?.id || '';
+        const prefer = accounts.find(a => a.type === AccountType.CREDIT_CARD || a.type === AccountType.CHECKING);
+        return prefer ? prefer.id : accounts[0]?.id || '';
     };
 
     // Helper function to format date locally
@@ -205,8 +189,6 @@ export const useTransactionForm = ({
 
     const [duplicateWarning, setDuplicateWarning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showSeriesConfirm, setShowSeriesConfirm] = useState(false);
-    const [pendingSeriesUpdate, setPendingSeriesUpdate] = useState(false);
 
     // Reset warning when form changes
     useEffect(() => {
@@ -219,29 +201,10 @@ export const useTransactionForm = ({
 
         const newErrors: { [key: string]: string } = {};
 
-        // Validações padrão
+        // ... (standard validations)
         if (!activeAmount || activeAmount <= 0) newErrors.amount = 'Valor inválido';
         if (!description.trim()) newErrors.description = 'Descrição obrigatória';
-        if (!date) {
-            newErrors.date = 'Data obrigatória';
-        } else {
-            // ✅ Validar se a data é válida
-            const txDate = new Date(date);
-            if (isNaN(txDate.getTime())) {
-                newErrors.date = 'Data inválida';
-            } else {
-                // Validar se a data faz sentido (ex: 2024-02-30 seria inválida)
-                const [year, month, day] = date.split('-').map(Number);
-                const reconstructedDate = new Date(year, month - 1, day);
-                if (
-                    reconstructedDate.getFullYear() !== year ||
-                    reconstructedDate.getMonth() !== month - 1 ||
-                    reconstructedDate.getDate() !== day
-                ) {
-                    newErrors.date = 'Data inválida (dia não existe no mês)';
-                }
-            }
-        }
+        if (!date) newErrors.date = 'Data obrigatória';
         if (!accountId && payerId === 'me' && !isShared) newErrors.account = 'Conta obrigatória';
 
         // STRICT TRANSFER VALIDATION
@@ -269,13 +232,9 @@ export const useTransactionForm = ({
         // STRICT SPLIT VALIDATION
         if (splits.length > 0) {
             const totalSplitAmount = splits.reduce((sum, s) => sum + s.assignedAmount, 0);
-            // Allow 0.01 margin for float errors (1 centavo)
-            if (totalSplitAmount > activeAmount + 0.01) {
+            // Allow 0.05 margin for float errors
+            if (totalSplitAmount > activeAmount + 0.05) {
                 newErrors.amount = `Erro: A soma das divisões (R$ ${totalSplitAmount.toFixed(2)}) excede o valor da transação!`;
-            }
-            // Também validar se a soma é muito menor que o valor (mais de 1 centavo de diferença)
-            if (totalSplitAmount < activeAmount - 0.01 && totalSplitAmount > 0) {
-                newErrors.amount = `Atenção: A soma das divisões (R$ ${totalSplitAmount.toFixed(2)}) é menor que o valor total. Verifique os valores.`;
             }
         }
 
@@ -289,7 +248,8 @@ export const useTransactionForm = ({
             } else {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
-            // Error is shown via the errors state object in the UI
+            // Explicitly warn user as requested
+            alert(`Não foi possível salvar a transação:\n\n${newErrors[firstErrorKey]}`);
             return;
         }
 
@@ -331,8 +291,9 @@ export const useTransactionForm = ({
 
             let updateFuture = false;
             if (initialData && (initialData.seriesId || initialData.isRecurring)) {
-                // Series update confirmation is handled via confirmSeriesUpdate state
-                updateFuture = pendingSeriesUpdate;
+                if (confirm(`Esta transação faz parte de uma série/recorrência.\n\nDeseja aplicar as alterações para TODAS as transações futuras desta série?`)) {
+                    updateFuture = true;
+                }
             }
 
             const data: Transaction = {
@@ -367,9 +328,6 @@ export const useTransactionForm = ({
         } catch (error) {
             const logger = (await import('../services/logger')).logger;
             logger.error('Error saving transaction', error);
-            // Mostrar erro no formulário
-            setErrors({ description: (error as Error).message || 'Erro ao salvar transação' });
-        } finally {
             setIsSubmitting(false);
         }
     };
@@ -414,10 +372,6 @@ export const useTransactionForm = ({
         handleSubmit,
         setManualExchangeRate, // Export setter
         duplicateWarning, // ✅ Export for UI Blinking Alert
-        isSubmitting, // ✅ Export isSubmitting
-        showSeriesConfirm,
-        setShowSeriesConfirm,
-        setPendingSeriesUpdate,
-        isSeriesTransaction: !!(initialData && (initialData.seriesId || initialData.isRecurring))
+        isSubmitting // ✅ Export isSubmitting
     };
 };

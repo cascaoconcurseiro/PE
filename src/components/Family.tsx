@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { FamilyMember, Transaction } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { EmailInput } from './ui/EmailInput';
 import { Plus, Users, User, Trash2, Mail, Pencil, X, Check, Loader2, UserCheck, UserX, AlertTriangle } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { FamilySummary } from './family/FamilySummary';
 import { ConfirmModal } from './ui/ConfirmModal';
-import { useToast } from './ui/Toast';
 
 interface FamilyProps {
     members: FamilyMember[];
@@ -19,7 +17,6 @@ interface FamilyProps {
 }
 
 export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAddMember, onUpdateMember, onDeleteMember, onInviteMember }) => {
-    const { addToast } = useToast();
     const [name, setName] = useState('');
     const [role, setRole] = useState('');
     const [email, setEmail] = useState('');
@@ -35,9 +32,6 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
     const [emailCheckStatus, setEmailCheckStatus] = useState<'IDLE' | 'FOUND' | 'NOT_FOUND'>('IDLE');
     const [lastCheckedEmail, setLastCheckedEmail] = useState('');
     const [foundUserId, setFoundUserId] = useState<string | null>(null);
-
-    // Invite Confirmation State
-    const [inviteConfirm, setInviteConfirm] = useState<{ isOpen: boolean; memberId: string; email: string }>({ isOpen: false, memberId: '', email: '' });
 
     const checkEmail = async (emailToCheck: string) => {
         const cleanEmail = emailToCheck.trim();
@@ -112,9 +106,10 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
                 }
 
                 if (inviteeId) {
-                    // Will show confirmation modal after member is saved
-                    const memberId = editingId || crypto.randomUUID();
-                    setInviteConfirm({ isOpen: true, memberId, email: currentEmail });
+                    const confirmInvite = window.confirm(`O usuário com e-mail ${currentEmail} foi encontrado no sistema.\n\nDeseja enviar uma solicitação para compartilhar todas as despesas vinculadas a este membro?`);
+                    if (confirmInvite) {
+                        shouldInvite = true;
+                    }
                 }
             }
 
@@ -138,6 +133,10 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
                 });
             }
 
+            if (shouldInvite && finalMemberId && currentEmail && onInviteMember) {
+                await onInviteMember(finalMemberId, currentEmail);
+            }
+
             // Reset form
             setName('');
             setRole('');
@@ -152,9 +151,9 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
             console.error("Error saving member:", error);
             // Handle unique violation (Postgres code 23505)
             if (error?.code === '23505' || error?.message?.includes('violates unique constraint') || error?.message?.includes('already exists')) {
-                addToast('Este usuário (e-mail) já está cadastrado na sua família.', 'error');
+                alert('Este usuário (e-mail) já está cadastrado na sua família.');
             } else {
-                addToast('Erro ao salvar membro. Tente novamente.', 'error');
+                alert('Erro ao salvar membro. Tente novamente.');
             }
         }
     };
@@ -233,24 +232,28 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
 
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Email (Para compartilhar despesas)</label>
-                                <EmailInput
-                                    value={email}
-                                    onChange={(val) => {
-                                        setEmail(val);
-                                        if (val !== lastCheckedEmail) setEmailCheckStatus('IDLE');
-                                    }}
-                                    onBlur={handleEmailBlur}
-                                    placeholder="email@exemplo.com"
-                                    showIcon={true}
-                                    inputClassName={`${emailCheckStatus === 'FOUND' ? 'border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500' : emailCheckStatus === 'NOT_FOUND' ? 'border-amber-300 focus:border-amber-400 focus:ring-amber-400' : ''}`}
-                                    rightElement={
-                                        <>
-                                            {isCheckingEmail && <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />}
-                                            {!isCheckingEmail && emailCheckStatus === 'FOUND' && <UserCheck className="w-4 h-4 text-emerald-600" />}
-                                            {!isCheckingEmail && emailCheckStatus === 'NOT_FOUND' && email && <UserX className="w-4 h-4 text-amber-500" />}
-                                        </>
-                                    }
-                                />
+                                <div className="relative group">
+                                    <div className={`absolute inset-0 rounded-xl transition-opacity opacity-0 group-focus-within:opacity-100 pointer-events-none ring-2 ${emailCheckStatus === 'FOUND' ? 'ring-emerald-500/20' : 'ring-blue-500/20'}`} />
+                                    <input
+                                        type="email"
+                                        className={`w-full pl-9 pr-9 px-3 py-2.5 bg-slate-50 dark:bg-slate-900/50 border rounded-xl outline-none text-slate-900 dark:text-white placeholder:text-slate-400 text-sm font-medium transition-all ${emailCheckStatus === 'FOUND' ? 'border-emerald-500 focus:border-emerald-500' : emailCheckStatus === 'NOT_FOUND' ? 'border-amber-300 focus:border-amber-400' : 'border-slate-200 dark:border-slate-700 focus:border-blue-500'}`}
+                                        value={email}
+                                        onChange={e => {
+                                            setEmail(e.target.value);
+                                            if (e.target.value !== lastCheckedEmail) setEmailCheckStatus('IDLE');
+                                        }}
+                                        onBlur={handleEmailBlur}
+                                        placeholder="email@exemplo.com"
+                                    />
+                                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+
+                                    {/* Status Indicator */}
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        {isCheckingEmail && <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />}
+                                        {!isCheckingEmail && emailCheckStatus === 'FOUND' && <UserCheck className="w-4 h-4 text-emerald-600" aria-label="Usuário encontrado" />}
+                                        {!isCheckingEmail && emailCheckStatus === 'NOT_FOUND' && email && <UserX className="w-4 h-4 text-amber-500" aria-label="Usuário não encontrado" />}
+                                    </div>
+                                </div>
                                 {/* Feedback Text */}
                                 {emailCheckStatus === 'FOUND' && !isCheckingEmail && (
                                     <p className="text-[10px] text-emerald-600 font-bold mt-1.5 px-1 flex items-center gap-1">
@@ -391,21 +394,6 @@ export const Family: React.FC<FamilyProps> = ({ members, transactions = [], onAd
                 message={`Tem certeza que deseja excluir ${memberToDelete?.name} da sua família?`}
                 confirmLabel="Excluir Membro"
                 isDanger
-            />
-
-            {/* Invite Confirmation Modal */}
-            <ConfirmModal
-                isOpen={inviteConfirm.isOpen}
-                onCancel={() => setInviteConfirm({ isOpen: false, memberId: '', email: '' })}
-                onConfirm={async () => {
-                    if (onInviteMember && inviteConfirm.memberId && inviteConfirm.email) {
-                        await onInviteMember(inviteConfirm.memberId, inviteConfirm.email);
-                    }
-                    setInviteConfirm({ isOpen: false, memberId: '', email: '' });
-                }}
-                title="Convidar Usuário"
-                message={`O usuário com e-mail ${inviteConfirm.email} foi encontrado no sistema.\n\nDeseja enviar uma solicitação para compartilhar todas as despesas vinculadas a este membro?`}
-                confirmLabel="Enviar Convite"
             />
         </div>
     );

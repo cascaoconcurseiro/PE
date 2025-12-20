@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
-import { Account, Transaction, TransactionType, AccountType, Trip } from '../types';
+import { useMemo, useState, useEffect } from 'react';
+import { Account, Transaction, TransactionType, AccountType, Category, Trip } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
 import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue, calculateTotalReceivables, calculateTotalPayables } from '../services/financialLogic';
 import { shouldShowTransaction } from '../utils/transactionFilters';
-import { isCreditCard } from '../utils/accountTypeUtils';
+import { isForeignTransaction } from '../utils/transactionUtils';
+import { supabaseService } from '../services/supabaseService';
 
 interface UseFinancialDashboardProps {
     accounts: Account[];
@@ -18,42 +19,41 @@ interface UseFinancialDashboardProps {
 export const useFinancialDashboard = ({
     accounts,
     transactions,
-    trips,
+    trips, // NEW
     projectedAccounts,
     currentDate,
     spendingView
 }: UseFinancialDashboardProps) => {
 
     const selectedYear = currentDate.getFullYear();
-    const selectedMonth = currentDate.getMonth();
-    
 
 
     // 0. GLOBAL FILTER: Dashboard is checking/local only.
-    // Filtrar transações nacionais (BRL)
-    const dashboardTransactions = useMemo(() => {
-        // Criar Set de IDs de trips estrangeiras para lookup O(1)
-        const foreignTripIds = new Set(
-            trips?.filter(tr => tr.currency && tr.currency !== 'BRL').map(tr => tr.id) || []
-        );
-        
-        // Criar Set de IDs de contas estrangeiras para lookup O(1)
-        const foreignAccountIds = new Set(
-            accounts.filter(a => a.currency && a.currency !== 'BRL').map(a => a.id)
-        );
-        
-        return transactions.filter(t => {
+    const dashboardTransactions = useMemo(() =>
+        transactions.filter(t => {
             if (t.deleted) return false;
-            if (t.tripId && foreignTripIds.has(t.tripId)) return false;
-            if (t.accountId && foreignAccountIds.has(t.accountId)) return false;
-            return true;
-        });
-    }, [transactions, accounts, trips]);
+            if (isForeignTransaction(t, accounts)) return false;
 
-    // Filtrar contas nacionais (BRL)
-    const dashboardAccounts = useMemo(() => {
-        return accounts.filter(a => !a.currency || a.currency === 'BRL');
-    }, [accounts]);
+            // STRICT TRIP CHECK: If tx belongs to a Foreign Trip, exclude it from BRL Dashboard
+            // (Even if tx itself has no currency set, the Context is Foreign)
+            if (t.tripId && trips) {
+                const trip = trips.find(tr => tr.id === t.tripId);
+                // If trip exists and is NOT BRL, exclude this transaction
+                if (trip && trip.currency && trip.currency !== 'BRL') return false;
+            }
+
+            // Redundant Safety Check
+            if (t.accountId) {
+                const acc = accounts.find(a => a.id === t.accountId);
+                if (acc && acc.currency && acc.currency !== 'BRL') return false;
+            }
+            return true;
+        }),
+        [transactions, accounts, trips]);
+
+    const dashboardAccounts = useMemo(() =>
+        accounts.filter(a => !a.currency || a.currency === 'BRL'),
+        [accounts]);
 
     // PREPARE PROJECTED ACCOUNTS
     const dashboardProjectedAccounts = useMemo(() =>
@@ -63,32 +63,16 @@ export const useFinancialDashboard = ({
 
 
     // 1. Calculate Projection
-    // IMPORTANTE: Passar TODAS as contas (incluindo cartões) para calcular fatura
-    const { 
-        currentBalance, 
-        projectedBalance, 
-        pendingIncome, 
-        pendingExpenses,
-        totalMonthIncome,
-        totalMonthExpenses,
-        realizedIncome,
-        realizedExpenses
-    } = useMemo(() => {
-        return calculateProjectedBalance(dashboardAccounts, dashboardTransactions, currentDate);
-    }, [dashboardAccounts, dashboardTransactions, currentDate]);
+    const { currentBalance, projectedBalance, pendingIncome, pendingExpenses } = useMemo(() =>
+        calculateProjectedBalance(dashboardProjectedAccounts, dashboardTransactions, currentDate),
+        [dashboardProjectedAccounts, dashboardTransactions, currentDate]);
 
-    // 2. Filter Transactions for Charts - OTIMIZADO
-    const monthlyTransactions = useMemo(() => {
-        // Pré-calcular range do mês para comparação rápida
-        const monthStart = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
-        const monthEnd = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-31`;
-        
-        return dashboardTransactions.filter(t => {
-            if (!shouldShowTransaction(t)) return false;
-            // Comparação de string é mais rápida que criar Date objects
-            return t.date >= monthStart && t.date <= monthEnd;
-        });
-    }, [dashboardTransactions, selectedYear, selectedMonth]);
+    // 2. Filter Transactions for Charts
+    const monthlyTransactions = useMemo(() =>
+        dashboardTransactions
+            .filter(shouldShowTransaction)
+            .filter(t => isSameMonth(t.date, currentDate)),
+        [dashboardTransactions, currentDate]);
 
     // 3. Realized Totals
     const monthlyIncome = useMemo(() => monthlyTransactions
@@ -126,7 +110,7 @@ export const useFinancialDashboard = ({
             // STRICT CURRENCY CHECK: Omit if not BRL (or empty/null which implies Default)
             if (curr.currency && curr.currency !== 'BRL') return acc;
 
-            if (isCreditCard(curr.type)) {
+            if (curr.type === AccountType.CREDIT_CARD) {
                 return acc - Math.abs(curr.balance);
             }
             return acc + curr.balance;
@@ -167,60 +151,106 @@ export const useFinancialDashboard = ({
         return cashBalance; // + receivables - payables;
     }, [dashboardAccounts, transactions, trips, dashboardTransactions, accounts]);
 
-    // Annual Cash Flow Data (OPTIMIZED - Single pass through transactions)
+    // Annual Cash Flow Data (LOCAL CALCULATION - Ensures consistency with Widgets)
     const cashFlowData = useMemo(() => {
-        // Pre-compute account map for O(1) lookups
-        const accountMap = new Map(accounts.map(a => [a.id, a]));
-        
-        // Initialize 12 months with pre-computed month names
-        const monthNames = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
-        const data = monthNames.map((month, i) => ({
-            date: new Date(selectedYear, i, 1),
-            month,
-            year: selectedYear,
-            monthIndex: i,
-            Receitas: 0,
-            Despesas: 0,
-            Acumulado: 0
-        }));
+        // 1. Get Current Liquid Balance (The Anchor)
+        // 1. Get Current Net Worth Balance (The Anchor) - Sum of ALL Accounts
+        // This ensures that "Acumulado" matches the "Net Worth" concept, which is consistent with
+        // the Chart showing Income/Expense from ALL sources (Investments, etc).
+        let accumulated = dashboardAccounts.reduce((sum, a) => {
+            const val = convertToBRL(a.balance, a.currency || 'BRL');
+            if (a.type === AccountType.CREDIT_CARD) {
+                return sum - Math.abs(val); // Debt reduces accumulated
+            }
+            return sum + val;
+        }, 0);
 
-        // Pre-filter transactions for the year
-        const startOfYearStr = `${selectedYear}-01-01`;
-        const endOfYearStr = `${selectedYear}-12-31`;
-        
-        // Track min date for masking empty months
-        let minDateStr = '9999-12-31';
-        
-        // Single pass: aggregate monthly data
-        for (const t of dashboardTransactions) {
-            if (!shouldShowTransaction(t)) continue;
-            
-            const dateStr = t.date.split('T')[0];
-            
-            // Track min date
-            if (dateStr < minDateStr) minDateStr = dateStr;
-            
-            // Only process transactions from selected year
-            if (dateStr < startOfYearStr || dateStr > endOfYearStr) continue;
-            
-            const account = t.accountId ? accountMap.get(t.accountId) : undefined;
-            
-            // Skip non-BRL accounts
-            if (account && account.currency && account.currency !== 'BRL') continue;
-            
-            // Calculate effective amount
+        // 2. Adjust Balance to reach Jan 1st of Selected Year
+        // We travel in time from 'currentDate' (Today) to 'Jan 1st selectedYear'
+        const startOfYear = new Date(selectedYear, 0, 1);
+        startOfYear.setHours(0, 0, 0, 0);
+
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        dashboardTransactions.forEach(t => {
+            if (!shouldShowTransaction(t)) return;
+            const tDate = new Date(t.date);
+            tDate.setHours(0, 0, 0, 0);
+
             let amount = t.amount;
             if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
                 amount = calculateEffectiveTransactionValue(t);
             }
+
+            // STRICT FILTER REMOVED: Now we include ALL transactions in the time-travel
+            // to insure the "Acumulado" consistently represents the Net Worth evolution.
+            const account = accounts.find(a => a.id === t.accountId);
+            // Safety check for currency
+            if (account && account.currency && account.currency !== 'BRL') return;
+
             const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
-            
-            // Extract month index from date string (YYYY-MM-DD)
-            const monthIndex = parseInt(dateStr.substring(5, 7)) - 1;
-            
+
+            // CASE A: Future View (e.g. Viewing 2026, Today is 2025)
+            // We need to ADD everything happenning between Now and Start of 2026
+            if (startOfYear > now) {
+                if (tDate >= now && tDate < startOfYear) {
+                    if (t.type === TransactionType.INCOME) accumulated += amountBRL;
+                    if (t.type === TransactionType.EXPENSE) accumulated -= amountBRL;
+                }
+            }
+            // CASE B: Past/Current View (e.g. Viewing 2025, Today is Dec 2025)
+            // We need to SUBTRACT everything that happened between Start of 2025 and Now (Reverse Engineering)
+            else {
+                if (tDate >= startOfYear && tDate <= now) {
+                    // Reverse logic to go back in time
+                    if (t.type === TransactionType.INCOME) accumulated -= amountBRL;
+                    if (t.type === TransactionType.EXPENSE) accumulated += amountBRL;
+                }
+            }
+        });
+
+        // Now 'accumulated' represents the projected/historical balance at Jan 1st 00:00 of selectedYear.
+
+        // Initialize 12 months
+        const data = Array.from({ length: 12 }, (_, i) => {
+            const date = new Date(selectedYear, i, 1);
+            return {
+                date: date,
+                month: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
+                year: selectedYear,
+                monthIndex: i,
+                Receitas: 0,
+                Despesas: 0,
+                Acumulado: 0
+            };
+        });
+
+        // Aggregate locally
+        dashboardTransactions.forEach(t => {
+            const tYear = new Date(t.date).getFullYear();
+            if (tYear !== selectedYear) return;
+            if (!shouldShowTransaction(t)) return;
+
+            const monthIndex = new Date(t.date).getMonth();
+            const account = accounts.find(a => a.id === t.accountId);
+
+            // CASH FLOW LOGIC
+            let amount = t.amount;
+            // For Expenses, handle Split Logic (Payer = Full)
+            if (t.type === TransactionType.EXPENSE) {
+                if (t.isShared && t.payerId && t.payerId !== 'me') {
+                    // I didn't pay, so only count my effective share
+                    amount = calculateEffectiveTransactionValue(t);
+                }
+                // If I paid, amount remains t.amount (FULL)
+            }
+
+            const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
+
             if (t.type === TransactionType.INCOME) {
                 if (t.isRefund) {
-                    data[monthIndex].Despesas -= amountBRL;
+                    data[monthIndex].Despesas -= amountBRL; // Refund reduces expense
                 } else {
                     data[monthIndex].Receitas += amountBRL;
                 }
@@ -231,94 +261,27 @@ export const useFinancialDashboard = ({
                     data[monthIndex].Despesas += amountBRL;
                 }
             }
-        }
+        });
 
-        // Calculate starting balance (Jan 1st of selected year)
-        // We need to reverse ALL transactions from Jan 1st of selected year until today
-        // to get what the balance was at the start of the year
-        const todayStr = new Date().toISOString().split('T')[0];
-        const currentYear = new Date().getFullYear();
-        
-        let startingBalance = dashboardAccounts.reduce((sum, a) => {
-            const val = convertToBRL(a.balance, a.currency || 'BRL');
-            if (isCreditCard(a.type)) {
-                return sum - Math.abs(val);
-            }
-            return sum + val;
-        }, 0);
-        
-        // Reverse all transactions from Jan 1st of selected year until today to get Jan 1st balance
-        // This works for current year and past years
-        for (const t of dashboardTransactions) {
-            if (!shouldShowTransaction(t)) continue;
-            
-            const dateStr = t.date.split('T')[0];
-            
-            // Reverse transactions that happened FROM start of selected year TO today
-            // This gives us the balance at Jan 1st of selected year
-            if (dateStr < startOfYearStr || dateStr > todayStr) continue;
-            
-            const account = t.accountId ? accountMap.get(t.accountId) : undefined;
-            if (account && account.currency && account.currency !== 'BRL') continue;
-            
-            let amount = t.amount;
-            if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
-                amount = calculateEffectiveTransactionValue(t);
-            }
-            const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
-            
-            // Reverse the effect: Income added to balance, so subtract. Expense subtracted, so add.
-            if (t.type === TransactionType.INCOME) {
-                startingBalance -= t.isRefund ? -amountBRL : amountBRL;
-            } else if (t.type === TransactionType.EXPENSE) {
-                startingBalance += t.isRefund ? -amountBRL : amountBRL;
-            }
-        }
-        
-        // For future years, we need to ADD transactions that will happen between now and start of that year
-        if (selectedYear > currentYear) {
-            const futureStartStr = `${currentYear + 1}-01-01`;
-            for (const t of dashboardTransactions) {
-                if (!shouldShowTransaction(t)) continue;
-                
-                const dateStr = t.date.split('T')[0];
-                
-                // Add transactions between today and start of selected year
-                if (dateStr <= todayStr || dateStr >= startOfYearStr) continue;
-                
-                const account = t.accountId ? accountMap.get(t.accountId) : undefined;
-                if (account && account.currency && account.currency !== 'BRL') continue;
-                
-                let amount = t.amount;
-                if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
-                    amount = calculateEffectiveTransactionValue(t);
-                }
-                const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
-                
-                // Add the effect for future transactions
-                if (t.type === TransactionType.INCOME) {
-                    startingBalance += t.isRefund ? -amountBRL : amountBRL;
-                } else if (t.type === TransactionType.EXPENSE) {
-                    startingBalance -= t.isRefund ? -amountBRL : amountBRL;
-                }
-            }
-        }
-
-        // Compute accumulated balance for each month
-        let accumulated = startingBalance;
-        for (const d of data) {
-            const monthResult = d.Receitas - d.Despesas;
-            accumulated += monthResult;
+        // Compute accumulated
+        data.forEach(d => {
+            const result = d.Receitas - d.Despesas;
+            accumulated += result;
             d.Acumulado = accumulated;
-        }
+        });
 
-        // Mask months before first transaction
-        const minDate = new Date(minDateStr === '9999-12-31' ? Date.now() : minDateStr);
-        minDate.setDate(1);
-        
+        // FIX: Mask months before the first transaction text to prevent confusing historical data
+        const minDate = dashboardTransactions.length > 0
+            ? new Date(Math.min(...dashboardTransactions.map(t => new Date(t.date).getTime())))
+            : new Date();
+
+        minDate.setDate(1); // Start of start month
+        minDate.setHours(0, 0, 0, 0);
+
         return data.map(d => {
             if (d.date < minDate && d.year <= minDate.getFullYear()) {
-                return { ...d, Receitas: 0, Despesas: 0, Acumulado: null };
+                // If this month is historically before our first transaction, it shouldn't show data
+                return { ...d, Receitas: 0, Despesas: 0, Acumulado: null }; // null forces Recharts to break line or show empty
             }
             return d;
         });
@@ -326,37 +289,35 @@ export const useFinancialDashboard = ({
 
     const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0 || d.Acumulado !== 0), [cashFlowData]);
 
-    // Sparkline Data (OPTIMIZED - Single pass for both)
-    const { incomeSparkline, expenseSparkline } = useMemo(() => {
+    // Sparkline Data
+    const incomeSparkline = useMemo(() => {
         const days = 7;
-        const incomeData: number[] = Array(days).fill(0);
-        const expenseData: number[] = Array(days).fill(0);
-        
-        // Pre-compute date strings for the last 7 days
-        const dateStrings: string[] = [];
-        const dateIndexMap = new Map<string, number>();
+        const data: number[] = [];
         for (let i = days - 1; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
             const dateStr = d.toISOString().split('T')[0];
-            dateStrings.push(dateStr);
-            dateIndexMap.set(dateStr, days - 1 - i);
+            const dayTotal = dashboardTransactions
+                .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.INCOME)
+                .reduce((sum, t) => sum + t.amount, 0);
+            data.push(dayTotal);
         }
-        
-        // Single pass through transactions
-        for (const t of dashboardTransactions) {
-            const txDateStr = t.date.split('T')[0];
-            const idx = dateIndexMap.get(txDateStr);
-            if (idx === undefined) continue;
-            
-            if (t.type === TransactionType.INCOME) {
-                incomeData[idx] += t.amount;
-            } else if (t.type === TransactionType.EXPENSE) {
-                expenseData[idx] += t.amount;
-            }
+        return data;
+    }, [dashboardTransactions]);
+
+    const expenseSparkline = useMemo(() => {
+        const days = 7;
+        const data: number[] = [];
+        for (let i = days - 1; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            const dayTotal = dashboardTransactions
+                .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.EXPENSE)
+                .reduce((sum, t) => sum + t.amount, 0);
+            data.push(dayTotal);
         }
-        
-        return { incomeSparkline: incomeData, expenseSparkline: expenseData };
+        return data;
     }, [dashboardTransactions]);
 
     // Upcoming Bills
@@ -421,13 +382,12 @@ export const useFinancialDashboard = ({
                     const amountBRL = convertToBRL(expenseValue, account?.currency || 'BRL');
                     const amount = t.isRefund ? -amountBRL : amountBRL;
 
-                    let sourceLabel = 'Sem Conta';
+                    let sourceLabel = 'Outros';
                     if (account) {
-                        if (isCreditCard(account.type)) sourceLabel = 'Cartão de Crédito';
+                        if (account.type === AccountType.CREDIT_CARD) sourceLabel = 'Cartão de Crédito';
                         else if (account.type === AccountType.CHECKING || account.type === AccountType.SAVINGS) sourceLabel = 'Conta Bancária';
                         else if (account.type === AccountType.CASH) sourceLabel = 'Dinheiro';
-                        else if (account.type === AccountType.INVESTMENT) sourceLabel = 'Investimentos';
-                        else sourceLabel = String(account.type);
+                        else sourceLabel = account.type;
                     }
 
                     acc[sourceLabel] = (acc[sourceLabel] || 0) + (amount as number);
@@ -446,10 +406,6 @@ export const useFinancialDashboard = ({
         projectedBalance,
         pendingIncome,
         pendingExpenses,
-        totalMonthIncome,
-        totalMonthExpenses,
-        realizedIncome,
-        realizedExpenses,
         healthStatus,
         netWorth,
         monthlyIncome,

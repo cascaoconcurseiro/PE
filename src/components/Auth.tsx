@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { EmailInput } from './ui/EmailInput';
 import { PiggyBank, ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Cloud } from 'lucide-react';
 import { useToast } from './ui/Toast';
 
@@ -36,63 +35,21 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         setIsLoading(true);
         setError(null);
 
-        // Security: Basic input validation
-        const trimmedEmail = email.trim().toLowerCase();
-        const trimmedPassword = password;
-
-        // Security: Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(trimmedEmail)) {
-            setError('Por favor, insira um e-mail válido.');
-            setIsLoading(false);
-            return;
-        }
-
-        // Security: Password strength validation for signup
-        if (isSignUp) {
-            if (trimmedPassword.length < 8) {
-                setError('A senha deve ter pelo menos 8 caracteres.');
-                setIsLoading(false);
-                return;
-            }
-            
-            // Check for at least one number and one letter
-            if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(trimmedPassword)) {
-                setError('A senha deve conter letras e números.');
-                setIsLoading(false);
-                return;
-            }
-        }
-
         // Save or Remove Email based on "Remember Me"
-        if (rememberMe && trimmedEmail) {
-            try {
-                localStorage.setItem('saved_email', trimmedEmail);
-            } catch {
-                // Storage not available, ignore
-            }
+        if (rememberMe && email) {
+            localStorage.setItem('saved_email', email);
         } else {
-            try {
-                localStorage.removeItem('saved_email');
-            } catch {
-                // Storage not available, ignore
-            }
+            localStorage.removeItem('saved_email');
         }
 
         try {
             if (isSignUp) {
-                // Security: Sanitize name input
-                const sanitizedName = (name || trimmedEmail.split('@')[0])
-                    .replace(/[<>]/g, '')
-                    .trim()
-                    .slice(0, 100);
-
                 const { data, error } = await supabase.auth.signUp({
-                    email: trimmedEmail,
-                    password: trimmedPassword,
+                    email,
+                    password,
                     options: {
                         data: {
-                            name: sanitizedName,
+                            name: name || email.split('@')[0],
                         }
                     }
                 });
@@ -100,21 +57,14 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 addToast('Conta criada! Verifique seu e-mail para confirmar.', 'success');
             } else {
                 const { data, error } = await supabase.auth.signInWithPassword({
-                    email: trimmedEmail,
-                    password: trimmedPassword,
+                    email,
+                    password,
                 });
                 if (error) throw error;
             }
         } catch (err: any) {
-            // Security: Generic error message to prevent user enumeration
-            const errorMessage = err.message === 'Invalid login credentials' 
-                ? 'E-mail ou senha incorretos.' 
-                : err.message?.includes('Email not confirmed')
-                    ? 'Por favor, confirme seu e-mail antes de fazer login.'
-                    : 'Erro ao autenticar. Tente novamente.';
-            
-            setError(errorMessage);
-            addToast(errorMessage, 'error');
+            setError(err.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : err.message);
+            addToast(err.message, 'error');
         } finally {
             setIsLoading(false);
         }
@@ -166,13 +116,20 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1">E-mail</label>
-                                <EmailInput
-                                    value={email}
-                                    onChange={setEmail}
-                                    required
-                                    placeholder="seu@email.com"
-                                    autoComplete="username"
-                                />
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Mail className="h-5 w-5 text-slate-400" />
+                                    </div>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-slate-900 dark:text-white font-medium transition-all"
+                                        placeholder="seu@email.com"
+                                        autoComplete="username"
+                                    />
+                                </div>
                             </div>
 
                             <div>

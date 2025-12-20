@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
     UserSettings,
     NotificationSettings,
@@ -38,12 +38,9 @@ interface SettingsProviderProps {
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
     const [settings, setSettings] = useState<UserSettings>(defaultUserSettings);
     const [isLoading, setIsLoading] = useState(true);
-    const hasLoadedRef = useRef(false);
 
-    // Load settings from Supabase on mount - apenas uma vez
+    // Load settings from Supabase on mount
     useEffect(() => {
-        if (hasLoadedRef.current) return;
-        hasLoadedRef.current = true;
         loadSettings();
     }, []);
 
