@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabaseService } from '../services/supabaseService';
+import { supabaseService } from '../core/services/supabaseService';
 import { Loader2, TrendingUp, TrendingDown, Landmark, PieChart } from 'lucide-react';
 
 export function ReportsDDD() {

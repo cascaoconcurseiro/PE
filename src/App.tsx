@@ -6,6 +6,7 @@ import { View, SyncStatus, TransactionType, UserProfile } from './types';
 import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useDataStore } from './hooks/useDataStore';
 import { useAppLogic } from './hooks/useAppLogic';
+import { useAppCalculations } from './hooks/useAppCalculations';
 import { MainLayout } from './components/MainLayout';
 import { InconsistenciesModal } from './components/ui/InconsistenciesModal';
 import { LoadingScreen } from './components/ui/LoadingScreen';
@@ -21,12 +22,12 @@ import { PendingSettlement, SettlementRequest } from './types/settlement';
 import { logger } from './utils/logger';
 
 // Lazy load heavy components with robust reload protection
-const Dashboard = lazyImport(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const Dashboard = lazyImport(() => import('./features/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
 const Accounts = lazyImport(() => import('./components/Accounts').then(m => ({ default: m.Accounts })));
-const Transactions = lazyImport(() => import('./components/Transactions').then(m => ({ default: m.Transactions })));
+const Transactions = lazyImport(() => import('./features/transactions/Transactions').then(m => ({ default: m.Transactions })));
 const Budgets = lazyImport(() => import('./components/Budgets').then(m => ({ default: m.Budgets })));
 const Goals = lazyImport(() => import('./components/Goals').then(m => ({ default: m.Goals })));
-const Trips = lazyImport(() => import('./components/Trips').then(m => ({ default: m.Trips })));
+const Trips = lazyImport(() => import('./features/trips/Trips').then(m => ({ default: m.Trips })));
 const Shared = lazyImport(() => import('./components/Shared').then(m => ({ default: m.Shared })));
 const Family = lazyImport(() => import('./components/Family').then(m => ({ default: m.Family })));
 const Settings = lazyImport(() => import('./components/Settings').then(m => ({ default: m.Settings })));
@@ -168,38 +169,8 @@ const App = () => {
         return accounts || [];
     }, [accounts]);
 
-    // Projeção de saldo: Usa saldo atual do banco + transações futuras do mês
-    const projectedAccounts = useMemo(() => {
-        if (!accounts || !transactions) return [];
-
-        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-
-        return accounts.map(acc => {
-            // Saldo atual vem do banco (já calculado pelo trigger)
-            const currentBalance = acc.balance || 0;
-
-            // Calcular impacto de transações futuras (ainda não refletidas no saldo do banco)
-            const futureTxs = transactions.filter(t =>
-                t.accountId === acc.id &&
-                new Date(t.date) > now &&
-                new Date(t.date) <= endOfMonth &&
-                !t.deleted
-            );
-
-            const futureImpact = futureTxs.reduce((sum, t) => {
-                if (t.type === TransactionType.INCOME) return sum + t.amount;
-                if (t.type === TransactionType.EXPENSE) return sum - t.amount;
-                if (t.type === TransactionType.TRANSFER && t.accountId === acc.id) {
-                    return sum - t.amount; // Transferência de saída
-                }
-                return sum;
-            }, 0);
-
-            return { ...acc, balance: currentBalance + futureImpact };
-        });
-    }, [accounts, transactions, currentDate]);
+    // Projeção de saldo (Extracted to Hook)
+    const { projectedAccounts } = useAppCalculations(accounts || [], transactions || []);
 
     const activeNotifications = useMemo(() => {
         if (!transactions || !accounts) return [];

@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Transaction, TransactionType, Account, Trip, FamilyMember, CustomCategory, Category } from '../types';
-import { parseDate } from '../utils';
+import { Transaction, TransactionType, Account, Trip, FamilyMember, CustomCategory, Category } from '../../types';
+import { parseDate } from '../../utils';
 
-import { TransactionList } from './transactions/TransactionList';
-import { TransactionSummary } from './transactions/TransactionSummary';
-import { TransactionForm } from './transactions/TransactionForm';
-import { TransactionDeleteModal } from './transactions/TransactionDeleteModal';
-import { TransactionFilters } from './transactions/TransactionFilters';
-import { InstallmentAnticipationModal } from './transactions/InstallmentAnticipationModal';
+import { TransactionList } from './TransactionList';
+import { TransactionSummary } from './TransactionSummary';
+import { TransactionForm } from './TransactionForm';
+import { TransactionDeleteModal } from './TransactionDeleteModal';
+import { TransactionFilters } from './TransactionFilters';
+import { InstallmentAnticipationModal } from './InstallmentAnticipationModal';
 
-import { useTransactionFilters } from '../hooks/useTransactionFilters';
+import { useTransactionFilters } from '../../hooks/useTransactionFilters';
 
 // Export PrivacyBlur for reuse if needed, though mostly handled internally now
 export const PrivacyBlur = ({ children, showValues }: { children: React.ReactNode, showValues: boolean }) => {

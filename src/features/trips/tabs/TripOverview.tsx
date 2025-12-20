@@ -6,7 +6,7 @@ import { Button } from '../../ui/Button';
 import { Target, Pencil, X, Save, Sparkles, Calculator, ArrowRight, User } from 'lucide-react';
 import { formatCurrency, getCategoryIcon, parseDate } from '../../../utils';
 import { calculateTripDebts } from '../../../services/tripDebtsCalculator';
-import { supabaseService } from '../../../services/supabaseService';
+import { supabaseService } from '../../../core/services/supabaseService';
 import { useToast } from '../../ui/Toast';
 
 interface TripOverviewProps {
@@ -52,7 +52,7 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
         }
         return acc;
     }, 0);
-    
+
     // Usar orçamento pessoal (cada participante tem o seu)
     const budget = personalBudget || 0;
     const percentUsed = budget > 0 ? (totalSpent / budget) * 100 : 0;
@@ -65,7 +65,7 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
             addToast("Orçamento inválido.", "error");
             return;
         }
-        
+
         try {
             // Salvar orçamento pessoal via RPC
             await supabaseService.setMyTripBudget(trip.id, budgetVal);

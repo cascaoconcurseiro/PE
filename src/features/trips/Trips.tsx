@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Trip, Transaction, Account, FamilyMember } from '../types';
-import { parseDate } from '../utils';
+import { Trip, Transaction, Account, FamilyMember } from '../../types';
+import { parseDate } from '../../utils';
 
-import { TripList } from './trips/TripList';
-import { TripForm } from './trips/TripForm';
-import { TripDetail } from './trips/TripDetail';
+import { TripList } from './TripList';
+import { TripForm } from './TripForm';
+import { TripDetail } from './TripDetail';
 
-interface TripsProps {
+export interface TripsProps {
     trips: Trip[];
     transactions: Transaction[];
     accounts: Account[];

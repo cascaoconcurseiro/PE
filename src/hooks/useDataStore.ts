@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { supabaseService } from '../services/supabaseService';
+import { supabaseService } from '../core/services/supabaseService';
 import {
     Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset,
     CustomCategory, SyncStatus, UserProfile, Snapshot, TransactionType, Category
@@ -7,8 +7,8 @@ import {
 import { parseDate } from '../utils';
 import { useToast } from '../components/ui/Toast';
 import { supabase } from '../integrations/supabase/client';
-import { processRecurringTransactions } from '../services/recurrenceEngine';
-import { checkDataConsistency } from '../services/financialLogic';
+import { processRecurringTransactions } from '../core/engines/recurrenceEngine';
+import { checkDataConsistency } from '../core/engines/financialLogic';
 import { translateErrorMessage } from '../utils/errorMapping';
 import { logger } from '../services/logger';
 
@@ -463,13 +463,11 @@ export const useDataStore = () => {
                 { event: '*', schema: 'public' },
                 (payload) => {
                     logger.debug('⚡ Realtime Change Detected:', { table: payload.table });
-                    // Debounce: aguardar 300ms antes de refresh para evitar spam (mais rápido que 500ms)
                     const relevantTables = ['transactions', 'accounts', 'trips', 'family_members', 'user_notifications'];
                     if (relevantTables.includes(payload.table)) {
                         if (refreshTimeout) clearTimeout(refreshTimeout);
                         refreshTimeout = setTimeout(() => {
                             logger.info(`🔄 Auto-refreshing data due to change in: ${payload.table}`);
-                            // Soft Refresh (no global loading spinner)
                             fetchData(false);
                         }, 300);
                     }
@@ -490,6 +488,32 @@ export const useDataStore = () => {
             if (refreshTimeout) clearTimeout(refreshTimeout);
         };
     }, [fetchData]);
+
+    // RECURRENCE ENGINE PROCESSING
+    useEffect(() => {
+        if (!transactions || transactions.length === 0 || !isInitialized.current) return;
+
+        const { newTransactions, updatedTransactions } = processRecurringTransactions(transactions);
+
+        if (newTransactions.length > 0) {
+            console.log('🔄 Generating Recurring Transactions:', newTransactions.length);
+            // Auto-Add found recurrences
+            handlers.handleAddTransactions(newTransactions as any);
+            // Type cast needed if handleAddTransactions expects specific Omit type vs recurrence result
+        }
+
+        if (updatedTransactions.length > 0) {
+            console.log('🔄 Updating Recurrence Parents:', updatedTransactions.length);
+            // We need to batch update these parents (lastGenerated field)
+            handlers.handleBatchUpdateTransactions(updatedTransactions);
+        }
+
+        // Note: handleAddTransactions and handleBatchUpdateTransactions update local state optimistically, 
+        // which triggers this effect again.
+        // BUT processRecurringTransactions is deterministic. 
+        // If 'lastGenerated' was updated in local state, it won't yield results again.
+        // So loop terminates.
+    }, [transactions]); // Depend on transactions safe? Yes, due to logic above.
 
     // --- ACTIONS ---
 

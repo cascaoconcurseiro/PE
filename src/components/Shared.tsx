@@ -9,7 +9,7 @@ import { TransactionDeleteModal } from './transactions/TransactionDeleteModal';
 import { SharedMemberDetail } from './shared/SharedMemberDetail';
 import { ConfirmModal } from './ui/ConfirmModal';
 
-interface SharedProps {
+export interface SharedProps {
     transactions: Transaction[];
     trips: Trip[];
     members: FamilyMember[];

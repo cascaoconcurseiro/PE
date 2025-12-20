@@ -5,7 +5,7 @@ import { Button } from '../ui/Button';
 import { ArrowLeft, Calendar, Users, X, Clock, Globe, ChevronDown, Check, AlertCircle } from 'lucide-react';
 import { AVAILABLE_CURRENCIES } from '../../services/currencyService';
 import { parseDate } from '../../utils';
-import { supabaseService } from '../../services/supabaseService';
+import { supabaseService } from '../../core/services/supabaseService';
 
 interface TripFormProps {
     initialData?: Trip | null;

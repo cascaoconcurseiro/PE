@@ -1,21 +1,21 @@
 import React, { Suspense, useState } from 'react';
-import { Account, Transaction, Goal, Trip } from '../types';
-import { generateMonthlyReport, generateAnnualReport } from '../services/pdfService';
+import { Account, Transaction, Goal, Trip } from '../../types';
+import { generateMonthlyReport, generateAnnualReport } from '../../services/pdfService';
 import { Loader2, PieChart, CreditCard, Layers, Printer } from 'lucide-react';
-import { Button } from './ui/Button';
+import { Button } from '../../components/ui/Button';
 
 // Sub-components (Critical: Loaded immediately)
-import { FinancialProjectionCard } from './dashboard/FinancialProjectionCard';
-import { SummaryCards } from './dashboard/SummaryCards';
-import { UpcomingBills } from './dashboard/UpcomingBills';
+import { FinancialProjectionCard } from './FinancialProjectionCard';
+import { SummaryCards } from './SummaryCards';
+import { UpcomingBills } from './UpcomingBills';
 
-import { DashboardSkeleton } from '../components/ui/Skeleton';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
 
-import { lazyImport } from '../utils/lazyImport';
-import { useFinancialDashboard } from '../hooks/useFinancialDashboard';
+import { lazyImport } from '../../utils/lazyImport';
+import { useFinancialDashboard } from './useFinancialDashboard';
 
-const CashFlowChart = lazyImport(() => import('./dashboard/CashFlowChart').then(m => ({ default: m.CashFlowChart })));
-const CategorySpendingChart = lazyImport(() => import('./dashboard/CategorySpendingChart').then(m => ({ default: m.CategorySpendingChart })));
+const CashFlowChart = lazyImport(() => import('./CashFlowChart').then(m => ({ default: m.CashFlowChart })));
+const CategorySpendingChart = lazyImport(() => import('./CategorySpendingChart').then(m => ({ default: m.CategorySpendingChart })));
 
 interface DashboardProps {
     accounts: Account[];
