@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trip, TripShoppingItem } from '../../../types';
-import { Card } from '../../ui/Card';
-import { Button } from '../../ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { ShoppingBag, Save, Plus, X, Check, Pencil, Trash2 } from 'lucide-react';
 import { formatCurrency } from '../../../utils';
 

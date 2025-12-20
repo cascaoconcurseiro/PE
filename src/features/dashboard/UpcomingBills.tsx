@@ -2,7 +2,7 @@ import React from 'react';
 import { Bell, Clock } from 'lucide-react';
 import { Transaction, Account } from '../../types';
 import { formatCurrency } from '../../utils';
-import { PrivacyBlur } from '../ui/PrivacyBlur';
+import { PrivacyBlur } from '@/components/ui/PrivacyBlur';
 
 interface UpcomingBillsProps {
     bills: Transaction[];

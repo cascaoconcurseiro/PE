@@ -1,7 +1,7 @@
-import { Account, Transaction, TransactionType, AccountType } from '../types';
-import { isSameMonth } from '../utils';
-import { convertToBRL } from './currencyService';
-import { FinancialPrecision } from './financialPrecision';
+import { Account, Transaction, TransactionType, AccountType } from '../../types';
+import { isSameMonth } from '../../utils';
+import { convertToBRL } from '../../services/currencyService';
+import { FinancialPrecision } from '../../services/financialPrecision';
 
 /**
  * Calcula o valor efetivo da transação para o usuário (Economia Real).

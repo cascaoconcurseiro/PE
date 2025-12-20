@@ -1,7 +1,7 @@
 import React from 'react';
 import { Wallet, TrendingUp, TrendingDown, LineChart, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { formatCurrency } from '../../utils';
-import { PrivacyBlur } from '../ui/PrivacyBlur';
+import { PrivacyBlur } from '@/components/ui/PrivacyBlur';
 
 interface FinancialProjectionCardProps {
     projectedBalance: number;

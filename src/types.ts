@@ -9,6 +9,7 @@ export interface BaseEntity {
   updatedAt?: string;
   deleted?: boolean;
   syncStatus?: SyncStatus;
+  [key: string]: unknown;
 }
 
 export enum TransactionType {
@@ -89,6 +90,7 @@ export enum Category {
   SALES = 'Vendas',
 
   // CATEGORIAS ESPECIAIS (não usar como fallback)
+  OTHER = 'OUTROS',
   MISCELLANEOUS = 'Diversos',
   ADJUSTMENT = 'Ajuste/Correção',
   

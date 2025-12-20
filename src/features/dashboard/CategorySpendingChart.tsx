@@ -1,9 +1,9 @@
 import React from 'react';
-import { Card } from '../ui/Card';
+import { Card } from '@/components/ui/Card';
 import { PieChart as PieIcon, Wallet } from 'lucide-react';
-import { SimplePieChart } from '../ui/SimpleCharts';
+import { SimplePieChart } from '@/components/ui/SimpleCharts';
 import { formatCurrency } from '../../utils';
-import { PrivacyBlur } from '../ui/PrivacyBlur';
+import { PrivacyBlur } from '@/components/ui/PrivacyBlur';
 
 interface CategorySpendingChartProps {
     data: { name: string; value: number }[];

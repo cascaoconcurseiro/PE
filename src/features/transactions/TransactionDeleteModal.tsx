@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Modal } from '../ui/Modal';
-import { ConfirmModal } from '../ui/ConfirmModal';
-import { Button } from '../ui/Button';
+import { Modal } from '@/components/ui/Modal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { Button } from '@/components/ui/Button';
 import { Trash2, AlertTriangle, Check } from 'lucide-react';
 
 interface TransactionDeleteModalProps {
@@ -47,8 +47,8 @@ export const TransactionDeleteModal: React.FC<TransactionDeleteModalProps> = ({ 
                             type="button"
                             onClick={() => setSelectedScope('SINGLE')}
                             className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${selectedScope === 'SINGLE'
-                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-2 ring-indigo-500/30'
-                                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-2 ring-indigo-500/30'
+                                : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                                 }`}
                         >
                             <div className="text-left">
@@ -60,8 +60,8 @@ export const TransactionDeleteModal: React.FC<TransactionDeleteModalProps> = ({ 
                                 </span>
                             </div>
                             <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedScope === 'SINGLE'
-                                    ? 'border-indigo-500 bg-indigo-500'
-                                    : 'border-slate-300 dark:border-slate-600'
+                                ? 'border-indigo-500 bg-indigo-500'
+                                : 'border-slate-300 dark:border-slate-600'
                                 }`}>
                                 {selectedScope === 'SINGLE' && <Check className="w-4 h-4 text-white" />}
                             </div>
@@ -71,8 +71,8 @@ export const TransactionDeleteModal: React.FC<TransactionDeleteModalProps> = ({ 
                             type="button"
                             onClick={() => setSelectedScope('SERIES')}
                             className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${selectedScope === 'SERIES'
-                                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20 ring-2 ring-red-500/30'
-                                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                ? 'border-red-500 bg-red-50 dark:bg-red-900/20 ring-2 ring-red-500/30'
+                                : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                                 }`}
                         >
                             <div className="text-left">
@@ -84,8 +84,8 @@ export const TransactionDeleteModal: React.FC<TransactionDeleteModalProps> = ({ 
                                 </span>
                             </div>
                             <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedScope === 'SERIES'
-                                    ? 'border-red-500 bg-red-500'
-                                    : 'border-slate-300 dark:border-slate-600'
+                                ? 'border-red-500 bg-red-500'
+                                : 'border-slate-300 dark:border-slate-600'
                                 }`}>
                                 {selectedScope === 'SERIES' && <Check className="w-4 h-4 text-white" />}
                             </div>
@@ -104,8 +104,8 @@ export const TransactionDeleteModal: React.FC<TransactionDeleteModalProps> = ({ 
                         <Button
                             onClick={() => onConfirm(selectedScope)}
                             className={`flex-1 ${selectedScope === 'SERIES'
-                                    ? 'bg-red-600 hover:bg-red-700'
-                                    : 'bg-indigo-600 hover:bg-indigo-700'
+                                ? 'bg-red-600 hover:bg-red-700'
+                                : 'bg-indigo-600 hover:bg-indigo-700'
                                 }`}
                         >
                             <Trash2 className="w-4 h-4 mr-2" />

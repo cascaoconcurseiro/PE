@@ -5,7 +5,7 @@
  * Detecta inconsistências e problemas de dados
  */
 
-import { supabaseService } from './supabaseService';
+import { supabaseService } from '../core/services/supabaseService';
 import { supabase } from '../integrations/supabase/client';
 import { FinancialPrecision } from './financialPrecision';
 import { Transaction, AccountType } from '../types';

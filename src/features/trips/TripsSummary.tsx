@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card } from '../ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Plane, Calendar, MapPin } from 'lucide-react';
 import { Trip } from '../../types';
 import { parseDate } from '../../utils';

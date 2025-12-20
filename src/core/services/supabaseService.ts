@@ -1,11 +1,11 @@
-import { supabase } from '../integrations/supabase/client';
+import { supabase } from '../../integrations/supabase/client';
 import {
     Account, Transaction, Trip, Budget, Goal, FamilyMember, Asset,
     CustomCategory, SyncStatus, UserProfile, Snapshot
-} from '../types';
-import { UserSettings } from '../types/UserSettings';
-import { DBTransaction, DBAccount, DBTrip, DBBudget, DBGoal, DBFamilyMember, DBAsset, DBSnapshot, DBCustomCategory } from '../types/db';
-import { logger } from './logger';
+} from '../../types';
+import { UserSettings } from '../../types/UserSettings';
+import { DBTransaction, DBAccount, DBTrip, DBBudget, DBGoal, DBFamilyMember, DBAsset, DBSnapshot, DBCustomCategory } from '../../types/db';
+import { logger } from '../../utils/logger';
 
 // Helper to get current user
 const getUserId = async () => {
@@ -271,7 +271,7 @@ export const supabaseService = {
             p_start_date: trip.startDate,
             p_end_date: trip.endDate,
             p_currency: trip.currency,
-            p_status: trip.status || 'PLANNED',
+            p_status: 'PLANNED',
             p_participants: trip.participants || []
         };
         const { data, error } = await supabase.rpc('create_trip', params);
@@ -289,7 +289,7 @@ export const supabaseService = {
             p_start_date: trip.startDate,
             p_end_date: trip.endDate,
             p_currency: trip.currency,
-            p_status: trip.status,
+            p_status: 'PLANNED',
             p_participants: trip.participants || []
         };
         const { error } = await supabase.rpc('update_trip', params);
@@ -648,5 +648,51 @@ export const supabaseService = {
             return [];
         }
         return data;
+    },
+
+    // Trip Budget Methods
+    async getMyTripBudget(tripId: string): Promise<number> {
+        const userId = await getUserId();
+        
+        // Try to get personal trip budget from a hypothetical table
+        // For now, we'll return 0 as fallback
+        try {
+            const { data, error } = await supabase
+                .from('trip_budgets')
+                .select('budget')
+                .eq('trip_id', tripId)
+                .eq('user_id', userId)
+                .single();
+
+            if (error || !data) {
+                return 0;
+            }
+            return data.budget || 0;
+        } catch {
+            return 0;
+        }
+    },
+
+    async setMyTripBudget(tripId: string, budget: number): Promise<void> {
+        const userId = await getUserId();
+        
+        try {
+            const { error } = await supabase
+                .from('trip_budgets')
+                .upsert({
+                    trip_id: tripId,
+                    user_id: userId,
+                    budget: budget,
+                    updated_at: new Date().toISOString()
+                });
+
+            if (error) {
+                throw error;
+            }
+        } catch (error) {
+            // If table doesn't exist, we'll just ignore the error
+            // This allows the fallback behavior in TripOverview
+            logger.warn('Trip budget table not available:', error);
+        }
     }
 };

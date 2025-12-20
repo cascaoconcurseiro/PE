@@ -1,6 +1,6 @@
 import React from 'react';
 import { Trip, Transaction, TransactionType } from '../../../types';
-import { Card } from '../../ui/Card';
+import { Card } from '@/components/ui/Card';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import { formatCurrency, parseDate } from '../../../utils';
 

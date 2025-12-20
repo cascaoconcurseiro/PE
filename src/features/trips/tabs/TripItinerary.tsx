@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Trip, TripItineraryItem } from '../../../types';
-import { Card } from '../../ui/Card';
-import { Button } from '../../ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Calendar, Plus, Save, X, MapPin, Pencil, Trash2, Map } from 'lucide-react';
 import { parseDate } from '../../../utils';
 

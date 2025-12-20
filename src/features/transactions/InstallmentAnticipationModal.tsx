@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Transaction, Account, AccountType } from '../../types';
-import { Modal } from '../ui/Modal';
-import { Button } from '../ui/Button';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 import { formatCurrency, parseDate } from '../../utils';
 import { Calendar, CreditCard, Wallet, ChevronDown, Check, AlertCircle } from 'lucide-react';
 

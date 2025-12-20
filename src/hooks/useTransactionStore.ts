@@ -79,17 +79,17 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
         const totalInstallments = Number(newTx.totalInstallments);
         const txs: Transaction[] = [];
 
-        if (newTx.isInstallment && totalInstallments > 1 && newTx.amount) {
-            const baseDate = parseDate(newTx.date);
+        if (newTx.isInstallment && totalInstallments > 1 && (newTx as any).amount) {
+            const baseDate = parseDate((newTx as any).date);
             const seriesId = crypto.randomUUID();
 
             // Usar FinancialPrecision para cálculos precisos
-            const baseInstallmentValue = FinancialPrecision.divide(newTx.amount, totalInstallments);
+            const baseInstallmentValue = FinancialPrecision.divide((newTx as any).amount, totalInstallments);
             let accumulatedAmount = 0;
             const accumulatedSharedAmounts: { [memberId: string]: number } = {};
 
-            if (newTx.sharedWith) {
-                newTx.sharedWith.forEach(s => { accumulatedSharedAmounts[s.memberId] = 0; });
+            if ((newTx as any).sharedWith) {
+                (newTx as any).sharedWith.forEach((s: any) => { accumulatedSharedAmounts[s.memberId] = 0; });
             }
 
             for (let i = 0; i < totalInstallments; i++) {
@@ -106,15 +106,15 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
                 let currentAmount = baseInstallmentValue;
                 if (i === totalInstallments - 1) {
                     // Última parcela: ajustar para garantir soma exata
-                    currentAmount = FinancialPrecision.subtract(newTx.amount, accumulatedAmount);
+                    currentAmount = FinancialPrecision.subtract((newTx as any).amount, accumulatedAmount);
                 }
                 accumulatedAmount = FinancialPrecision.sum([accumulatedAmount, currentAmount]);
 
                 let currentSharedWith = undefined;
-                if (newTx.sharedWith) {
-                    currentSharedWith = newTx.sharedWith.map(s => {
+                if ((newTx as any).sharedWith) {
+                    currentSharedWith = (newTx as any).sharedWith.map((s: any) => {
                         let assignedAmount = FinancialPrecision.multiply(
-                            FinancialPrecision.divide(s.assignedAmount, newTx.amount),
+                            FinancialPrecision.divide(s.assignedAmount, (newTx as any).amount),
                             currentAmount
                         );
                         if (i === totalInstallments - 1) {

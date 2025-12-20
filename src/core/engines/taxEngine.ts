@@ -1,4 +1,4 @@
-import { Asset, AssetType } from '../types';
+import { Asset, AssetType } from '../../types';
 
 export interface MonthlyTaxResult {
     month: string; // "YYYY-MM"

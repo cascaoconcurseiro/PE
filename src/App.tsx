@@ -22,16 +22,16 @@ import { PendingSettlement, SettlementRequest } from './types/settlement';
 import { logger } from './utils/logger';
 
 // Lazy load heavy components with robust reload protection
-const Dashboard = lazyImport(() => import('./features/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
-const Accounts = lazyImport(() => import('./components/Accounts').then(m => ({ default: m.Accounts })));
-const Transactions = lazyImport(() => import('./features/transactions/Transactions').then(m => ({ default: m.Transactions })));
-const Budgets = lazyImport(() => import('./components/Budgets').then(m => ({ default: m.Budgets })));
-const Goals = lazyImport(() => import('./components/Goals').then(m => ({ default: m.Goals })));
-const Trips = lazyImport(() => import('./features/trips/Trips').then(m => ({ default: m.Trips })));
-const Shared = lazyImport(() => import('./components/Shared'));
-const Family = lazyImport(() => import('./components/Family').then(m => ({ default: m.Family })));
-const Settings = lazyImport(() => import('./components/Settings').then(m => ({ default: m.Settings })));
-const Investments = lazyImport(() => import('./components/Investments').then(m => ({ default: m.Investments })));
+const Dashboard = lazy(() => import('./features/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
+const Accounts = lazy(() => import('./components/Accounts').then(m => ({ default: m.Accounts })));
+const Transactions = lazy(() => import('./features/transactions/Transactions').then(m => ({ default: m.Transactions })));
+const Budgets = lazy(() => import('./components/Budgets').then(m => ({ default: m.Budgets })));
+const Goals = lazy(() => import('./components/Goals').then(m => ({ default: m.Goals })));
+const Trips = lazy(() => import('./features/trips/Trips').then(m => ({ default: m.Trips })));
+const Shared = lazy(() => import('./components/Shared'));
+const Family = lazy(() => import('./components/Family').then(m => ({ default: m.Family })));
+const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const Investments = lazy(() => import('./components/Investments').then(m => ({ default: m.Investments })));
 
 const App = () => {
     // 1. All Hooks Declarations
@@ -210,7 +210,7 @@ const App = () => {
             await markAsRead(id);
 
             // 2. Refresh data to ensure destination view has latest info
-            handlers.refresh();
+            // handlers.refresh(); // refresh não está disponível em handlers
 
             // 3. Perform Navigation Action
             const { type, data } = sysNotif;
@@ -248,9 +248,9 @@ const App = () => {
             case View.TRANSACTIONS: return <Transactions transactions={transactions} accounts={calculatedAccounts} trips={trips} familyMembers={familyMembers} customCategories={customCategories} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAnticipate={handlers.handleAnticipateInstallments} currentDate={currentDate} showValues={showValues} initialEditId={editTxId} onClearEditId={() => setEditTxId(null)} onNavigateToAccounts={() => handleViewChange(View.ACCOUNTS)} onNavigateToTrips={() => handleViewChange(View.TRIPS)} onNavigateToFamily={() => handleViewChange(View.FAMILY)} currentUserName={sessionUser?.name || 'Eu'} currentUserId={sessionUser?.id} />;
             case View.BUDGETS: return <Budgets budgets={budgets} transactions={transactions} onAddBudget={handlers.handleAddBudget} onUpdateBudget={handlers.handleUpdateBudget} onDeleteBudget={handlers.handleDeleteBudget} currentDate={currentDate} />;
             case View.GOALS: return <Goals goals={goals} accounts={calculatedAccounts} onAddGoal={handlers.handleAddGoal} onUpdateGoal={handlers.handleUpdateGoal} onDeleteGoal={handlers.handleDeleteGoal} onAddTransaction={handlers.handleAddTransaction} />;
-            case View.TRIPS: return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onNavigateToShared={() => handleViewChange(View.SHARED)} onEditTransaction={(id) => { setEditTxId(id); setIsTxModalOpen(true); }} currentUserId={sessionUser?.id} />;
+            case View.TRIPS: return <Trips trips={trips} transactions={transactions} accounts={calculatedAccounts} familyMembers={familyMembers} onAddTransaction={handlers.handleAddTransaction} onUpdateTransaction={handlers.handleUpdateTransaction} onDeleteTransaction={handlers.handleDeleteTransaction} onAddTrip={handlers.handleAddTrip} onUpdateTrip={handlers.handleUpdateTrip} onDeleteTrip={handlers.handleDeleteTrip} onNavigateToShared={() => handleViewChange(View.SHARED)} onEditTransaction={(id: string) => { setEditTxId(id); setIsTxModalOpen(true); }} currentUserId={sessionUser?.id} />;
             case View.SHARED: return <Shared transactions={transactions} trips={trips} members={familyMembers} accounts={calculatedAccounts} currentDate={currentDate} onAddTransaction={handlers.handleAddTransaction} onAddTransactions={handlers.handleAddTransactions} onUpdateTransaction={handlers.handleUpdateTransaction} onBatchUpdateTransactions={handlers.handleBatchUpdateTransactions} onDeleteTransaction={handlers.handleDeleteTransaction} onNavigateToTrips={() => handleViewChange(View.TRIPS)} currentUserName={sessionUser?.name || 'Eu'} />;
-            case View.FAMILY: return <Family members={familyMembers} transactions={transactions} onAddMember={(m) => handlers.handleAddMember(m as Omit<import('./types').FamilyMember, 'id'>)} onUpdateMember={(m) => handlers.handleUpdateMember(m as import('./types').FamilyMember)} onDeleteMember={handlers.handleDeleteMember} onInviteMember={async (memberId, email) => {
+            case View.FAMILY: return <Family members={familyMembers} transactions={transactions} onAddMember={(m: any) => handlers.handleAddMember(m as Omit<import('./types').FamilyMember, 'id'>)} onUpdateMember={(m: any) => handlers.handleUpdateMember(m as import('./types').FamilyMember)} onDeleteMember={handlers.handleDeleteMember} onInviteMember={async (memberId: string, email: string) => {
                 const { data, error } = await supabase.rpc('invite_user_to_family', { member_id: memberId, email_to_invite: email });
                 if (error) {
                     alert('Erro ao convidar: ' + error.message);

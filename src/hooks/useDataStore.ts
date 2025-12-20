@@ -121,14 +121,14 @@ export const useDataStore = () => {
             const txs: Transaction[] = [];
 
             if (newTx.isInstallment && totalInstallments > 1 && newTx.amount) {
-                const baseDate = parseDate(newTx.date);
+                const baseDate = parseDate(newTx.date as string);
                 const seriesId = crypto.randomUUID();
-                const baseInstallmentValue = Math.floor((newTx.amount / totalInstallments) * 100) / 100;
+                const baseInstallmentValue = Math.floor(((newTx.amount as number) / totalInstallments) * 100) / 100;
                 let accumulatedAmount = 0;
                 let accumulatedSharedAmounts: { [memberId: string]: number } = {};
 
-                if (newTx.sharedWith) {
-                    newTx.sharedWith.forEach(s => { accumulatedSharedAmounts[s.memberId] = 0; });
+                if (newTx.sharedWith && Array.isArray(newTx.sharedWith)) {
+                    newTx.sharedWith.forEach((s: any) => { accumulatedSharedAmounts[s.memberId] = 0; });
                 }
 
                 for (let i = 0; i < totalInstallments; i++) {
@@ -147,14 +147,15 @@ export const useDataStore = () => {
 
                     let currentAmount = baseInstallmentValue;
                     if (i === totalInstallments - 1) {
-                        currentAmount = Number((newTx.amount - accumulatedAmount).toFixed(2));
+                        currentAmount = Number(((newTx.amount as number) - accumulatedAmount).toFixed(2));
                     }
                     accumulatedAmount += currentAmount;
 
+
                     let currentSharedWith = undefined;
-                    if (newTx.sharedWith) {
-                        currentSharedWith = newTx.sharedWith.map(s => {
-                            let assignedAmount = Number(((s.assignedAmount / newTx.amount) * currentAmount).toFixed(2));
+                    if (newTx.sharedWith && Array.isArray(newTx.sharedWith)) {
+                        currentSharedWith = newTx.sharedWith.map((s: any) => {
+                            let assignedAmount = Number(((s.assignedAmount / (newTx.amount as number)) * currentAmount).toFixed(2));
                             if (i === totalInstallments - 1) {
                                 assignedAmount = Number((s.assignedAmount - accumulatedSharedAmounts[s.memberId]).toFixed(2));
                             }
@@ -175,8 +176,10 @@ export const useDataStore = () => {
                         sharedWith: currentSharedWith,
                         isRecurring: false,
                         isSettled: false, // Default isSettled
-                        created_at: now,
-                        updatedAt: now
+                        createdAt: now,
+                        updatedAt: now,
+                        type: newTx.type,
+                        category: newTx.category
                     } as Transaction);
                 }
             } else {
@@ -184,8 +187,13 @@ export const useDataStore = () => {
                     ...newTx,
                     id: newTx.id || crypto.randomUUID(), // USE PROVIDED ID IF AVAILABLE
                     isSettled: false,
-                    created_at: now,
-                    updatedAt: now
+                    createdAt: now,
+                    updatedAt: now,
+                    type: newTx.type,
+                    category: newTx.category,
+                    date: newTx.date,
+                    amount: newTx.amount,
+                    description: newTx.description
                 } as Transaction);
             }
             return txs;
@@ -304,7 +312,7 @@ export const useDataStore = () => {
                         seriesId: crypto.randomUUID(),
                         isRecurring: false,
                         isSettled: false,
-                        created_at: now,
+                        createdAt: now,
                         updatedAt: now,
                         isInstallment: true
                     });
@@ -498,7 +506,7 @@ export const useDataStore = () => {
         if (newTransactions.length > 0) {
             console.log('🔄 Generating Recurring Transactions:', newTransactions.length);
             // Auto-Add found recurrences
-            handlers.handleAddTransactions(newTransactions as any);
+            handlers.handleAddTransactions(newTransactions);
             // Type cast needed if handleAddTransactions expects specific Omit type vs recurrence result
         }
 

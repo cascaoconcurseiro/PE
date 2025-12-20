@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trip, TripChecklistItem } from '../../../types';
-import { Button } from '../../ui/Button';
+import { Button } from '@/components/ui/Button';
 import { ListChecks, Save, Plus, X, Check, Pencil } from 'lucide-react';
 
 interface TripChecklistProps {

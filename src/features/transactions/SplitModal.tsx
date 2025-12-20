@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, User, Users, ChevronDown, Check, Plus, CreditCard } from 'lucide-react';
-import { Button } from '../ui/Button';
+import { Button } from '@/components/ui/Button';
 import { FamilyMember, TransactionSplit } from '../../types';
 
 interface SplitModalProps {

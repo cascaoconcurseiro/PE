@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Button } from '../ui/Button';
-import { Card } from '../ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { X, Clock, Check, Wallet, AlertCircle, ChevronDown } from 'lucide-react';
 import { Transaction, Account, AccountType } from '../../types';
 import { formatCurrency, parseDate } from '../../utils';
-import { useToast } from '../ui/Toast';
+import { useToast } from '@/components/ui/Toast';
 
 interface AnticipateInstallmentsModalProps {
     isOpen: boolean;

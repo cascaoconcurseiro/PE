@@ -10,7 +10,7 @@ export const exportToCSV = (data: (string | number)[][], headers: string[], file
     const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute("href", url);
     link.setAttribute("download", `${filename}.csv`);
     link.style.visibility = 'hidden';
@@ -27,8 +27,8 @@ export const printComponent = () => {
 export const prepareTransactionsForExport = (transactions: Transaction[], accounts: Account[]) => {
     return transactions.map(t => {
         const accountName = accounts.find(a => a.id === t.accountId)?.name || 'N/A';
-        const destAccountName = t.destinationAccountId ? accounts.find(a => a.id === t.destinationAccountId)?.name : '';
-        
+        const destAccountName = t.destinationAccountId ? (accounts.find(a => a.id === t.destinationAccountId)?.name || '') : '';
+
         return [
             new Date(t.date).toLocaleDateString('pt-BR'),
             t.description,

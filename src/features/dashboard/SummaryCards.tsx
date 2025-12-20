@@ -1,8 +1,8 @@
 import React, { useRef } from 'react';
-import { Card } from '../ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Wallet, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../utils';
-import { PrivacyBlur } from '../ui/PrivacyBlur';
+import { PrivacyBlur } from '@/components/ui/PrivacyBlur';
 import { MiniSparkline } from './MiniSparkline';
 
 interface SummaryCardsProps {

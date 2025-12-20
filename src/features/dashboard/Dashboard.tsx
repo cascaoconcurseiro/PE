@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, lazy } from 'react';
 import { Account, Transaction, Goal, Trip } from '../../types';
 import { generateMonthlyReport, generateAnnualReport } from '../../services/pdfService';
 import { Loader2, PieChart, CreditCard, Layers, Printer } from 'lucide-react';
@@ -14,8 +14,8 @@ import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { lazyImport } from '../../utils/lazyImport';
 import { useFinancialDashboard } from './useFinancialDashboard';
 
-const CashFlowChart = lazyImport(() => import('./CashFlowChart').then(m => ({ default: m.CashFlowChart })));
-const CategorySpendingChart = lazyImport(() => import('./CategorySpendingChart').then(m => ({ default: m.CategorySpendingChart })));
+const CashFlowChart = lazy(() => import('./CashFlowChart').then(m => ({ default: m.CashFlowChart })));
+const CategorySpendingChart = lazy(() => import('./CategorySpendingChart').then(m => ({ default: m.CategorySpendingChart })));
 
 interface DashboardProps {
     accounts: Account[];

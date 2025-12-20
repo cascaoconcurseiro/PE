@@ -7,7 +7,7 @@ import { Plus, Save } from 'lucide-react';
 interface AssetFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (assetData: import('../../../types').Asset, isCreatingAccount: boolean, newAccountName: string) => void;
+    onSave: (assetData: Asset, isCreatingAccount: boolean, newAccountName: string) => void;
     editingAsset: Asset | null;
     accounts: Account[];
 }
@@ -34,7 +34,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         const data = Object.fromEntries(formData.entries());
-        
+
         const assetData: Asset = {
             id: editingAsset?.id || crypto.randomUUID(),
             ticker: String(data.ticker || '').toUpperCase(),
@@ -46,7 +46,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
             currency: String(data.currency || 'BRL'),
             accountId: String(data.accountId || ''),
         };
-        
+
         onSave(assetData, isCreatingAccount, newAccountName);
     };
 

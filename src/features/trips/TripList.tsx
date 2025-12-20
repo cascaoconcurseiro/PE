@@ -1,6 +1,6 @@
 import React from 'react';
 import { Trip } from '../../types';
-import { Button } from '../ui/Button';
+import { Button } from '@/components/ui/Button';
 import { Plane, Plus, Calendar } from 'lucide-react';
 import { parseDate } from '../../utils';
 import { TripsSummary } from './TripsSummary';

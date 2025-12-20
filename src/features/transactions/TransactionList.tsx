@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Transaction, TransactionType, Account, FamilyMember, AccountType } from '../../types';
 import { formatCurrency, getCategoryIcon, parseDate } from '../../utils';
 import { RefreshCcw, ScanLine, Plus, Plane, Users, Trash2, ArrowRight, User, CreditCard, Wallet, ArrowDownLeft, ArrowUpRight, Clock, CalendarDays, Lock } from 'lucide-react';
-import { Button } from '../ui/Button';
-import { ConfirmModal } from '../ui/ConfirmModal';
+import { Button } from '@/components/ui/Button';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface TransactionListProps {
     groupedTxs: Record<string, Transaction[]>;

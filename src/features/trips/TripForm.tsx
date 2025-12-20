@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Trip, FamilyMember } from '../../types';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Calendar, Users, X, Clock, Globe, ChevronDown, Check, AlertCircle } from 'lucide-react';
 import { AVAILABLE_CURRENCIES } from '../../services/currencyService';
 import { parseDate } from '../../utils';

@@ -1,6 +1,6 @@
-import { Card } from '../ui/Card';
+import { Card } from '@/components/ui/Card';
 import { BarChart3 } from 'lucide-react';
-import { DivergingBarChart } from '../ui/SimpleCharts';
+import { DivergingBarChart } from '@/components/ui/SimpleCharts';
 import { formatCurrency } from '../../utils';
 
 export interface CashFlowDataItem {

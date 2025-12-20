@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Trip, Transaction, TransactionType, Account, FamilyMember } from '../../../types';
 import { TransactionList } from '../../transactions/TransactionList';
-import { Card } from '../../ui/Card';
-import { Button } from '../../ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Target, Pencil, X, Save, Sparkles, Calculator, ArrowRight, User } from 'lucide-react';
 import { formatCurrency, getCategoryIcon, parseDate } from '../../../utils';
 import { calculateTripDebts } from '../../../services/tripDebtsCalculator';
 import { supabaseService } from '../../../core/services/supabaseService';
-import { useToast } from '../../ui/Toast';
+import { useToast } from '@/components/ui/Toast';
 
 interface TripOverviewProps {
     trip: Trip;

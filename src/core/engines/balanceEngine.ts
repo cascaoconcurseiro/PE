@@ -1,6 +1,6 @@
-import { parseDate } from '../utils';
-import { Account, Transaction, TransactionType } from '../types';
-import { FinancialPrecision } from './financialPrecision';
+import { parseDate } from '../../utils';
+import { Account, Transaction, TransactionType } from '../../types';
+import { FinancialPrecision } from '../../services/financialPrecision';
 
 // Helper for precision - usando FinancialPrecision
 const round2dec = FinancialPrecision.round;

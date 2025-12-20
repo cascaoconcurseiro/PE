@@ -96,8 +96,8 @@ export const processRecurringTransactions = (
                     };
 
                     result.newTransactions.push(newTx);
-                    lastGeneratedDate = newTx.date;
-                    updates = true;
+                    lastGeneratedDate = newTx.date as string;
+                    hasUpdates = true;
                 }
 
                 currentDateToGenerate = advanceDate(currentDateToGenerate);
@@ -105,7 +105,7 @@ export const processRecurringTransactions = (
             }
 
             // Update Parent if needed
-            if (updates && lastGeneratedDate && lastGeneratedDate !== t.lastGenerated) {
+            if (hasUpdates && lastGeneratedDate && lastGeneratedDate !== t.lastGenerated) {
                 result.updatedTransactions.push({ ...t, lastGenerated: lastGeneratedDate });
             }
         }

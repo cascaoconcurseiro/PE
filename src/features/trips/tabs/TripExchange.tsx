@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Trip, TripExchangeEntry } from '../../../types';
-import { Card } from '../../ui/Card';
-import { Button } from '../../ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Save, Plus, Trash2, Pencil } from 'lucide-react';
 import { formatCurrency, parseDate } from '../../../utils';
-import { useToast } from '../../ui/Toast';
+import { useToast } from '@/components/ui/Toast';
 
 interface TripExchangeProps {
     trip: Trip;

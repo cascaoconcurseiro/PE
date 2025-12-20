@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Trip, Transaction, TransactionType, Account, FamilyMember } from '../../types';
-import { Button } from '../ui/Button';
-import { Card } from '../ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { ArrowLeft, Download, Printer, Pencil, Trash2, Plane, Users, Calendar, Wallet } from 'lucide-react';
 import { formatCurrency, parseDate } from '../../utils';
 import { exportToCSV, prepareTripExpensesForExport, printComponent } from '../../services/exportUtils';
-import { ConfirmModal } from '../ui/ConfirmModal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 import { TripOverview } from './tabs/TripOverview';
 import { TripItinerary } from './tabs/TripItinerary';

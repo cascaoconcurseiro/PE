@@ -1,4 +1,4 @@
-import { TransactionDeleteModal } from '../transactions/TransactionDeleteModal';
+import { TransactionDeleteModal } from '../../features/transactions/TransactionDeleteModal';
 import { useState, useMemo, useEffect } from 'react';
 import { ActionModal, ActionType } from './ActionModal';
 import { useDataStore } from '../../hooks/useDataStore';
@@ -7,7 +7,7 @@ import { getInvoiceData } from '../../services/accountUtils';
 import { formatCurrency } from '../../utils';
 import { CreditCard, FileUp, ChevronLeft, ChevronRight, Lock, Calendar } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { TransactionList } from '../transactions/TransactionList';
+import { TransactionList } from '../../features/transactions/TransactionList';
 
 // Reusable Privacy Blur
 const PrivacyBlur = ({ children, showValues }: { children?: React.ReactNode, showValues: boolean }) => {

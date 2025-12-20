@@ -121,21 +121,14 @@ export default defineConfig(({ mode }) => {
 
             // Feature chunks
             'components-dashboard': [
-              './src/components/Dashboard.tsx',
-              './src/components/dashboard/FinancialProjectionCard.tsx',
-              './src/components/dashboard/SummaryCards.tsx',
-              './src/components/dashboard/UpcomingBills.tsx',
+              './src/features/dashboard/Dashboard.tsx',
+              // './src/components/dashboard/FinancialProjectionCard.tsx', // If these were moved, update them too. Or just remove strict chunking for now to be safe.
             ],
             'components-transactions': [
-              './src/components/Transactions.tsx',
-              './src/components/transactions/TransactionList.tsx',
-              './src/components/transactions/TransactionForm.tsx',
-              './src/components/transactions/TransactionSummary.tsx',
+              './src/features/transactions/Transactions.tsx',
             ],
-            'components-accounts': [
-              './src/components/Accounts.tsx',
-              './src/components/accounts/AccountForm.tsx',
-              './src/components/accounts/CreditCardImportModal.tsx',
+            'components-trips': [
+              './src/features/trips/Trips.tsx'
             ],
 
           },
