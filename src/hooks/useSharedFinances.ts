@@ -63,7 +63,7 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                 const targetMemberId = payerMember ? payerMember.id : t.payerId;
 
                 // Safety check: specific member might not exist in local list yet (sync lag)
-                // If so, we might need a fallback 'Unknown' bucket or similar, but for now we create the entry on the fly 
+                // If so, we might need a fallback 'Unknown' bucket or similar, but for now we create the entry on the fly
                 // if it matches a known structure, or just skip/log.
                 // If we use targetMemberId and it's not in invoiceMap (initially populated by members), we must init it.
                 if (!invoiceMap[targetMemberId]) invoiceMap[targetMemberId] = [];
@@ -96,7 +96,7 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
             }
         });
         return invoiceMap;
-    }, [transactions, members]);
+    }, [transactions, members, currentDate, activeTab]);
 
     const getFilteredInvoice = (memberId: string) => {
         const allItems = invoices[memberId] || [];
