@@ -4,7 +4,15 @@
 -- OBJETIVO: Permitir restauração de dados sem erros de Foreign Key ou auditoria
 -- ==============================================================================
 
--- PARTE 1: DESABILITAR PROTEÇÕES (Execute ANTES de restaurar os dados)
+-- PARTE 1: LIMPEZA TOTAL (RESET) - Opcional mas recomendado para Restore Completo
+-- ==============================================================================
+-- ATENÇÃO: Isso apaga todos os dados das tabelas listadas!
+-- Use apenas se estiver fazendo uma restauração completa.
+
+-- TRUNCATE public.transactions, public.accounts, public.trips, public.goals, public.budgets, public.family_members, public.transaction_audit CASCADE;
+-- (Comentado por segurança padrão. Se desejar limpar, descomente a linha acima ou execute manualmente).
+
+-- PARTE 2: DESABILITAR PROTEÇÕES (Execute ANTES de restaurar os dados)
 -- ==============================================================================
 
 BEGIN;
@@ -29,7 +37,7 @@ COMMIT;
 -- [!} PAUSE: Execute seu script de restauração/insert de dados agora.
 
 
--- PARTE 2: REATIVAR PROTEÇÕES E LIMPEZA (Execute APÓS restaurar os dados)
+-- PARTE 3: REATIVAR PROTEÇÕES E LIMPEZA (Execute APÓS restaurar os dados)
 -- ==============================================================================
 
 BEGIN;
@@ -165,7 +173,7 @@ ALTER TABLE public.transaction_audit ADD CONSTRAINT transaction_audit_transactio
 
 COMMIT;
 
--- PARTE 3: REPARO ATIVO DE DADOS (Execute se o diagnóstico acima acusar erros)
+-- PARTE 4: REPARO ATIVO DE DADOS (Execute se o diagnóstico acima acusar erros)
 -- ==============================================================================
 
 -- Desabilitar proteção contra exclusão de mirrors para permitir o reparo
