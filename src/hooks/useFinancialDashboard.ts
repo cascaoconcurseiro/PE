@@ -2,7 +2,14 @@ import { useMemo, useState, useEffect } from 'react';
 import { Account, Transaction, TransactionType, AccountType, Category, Trip } from '../types';
 import { isSameMonth } from '../utils';
 import { convertToBRL } from '../services/currencyService';
-import { calculateProjectedBalance, analyzeFinancialHealth, calculateEffectiveTransactionValue, calculateTotalReceivables, calculateTotalPayables } from '../services/financialLogic';
+import {
+    calculateProjectedBalance,
+    analyzeFinancialHealth,
+    calculateEffectiveTransactionValue,
+    calculateCashFlowData,
+    calculateSparklineData
+} from '../services/financialLogic';
+import { calculateTotalReceivables, calculateTotalPayables } from '../services/balanceEngine';
 import { shouldShowTransaction } from '../utils/transactionFilters';
 import { isForeignTransaction } from '../utils/transactionUtils';
 import { supabaseService } from '../services/supabaseService';
@@ -156,181 +163,19 @@ export const useFinancialDashboard = ({
 
     // Annual Cash Flow Data (LOCAL CALCULATION - Ensures consistency with Widgets)
     const cashFlowData = useMemo(() => {
-        // 1. Get Current Liquid Balance (The Anchor)
-        // 1. Get Current Net Worth Balance (The Anchor) - Sum of ALL Accounts
-        // This ensures that "Acumulado" matches the "Net Worth" concept, which is consistent with
-        // the Chart showing Income/Expense from ALL sources (Investments, etc).
-        // 1. Get Current Net Worth Balance (The Anchor) - Sum of ALL Accounts
-        // This ensures that "Acumulado" matches the "Net Worth" concept, which is consistent with
-        // the Chart showing Income/Expense from ALL sources (Investments, etc).
-        let accumulated = dashboardAccounts.reduce((sum, a) => {
-            const safeBalance = (a.balance !== undefined && a.balance !== null && !isNaN(a.balance)) ? a.balance : 0;
-            const val = convertToBRL(safeBalance, a.currency || 'BRL');
-            if (a.type === AccountType.CREDIT_CARD) {
-                return sum - Math.abs(val); // Debt reduces accumulated
-            }
-            return sum + val;
-        }, 0);
-
-        // 2. Adjust Balance to reach Jan 1st of Selected Year
-        // We travel in time from 'currentDate' (Today) to 'Jan 1st selectedYear'
-        const startOfYear = new Date(selectedYear, 0, 1);
-        startOfYear.setHours(0, 0, 0, 0);
-
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-
-        dashboardTransactions.forEach(t => {
-            if (!shouldShowTransaction(t)) return;
-            const tDate = new Date(t.date);
-            tDate.setHours(0, 0, 0, 0);
-
-            let amount = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
-            if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
-                amount = calculateEffectiveTransactionValue(t);
-            }
-
-            // STRICT FILTER REMOVED: Now we include ALL transactions in the time-travel
-            // to insure the "Acumulado" consistently represents the Net Worth evolution.
-            const account = accounts.find(a => a.id === t.accountId);
-            // Safety check for currency
-            if (account && account.currency && account.currency !== 'BRL') return;
-
-            const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
-
-            // CASE A: Future View (e.g. Viewing 2026, Today is 2025)
-            // We need to ADD everything happenning between Now and Start of 2026
-            if (startOfYear > now) {
-                if (tDate >= now && tDate < startOfYear) {
-                    if (t.type === TransactionType.INCOME) accumulated += amountBRL;
-                    if (t.type === TransactionType.EXPENSE) accumulated -= amountBRL;
-                }
-            }
-            // CASE B: Past/Current View (e.g. Viewing 2025, Today is Dec 2025)
-            // We need to SUBTRACT everything that happened between Start of 2025 and Now (Reverse Engineering)
-            else {
-                if (tDate >= startOfYear && tDate <= now) {
-                    // Reverse logic to go back in time
-                    if (t.type === TransactionType.INCOME) accumulated -= amountBRL;
-                    if (t.type === TransactionType.EXPENSE) accumulated += amountBRL;
-                }
-            }
-        });
-
-        // Now 'accumulated' represents the projected/historical balance at Jan 1st 00:00 of selectedYear.
-
-        // Initialize 12 months
-        const data = Array.from({ length: 12 }, (_, i) => {
-            const date = new Date(selectedYear, i, 1);
-            return {
-                date: date,
-                month: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
-                year: selectedYear,
-                monthIndex: i,
-                Receitas: 0,
-                Despesas: 0,
-                Acumulado: 0
-            };
-        });
-
-        // Aggregate locally
-        dashboardTransactions.forEach(t => {
-            const tYear = new Date(t.date).getFullYear();
-            if (tYear !== selectedYear) return;
-            if (!shouldShowTransaction(t)) return;
-
-            const monthIndex = new Date(t.date).getMonth();
-            const account = accounts.find(a => a.id === t.accountId);
-
-            // CASH FLOW LOGIC
-            let amount = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
-            // For Expenses, handle Split Logic (Payer = Full)
-            if (t.type === TransactionType.EXPENSE) {
-                if (t.isShared && t.payerId && t.payerId !== 'me') {
-                    // I didn't pay, so only count my effective share
-                    amount = calculateEffectiveTransactionValue(t);
-                }
-                // If I paid, amount remains t.amount (FULL)
-            }
-
-            const amountBRL = convertToBRL(amount, account?.currency || 'BRL');
-
-            if (t.type === TransactionType.INCOME) {
-                if (t.isRefund) {
-                    data[monthIndex].Despesas -= amountBRL; // Refund reduces expense
-                } else {
-                    data[monthIndex].Receitas += amountBRL;
-                }
-            } else if (t.type === TransactionType.EXPENSE) {
-                if (t.isRefund) {
-                    data[monthIndex].Despesas -= amountBRL;
-                } else {
-                    data[monthIndex].Despesas += amountBRL;
-                }
-            }
-        });
-
-        // Compute accumulated
-        data.forEach(d => {
-            const result = d.Receitas - d.Despesas;
-            accumulated += result;
-            d.Acumulado = accumulated;
-        });
-
-        // FIX: Mask months before the first transaction text to prevent confusing historical data
-        const minDate = dashboardTransactions.length > 0
-            ? new Date(Math.min(...dashboardTransactions.map(t => new Date(t.date).getTime())))
-            : new Date();
-
-        minDate.setDate(1); // Start of start month
-        minDate.setHours(0, 0, 0, 0);
-
-        return data.map(d => {
-            if (d.date < minDate && d.year <= minDate.getFullYear()) {
-                // If this month is historically before our first transaction, it shouldn't show data
-                return { ...d, Receitas: 0, Despesas: 0, Acumulado: null }; // null forces Recharts to break line or show empty
-            }
-            return d;
-        });
-    }, [dashboardTransactions, selectedYear, accounts, dashboardAccounts]);
+        return calculateCashFlowData(dashboardTransactions, accounts, selectedYear);
+    }, [dashboardTransactions, selectedYear, accounts]);
 
     const hasCashFlowData = useMemo(() => cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0 || d.Acumulado !== 0), [cashFlowData]);
 
+
     // Sparkline Data
     const incomeSparkline = useMemo(() => {
-        const days = 7;
-        const data: number[] = [];
-        for (let i = days - 1; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
-            const dayTotal = dashboardTransactions
-                .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.INCOME)
-                .reduce((sum, t) => {
-                    const val = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
-                    return sum + val;
-                }, 0);
-            data.push(dayTotal);
-        }
-        return data;
+        return calculateSparklineData(dashboardTransactions, TransactionType.INCOME);
     }, [dashboardTransactions]);
 
     const expenseSparkline = useMemo(() => {
-        const days = 7;
-        const data: number[] = [];
-        for (let i = days - 1; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
-            const dayTotal = dashboardTransactions
-                .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.EXPENSE)
-                .reduce((sum, t) => {
-                    const val = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
-                    return sum + val;
-                }, 0);
-            data.push(dayTotal);
-        }
-        return data;
+        return calculateSparklineData(dashboardTransactions, TransactionType.EXPENSE);
     }, [dashboardTransactions]);
 
     // Upcoming Bills

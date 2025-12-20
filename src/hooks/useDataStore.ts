@@ -219,7 +219,17 @@ export const useDataStore = () => {
                 // But we must make sure `series_id` (which links them) is preserved.
                 // `seriesId` is passed as `p_series_id`, so that is fine.
 
-                await supabaseService.createTransactionWithValidation(tx);
+                const newId = await supabaseService.createTransactionWithValidation(tx);
+
+                // ✅ FIX: SYNC ID.
+                // We must update our local state's optimistic transaction to have the REAL ID.
+                // Otherwise editing it immediately will fail or create dupes.
+                // Since this is inside a loop (for Installments), we handle each.
+                if (newId && typeof newId === 'string') {
+                    setTransactions(prev => prev.map(t =>
+                        t.id === tx.id ? { ...t, id: newId } : t // Replace temp ID with Real ID
+                    ));
+                }
             }
         }, 'Transação adicionada com sucesso!');
     };
@@ -539,7 +549,13 @@ export const useDataStore = () => {
         await performOperation(async () => {
             // SEQUENTIAL RPC CALLS for Validation
             for (const tx of txsToCreate) {
-                await supabaseService.createTransactionWithValidation(tx);
+                const newId = await supabaseService.createTransactionWithValidation(tx);
+                // ✅ FIX: SYNC ID in Batch
+                if (newId && typeof newId === 'string') {
+                    setTransactions(prev => prev.map(t =>
+                        t.id === tx.id ? { ...t, id: newId } : t
+                    ));
+                }
             }
         }, `${newTxs.length} transações adicionadas!`);
     };

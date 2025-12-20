@@ -35,16 +35,14 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
         };
     }
 
+    // STRICT MONTH-BASED LOGIC
+    // We ignore the 'day' of the referenceDate.
+    // "December Reference" -> Invoice that closes in December.
     const year = referenceDate.getFullYear();
     const month = referenceDate.getMonth();
     const closingDay = account.closingDay;
 
-    // DEFINIÇÃO DE FATURA:
-    // A fatura de "Maio" é aquela que FECHA em Maio.
-    // Ex: Fecha dia 5. Fatura de Maio fecha 05/05. Período: 06/04 a 05/05.
-    // Ex: Fecha dia 25. Fatura de Maio fecha 25/05. Período: 26/04 a 25/05.
-
-    // Calcular Data de Fechamento desta fatura de referência
+    // Calcular Data de Fechamento desta fatura de referência (Mês/Ano fixos)
     const closingDate = new Date(year, month, closingDay);
 
     // Calcular Data de Início (Fechamento do mês anterior + 1 dia)
@@ -69,22 +67,14 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
 
     const activeTransactions = transactions.filter(shouldShowTransaction);
 
-    // Debug: Log para entender o que está sendo filtrado
-
     // FILTRAGEM ROBUSTA - Apenas por intervalo de datas
     const txs = activeTransactions.filter(t => {
         if (t.accountId !== account.id) return false;
 
-        // Verificar Intervalo de Datas do Ciclo da Fatura
+        // 1. Verificar Intervalo de Datas (Padrão)
         const inRange = t.date >= startStr && t.date <= endStr;
-
-        // Debug: Log transações que não passam no filtro
-        if (!inRange && (t.isInstallment || t.category === Category.OPENING_BALANCE)) {
-        }
-
         return inRange;
     });
-
 
     const finalTxs = txs.sort((a, b) => b.date.localeCompare(a.date));
 
@@ -99,7 +89,7 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
     const nowZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const closingZero = new Date(closingDate.getFullYear(), closingDate.getMonth(), closingDate.getDate());
 
-    // Status simples: Se a data de fechamento já passou, está FECHADA. Se não, ABERTA.
+    // Status: FECHADA se data ATUAL > data fechamento.
     const status = closingZero < nowZero ? 'CLOSED' : 'OPEN';
     const daysToClose = Math.ceil((closingZero.getTime() - nowZero.getTime()) / (1000 * 3600 * 24));
 
@@ -217,7 +207,7 @@ export const getBankExtract = (accountId: string, transactions: Transaction[], r
         // Filter by month/year of referenceDate
         const targetYear = referenceDate.getFullYear();
         const targetMonth = referenceDate.getMonth();
-        
+
         // Use string comparison for consistency and timezone safety
         const monthStart = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-01`;
         const monthEnd = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-31`;
