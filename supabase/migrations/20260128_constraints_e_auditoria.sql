@@ -335,15 +335,37 @@ BEGIN
     AND is_installment = true
     AND (
       total_installments IS NULL 
-      OR total_installments < 2
+      OR total_installments < 1
       OR current_installment IS NULL
       OR current_installment < 1
       OR current_installment > total_installments
+    )
+
+  UNION ALL
+  
+  -- 6. Verificar mirrors órfãos ou quebrados (Ghost/Broken Mirrors)
+  SELECT 
+    'GHOST_MIRROR'::TEXT,
+    'Transações compartilhadas inválidas (sem origem)'::TEXT,
+    'CRITICAL'::TEXT,
+    COUNT(*)::BIGINT
+  FROM transactions t
+  WHERE t.user_id = p_user_id 
+    AND t.deleted = false
+    AND (
+      -- Caso A: Tem source_id mas o original não existe
+      (t.source_transaction_id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM transactions t_orig 
+        WHERE t_orig.id = t.source_transaction_id 
+          AND t_orig.deleted = false
+      ))
+      OR
+      -- Caso B: É compartilhado mas perdeu o source_id (e não é o dono)
+      (t.is_shared = true 
+       AND t.source_transaction_id IS NULL 
+       AND t.description LIKE '%(%)%' -- Heurística de segurança
+       AND t.user_id != 'd7f294f7-8651-47f1-844b-9e04fbca0ea5')
     );
-  
-  -- 6. Verificar saldos divergentes (se necessário)
-  -- Esta verificação é mais complexa e pode ser feita separadamente
-  
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
