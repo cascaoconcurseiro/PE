@@ -38,7 +38,8 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                         memberId: split.memberId,
                         currency: txCurrency,
                         installmentNumber: t.currentInstallment,
-                        totalInstallments: t.totalInstallments
+                        totalInstallments: t.totalInstallments,
+                        creatorUserId: (t.payerId && t.payerId !== 'me') ? t.payerId : t.userId
                     });
                 });
             }
@@ -88,7 +89,8 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                         memberId: targetMemberId,
                         currency: txCurrency,
                         installmentNumber: t.currentInstallment,
-                        totalInstallments: t.totalInstallments
+                        totalInstallments: t.totalInstallments,
+                        creatorUserId: (t.payerId && t.payerId !== 'me') ? t.payerId : t.userId
                     });
                 }
             }

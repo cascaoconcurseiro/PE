@@ -118,9 +118,11 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, acco
                                     {p.name[0]}
                                 </div>
                             ))}
-                            <div className="w-10 h-10 rounded-full border-2 border-dashed border-white/30 bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer">
-                                <Users className="w-4 h-4" />
-                            </div>
+                            {trip.userId === userId && (
+                                <div className="w-10 h-10 rounded-full border-2 border-dashed border-white/30 bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer" onClick={() => onEdit(trip)}>
+                                    <Users className="w-4 h-4" />
+                                </div>
+                            )}
                         </div>
                     </div>
 

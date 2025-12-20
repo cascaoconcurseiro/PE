@@ -273,7 +273,9 @@ BEGIN
   FROM transactions
   WHERE user_id = p_user_id 
     AND deleted = false
-    AND amount <= 0;
+    AND amount <= 0
+
+  UNION ALL
   
   -- 2. Verificar transferências sem destino
   SELECT 
@@ -285,8 +287,10 @@ BEGIN
   WHERE user_id = p_user_id 
     AND deleted = false
     AND type = 'TRANSFERÊNCIA'
-    AND destination_account_id IS NULL;
-  
+    AND destination_account_id IS NULL
+
+  UNION ALL
+
   -- 3. Verificar transferências circulares
   SELECT 
     'TRANSFER_CIRCULAR'::TEXT,
@@ -297,8 +301,10 @@ BEGIN
   WHERE user_id = p_user_id 
     AND deleted = false
     AND type = 'TRANSFERÊNCIA'
-    AND account_id = destination_account_id;
-  
+    AND account_id = destination_account_id
+
+  UNION ALL
+
   -- 4. Verificar transações órfãs (conta deletada)
   SELECT 
     'ORPHAN_TRANSACTION'::TEXT,
@@ -311,10 +317,12 @@ BEGIN
     AND t.account_id IS NOT NULL
     AND NOT EXISTS (
       SELECT 1 FROM accounts a 
-      WHERE a.id = t.account_id::uuid 
+      WHERE a.id = t.account_id 
       AND a.deleted = false
-    );
-  
+    )
+
+  UNION ALL
+
   -- 5. Verificar parcelas inconsistentes
   SELECT 
     'INVALID_INSTALLMENT'::TEXT,

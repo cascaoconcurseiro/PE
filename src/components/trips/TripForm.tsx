@@ -127,9 +127,14 @@ export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, 
             </div>
 
             {!canEditSettings && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm flex items-center gap-2 mb-4">
-                    <AlertCircle className="w-5 h-5" />
-                    <span>Você é um participante convidado. Apenas o criador da viagem pode alterar nome, datas e moeda.</span>
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 text-indigo-800 dark:text-indigo-300 px-4 py-4 rounded-2xl text-sm flex items-start gap-3 mb-6 shadow-sm">
+                    <div className="p-2 bg-indigo-100 dark:bg-indigo-800 rounded-xl mt-0.5">
+                        <AlertCircle className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-bold mb-1">Modo de Visualização (Participante)</p>
+                        <p className="opacity-80">Você pode colaborar no roteiro e checklist, mas as configurações principais (nome, datas, moeda e membros) são exclusivas do criador da viagem.</p>
+                    </div>
                 </div>
             )}
 
