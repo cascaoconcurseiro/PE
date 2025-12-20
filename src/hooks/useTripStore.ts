@@ -5,7 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { Trip } from '../types';
-import { supabaseService } from '../services/supabaseService';
+import { supabaseService } from '../core/services/supabaseService';
 import { logger } from '../services/logger';
 
 interface UseTripStoreProps {
@@ -77,12 +77,12 @@ export const useTripStore = ({ onSuccess, onError, isOnline }: UseTripStoreProps
             setIsLoading(true);
             await supabaseService.deleteTripCascade(id);
             setTrips(prev => prev.filter(t => t.id !== id));
-            
+
             // Remover transações vinculadas à viagem
             if (setTransactions) {
                 setTransactions(prev => prev.filter(t => t.tripId !== id));
             }
-            
+
             onSuccess('Viagem e despesas excluídas.');
         } catch (error) {
             logger.error('Erro ao excluir viagem', error);

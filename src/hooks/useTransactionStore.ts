@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { Transaction, TransactionType, Account } from '../types';
-import { supabaseService } from '../services/supabaseService';
+import { supabaseService } from '../core/services/supabaseService';
 import { parseDate } from '../utils';
 import { logger } from '../services/logger';
 import { FinancialPrecision } from '../services/financialPrecision';
@@ -33,13 +33,13 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
         if (!tx.date) {
             throw new Error('Data obrigatória.');
         }
-        
+
         // ✅ Validar se a data é válida
         const txDate = new Date(tx.date);
         if (isNaN(txDate.getTime())) {
             throw new Error('Data inválida.');
         }
-        
+
         // Validar se a data faz sentido (ex: 2024-02-30 seria inválida)
         const [year, month, day] = tx.date.split('-').map(Number);
         const reconstructedDate = new Date(year, month - 1, day);
@@ -82,7 +82,7 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
         if (newTx.isInstallment && totalInstallments > 1 && newTx.amount) {
             const baseDate = parseDate(newTx.date);
             const seriesId = crypto.randomUUID();
-            
+
             // Usar FinancialPrecision para cálculos precisos
             const baseInstallmentValue = FinancialPrecision.divide(newTx.amount, totalInstallments);
             let accumulatedAmount = 0;
@@ -204,7 +204,7 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
 
             // Optimistic update
             const previousTx = transactions.find(t => t.id === updatedTx.id);
-            setTransactions(prev => prev.map(t => 
+            setTransactions(prev => prev.map(t =>
                 t.id === updatedTx.id ? { ...updatedTx, updatedAt: new Date().toISOString() } : t
             ));
 

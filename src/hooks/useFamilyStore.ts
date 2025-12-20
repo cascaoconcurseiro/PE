@@ -5,7 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { FamilyMember, Transaction } from '../types';
-import { supabaseService } from '../services/supabaseService';
+import { supabaseService } from '../core/services/supabaseService';
 import { logger } from '../services/logger';
 
 interface UseFamilyStoreProps {
@@ -68,7 +68,7 @@ export const useFamilyStore = ({ onSuccess, onError, isOnline }: UseFamilyStoreP
     }, [isOnline, onSuccess, onError]);
 
     const deleteMember = useCallback(async (
-        id: string, 
+        id: string,
         transactions: Transaction[],
         setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>,
         strategy: 'CASCADE' | 'UNLINK' = 'UNLINK'
@@ -117,7 +117,7 @@ export const useFamilyStore = ({ onSuccess, onError, isOnline }: UseFamilyStoreP
             // Deletar o membro
             await supabaseService.delete('family_members', id);
             setFamilyMembers(prev => prev.filter(m => m.id !== id));
-            
+
             onSuccess('Membro removido e vínculos processados.');
         } catch (error) {
             logger.error('Erro ao remover membro', error);

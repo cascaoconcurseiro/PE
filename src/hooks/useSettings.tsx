@@ -9,7 +9,7 @@ import {
     defaultUserSettings
 } from '../types/UserSettings';
 import { supabase } from '../integrations/supabase/client';
-import { supabaseService } from '../services/supabaseService';
+import { supabaseService } from '../core/services/supabaseService';
 
 interface SettingsContextType {
     settings: UserSettings;

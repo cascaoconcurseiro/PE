@@ -5,7 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { Account, TransactionType, Category } from '../types';
-import { supabaseService } from '../services/supabaseService';
+import { supabaseService } from '../core/services/supabaseService';
 import { logger } from '../services/logger';
 
 interface UseAccountStoreProps {
@@ -83,7 +83,7 @@ export const useAccountStore = ({ onSuccess, onError, isOnline }: UseAccountStor
                 type: acc.type!,
                 name: acc.name!
             } as Account;
-            
+
             setAccounts(prev => [...prev, newAccount]);
             onSuccess('Conta criada!');
         } catch (error) {

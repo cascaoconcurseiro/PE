@@ -5,7 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { Budget, Goal } from '../types';
-import { supabaseService } from '../services/supabaseService';
+import { supabaseService } from '../core/services/supabaseService';
 import { logger } from '../services/logger';
 
 interface UseBudgetGoalStoreProps {
@@ -167,7 +167,7 @@ export const useBudgetGoalStore = ({ onSuccess, onError, isOnline }: UseBudgetGo
         addBudget,
         updateBudget,
         deleteBudget,
-        
+
         // Goals
         goals,
         setGoals,
@@ -175,7 +175,7 @@ export const useBudgetGoalStore = ({ onSuccess, onError, isOnline }: UseBudgetGo
         addGoal,
         updateGoal,
         deleteGoal,
-        
+
         isLoading
     };
 };
