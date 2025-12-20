@@ -8,10 +8,6 @@ interface FinancialProjectionCardProps {
     currentBalance: number;
     pendingIncome: number;
     pendingExpenses: number;
-    totalMonthIncome: number;
-    totalMonthExpenses: number;
-    realizedIncome: number;
-    realizedExpenses: number;
     monthlyIncome: number;
     monthlyExpense: number;
     healthStatus: 'POSITIVE' | 'WARNING' | 'CRITICAL';
@@ -24,10 +20,6 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
     currentBalance,
     pendingIncome,
     pendingExpenses,
-    totalMonthIncome,
-    totalMonthExpenses,
-    realizedIncome,
-    realizedExpenses,
     monthlyIncome,
     monthlyExpense,
     healthStatus,
@@ -41,7 +33,13 @@ export const FinancialProjectionCard: React.FC<FinancialProjectionCardProps> = (
     const isViewingPastMonth = viewingMonthStart < currentMonthStart;
     const isViewingFutureMonth = viewingMonthStart > currentMonthStart;
 
-    // Resultado do mês
+    // Calcular valores totais e realizados com validação
+    const totalMonthIncome = (monthlyIncome || 0) + (pendingIncome || 0);
+    const totalMonthExpenses = (monthlyExpense || 0) + (pendingExpenses || 0);
+    const realizedIncome = monthlyIncome || 0;
+    const realizedExpenses = monthlyExpense || 0;
+
+    // Resultado do mês com validação
     const monthResult = totalMonthIncome - totalMonthExpenses;
 
     // Labels baseados no período

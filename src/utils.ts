@@ -34,12 +34,17 @@ export const round2dec = (num: number): number => {
 
 export const formatCurrency = (value: number, currency: string = 'BRL') => {
   try {
+    // Validar se o valor é um número válido
+    if (value === null || value === undefined || isNaN(value)) {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(0);
+    }
+    
     // Ensure we format a clean number
     const cleanValue = FinancialPrecision.round(value);
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: currency }).format(cleanValue);
   } catch (e) {
-    // Fallback if currency code is invalid
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    // Fallback if currency code is invalid or any other error
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(0);
   }
 };
 

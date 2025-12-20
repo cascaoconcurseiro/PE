@@ -290,9 +290,13 @@ export const calculateProjectedBalance = (
  * Gera insights rápidos baseados na regra 50-30-20 ou similar.
  */
 export const analyzeFinancialHealth = (income: number, expenses: number): 'POSITIVE' | 'WARNING' | 'CRITICAL' => {
-    if (income === 0) return expenses > 0 ? 'CRITICAL' : 'POSITIVE';
+    // Validar se os valores são números válidos
+    const safeIncome = (income !== undefined && income !== null && !isNaN(income)) ? income : 0;
+    const safeExpenses = (expenses !== undefined && expenses !== null && !isNaN(expenses)) ? expenses : 0;
+    
+    if (safeIncome === 0) return safeExpenses > 0 ? 'CRITICAL' : 'POSITIVE';
 
-    const savingRate = (income - expenses) / income;
+    const savingRate = (safeIncome - safeExpenses) / safeIncome;
 
     if (savingRate < 0) return 'CRITICAL'; // Gastando mais do que ganha
     if (savingRate < 0.1) return 'WARNING'; // Poupando menos de 10%

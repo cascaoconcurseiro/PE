@@ -20,9 +20,24 @@ export class FinancialPrecision {
    * CRÍTICO: Usa Decimal.js para evitar erros de ponto flutuante
    */
   static round(value: number | string | Decimal): number {
-    return new Decimal(value)
-      .toDecimalPlaces(this.DECIMALS, Decimal.ROUND_HALF_UP)
-      .toNumber();
+    // Validar se o valor é válido
+    if (value === null || value === undefined) {
+      return 0;
+    }
+    
+    // Se for number e for NaN, retornar 0
+    if (typeof value === 'number' && isNaN(value)) {
+      return 0;
+    }
+    
+    try {
+      return new Decimal(value)
+        .toDecimalPlaces(this.DECIMALS, Decimal.ROUND_HALF_UP)
+        .toNumber();
+    } catch (e) {
+      // Se houver erro na conversão, retornar 0
+      return 0;
+    }
   }
 
   /**
