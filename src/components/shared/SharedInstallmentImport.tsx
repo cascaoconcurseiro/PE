@@ -87,12 +87,16 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 const dateStr = utcDate.toISOString().split('T')[0];
                 const transactionId = crypto.randomUUID(); // Idempotency Key
 
-                // For shared installment imports, the current user wants to record that THEY will pay (owe money)
-                // So the transaction should be structured so the current user sees this as a DEBIT
-                // This means the current user should be the one who owes the money
-                // Set the assignee as the payer (the one who paid/should pay) and current user in sharedWith
-                // Or more accurately: set assignee as payer and have no splits, so current user's share = full amount
-                const sharedWith: TransactionSplit[] = []; // No one else owes money for this installment
+                // For shared installment imports, when user selects "assignee" as who will pay,
+                // it means the assignee owes money to the current user (current user will receive money)
+                // So the current user should see this as CREDIT (income they will receive)
+                // This means the current user should be the payer and assignee should be in sharedWith
+                const sharedWith: TransactionSplit[] = [{
+                    memberId: assigneeId, // Assignee owes money to current user
+                    assignedAmount: currentInstallmentAmount,
+                    percentage: 100,
+                    isSettled: false
+                }];
 
                 generatedTransactions.push({
                     id: transactionId, // Explicit ID for Idempotency
@@ -103,9 +107,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     category: category,
                     date: dateStr,
                     accountId: accountId || undefined,
-                    payerId: assigneeId, // The assignee is the one who paid/should pay
+                    payerId: undefined, // Current user is the payer (will receive money back)
                     isShared: true,
-                    sharedWith: sharedWith, // No one else owes money (current user's share = full amount)
+                    sharedWith: sharedWith, // Assignee owes money to current user
                     isInstallment: numInstallments > 1,
                     currentInstallment: i + 1,
                     totalInstallments: numInstallments,
