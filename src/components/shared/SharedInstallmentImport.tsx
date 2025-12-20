@@ -87,13 +87,12 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 const dateStr = utcDate.toISOString().split('T')[0];
                 const transactionId = crypto.randomUUID(); // Idempotency Key
 
-                // 100% Assignment to Selected Member
-                const sharedWith: TransactionSplit[] = [{
-                    memberId: assigneeId,
-                    assignedAmount: currentInstallmentAmount,
-                    percentage: 100,
-                    isSettled: false
-                }];
+                // For shared installment imports, the current user wants to record that THEY will pay (owe money)
+                // So the transaction should be structured so the current user sees this as a DEBIT
+                // This means the current user should be the one who owes the money
+                // Set the assignee as the payer (the one who paid/should pay) and current user in sharedWith
+                // Or more accurately: set assignee as payer and have no splits, so current user's share = full amount
+                const sharedWith: TransactionSplit[] = []; // No one else owes money for this installment
 
                 generatedTransactions.push({
                     id: transactionId, // Explicit ID for Idempotency
@@ -104,9 +103,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     category: category,
                     date: dateStr,
                     accountId: accountId || undefined,
-                    payerId: undefined, // NULL = Eu paguei (não enviar 'me' para o banco)
+                    payerId: assigneeId, // The assignee is the one who paid/should pay
                     isShared: true,
-                    sharedWith: sharedWith, // They owe me
+                    sharedWith: sharedWith, // No one else owes money (current user's share = full amount)
                     isInstallment: numInstallments > 1,
                     currentInstallment: i + 1,
                     totalInstallments: numInstallments,
