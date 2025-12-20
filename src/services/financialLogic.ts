@@ -9,32 +9,35 @@ import { convertToBRL } from './currencyService';
  * - Se não é compartilhada: Retorna o valor total.
  */
 export const calculateEffectiveTransactionValue = (t: Transaction): number => {
+    // Safety Fallback for invalid amounts
+    const safeAmount = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
+
     // Se não for despesa ou não for compartilhada, o valor é o original
     const isShared = t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me');
 
     if (t.type !== TransactionType.EXPENSE || !isShared) {
-        return t.amount;
+        return safeAmount;
     }
 
-    const splitsTotal = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
+    const splitsTotal = t.sharedWith?.reduce((sum, s) => sum + (s.assignedAmount || 0), 0) || 0;
 
     // ✅ VALIDAÇÃO CRÍTICA: Splits não podem ser maiores que o total
-    if (splitsTotal > t.amount) {
+    if (splitsTotal > safeAmount) {
         // Retornar total como fallback para evitar valores negativos
-        return t.amount;
+        return safeAmount;
     }
 
     // Cenário 1: Eu paguei (payerId vazio ou 'me')
     if (!t.payerId || t.payerId === 'me') {
         // Custo Efetivo = O que saiu da conta - O que vou receber de volta
-        return t.amount - splitsTotal;
+        return safeAmount - splitsTotal;
     }
 
     // Cenário 2: Outro pagou
     else {
         // Custo Efetivo = O que eu devo (Minha parte)
         // Se o total é 100 e os splits somam 60 (outras pessoas), minha parte é 40
-        const myShare = t.amount - splitsTotal;
+        const myShare = safeAmount - splitsTotal;
         return Math.max(0, myShare);
     }
 };

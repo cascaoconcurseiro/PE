@@ -40,6 +40,9 @@ export const AVAILABLE_CURRENCIES = [
  * Converts any amount to BRL for aggregation purposes
  */
 export const convertToBRL = (amount: number, currencyCode: string): number => {
+    // Safety check for invalid inputs
+    if (amount === undefined || amount === null || isNaN(amount)) return 0;
+
     const rate = EXCHANGE_RATES[currencyCode] || 1;
     return amount * rate;
 };

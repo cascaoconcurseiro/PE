@@ -110,10 +110,12 @@ export const useFinancialDashboard = ({
             // STRICT CURRENCY CHECK: Omit if not BRL (or empty/null which implies Default)
             if (curr.currency && curr.currency !== 'BRL') return acc;
 
+            const safeBalance = (curr.balance !== undefined && curr.balance !== null && !isNaN(curr.balance)) ? curr.balance : 0;
+
             if (curr.type === AccountType.CREDIT_CARD) {
-                return acc - Math.abs(curr.balance);
+                return acc - Math.abs(safeBalance);
             }
-            return acc + curr.balance;
+            return acc + safeBalance;
         }, 0);
 
         // 2. Receivables (Credits from Shared Transactions)
@@ -157,8 +159,12 @@ export const useFinancialDashboard = ({
         // 1. Get Current Net Worth Balance (The Anchor) - Sum of ALL Accounts
         // This ensures that "Acumulado" matches the "Net Worth" concept, which is consistent with
         // the Chart showing Income/Expense from ALL sources (Investments, etc).
+        // 1. Get Current Net Worth Balance (The Anchor) - Sum of ALL Accounts
+        // This ensures that "Acumulado" matches the "Net Worth" concept, which is consistent with
+        // the Chart showing Income/Expense from ALL sources (Investments, etc).
         let accumulated = dashboardAccounts.reduce((sum, a) => {
-            const val = convertToBRL(a.balance, a.currency || 'BRL');
+            const safeBalance = (a.balance !== undefined && a.balance !== null && !isNaN(a.balance)) ? a.balance : 0;
+            const val = convertToBRL(safeBalance, a.currency || 'BRL');
             if (a.type === AccountType.CREDIT_CARD) {
                 return sum - Math.abs(val); // Debt reduces accumulated
             }
@@ -178,7 +184,7 @@ export const useFinancialDashboard = ({
             const tDate = new Date(t.date);
             tDate.setHours(0, 0, 0, 0);
 
-            let amount = t.amount;
+            let amount = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
             if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
                 amount = calculateEffectiveTransactionValue(t);
             }
@@ -236,7 +242,7 @@ export const useFinancialDashboard = ({
             const account = accounts.find(a => a.id === t.accountId);
 
             // CASH FLOW LOGIC
-            let amount = t.amount;
+            let amount = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
             // For Expenses, handle Split Logic (Payer = Full)
             if (t.type === TransactionType.EXPENSE) {
                 if (t.isShared && t.payerId && t.payerId !== 'me') {
@@ -352,7 +358,7 @@ export const useFinancialDashboard = ({
                     const account = accounts.find(a => a.id === t.accountId);
 
                     // CASH FLOW CHART LOGIC:
-                    let expenseValue = t.amount;
+                    let expenseValue = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
                     if (t.isShared && t.payerId && t.payerId !== 'me') {
                         expenseValue = calculateEffectiveTransactionValue(t);
                     }
@@ -374,7 +380,7 @@ export const useFinancialDashboard = ({
                     const account = accounts.find(a => a.id === t.accountId);
 
                     // CASH FLOW CHART LOGIC:
-                    let expenseValue = t.amount;
+                    let expenseValue = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
                     if (t.isShared && t.payerId && t.payerId !== 'me') {
                         expenseValue = calculateEffectiveTransactionValue(t);
                     }
