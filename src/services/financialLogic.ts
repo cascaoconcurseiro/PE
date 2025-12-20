@@ -133,6 +133,9 @@ export const calculateProjectedBalance = (
 
     // Helper to convert transaction amount to BRL using stored rate or fallback
     const toBRL = (amount: number, t: Transaction) => {
+        // Safety First
+        if (amount === undefined || amount === null || isNaN(amount)) return 0;
+
         if (t.exchangeRate && t.exchangeRate > 0) {
             return amount * t.exchangeRate;
         }
@@ -255,15 +258,18 @@ export const calculateProjectedBalance = (
         }
 
         // Standard Income/Expense
+        // Proteção contra NaN
+        const safeAmount = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
+
         if (t.type === TransactionType.INCOME) {
             const accId = t.accountId;
             if (accId && liquidityAccountIds.has(accId)) {
-                pendingIncome += toBRL(t.amount, t);
+                pendingIncome += toBRL(safeAmount, t);
             }
         } else if (t.type === TransactionType.EXPENSE) {
             const accId = t.accountId;
             if (accId && liquidityAccountIds.has(accId)) {
-                pendingExpenses += toBRL(t.amount, t);
+                pendingExpenses += toBRL(safeAmount, t);
             }
         }
     });

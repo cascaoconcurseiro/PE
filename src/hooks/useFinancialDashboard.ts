@@ -79,7 +79,8 @@ export const useFinancialDashboard = ({
         .filter(t => t.type === TransactionType.INCOME)
         .reduce((acc, t) => {
             const account = accounts.find(a => a.id === t.accountId);
-            const amount = t.isRefund ? -t.amount : t.amount;
+            const safeAmount = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
+            const amount = t.isRefund ? -safeAmount : safeAmount;
             return acc + convertToBRL(amount, account?.currency || 'BRL');
         }, 0), [monthlyTransactions, accounts]);
 
@@ -89,7 +90,7 @@ export const useFinancialDashboard = ({
             const account = accounts.find(a => a.id === t.accountId);
 
             // CASH FLOW LOGIC: If I paid, count FULL amount. Only check effective/split if I didn't pay.
-            let expenseValue = t.amount;
+            let expenseValue = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
             if (t.isShared && t.payerId && t.payerId !== 'me') {
                 expenseValue = calculateEffectiveTransactionValue(t);
             }
@@ -305,7 +306,10 @@ export const useFinancialDashboard = ({
             const dateStr = d.toISOString().split('T')[0];
             const dayTotal = dashboardTransactions
                 .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.INCOME)
-                .reduce((sum, t) => sum + t.amount, 0);
+                .reduce((sum, t) => {
+                    const val = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
+                    return sum + val;
+                }, 0);
             data.push(dayTotal);
         }
         return data;
@@ -320,7 +324,10 @@ export const useFinancialDashboard = ({
             const dateStr = d.toISOString().split('T')[0];
             const dayTotal = dashboardTransactions
                 .filter(t => t.date.startsWith(dateStr) && t.type === TransactionType.EXPENSE)
-                .reduce((sum, t) => sum + t.amount, 0);
+                .reduce((sum, t) => {
+                    const val = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
+                    return sum + val;
+                }, 0);
             data.push(dayTotal);
         }
         return data;
