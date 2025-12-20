@@ -13,7 +13,7 @@ import { CreditCardDetail } from './accounts/CreditCardDetail';
 import { BankingDetail } from './accounts/BankingDetail';
 import { parseOFX, OFXTransaction } from '../services/ofxParser';
 import { ImportModal } from './accounts/ImportModal';
-import { InstallmentAnticipationModal } from './transactions/InstallmentAnticipationModal';
+import { InstallmentAnticipationModal } from '../features/transactions/InstallmentAnticipationModal';
 import { CreditCardImportModal } from './accounts/CreditCardImportModal';
 
 // New Refactored Components
@@ -35,7 +35,7 @@ interface AccountsProps {
     onAnticipate: (ids: string[], date: string, accountId: string) => void;
     initialAccountId?: string | null;
     onClearInitialAccount?: () => void;
-    members?: import('../types').FamilyMember[]; 
+    members?: import('../types').FamilyMember[];
     // Actually Account defines FamilyMember import usually.
     onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
 }
