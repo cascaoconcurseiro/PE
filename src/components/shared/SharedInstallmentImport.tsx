@@ -119,7 +119,11 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 });
             }
             onImport(generatedTransactions);
-            // Modal closes via parent calling onClose or effect, but we keep state coherent
+            // Close modal after a brief delay to ensure UI updates properly
+            setTimeout(() => {
+                setIsSubmitting(false);
+                onClose(); // Close the modal to ensure proper cleanup
+            }, 150);
         } catch (e) {
             console.error("Error importing:", e);
             setIsSubmitting(false); // Re-enable on error
