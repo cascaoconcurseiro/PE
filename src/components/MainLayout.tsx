@@ -6,6 +6,7 @@ import { Sidebar } from './layout/Sidebar';
 import { MobileNav } from './layout/MobileNav';
 import { checkDataConsistency } from '../core/engines/financialLogic';
 import { NotificationSystem } from './layout/NotificationSystem';
+import { SmoothMonthSelector } from './ui/SmoothMonthSelector';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -47,12 +48,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     onOpenInconsistenciesModal
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-    const getMonthInputValue = (date: Date) => {
-        const year = date.getFullYear();
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        return `${year} -${month} `;
-    };
 
     return (
         <div className="flex h-screen sm:h-screen supports-[height:100dvh]:h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans overflow-hidden">
@@ -103,21 +98,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                         </div>
 
                         {/* Month Selector */}
-                        <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 rounded-full p-1 border border-slate-200 dark:border-slate-700 mx-2 flex-1 justify-center max-w-[200px] md:max-w-[220px]">
-                            <button onClick={() => onMonthChange('prev')} className="relative z-30 p-3 md:p-1.5 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-full transition-all text-slate-600 dark:text-slate-400 active:scale-90"><ChevronLeft className="w-4 h-4" /></button>
-                            <div className="flex items-center justify-center relative group cursor-pointer h-8 px-2 min-w-[70px]">
-                                <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 pointer-events-none leading-none pt-0.5 truncate">
-                                    {currentDate.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()}/{currentDate.getFullYear().toString().slice(2)}
-                                </span>
-                                <input
-                                    type="month"
-                                    value={getMonthInputValue(currentDate)}
-                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20"
-                                    onChange={onDateChange}
-                                />
-                            </div>
-                            <button onClick={() => onMonthChange('next')} className="relative z-30 p-3 md:p-1.5 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-full transition-all text-slate-600 dark:text-slate-400 active:scale-90"><ChevronRight className="w-4 h-4" /></button>
-                        </div>
+                        <SmoothMonthSelector
+                            currentDate={currentDate}
+                            onDateChange={onDateChange}
+                            onMonthChange={onMonthChange}
+                        />
 
                         {/* Top Right Actions */}
                         <div className="flex items-center gap-1 sm:gap-2">

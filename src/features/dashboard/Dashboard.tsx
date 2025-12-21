@@ -10,9 +10,10 @@ import { SummaryCards } from './SummaryCards';
 import { UpcomingBills } from './UpcomingBills';
 
 import { DashboardSkeleton } from '../../components/ui/Skeleton';
+import { SmoothLoadingOverlay } from '../../components/ui/SmoothLoadingOverlay';
 
 import { lazyImport } from '../../utils/lazyImport';
-import { useFinancialDashboard } from './useFinancialDashboard';
+import { useOptimizedFinancialDashboard } from './useOptimizedFinancialDashboard';
 
 const CashFlowChart = lazy(() => import('./CashFlowChart').then(m => ({ default: m.CashFlowChart })));
 const CategorySpendingChart = lazy(() => import('./CategorySpendingChart').then(m => ({ default: m.CategorySpendingChart })));
@@ -59,8 +60,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
         incomeSparkline,
         expenseSparkline,
         upcomingBills,
-        spendingChartData
-    } = useFinancialDashboard({
+        spendingChartData,
+        isCalculatingProjection,
+        isCalculatingCharts
+    } = useOptimizedFinancialDashboard({
         accounts,
         transactions,
         projectedAccounts,
@@ -116,36 +119,42 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
                 </div>
             )}
 
-            <FinancialProjectionCard
-                projectedBalance={projectedBalance}
-                currentBalance={currentBalance}
-                pendingIncome={pendingIncome}
-                pendingExpenses={pendingExpenses}
-                monthlyIncome={monthlyIncome}
-                monthlyExpense={monthlyExpense}
-                healthStatus={healthStatus}
-                currentDate={currentDate}
-                showValues={showValues}
-            />
-
-            <SummaryCards
-                netWorth={netWorth}
-                monthlyIncome={monthlyIncome}
-                monthlyExpense={monthlyExpense}
-                currentDate={currentDate}
-                showValues={showValues}
-                incomeSparkline={incomeSparkline}
-                expenseSparkline={expenseSparkline}
-            />
-
-            <Suspense fallback={<ChartSkeleton />}>
-                <CashFlowChart
-                    data={cashFlowData}
-                    hasData={hasCashFlowData}
-                    periodLabel={`Visão anual de ${selectedYear}`}
+            <SmoothLoadingOverlay isLoading={isCalculatingProjection} loadingText="Calculando projeção...">
+                <FinancialProjectionCard
+                    projectedBalance={projectedBalance}
+                    currentBalance={currentBalance}
+                    pendingIncome={pendingIncome}
+                    pendingExpenses={pendingExpenses}
+                    monthlyIncome={monthlyIncome}
+                    monthlyExpense={monthlyExpense}
+                    healthStatus={healthStatus}
+                    currentDate={currentDate}
                     showValues={showValues}
                 />
-            </Suspense>
+            </SmoothLoadingOverlay>
+
+            <SmoothLoadingOverlay isLoading={isCalculatingProjection} loadingText="Atualizando resumo...">
+                <SummaryCards
+                    netWorth={netWorth}
+                    monthlyIncome={monthlyIncome}
+                    monthlyExpense={monthlyExpense}
+                    currentDate={currentDate}
+                    showValues={showValues}
+                    incomeSparkline={incomeSparkline}
+                    expenseSparkline={expenseSparkline}
+                />
+            </SmoothLoadingOverlay>
+
+            <SmoothLoadingOverlay isLoading={isCalculatingCharts} loadingText="Atualizando gráfico...">
+                <Suspense fallback={<ChartSkeleton />}>
+                    <CashFlowChart
+                        data={cashFlowData}
+                        hasData={hasCashFlowData}
+                        periodLabel={`Visão anual de ${selectedYear}`}
+                        showValues={showValues}
+                    />
+                </Suspense>
+            </SmoothLoadingOverlay>
 
             <UpcomingBills
                 bills={upcomingBills}
@@ -178,13 +187,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
                     </div>
                 </div>
 
-                <Suspense fallback={<ChartSkeleton />}>
-                    <CategorySpendingChart
-                        data={spendingChartData}
-                        totalExpense={monthlyExpense}
-                        showValues={showValues}
-                    />
-                </Suspense>
+                <SmoothLoadingOverlay isLoading={isCalculatingCharts} loadingText="Atualizando gastos...">
+                    <Suspense fallback={<ChartSkeleton />}>
+                        <CategorySpendingChart
+                            data={spendingChartData}
+                            totalExpense={monthlyExpense}
+                            showValues={showValues}
+                        />
+                    </Suspense>
+                </SmoothLoadingOverlay>
             </div>
 
             {/* Report Buttons - Bottom of Page */}
