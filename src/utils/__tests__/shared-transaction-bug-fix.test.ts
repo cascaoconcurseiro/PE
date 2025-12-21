@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Transaction, TransactionType, Account, AccountType } from '../../types';
+import { Transaction, TransactionType, Account, AccountType, Category } from '../../types';
 import { calculateSafeMonthlyTotals } from '../SafeFinancialCalculations';
 import { useFinancialDashboard } from '../../features/dashboard/useFinancialDashboard';
 import { calculateCashFlowData } from '../../core/engines/financialLogic';
@@ -11,6 +11,7 @@ describe('Shared Transaction Bug Fix', () => {
       name: 'Conta Corrente',
       type: AccountType.CHECKING,
       balance: 1000,
+      initialBalance: 1000,
       currency: 'BRL',
       userId: 'user1',
       createdAt: '2024-01-01',
@@ -28,6 +29,7 @@ describe('Shared Transaction Bug Fix', () => {
           description: 'Fran pagou a fatura',
           amount: 95.00,
           type: TransactionType.EXPENSE,
+          category: Category.OTHER,
           date: '2024-12-15',
           accountId: 'acc1',
           payerId: 'fran-user-id', // Fran paid
@@ -54,6 +56,7 @@ describe('Shared Transaction Bug Fix', () => {
           description: 'Fran pagou a fatura (quitado)',
           amount: 95.00,
           type: TransactionType.EXPENSE,
+          category: Category.OTHER,
           date: '2024-12-15',
           accountId: 'acc1',
           payerId: 'fran-user-id', // Fran paid
@@ -80,6 +83,7 @@ describe('Shared Transaction Bug Fix', () => {
           description: 'Eu paguei a conta',
           amount: 100.00,
           type: TransactionType.EXPENSE,
+          category: Category.OTHER,
           date: '2024-12-15',
           accountId: 'acc1',
           payerId: 'me', // I paid
@@ -107,6 +111,7 @@ describe('Shared Transaction Bug Fix', () => {
           description: 'Fran pagou a fatura',
           amount: 95.00,
           type: TransactionType.EXPENSE,
+          category: Category.OTHER,
           date: '2024-12-15',
           accountId: 'acc1',
           payerId: 'fran-user-id', // Fran paid
@@ -133,6 +138,7 @@ describe('Shared Transaction Bug Fix', () => {
           description: 'Fran pagou a fatura (quitado)',
           amount: 95.00,
           type: TransactionType.EXPENSE,
+          category: Category.OTHER,
           date: '2024-12-15',
           accountId: 'acc1',
           payerId: 'fran-user-id', // Fran paid
@@ -162,6 +168,7 @@ describe('Shared Transaction Bug Fix', () => {
           description: 'Supermercado',
           amount: 200.00,
           type: TransactionType.EXPENSE,
+          category: Category.OTHER,
           date: '2024-12-10',
           accountId: 'acc1',
           payerId: 'me',
@@ -176,6 +183,7 @@ describe('Shared Transaction Bug Fix', () => {
           description: 'Fran não pagou a fatura',
           amount: 95.00,
           type: TransactionType.EXPENSE,
+          category: Category.OTHER,
           date: '2024-12-15',
           accountId: 'acc1',
           payerId: 'fran-user-id', // Fran paid originally
