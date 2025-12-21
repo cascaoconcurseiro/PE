@@ -115,12 +115,25 @@ export const useOptimizedFinancialDashboard = ({
 
         setIsCalculatingProjection(true);
         
-        const result = calculateProjectedBalance(dashboardProjectedAccounts, dashboardTransactions, currentDate);
-        
-        calculationCache.set(cacheKey, result);
-        setIsCalculatingProjection(false);
-        
-        return result;
+        try {
+            const result = calculateProjectedBalance(dashboardProjectedAccounts, dashboardTransactions, currentDate);
+            
+            calculationCache.set(cacheKey, result);
+            setIsCalculatingProjection(false);
+            
+            return result;
+        } catch (error) {
+            console.error('Error calculating projection:', error);
+            setIsCalculatingProjection(false);
+            
+            // Return safe default values
+            return {
+                currentBalance: 0,
+                projectedBalance: 0,
+                pendingIncome: 0,
+                pendingExpenses: 0
+            };
+        }
     }, [dashboardProjectedAccounts, dashboardTransactions, monthKey, currentDate]);
 
     // 4. TOTAIS MENSAIS (Críticos para o dashboard)
@@ -225,31 +238,37 @@ export const useOptimizedFinancialDashboard = ({
 
         // Usar startTransition para não bloquear a UI
         startTransition(() => {
-            const netWorth = calculateDashboardNetWorth(dashboardAccounts, dashboardTransactions, trips);
-            
-            const cashFlowData = calculateCashFlowData(dashboardTransactions, dashboardAccounts, deferredYear);
-            const hasCashFlowData = cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0 || d.Acumulado !== 0);
-            
-            const incomeSparkline = calculateSparklineData(dashboardTransactions, TransactionType.INCOME);
-            const expenseSparkline = calculateSparklineData(dashboardTransactions, TransactionType.EXPENSE);
-            
-            const upcomingBills = getUpcomingBills(dashboardTransactions);
-            
-            const spendingChartData = calculateSpendingChartData(monthlyTransactions, dashboardAccounts, deferredSpendingView);
+            try {
+                const netWorth = calculateDashboardNetWorth(dashboardAccounts, dashboardTransactions, trips);
+                
+                const cashFlowData = calculateCashFlowData(dashboardTransactions, dashboardAccounts, deferredYear);
+                const hasCashFlowData = cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0 || d.Acumulado !== 0);
+                
+                const incomeSparkline = calculateSparklineData(dashboardTransactions, TransactionType.INCOME);
+                const expenseSparkline = calculateSparklineData(dashboardTransactions, TransactionType.EXPENSE);
+                
+                const upcomingBills = getUpcomingBills(dashboardTransactions);
+                
+                const spendingChartData = calculateSpendingChartData(monthlyTransactions, dashboardAccounts, deferredSpendingView);
 
-            const result = {
-                netWorth: SafeFinancialCalculator.toSafeNumber(netWorth, 0),
-                cashFlowData,
-                hasCashFlowData,
-                incomeSparkline: incomeSparkline.map(v => SafeFinancialCalculator.toSafeNumber(v, 0)),
-                expenseSparkline: expenseSparkline.map(v => SafeFinancialCalculator.toSafeNumber(v, 0)),
-                upcomingBills,
-                spendingChartData
-            };
+                const result = {
+                    netWorth: SafeFinancialCalculator.toSafeNumber(netWorth, 0),
+                    cashFlowData,
+                    hasCashFlowData,
+                    incomeSparkline: incomeSparkline.map(v => SafeFinancialCalculator.toSafeNumber(v, 0)),
+                    expenseSparkline: expenseSparkline.map(v => SafeFinancialCalculator.toSafeNumber(v, 0)),
+                    upcomingBills,
+                    spendingChartData
+                };
 
-            calculationCache.set(cacheKey, result);
-            setHeavyCalculations(result);
-            setIsCalculatingCharts(false);
+                calculationCache.set(cacheKey, result);
+                setHeavyCalculations(result);
+                setIsCalculatingCharts(false);
+            } catch (error) {
+                console.error('Error calculating heavy data:', error);
+                setIsCalculatingCharts(false);
+                // Keep previous data on error - don't update heavyCalculations
+            }
         });
     }, [dashboardAccounts, dashboardTransactions, monthlyTransactions, deferredYear, deferredSpendingView, trips]);
 

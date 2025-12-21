@@ -79,7 +79,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500 pb-safe">
+        <div className="space-y-6 animate-in fade-in duration-300 pb-safe">
 
 
             {/* Friendly Greeting & Sync Indicator */}
