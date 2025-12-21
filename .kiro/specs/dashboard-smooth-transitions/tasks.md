@@ -29,7 +29,7 @@ Este plano implementa melhorias de performance e fluidez no dashboard, removendo
   - Testar coordenação entre componentes
   - _Requirements: 2.3, 5.1_
 
-- [-] 3. Refatorar useOptimizedFinancialDashboard
+- [x] 3. Refatorar useOptimizedFinancialDashboard
   - Remover `useDebounce` do hook
   - Substituir cache Map por LRU Cache
   - Usar chaves de cache simples (string concatenation)
@@ -73,7 +73,7 @@ Este plano implementa melhorias de performance e fluidez no dashboard, removendo
   - Navegar por muitos meses
   - Verificar cache não excede limite
 
-- [-] 4. Refatorar SmoothMonthSelector
+- [x] 4. Refatorar SmoothMonthSelector
   - Remover delays artificiais (150ms, 100ms)
   - Integrar com TransitionContext
   - Usar estado de transição global
@@ -104,10 +104,13 @@ Este plano implementa melhorias de performance e fluidez no dashboard, removendo
   - Mudar mês
   - Verificar todos componentes mostram mesmo mês
 
-- [-] 6. Melhorar feedback visual
+- [x] 6. Melhorar feedback visual
   - Adicionar classes CSS de transição fade
   - Usar SmoothLoadingOverlay apenas para componentes específicos
   - Remover overlays quando dados prontos
+  - Otimizar overlays para serem discretos (canto superior direito)
+  - Remover opacity reduzida do conteúdo principal
+  - Adicionar React.memo para componentes pesados
   - _Requirements: 2.2, 4.1, 4.2, 4.3, 4.4_
 
 - [ ] 6.1 Escrever teste de exemplo para transition classes

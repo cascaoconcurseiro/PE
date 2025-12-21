@@ -18,6 +18,11 @@ import { useOptimizedFinancialDashboard } from './useOptimizedFinancialDashboard
 const CashFlowChart = lazy(() => import('./CashFlowChart').then(m => ({ default: m.CashFlowChart })));
 const CategorySpendingChart = lazy(() => import('./CategorySpendingChart').then(m => ({ default: m.CategorySpendingChart })));
 
+// Memoizar componentes pesados para evitar re-renders desnecessários
+const MemoizedFinancialProjectionCard = React.memo(FinancialProjectionCard);
+const MemoizedSummaryCards = React.memo(SummaryCards);
+const MemoizedUpcomingBills = React.memo(UpcomingBills);
+
 interface DashboardProps {
     accounts: Account[];
     transactions: Transaction[];
@@ -46,9 +51,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
     const [spendingView, setSpendingView] = useState<'CATEGORY' | 'SOURCE'>('CATEGORY');
     const selectedYear = currentDate.getFullYear();
 
-    // Usar useDeferredValue para suavizar transições
-    const deferredCurrentDate = React.useDeferredValue(currentDate);
-
     const {
         currentBalance,
         projectedBalance,
@@ -71,12 +73,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
         transactions,
         projectedAccounts,
         trips,
-        currentDate: deferredCurrentDate, // Usar data deferred
+        currentDate,
         spendingView
     });
-
-    // Detectar se está em transição
-    const isTransitioning = currentDate !== deferredCurrentDate;
 
     // ✅ REESTRUTURAÇÃO: Garantir que dados estão prontos antes de renderizar
     // Isso previne flicker - valores só aparecem quando estão corretos
@@ -85,7 +84,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
     }
 
     return (
-        <div className={`space-y-6 pb-safe transition-opacity duration-200 ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}>
+        <div className="space-y-6 pb-safe">
 
 
             {/* Friendly Greeting & Sync Indicator */}
@@ -125,8 +124,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
                 </div>
             )}
 
-            <SmoothLoadingOverlay isLoading={isCalculatingProjection} loadingText="Calculando projeção...">
-                <FinancialProjectionCard
+            <SmoothLoadingOverlay isLoading={isCalculatingProjection} loadingText="Calculando...">
+                <MemoizedFinancialProjectionCard
                     projectedBalance={projectedBalance}
                     currentBalance={currentBalance}
                     pendingIncome={pendingIncome}
@@ -139,8 +138,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
                 />
             </SmoothLoadingOverlay>
 
-            <SmoothLoadingOverlay isLoading={isCalculatingProjection} loadingText="Atualizando resumo...">
-                <SummaryCards
+            <SmoothLoadingOverlay isLoading={isCalculatingProjection} loadingText="Atualizando...">
+                <MemoizedSummaryCards
                     netWorth={netWorth}
                     monthlyIncome={monthlyIncome}
                     monthlyExpense={monthlyExpense}
@@ -151,7 +150,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
                 />
             </SmoothLoadingOverlay>
 
-            <SmoothLoadingOverlay isLoading={isCalculatingCharts} loadingText="Atualizando gráfico...">
+            <SmoothLoadingOverlay isLoading={isCalculatingCharts} loadingText="Atualizando...">
                 <Suspense fallback={<ChartSkeleton />}>
                     <CashFlowChart
                         data={cashFlowData}
@@ -162,7 +161,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
                 </Suspense>
             </SmoothLoadingOverlay>
 
-            <UpcomingBills
+            <MemoizedUpcomingBills
                 bills={upcomingBills}
                 accounts={accounts}
                 showValues={showValues}
@@ -193,7 +192,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
                     </div>
                 </div>
 
-                <SmoothLoadingOverlay isLoading={isCalculatingCharts} loadingText="Atualizando gastos...">
+                <SmoothLoadingOverlay isLoading={isCalculatingCharts} loadingText="Atualizando...">
                     <Suspense fallback={<ChartSkeleton />}>
                         <CategorySpendingChart
                             data={spendingChartData}

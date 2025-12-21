@@ -17,7 +17,6 @@ import {
 } from '../../core/engines/dashboardEngine';
 import { SafeFinancialCalculator } from '../../utils/SafeFinancialCalculator';
 import { LRUCache } from '../../utils/LRUCache';
-import { useTransition } from '../../contexts/TransitionContext';
 
 interface UseOptimizedFinancialDashboardProps {
     accounts: Account[];
@@ -44,9 +43,6 @@ export const useOptimizedFinancialDashboard = ({
     currentDate,
     spendingView
 }: UseOptimizedFinancialDashboardProps) => {
-
-    // Integrar com TransitionContext
-    const transitionContext = useTransition();
     
     // Estados para controlar loading de diferentes seções
     const [isCalculatingProjection, setIsCalculatingProjection] = useState(false);

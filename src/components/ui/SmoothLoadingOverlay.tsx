@@ -16,20 +16,22 @@ export const SmoothLoadingOverlay: React.FC<SmoothLoadingOverlayProps> = ({
 }) => {
     return (
         <div className={`relative ${className}`}>
-            {/* Conteúdo principal - sempre visível, apenas com opacity reduzida durante loading */}
-            <div className={`transition-opacity duration-300 ease-in-out ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
+            {/* Conteúdo principal - sempre visível, sem opacity reduzida */}
+            <div className="transition-opacity duration-150 ease-out">
                 {children}
             </div>
             
-            {/* Overlay de loading - fade in/out suave */}
-            <div className={`absolute inset-0 flex items-center justify-center bg-white/10 dark:bg-slate-900/10 backdrop-blur-[1px] rounded-2xl z-10 transition-all duration-300 ease-in-out ${isLoading ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-                <div className={`flex items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-full shadow-lg border border-slate-200 dark:border-slate-700 transition-all duration-300 ${isLoading ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-                    <Loader2 className="w-4 h-4 animate-spin text-slate-600 dark:text-slate-400" />
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        {loadingText}
-                    </span>
+            {/* Overlay de loading minimalista - apenas um indicador discreto no canto */}
+            {isLoading && (
+                <div className="absolute top-2 right-2 z-10 animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-slate-200/50 dark:border-slate-700/50">
+                        <Loader2 className="w-3 h-3 animate-spin text-slate-500 dark:text-slate-400" />
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                            {loadingText}
+                        </span>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };
