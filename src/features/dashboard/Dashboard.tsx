@@ -46,6 +46,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
     const [spendingView, setSpendingView] = useState<'CATEGORY' | 'SOURCE'>('CATEGORY');
     const selectedYear = currentDate.getFullYear();
 
+    // Usar useDeferredValue para suavizar transições
+    const deferredCurrentDate = React.useDeferredValue(currentDate);
+
     const {
         currentBalance,
         projectedBalance,
@@ -67,10 +70,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
         accounts,
         transactions,
         projectedAccounts,
-        trips, // NEW
-        currentDate,
+        trips,
+        currentDate: deferredCurrentDate, // Usar data deferred
         spendingView
     });
+
+    // Detectar se está em transição
+    const isTransitioning = currentDate !== deferredCurrentDate;
 
     // ✅ REESTRUTURAÇÃO: Garantir que dados estão prontos antes de renderizar
     // Isso previne flicker - valores só aparecem quando estão corretos
@@ -79,7 +85,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ accounts, projectedAccount
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-300 pb-safe">
+        <div className={`space-y-6 pb-safe transition-opacity duration-200 ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}>
 
 
             {/* Friendly Greeting & Sync Indicator */}
