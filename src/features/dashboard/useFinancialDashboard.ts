@@ -15,6 +15,8 @@ import {
     getUpcomingBills,
     calculateSpendingChartData
 } from '../../core/engines/dashboardEngine';
+import { SafeFinancialCalculator } from '../../utils/SafeFinancialCalculator';
+import { FinancialErrorDetector } from '../../utils/FinancialErrorDetector';
 
 interface UseFinancialDashboardProps {
     accounts: Account[];
@@ -74,6 +76,12 @@ export const useFinancialDashboard = ({
     const monthlyExpense = useMemo(() => monthlyTransactions
         .filter(t => t.type === TransactionType.EXPENSE)
         .reduce((acc, t) => {
+            // Skip unpaid debts (someone else paid and I haven't settled yet)
+            // These should not appear as expenses until they are actually paid/settled
+            if (t.payerId && t.payerId !== 'me' && !t.isSettled) {
+                return acc; // Skip this transaction - it's an unpaid debt, not an expense
+            }
+
             const account = accounts.find(a => a.id === t.accountId);
 
             // Calculate effective value (handling splits/shared)
@@ -122,18 +130,18 @@ export const useFinancialDashboard = ({
 
     return {
         dashboardTransactions,
-        currentBalance: isNaN(currentBalance) ? 0 : currentBalance,
-        projectedBalance: isNaN(projectedBalance) ? 0 : projectedBalance,
-        pendingIncome: isNaN(pendingIncome) ? 0 : pendingIncome,
-        pendingExpenses: isNaN(pendingExpenses) ? 0 : pendingExpenses,
+        currentBalance: SafeFinancialCalculator.toSafeNumber(currentBalance, 0),
+        projectedBalance: SafeFinancialCalculator.toSafeNumber(projectedBalance, 0),
+        pendingIncome: SafeFinancialCalculator.toSafeNumber(pendingIncome, 0),
+        pendingExpenses: SafeFinancialCalculator.toSafeNumber(pendingExpenses, 0),
         healthStatus,
-        netWorth: isNaN(netWorth) ? 0 : netWorth,
-        monthlyIncome: isNaN(monthlyIncome) ? 0 : monthlyIncome,
-        monthlyExpense: isNaN(monthlyExpense) ? 0 : monthlyExpense,
+        netWorth: SafeFinancialCalculator.toSafeNumber(netWorth, 0),
+        monthlyIncome: SafeFinancialCalculator.toSafeNumber(monthlyIncome, 0),
+        monthlyExpense: SafeFinancialCalculator.toSafeNumber(monthlyExpense, 0),
         cashFlowData,
         hasCashFlowData,
-        incomeSparkline,
-        expenseSparkline,
+        incomeSparkline: incomeSparkline.map(v => SafeFinancialCalculator.toSafeNumber(v, 0)),
+        expenseSparkline: expenseSparkline.map(v => SafeFinancialCalculator.toSafeNumber(v, 0)),
         upcomingBills,
         spendingChartData
     };

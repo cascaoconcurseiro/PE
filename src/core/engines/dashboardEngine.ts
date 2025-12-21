@@ -5,6 +5,8 @@ import { isForeignTransaction } from '../../utils/transactionUtils';
 import { isSameMonth } from '../../utils';
 import { convertToBRL } from '../../services/currencyService';
 import { calculateEffectiveTransactionValue } from './financialLogic';
+import { SafeFinancialCalculator } from '../../utils/SafeFinancialCalculator';
+import { FinancialErrorDetector } from '../../utils/FinancialErrorDetector';
 
 /**
  * Filter transactions for the dashboard based on strict rules:
@@ -48,22 +50,37 @@ export const calculateDashboardNetWorth = (
     dashboardTransactions: Transaction[], // Already filtered for BRL
     trips?: import('../../types').Trip[]
 ): number => {
-    // 1. Bank Balances
-    const cashBalance = accounts.reduce((acc, curr) => {
-        // STRICT CURRENCY CHECK
-        if (curr.currency && curr.currency !== 'BRL') return acc;
+    return FinancialErrorDetector.safeCalculate(
+        () => {
+            // Sanitizar dados de entrada
+            const safeAccounts = SafeFinancialCalculator.sanitizeAccounts(accounts || []);
+            
+            // 1. Bank Balances
+            const cashBalance = SafeFinancialCalculator.safeOperation(
+                () => safeAccounts.reduce((acc, curr) => {
+                    // STRICT CURRENCY CHECK
+                    if (curr.currency && curr.currency !== 'BRL') return acc;
 
-        const safeBalance = (curr.balance !== undefined && curr.balance !== null && !isNaN(curr.balance)) ? curr.balance : 0;
+                    const safeBalance = SafeFinancialCalculator.toSafeNumber(curr.balance, 0);
 
-        if (curr.type === AccountType.CREDIT_CARD) {
-            return acc - Math.abs(safeBalance);
-        }
-        return acc + safeBalance;
-    }, 0);
+                    if (curr.type === AccountType.CREDIT_CARD) {
+                        return acc - Math.abs(safeBalance);
+                    }
+                    return acc + safeBalance;
+                }, 0),
+                0,
+                'cash_balance_calculation'
+            );
 
-    // Logic for Receivables/Payables was commented out or restricted in original hook.
-    // "Net Worth = Current Cash Balance only"
-    return cashBalance;
+            // Logic for Receivables/Payables was commented out or restricted in original hook.
+            // "Net Worth = Current Cash Balance only"
+            return cashBalance;
+        },
+        'calculateDashboardNetWorth',
+        'net_worth_calculation',
+        [accounts, dashboardTransactions, trips],
+        0
+    ).result;
 };
 
 /**
@@ -99,55 +116,97 @@ export const calculateSpendingChartData = (
     accounts: Account[],
     spendingView: 'CATEGORY' | 'SOURCE'
 ) => {
-    const chartTxs = monthlyTransactions.filter(t => t.type === TransactionType.EXPENSE);
-
-    if (spendingView === 'CATEGORY') {
-        return Object.entries(
-            chartTxs.reduce((acc, t) => {
-                const account = accounts.find(a => a.id === t.accountId);
-
-                let expenseValue = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
-                if (t.isShared && t.payerId && t.payerId !== 'me') {
-                    expenseValue = calculateEffectiveTransactionValue(t);
+    return FinancialErrorDetector.safeCalculate(
+        () => {
+            // Sanitizar dados de entrada
+            const safeTransactions = SafeFinancialCalculator.sanitizeTransactions(monthlyTransactions || []);
+            const safeAccounts = SafeFinancialCalculator.sanitizeAccounts(accounts || []);
+            
+            const chartTxs = safeTransactions.filter(t => {
+                // Only include expenses that are not unpaid debts
+                if (t.type !== TransactionType.EXPENSE) return false;
+                
+                // Skip unpaid debts (someone else paid and I haven't settled yet)
+                if (t.payerId && t.payerId !== 'me' && !t.isSettled) {
+                    return false; // Skip unpaid debts - they shouldn't appear in spending charts
                 }
+                
+                return true;
+            });
 
-                const amountBRL = convertToBRL(expenseValue, account?.currency || 'BRL');
-                const amount = t.isRefund ? -amountBRL : amountBRL;
-                const catKey = String(t.category);
-                acc[catKey] = (acc[catKey] || 0) + (amount as number);
-                return acc;
-            }, {} as Record<string, number>)
-        )
-            .filter(([_, val]) => (val as number) > 0)
-            .map(([name, value]) => ({ name, value: value as number }))
-            .sort((a, b) => b.value - a.value);
-    } else {
-        return Object.entries(
-            chartTxs.reduce((acc, t) => {
-                const account = accounts.find(a => a.id === t.accountId);
+            if (spendingView === 'CATEGORY') {
+                return Object.entries(
+                    chartTxs.reduce((acc, t) => {
+                        const account = safeAccounts.find(a => a.id === t.accountId);
 
-                let expenseValue = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
-                if (t.isShared && t.payerId && t.payerId !== 'me') {
-                    expenseValue = calculateEffectiveTransactionValue(t);
-                }
+                        let expenseValue = SafeFinancialCalculator.toSafeNumber(t.amount, 0);
+                        if (t.isShared && t.payerId && t.payerId !== 'me') {
+                            expenseValue = SafeFinancialCalculator.safeOperation(
+                                () => calculateEffectiveTransactionValue(t),
+                                expenseValue,
+                                'effective_transaction_value'
+                            );
+                        }
 
-                const amountBRL = convertToBRL(expenseValue, account?.currency || 'BRL');
-                const amount = t.isRefund ? -amountBRL : amountBRL;
+                        const amountBRL = SafeFinancialCalculator.safeCurrencyConversion(
+                            expenseValue, 
+                            account?.currency || 'BRL'
+                        );
+                        const amount = t.isRefund ? -amountBRL : amountBRL;
+                        const catKey = String(t.category || 'Outros');
+                        acc[catKey] = SafeFinancialCalculator.safeSum([acc[catKey] || 0, amount]);
+                        return acc;
+                    }, {} as Record<string, number>)
+                )
+                    .filter(([_, val]) => SafeFinancialCalculator.toSafeNumber(val, 0) > 0)
+                    .map(([name, value]) => ({ 
+                        name, 
+                        value: SafeFinancialCalculator.toSafeNumber(value, 0) 
+                    }))
+                    .sort((a, b) => b.value - a.value);
+            } else {
+                return Object.entries(
+                    chartTxs.reduce((acc, t) => {
+                        const account = safeAccounts.find(a => a.id === t.accountId);
 
-                let sourceLabel = 'Outros';
-                if (account) {
-                    if (account.type === AccountType.CREDIT_CARD) sourceLabel = 'Cartão de Crédito';
-                    else if (account.type === AccountType.CHECKING || account.type === AccountType.SAVINGS) sourceLabel = 'Conta Bancária';
-                    else if (account.type === AccountType.CASH) sourceLabel = 'Dinheiro';
-                    else sourceLabel = account.type;
-                }
+                        let expenseValue = SafeFinancialCalculator.toSafeNumber(t.amount, 0);
+                        if (t.isShared && t.payerId && t.payerId !== 'me') {
+                            expenseValue = SafeFinancialCalculator.safeOperation(
+                                () => calculateEffectiveTransactionValue(t),
+                                expenseValue,
+                                'effective_transaction_value'
+                            );
+                        }
 
-                acc[sourceLabel] = (acc[sourceLabel] || 0) + (amount as number);
-                return acc;
-            }, {} as Record<string, number>)
-        )
-            .filter(([_, val]) => (val as number) > 0)
-            .map(([name, value]) => ({ name, value: value as number }))
-            .sort((a, b) => b.value - a.value);
-    }
+                        const amountBRL = SafeFinancialCalculator.safeCurrencyConversion(
+                            expenseValue, 
+                            account?.currency || 'BRL'
+                        );
+                        const amount = t.isRefund ? -amountBRL : amountBRL;
+
+                        let sourceLabel = 'Outros';
+                        if (account) {
+                            if (account.type === AccountType.CREDIT_CARD) sourceLabel = 'Cartão de Crédito';
+                            else if (account.type === AccountType.CHECKING || account.type === AccountType.SAVINGS) sourceLabel = 'Conta Bancária';
+                            else if (account.type === AccountType.CASH) sourceLabel = 'Dinheiro';
+                            else sourceLabel = account.type;
+                        }
+
+                        acc[sourceLabel] = SafeFinancialCalculator.safeSum([acc[sourceLabel] || 0, amount]);
+                        return acc;
+                    }, {} as Record<string, number>)
+                )
+                    .filter(([_, val]) => SafeFinancialCalculator.toSafeNumber(val, 0) > 0)
+                    .map(([name, value]) => ({ 
+                        name, 
+                        value: SafeFinancialCalculator.toSafeNumber(value, 0) 
+                    }))
+                    .sort((a, b) => b.value - a.value);
+            }
+        },
+        'calculateSpendingChartData',
+        'spending_chart_calculation',
+        [monthlyTransactions, accounts, spendingView],
+        []
+    ).result;
 };

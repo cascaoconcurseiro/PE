@@ -34,15 +34,30 @@ export const round2dec = (num: number): number => {
 
 export const formatCurrency = (value: number, currency: string = 'BRL') => {
   try {
-    // Validar se o valor é um número válido
-    if (value === null || value === undefined || isNaN(value)) {
+    // Detectar e logar valores NaN antes da formatação
+    if (typeof value === 'number' && isNaN(value)) {
+      console.warn('formatCurrency: NaN value detected', { value, currency });
       return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(0);
     }
     
+    // Validar se o valor é um número válido
+    if (value === null || value === undefined) {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(0);
+    }
+    
+    // Garantir que o valor é um número seguro
+    const safeValue = typeof value === 'number' && isFinite(value) ? value : 0;
+    
+    // Validar moeda
+    const safeCurrency = typeof currency === 'string' && currency.length === 3 ? currency : 'BRL';
+    
     // Ensure we format a clean number
-    const cleanValue = FinancialPrecision.round(value);
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: currency }).format(cleanValue);
+    const cleanValue = FinancialPrecision.round(safeValue);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: safeCurrency }).format(cleanValue);
   } catch (e) {
+    // Log do erro de formatação
+    console.warn('formatCurrency: Currency formatting failed', { value, currency, error: e });
+    
     // Fallback if currency code is invalid or any other error
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(0);
   }
