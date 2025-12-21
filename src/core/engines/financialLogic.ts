@@ -158,8 +158,26 @@ export const calculateProjectedBalance = (
                 'current_balance_calculation'
             );
 
-            // Definir intervalo de tempo (Hoje até Fim do Mês)
-            const today = new Date();
+            // Definir intervalo de tempo baseado na data que o usuário está visualizando
+            const now = new Date();
+            const isViewingCurrentMonth = safeCurrentDate.getMonth() === now.getMonth() && 
+                                        safeCurrentDate.getFullYear() === now.getFullYear();
+            
+            // Para mês atual: usar data real de hoje
+            // Para mês futuro: usar início do mês visualizado como referência
+            // Para mês passado: usar data atual daquele mês (se existir) ou início do mês
+            let today: Date;
+            
+            if (isViewingCurrentMonth) {
+                today = now;
+            } else if (safeCurrentDate > now) {
+                // Mês futuro: usar início do mês visualizado
+                today = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth(), 1);
+            } else {
+                // Mês passado: usar data atual daquele mês
+                today = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth(), now.getDate());
+            }
+            
             today.setHours(0, 0, 0, 0);
 
             const endOfMonth = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth() + 1, 0);
@@ -184,18 +202,12 @@ export const calculateProjectedBalance = (
             };
 
             // Define the Time Window for Projection:
-            // Start: NOW (Current Real Time)
-            // End: End of the Viewed Month (e.g. If viewing Feb 2026, End is Feb 28 2026)
-            // Goal: Accumulate all changes from Now until the target date to get the true future balance.
+            // Start: Current day within the viewed month
+            // End: End of the Viewed Month
+            // Goal: Accumulate all changes from current day until the end of the viewed month
 
             const viewMonthEnd = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth() + 1, 0);
             viewMonthEnd.setHours(23, 59, 59, 999);
-
-            // today is likely already defined above in this function scope or passed in. 
-            // If not, use a different name or just rely on 'today' if previously defined.
-            // Checked file: 'today' IS defined at line 129. 
-            // So we just reset it or use existing variable.
-            today.setHours(0, 0, 0, 0);
 
             safeTransactions.forEach(t => {
                 if (t.deleted) return;
