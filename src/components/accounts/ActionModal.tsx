@@ -3,7 +3,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Account, AccountType } from '../../types';
 import { formatCurrency } from '../../utils';
-import { ChevronDown, Wallet, Calendar, ArrowRightLeft } from 'lucide-react';
+import { ChevronDown, Wallet, Calendar } from 'lucide-react';
 import { useToast } from '../ui/Toast';
 
 export type ActionType = 'PAY_INVOICE' | 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER';

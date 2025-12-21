@@ -2,8 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense, useTr
 import { Loader2 } from 'lucide-react';
 import { supabase } from './integrations/supabase/client';
 import { Auth } from './components/Auth';
-import { View, SyncStatus, TransactionType, UserProfile } from './types';
-import { DashboardSkeleton } from './components/ui/Skeleton';
+import { View, UserProfile } from './types';
 import { useDataStore } from './hooks/useDataStore';
 import { useAppLogic } from './hooks/useAppLogic';
 import { useAppCalculations } from './hooks/useAppCalculations';
@@ -12,9 +11,8 @@ import { InconsistenciesModal } from './components/ui/InconsistenciesModal';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { GlobalSearch } from './components/GlobalSearch';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardShortcuts';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSystemNotifications } from './hooks/useSystemNotifications';
-import { useToast } from './components/ui/Toast';
 import { TransitionProvider } from './contexts/TransitionContext';
 
 import { lazyImport } from './utils/lazyImport';

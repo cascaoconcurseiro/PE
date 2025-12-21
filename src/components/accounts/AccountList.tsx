@@ -1,7 +1,7 @@
 import React from 'react';
 import { Account, AccountType, Transaction } from '../../types';
 import { AccountCard, AddAccountCard } from './AccountCard';
-import { Globe, Plus } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface AccountListProps {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Transaction, TransactionType, Account, Trip, FamilyMember, CustomCategory, Category } from '../../types';
+import { Transaction, TransactionType, Account, Trip, FamilyMember, CustomCategory } from '../../types';
 import { parseDate } from '../../utils';
 
 import { TransactionList } from './TransactionList';
@@ -10,6 +10,8 @@ import { TransactionFilters } from './TransactionFilters';
 import { InstallmentAnticipationModal } from './InstallmentAnticipationModal';
 
 import { useTransactionFilters } from './useTransactionFilters';
+import { usePaginatedTransactions } from '../../hooks/usePaginatedTransactions';
+import { Pagination } from '../../components/ui/Pagination';
 
 // Export PrivacyBlur for reuse if needed, though mostly handled internally now
 export const PrivacyBlur = ({ children, showValues }: { children: React.ReactNode, showValues: boolean }) => {
@@ -38,6 +40,9 @@ interface TransactionsProps {
     onNavigateToFamily?: () => void;
     currentUserName?: string;
     currentUserId?: string;
+    // New props for pagination
+    usePagination?: boolean;
+    pageSize?: number;
 }
 
 export const Transactions: React.FC<TransactionsProps> = ({
@@ -61,6 +66,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
     onNavigateToFamily,
     currentUserName,
     currentUserId,
+    usePagination = false,
+    pageSize = 50,
 }) => {
     const currentDate = propDate || new Date();
     const showValues = propShowValues !== undefined ? propShowValues : true;
@@ -72,16 +79,53 @@ export const Transactions: React.FC<TransactionsProps> = ({
     // Active Tab removed - always REGULAR now
     const activeTab = 'REGULAR';
 
-    // Use Custom Hook for Filtering Logic
+    // Pagination state
+    const [filters, setFilters] = useState<{
+        accountId?: string;
+        type?: 'RECEITA' | 'DESPESA' | 'TRANSFERÊNCIA';
+        category?: string;
+        dateFrom?: string;
+        dateTo?: string;
+    }>({});
+
+    // Use pagination hook if enabled, otherwise use legacy filtering
+    const paginationResult = usePaginatedTransactions(
+        currentUserId || '',
+        usePagination ? {
+            pageSize,
+            filters,
+            sortField: 'date',
+            sortDirection: 'desc'
+        } : undefined
+    );
+
+    // Use Custom Hook for Filtering Logic (legacy mode)
     const { filteredTransactions } = useTransactionFilters(transactions, currentDate);
     
-    // Temporary fix - use filteredTransactions directly
-    const filteredTxs = filteredTransactions;
-    const groupedTxs = {}; // TODO: implement grouping if needed
-    const income = 0; // TODO: calculate if needed
-    const expense = 0; // TODO: calculate if needed
-    const balance = 0; // TODO: calculate if needed
-    const currency = 'BRL'; // TODO: get from settings if needed
+    // Choose data source based on pagination mode
+    const displayTransactions = usePagination ? paginationResult.data : filteredTransactions;
+    const isLoading = usePagination ? paginationResult.isLoading : false;
+    const pagination = usePagination ? paginationResult.pagination : undefined;
+    
+    // Group transactions by date for display
+    const groupedTxs = displayTransactions.reduce((groups: Record<string, Transaction[]>, tx) => {
+        const dateKey = tx.date;
+        if (!groups[dateKey]) {
+            groups[dateKey] = [];
+        }
+        groups[dateKey].push(tx);
+        return groups;
+    }, {});
+
+    // Calculate summary (simplified for now)
+    const income = displayTransactions
+        .filter(t => t.type === TransactionType.INCOME)
+        .reduce((sum, t) => sum + t.amount, 0);
+    const expense = displayTransactions
+        .filter(t => t.type === TransactionType.EXPENSE)
+        .reduce((sum, t) => sum + t.amount, 0);
+    const balance = income - expense;
+    const currency = 'BRL';
 
     // Delete State
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id: string | null, isSeries: boolean }>({ isOpen: false, id: null, isSeries: false });
@@ -170,6 +214,21 @@ export const Transactions: React.FC<TransactionsProps> = ({
         setAnticipateModal({ isOpen: false, transaction: null });
     };
 
+    // Handle filter changes for pagination
+    const handleFiltersChange = (newFilters: typeof filters) => {
+        setFilters(newFilters);
+        if (usePagination) {
+            paginationResult.refetch();
+        }
+    };
+
+    // Handle page changes
+    const handlePageChange = (page: number) => {
+        if (usePagination && paginationResult.goToPage) {
+            paginationResult.goToPage(page);
+        }
+    };
+
     // RENDER FORM
     if (formMode) {
         return (
@@ -199,21 +258,53 @@ export const Transactions: React.FC<TransactionsProps> = ({
             <TransactionFilters
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                accounts={accounts}
+                customCategories={customCategories}
             />
 
             <TransactionSummary income={income} expense={expense} balance={balance} showValues={showValues} currency={currency} />
 
-            <TransactionList
-                groupedTxs={groupedTxs}
-                accounts={accounts}
-                familyMembers={familyMembers}
-                showValues={showValues}
-                onEdit={handleEditRequest}
-                onDelete={handleDeleteRequest}
-                onAddClick={() => setFormMode(TransactionType.EXPENSE)}
-                hasActiveFilters={!!searchTerm}
-                onClearFilters={() => setSearchTerm('')}
-            />
+            {isLoading ? (
+                <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                </div>
+            ) : (
+                <>
+                    <TransactionList
+                        groupedTxs={groupedTxs}
+                        accounts={accounts}
+                        familyMembers={familyMembers}
+                        showValues={showValues}
+                        onEdit={handleEditRequest}
+                        onDelete={handleDeleteRequest}
+                        onAddClick={() => setFormMode(TransactionType.EXPENSE)}
+                        hasActiveFilters={!!searchTerm || Object.keys(filters).some(key => filters[key as keyof typeof filters])}
+                        onClearFilters={() => {
+                            setSearchTerm('');
+                            setFilters({});
+                            if (usePagination) {
+                                paginationResult.refetch();
+                            }
+                        }}
+                        onAnticipateInstallments={handleAnticipateRequest}
+                    />
+
+                    {usePagination && pagination && pagination.totalPages > 1 && (
+                        <div className="flex justify-center pt-6">
+                            <Pagination
+                                currentPage={pagination.currentPage}
+                                totalPages={pagination.totalPages}
+                                onPageChange={handlePageChange}
+                                showInfo={true}
+                                totalItems={pagination.totalItems}
+                                itemsPerPage={pagination.pageSize}
+                            />
+                        </div>
+                    )}
+                </>
+            )}
 
             <TransactionDeleteModal
                 isOpen={deleteModal.isOpen}
@@ -227,7 +318,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                     isOpen={anticipateModal.isOpen}
                     onClose={() => setAnticipateModal({ isOpen: false, transaction: null })}
                     transaction={anticipateModal.transaction}
-                    allInstallments={transactions}
+                    allInstallments={displayTransactions}
                     accounts={accounts}
                     onConfirm={handleConfirmAnticipation}
                 />

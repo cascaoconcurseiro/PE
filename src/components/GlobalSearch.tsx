@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, X, ArrowRight, Clock, Tag, CreditCard } from 'lucide-react';
+import { Search, X, ArrowRight, Clock, Tag } from 'lucide-react';
 import { Transaction, Category, TransactionType } from '../types';
 import { formatCurrency, getCategoryIcon } from '../utils';
 

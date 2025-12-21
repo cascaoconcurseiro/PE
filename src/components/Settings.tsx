@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Tag, Plus, X, Key, Eye, EyeOff, Settings as SettingsIcon, Database, Globe, Moon, Sun, Monitor, Bell, Shield, Sliders, Lock, Palette, User, Edit2, Check } from 'lucide-react';
+import { Tag, Plus, X, Database, Globe, Moon, Sun, Monitor, Bell, Shield, Sliders, Lock, Palette, User, Edit2, Check } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { Account, Budget, CustomCategory, FamilyMember, Transaction, Trip, Asset, Goal, Snapshot } from '../types';
 import { useToast } from './ui/Toast';

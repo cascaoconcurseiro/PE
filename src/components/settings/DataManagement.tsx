@@ -128,7 +128,9 @@ export const DataManagement: React.FC<DataManagementProps> = ({
                         </div>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-                        O reset de fábrica irá apagar permanentemente todas as suas transações, contas, metas e configurações. Esta ação não pode ser desfeita.
+                        O reset de fábrica irá apagar permanentemente todas as suas transações, contas, metas e configurações. 
+                        <strong className="text-indigo-600 dark:text-indigo-400"> Você será automaticamente removido de viagens compartilhadas e grupos familiares</strong>, 
+                        e outros usuários serão notificados sobre sua saída. Esta ação não pode ser desfeita.
                     </p>
                     <Button
                         onClick={() => setInputModal({
@@ -194,6 +196,16 @@ export const DataManagement: React.FC<DataManagementProps> = ({
                                 </span>
                             </div>
                         </label>
+                    </div>
+
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+                        <h4 className="font-bold text-blue-800 dark:text-blue-300 text-sm mb-2">✨ Nova Funcionalidade</h4>
+                        <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                            <li>• Você será automaticamente removido de viagens compartilhadas</li>
+                            <li>• Você sairá de todos os grupos familiares</li>
+                            <li>• Outros usuários serão notificados sobre sua saída</li>
+                            <li>• Se for readicionado a um grupo, seus dados serão ressincronizados</li>
+                        </ul>
                     </div>
 
                     <p className="text-xs text-slate-500 pb-2">

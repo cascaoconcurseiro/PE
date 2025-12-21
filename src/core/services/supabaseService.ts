@@ -559,19 +559,47 @@ export const supabaseService = {
     // SMART FACTORY RESET
     async performSmartReset(unlinkFamily: boolean = false) {
         const userId = await getUserId();
-        logger.warn(`🚨 INICIANDO SMART RESET (Unlink Family: ${unlinkFamily}) PARA USUÁRIO: ${userId}`);
+        logger.warn(`🚨 INICIANDO SMART RESET COM SAÍDA AUTOMÁTICA (Unlink Family: ${unlinkFamily}) PARA USUÁRIO: ${userId}`);
 
-        // Call the new Logic-Aware RPC
-        const { error } = await supabase.rpc('fn_smart_factory_reset', {
-            p_unlink_family: unlinkFamily
-        });
+        try {
+            // Usar o novo serviço de factory reset com saída automática
+            const { factoryResetService } = await import('../../services/factory-reset/FactoryResetService');
+            
+            const confirmation = factoryResetService.createConfirmation({
+                preserveSharedTransactions: true
+            });
 
-        if (error) {
-            // Error logged via errorHandler
-            throw error;
+            const result = await factoryResetService.executeResetWithSharedDataExit(userId, confirmation);
+
+            if (!result.success) {
+                logger.error('Erro no factory reset com saída automática:', result.errors);
+                throw new Error(`Factory reset falhou: ${result.errors.join(', ')}`);
+            }
+
+            logger.info('SMART RESET COM SAÍDA AUTOMÁTICA CONCLUÍDO COM SUCESSO', {
+                tripsExited: result.sharedDataExitResult.tripsExited,
+                familyGroupsExited: result.sharedDataExitResult.familyGroupsExited,
+                notificationsSent: result.sharedDataExitResult.notificationsSent,
+                transactionsRemoved: result.cleanupResult.transactionsRemoved,
+                recoveryRecordsCreated: result.recoveryRecordsCreated
+            });
+
+            return result;
+        } catch (error) {
+            logger.error('Erro no performSmartReset:', error);
+            
+            // Fallback para o método antigo se o novo falhar
+            logger.warn('Tentando fallback para método antigo de reset...');
+            const { error: fallbackError } = await supabase.rpc('fn_smart_factory_reset', {
+                p_unlink_family: unlinkFamily
+            });
+
+            if (fallbackError) {
+                throw fallbackError;
+            }
+
+            logger.info('FALLBACK RESET CONCLUÍDO');
         }
-
-        logger.info('SMART RESET CONCLUÍDO COM SUCESSO');
     },
 
     // User Settings

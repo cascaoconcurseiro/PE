@@ -29,15 +29,28 @@ export const calculateEffectiveTransactionValue = (t: Transaction): number => {
             );
 
             // ✅ VALIDAÇÃO CRÍTICA: Splits não podem ser maiores que o total
-            if (splitsTotal > safeAmount) {
+            if (splitsTotal > safeAmount + 0.01) {
+                // Log detalhado do erro
+                console.error('🚨 DATA CORRUPTION: Splits exceed transaction amount', {
+                    transactionId: t.id,
+                    description: t.description,
+                    transactionAmount: safeAmount,
+                    splitsTotal: splitsTotal,
+                    difference: splitsTotal - safeAmount,
+                    splits: t.sharedWith?.map(s => ({
+                        memberId: s.memberId,
+                        amount: s.assignedAmount
+                    }))
+                });
+                
                 // Retornar total como fallback para evitar valores negativos
                 FinancialErrorDetector.logError(
                     'DATA_CORRUPTION',
                     'calculateEffectiveTransactionValue',
                     'splits_validation',
                     [t],
-                    `Splits total (${splitsTotal}) maior que valor da transação (${safeAmount})`,
-                    'MEDIUM'
+                    `Splits total (${splitsTotal.toFixed(2)}) maior que valor da transação (${safeAmount.toFixed(2)})`,
+                    'HIGH'
                 );
                 return safeAmount;
             }

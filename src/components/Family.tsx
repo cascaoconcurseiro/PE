@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FamilyMember, Transaction } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Plus, Users, User, Trash2, Mail, Pencil, X, Check, Loader2, UserCheck, UserX, AlertTriangle } from 'lucide-react';
+import { Plus, Users, User, Trash2, Mail, Pencil, Check, Loader2, UserCheck } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { FamilySummary } from './family/FamilySummary';
 import { ConfirmModal } from './ui/ConfirmModal';

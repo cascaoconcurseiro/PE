@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Transaction, TransactionType, Category, Account, Trip, TransactionSplit, Frequency, AccountType } from '../types';
+import { SafeFinancialCalculator } from '../utils/SafeFinancialCalculator';
 
 interface UseTransactionFormProps {
     initialData?: Transaction | null;
@@ -231,7 +232,9 @@ export const useTransactionForm = ({
 
         // STRICT SPLIT VALIDATION
         if (splits.length > 0) {
-            const totalSplitAmount = splits.reduce((sum, s) => sum + s.assignedAmount, 0);
+            const totalSplitAmount = SafeFinancialCalculator.safeSum(
+                splits.map(s => SafeFinancialCalculator.toSafeNumber(s.assignedAmount, 0))
+            );
             // Allow 0.05 margin for float errors
             if (totalSplitAmount > activeAmount + 0.05) {
                 newErrors.amount = `Erro: A soma das divisões (R$ ${totalSplitAmount.toFixed(2)}) excede o valor da transação!`;

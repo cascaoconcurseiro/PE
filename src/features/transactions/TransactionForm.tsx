@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, CustomCategory, Frequency, AccountType } from '../../types';
-import { formatCurrency, getCategoryIcon, parseDate } from '../../utils';
-import { Calendar, Check, ChevronDown, DollarSign, X, RefreshCcw, BellRing, Undo2, Plane, AlertTriangle, Pencil, CreditCard, Wallet, ArrowRight, User, Plus, ArrowDownLeft, ArrowUpRight, Globe, Repeat, Bell, Users } from 'lucide-react';
+import { getCategoryIcon, parseDate } from '../../utils';
+import { Calendar, ChevronDown, DollarSign, X, RefreshCcw, BellRing, Undo2, Plane, Pencil, CreditCard, User, Plus, ArrowDownLeft, ArrowUpRight, Globe, Repeat, Bell, Users } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { AccountSelector } from './AccountSelector';
 import { useTransactionForm } from '../../hooks/useTransactionForm';

@@ -9,7 +9,6 @@ import {
   HeartPulse,
   GraduationCap,
   DollarSign,
-  HelpCircle,
   ArrowRightLeft,
   LucideIcon,
   Tag,

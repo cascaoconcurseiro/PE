@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Goal, Account, Transaction, TransactionType, Category } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Plus, Edit2, Trash2, Target, Trophy, Calendar, TrendingUp, DollarSign, Minus, X, Wallet, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Target, Trophy, Calendar, TrendingUp, Minus, X, Wallet, CheckCircle2 } from 'lucide-react';
 import { formatCurrency } from '../utils';
 import { GoalsSummary } from './goals/GoalsSummary';
 

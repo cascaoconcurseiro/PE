@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Users, ChevronDown, Check, Plus, CreditCard } from 'lucide-react';
+import { X, User, Users, ChevronDown, Check, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { FamilyMember, TransactionSplit } from '../../types';
 

@@ -3,7 +3,7 @@ import { Transaction, Account, FamilyMember } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { formatCurrency, parseDate, round2dec } from '../../utils';
-import { Calendar, Edit3, FastForward, Check, AlertCircle, DollarSign, Hash } from 'lucide-react';
+import { Calendar, FastForward, Check, AlertCircle, DollarSign, Hash } from 'lucide-react';
 
 interface SharedInstallmentEditModalProps {
     isOpen: boolean;

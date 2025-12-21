@@ -51,6 +51,23 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
             throw new Error('Data inválida (dia não existe no mês).');
         }
 
+        // ✅ VALIDAÇÃO CRÍTICA: Validar splits não excedem o total
+        if (tx.isShared && tx.sharedWith && Array.isArray(tx.sharedWith) && tx.sharedWith.length > 0) {
+            const splitsTotal = tx.sharedWith.reduce((sum, split) => {
+                const amount = typeof split.assignedAmount === 'number' ? split.assignedAmount : 0;
+                return sum + amount;
+            }, 0);
+            
+            const txAmount = typeof tx.amount === 'number' ? tx.amount : 0;
+            
+            if (splitsTotal > txAmount + 0.01) {
+                throw new Error(
+                    `Divisão inválida: a soma das partes (${splitsTotal.toFixed(2)}) é maior que o total da transação (${txAmount.toFixed(2)}). ` +
+                    `Ajuste os valores para que a soma seja no máximo ${txAmount.toFixed(2)}.`
+                );
+            }
+        }
+
         if (tx.type === TransactionType.TRANSFER) {
             if (!tx.accountId) {
                 throw new Error('Conta de origem obrigatória para transferência.');
@@ -66,6 +83,17 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
             const destExists = accounts.find(a => a.id === tx.destinationAccountId);
             if (!sourceExists) throw new Error('Conta de origem não encontrada.');
             if (!destExists) throw new Error('Conta de destino não encontrada.');
+            
+            // ✅ VALIDAÇÃO CRÍTICA: Multi-moeda deve ter destinationAmount
+            if (sourceExists && destExists && sourceExists.currency !== destExists.currency) {
+                if (!tx.destinationAmount || tx.destinationAmount <= 0) {
+                    throw new Error(
+                        `Transferência entre moedas diferentes requer o valor de destino. ` +
+                        `Origem: ${sourceExists.currency}, Destino: ${destExists.currency}. ` +
+                        `Por favor, informe o valor que chegará na conta de destino.`
+                    );
+                }
+            }
         } else {
             if (!tx.accountId && (!tx.payerId || tx.payerId === 'me') && !tx.isShared) {
                 throw new Error('Conta é obrigatória.');
@@ -84,7 +112,8 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
             const seriesId = crypto.randomUUID();
 
             // Usar FinancialPrecision para cálculos precisos
-            const baseInstallmentValue = FinancialPrecision.divide((newTx as any).amount, totalInstallments);
+            const originalAmount = (newTx as any).amount;
+            const baseInstallmentValue = FinancialPrecision.divide(originalAmount, totalInstallments);
             let accumulatedAmount = 0;
             const accumulatedSharedAmounts: { [memberId: string]: number } = {};
 
@@ -105,8 +134,8 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
 
                 let currentAmount = baseInstallmentValue;
                 if (i === totalInstallments - 1) {
-                    // Última parcela: ajustar para garantir soma exata
-                    currentAmount = FinancialPrecision.subtract((newTx as any).amount, accumulatedAmount);
+                    // ✅ CORREÇÃO CRÍTICA: Última parcela ajustada para garantir soma exata
+                    currentAmount = FinancialPrecision.subtract(originalAmount, accumulatedAmount);
                 }
                 accumulatedAmount = FinancialPrecision.sum([accumulatedAmount, currentAmount]);
 
@@ -114,10 +143,11 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
                 if ((newTx as any).sharedWith) {
                     currentSharedWith = (newTx as any).sharedWith.map((s: any) => {
                         let assignedAmount = FinancialPrecision.multiply(
-                            FinancialPrecision.divide(s.assignedAmount, (newTx as any).amount),
+                            FinancialPrecision.divide(s.assignedAmount, originalAmount),
                             currentAmount
                         );
                         if (i === totalInstallments - 1) {
+                            // ✅ CORREÇÃO CRÍTICA: Última parcela do split ajustada para garantir soma exata
                             assignedAmount = FinancialPrecision.subtract(
                                 s.assignedAmount,
                                 accumulatedSharedAmounts[s.memberId]
@@ -147,6 +177,51 @@ export const useTransactionStore = ({ accounts, onSuccess, onError, isOnline }: 
                     updatedAt: now
                 } as Transaction);
             }
+
+            // ✅ VALIDAÇÃO PÓS-GERAÇÃO: Verificar se a soma é exata
+            const totalGenerated = FinancialPrecision.sum(txs.map(t => t.amount));
+            const difference = Math.abs(totalGenerated - originalAmount);
+            
+            if (difference > 0.01) {
+                logger.error('Erro na geração de parcelas: soma não é exata', {
+                    originalAmount,
+                    totalGenerated,
+                    difference,
+                    installments: txs.length
+                });
+                throw new Error(`Erro ao gerar parcelas: soma (${totalGenerated.toFixed(2)}) difere do total (${originalAmount.toFixed(2)})`);
+            }
+
+            // Validar splits se existirem
+            if ((newTx as any).sharedWith) {
+                (newTx as any).sharedWith.forEach((originalSplit: any) => {
+                    const splitTotal = FinancialPrecision.sum(
+                        txs.map(t => {
+                            const split = t.sharedWith?.find(s => s.memberId === originalSplit.memberId);
+                            return split ? split.assignedAmount : 0;
+                        })
+                    );
+                    const splitDifference = Math.abs(splitTotal - originalSplit.assignedAmount);
+                    
+                    if (splitDifference > 0.01) {
+                        logger.error('Erro na geração de parcelas: split não soma corretamente', {
+                            memberId: originalSplit.memberId,
+                            originalAmount: originalSplit.assignedAmount,
+                            totalGenerated: splitTotal,
+                            difference: splitDifference
+                        });
+                        throw new Error(`Erro ao gerar parcelas: split para ${originalSplit.memberId} não soma corretamente`);
+                    }
+                });
+            }
+
+            logger.info('Parcelas geradas com sucesso', {
+                originalAmount,
+                totalGenerated,
+                installments: txs.length,
+                verified: true
+            });
+
         } else {
             txs.push({
                 ...newTx,

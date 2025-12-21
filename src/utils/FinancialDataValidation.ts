@@ -117,6 +117,33 @@ export const validateTransaction = (transaction: Transaction): TransactionValida
         originalValue: transaction.date,
         suggestedValue: new Date().toISOString()
       });
+    } else {
+      // ✅ VALIDAÇÃO CRÍTICA: Verificar se a data realmente existe no calendário
+      // Exemplo: 2024-02-30 seria inválido (fevereiro só tem 29 dias em 2024)
+      try {
+        const [year, month, day] = transaction.date.split('T')[0].split('-').map(Number);
+        const reconstructedDate = new Date(year, month - 1, day);
+        
+        if (
+          reconstructedDate.getFullYear() !== year ||
+          reconstructedDate.getMonth() !== month - 1 ||
+          reconstructedDate.getDate() !== day
+        ) {
+          errors.push({
+            field: 'date',
+            message: `Transaction date is invalid: day ${day} does not exist in month ${month} of year ${year}`,
+            originalValue: transaction.date,
+            suggestedValue: new Date(year, month - 1, Math.min(day, new Date(year, month, 0).getDate())).toISOString().split('T')[0]
+          });
+        }
+      } catch (e) {
+        errors.push({
+          field: 'date',
+          message: 'Transaction date format is invalid',
+          originalValue: transaction.date,
+          suggestedValue: new Date().toISOString()
+        });
+      }
     }
   }
 
@@ -178,13 +205,25 @@ export const validateTransaction = (transaction: Transaction): TransactionValida
       });
     }
 
-    // Check if splits total exceeds transaction amount (with small tolerance)
+    // ✅ VALIDAÇÃO CRÍTICA: Check if splits total exceeds transaction amount (with small tolerance)
     if (splitsTotal > safeAmount + 0.01) {
       errors.push({
         field: 'sharedWith',
-        message: `Splits total (${splitsTotal}) exceeds transaction amount (${safeAmount})`,
+        message: `Splits total (${splitsTotal.toFixed(2)}) exceeds transaction amount (${safeAmount.toFixed(2)}). This will cause incorrect calculations.`,
         originalValue: splitsTotal,
-        suggestedValue: `Adjust splits to total no more than ${safeAmount}`
+        suggestedValue: `Adjust splits proportionally to total exactly ${safeAmount.toFixed(2)}`
+      });
+      
+      // Log this critical error for debugging
+      console.error('🚨 CRITICAL: Split validation failed', {
+        transactionId: transaction.id,
+        transactionAmount: safeAmount,
+        splitsTotal: splitsTotal,
+        difference: splitsTotal - safeAmount,
+        splits: transaction.sharedWith.map(s => ({
+          memberId: s.memberId,
+          amount: s.assignedAmount
+        }))
       });
     }
   }

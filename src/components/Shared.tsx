@@ -8,6 +8,7 @@ import { SharedInstallmentEditModal } from './shared/SharedInstallmentEditModal'
 import { TransactionDeleteModal } from '../features/transactions/TransactionDeleteModal';
 import { SharedMemberDetail } from './shared/SharedMemberDetail';
 import { ConfirmModal } from './ui/ConfirmModal';
+import { ResyncNotificationBanner } from './shared/ResyncNotificationBanner';
 
 export interface SharedProps {
     transactions: Transaction[];
@@ -221,6 +222,15 @@ export const Shared: React.FC<SharedProps> = ({
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
+            {/* Banner de Ressincronização */}
+            <ResyncNotificationBanner 
+                currentUserId={currentUserId}
+                onResyncComplete={() => {
+                    // Recarregar dados se necessário
+                    window.location.reload();
+                }}
+            />
+            
             <SharedFilters
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}

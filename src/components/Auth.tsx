@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { PiggyBank, ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Cloud } from 'lucide-react';
+import { PiggyBank, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Cloud } from 'lucide-react';
 import { useToast } from './ui/Toast';
 
 interface AuthProps {

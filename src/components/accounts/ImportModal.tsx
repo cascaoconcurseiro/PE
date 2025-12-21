@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Transaction, TransactionType, Category } from '../../types';
+import {  TransactionType } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { formatCurrency } from '../../utils';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card } from '../ui/Card';
-import { Target, TrendingUp, Trophy } from 'lucide-react';
+import { Target, Trophy } from 'lucide-react';
 import { formatCurrency } from '../../utils';
 import { Goal } from '../../types';
 

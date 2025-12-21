@@ -1,7 +1,7 @@
 import React from 'react';
 import { FamilyMember, Trip, InvoiceItem } from '../../types';
 import { Button } from '../ui/Button';
-import { Plane, Calendar, Edit2, Trash2, ArrowDownLeft, Clock, ShoppingBag } from 'lucide-react';
+import { Plane, Calendar, Edit2, Trash2, ArrowDownLeft, ShoppingBag } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../../utils';
 
 interface MemberSummaryCardProps {

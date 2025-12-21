@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { FamilyMember, Transaction, Category, InvoiceItem, TransactionType } from '../../types';
 import { Button } from '../ui/Button';
-import { ArrowDownLeft, Clock, FileUp, ShoppingBag, CreditCard, Users, Trash2, Edit2, CheckSquare, Square, Download, Printer, RotateCcw, CheckCircle } from 'lucide-react';
+import { ArrowDownLeft, Clock, FileUp, ShoppingBag, Users, Trash2, Edit2, CheckSquare, Square, Download, Printer, RotateCcw, CheckCircle } from 'lucide-react';
 import { formatCurrency, getCategoryIcon } from '../../utils';
-import { exportToCSV, prepareTransactionsForExport } from '../../services/exportUtils';
+import { exportToCSV } from '../../services/exportUtils';
 import { printAccountStatement } from '../../services/printUtils';
 import { useToast } from '../ui/Toast';
 
