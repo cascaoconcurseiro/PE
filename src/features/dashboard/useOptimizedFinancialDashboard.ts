@@ -201,8 +201,7 @@ export const useOptimizedFinancialDashboard = ({
         return result;
     }, [monthlyTransactions, accounts, currentDate]);
 
-    // Usar useDeferredValue para cálculos secundários (não bloqueiam UI)
-    const deferredYear = useDeferredValue(selectedYear);
+    // Usar useDeferredValue apenas para spendingView (não para ano, pois causa dessincronia)
     const deferredSpendingView = useDeferredValue(spendingView);
 
     // 5. CÁLCULOS PESADOS (Executam em background com startTransition)
@@ -226,7 +225,7 @@ export const useOptimizedFinancialDashboard = ({
 
     // Executar cálculos pesados em background usando valores deferred
     useEffect(() => {
-        const cacheKey = getCacheKey('heavy', dashboardAccounts.length, dashboardTransactions.length, deferredYear, deferredSpendingView);
+        const cacheKey = getCacheKey('heavy', dashboardAccounts.length, dashboardTransactions.length, selectedYear, deferredSpendingView);
         
         if (calculationCache.has(cacheKey)) {
             setHeavyCalculations(calculationCache.get(cacheKey));
@@ -241,7 +240,7 @@ export const useOptimizedFinancialDashboard = ({
             try {
                 const netWorth = calculateDashboardNetWorth(dashboardAccounts, dashboardTransactions, trips);
                 
-                const cashFlowData = calculateCashFlowData(dashboardTransactions, dashboardAccounts, deferredYear);
+                const cashFlowData = calculateCashFlowData(dashboardTransactions, dashboardAccounts, selectedYear);
                 const hasCashFlowData = cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0 || d.Acumulado !== 0);
                 
                 const incomeSparkline = calculateSparklineData(dashboardTransactions, TransactionType.INCOME);
@@ -270,7 +269,7 @@ export const useOptimizedFinancialDashboard = ({
                 // Keep previous data on error - don't update heavyCalculations
             }
         });
-    }, [dashboardAccounts, dashboardTransactions, monthlyTransactions, deferredYear, deferredSpendingView, trips]);
+    }, [dashboardAccounts, dashboardTransactions, monthlyTransactions, selectedYear, deferredSpendingView, trips]);
 
     // 6. ANÁLISE DE SAÚDE FINANCEIRA
     const healthStatus = useMemo(() => {

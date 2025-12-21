@@ -120,7 +120,7 @@ Este plano implementa melhorias de performance e fluidez no dashboard, removendo
   - Iniciar cálculo
   - Verificar overlays apenas em componentes afetados
 
-- [-] 7. Adicionar error handling robusto
+- [x] 7. Adicionar error handling robusto
   - Envolver cálculos em try-catch
   - Manter dados anteriores em caso de erro
   - Adicionar timeout para transições (5s)
