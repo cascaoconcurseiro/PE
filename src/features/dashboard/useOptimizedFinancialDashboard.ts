@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect, useCallback, startTransition } from 'react';
-import { Account, Transaction, TransactionType, AccountType, Category, Trip } from '../../types';
+import { useMemo, useState, useEffect, startTransition, useDeferredValue } from 'react';
+import { Account, Transaction, TransactionType, Trip } from '../../types';
 import { isSameMonth } from '../../utils';
 import { convertToBRL } from '../../services/currencyService';
 import {
@@ -16,7 +16,8 @@ import {
     calculateSpendingChartData
 } from '../../core/engines/dashboardEngine';
 import { SafeFinancialCalculator } from '../../utils/SafeFinancialCalculator';
-import { FinancialErrorDetector } from '../../utils/FinancialErrorDetector';
+import { LRUCache } from '../../utils/LRUCache';
+import { useTransition } from '../../contexts/TransitionContext';
 
 interface UseOptimizedFinancialDashboardProps {
     accounts: Account[];
@@ -27,29 +28,12 @@ interface UseOptimizedFinancialDashboardProps {
     spendingView: 'CATEGORY' | 'SOURCE';
 }
 
-// Cache para evitar recálculos desnecessários
-const calculationCache = new Map<string, any>();
+// LRU Cache para evitar recálculos desnecessários
+const calculationCache = new LRUCache<string, any>(20);
 
-// Função para gerar chave de cache
-const getCacheKey = (prefix: string, ...deps: any[]): string => {
-  return `${prefix}_${JSON.stringify(deps)}`;
-};
-
-// Hook personalizado para debounce
-const useDebounce = <T>(value: T, delay: number): T => {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
+// Função para gerar chave de cache simples (sem JSON.stringify)
+const getCacheKey = (prefix: string, ...deps: (string | number)[]): string => {
+  return `${prefix}:${deps.join(':')}`;
 };
 
 export const useOptimizedFinancialDashboard = ({
@@ -61,19 +45,19 @@ export const useOptimizedFinancialDashboard = ({
     spendingView
 }: UseOptimizedFinancialDashboardProps) => {
 
-    // Debounce da data para evitar cálculos excessivos durante navegação rápida
-    const debouncedCurrentDate = useDebounce(currentDate, 100);
+    // Integrar com TransitionContext
+    const transitionContext = useTransition();
     
     // Estados para controlar loading de diferentes seções
     const [isCalculatingProjection, setIsCalculatingProjection] = useState(false);
     const [isCalculatingCharts, setIsCalculatingCharts] = useState(false);
 
-    const selectedYear = debouncedCurrentDate.getFullYear();
-    const monthKey = `${debouncedCurrentDate.getFullYear()}-${debouncedCurrentDate.getMonth()}`;
+    const selectedYear = currentDate.getFullYear();
+    const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
 
     // 1. FILTROS BÁSICOS (Mais leves, executam primeiro)
     const dashboardTransactions = useMemo(() => {
-        const cacheKey = getCacheKey('dashboardTx', transactions.length, accounts.length, trips?.length);
+        const cacheKey = getCacheKey('dashboardTx', transactions.length, accounts.length, trips?.length || 0);
         
         if (calculationCache.has(cacheKey)) {
             return calculationCache.get(cacheKey);
@@ -116,10 +100,10 @@ export const useOptimizedFinancialDashboard = ({
             return calculationCache.get(cacheKey);
         }
 
-        const result = dashboardTransactions.filter((t: Transaction) => isSameMonth(t.date, debouncedCurrentDate));
+        const result = dashboardTransactions.filter((t: Transaction) => isSameMonth(t.date, currentDate));
         calculationCache.set(cacheKey, result);
         return result;
-    }, [dashboardTransactions, monthKey]);
+    }, [dashboardTransactions, monthKey, currentDate]);
 
     // 3. CÁLCULOS CRÍTICOS (Projeção - executam com prioridade)
     const projectionData = useMemo(() => {
@@ -131,17 +115,17 @@ export const useOptimizedFinancialDashboard = ({
 
         setIsCalculatingProjection(true);
         
-        const result = calculateProjectedBalance(dashboardProjectedAccounts, dashboardTransactions, debouncedCurrentDate);
+        const result = calculateProjectedBalance(dashboardProjectedAccounts, dashboardTransactions, currentDate);
         
         calculationCache.set(cacheKey, result);
         setIsCalculatingProjection(false);
         
         return result;
-    }, [dashboardProjectedAccounts, dashboardTransactions, monthKey]);
+    }, [dashboardProjectedAccounts, dashboardTransactions, monthKey, currentDate]);
 
     // 4. TOTAIS MENSAIS (Críticos para o dashboard)
     const monthlyTotals = useMemo(() => {
-        const cacheKey = getCacheKey('monthlyTotals', monthlyTransactions.length, accounts.length, debouncedCurrentDate.getTime());
+        const cacheKey = getCacheKey('monthlyTotals', monthlyTransactions.length, accounts.length, currentDate.getTime());
         
         if (calculationCache.has(cacheKey)) {
             return calculationCache.get(cacheKey);
@@ -149,18 +133,18 @@ export const useOptimizedFinancialDashboard = ({
 
         // Determinar data de referência para separar realizadas vs pendentes
         const now = new Date();
-        const isViewingCurrentMonth = debouncedCurrentDate.getMonth() === now.getMonth() && 
-                                    debouncedCurrentDate.getFullYear() === now.getFullYear();
+        const isViewingCurrentMonth = currentDate.getMonth() === now.getMonth() && 
+                                    currentDate.getFullYear() === now.getFullYear();
         
         let referenceDate: Date;
         if (isViewingCurrentMonth) {
             referenceDate = now;
-        } else if (debouncedCurrentDate > now) {
+        } else if (currentDate > now) {
             // Mês futuro: usar data real atual
             referenceDate = now;
         } else {
             // Mês passado: usar data atual daquele mês
-            referenceDate = new Date(debouncedCurrentDate.getFullYear(), debouncedCurrentDate.getMonth(), now.getDate());
+            referenceDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), now.getDate());
         }
         referenceDate.setHours(0, 0, 0, 0);
 
@@ -202,7 +186,11 @@ export const useOptimizedFinancialDashboard = ({
         const result = { monthlyIncome, monthlyExpense };
         calculationCache.set(cacheKey, result);
         return result;
-    }, [monthlyTransactions, accounts, debouncedCurrentDate]);
+    }, [monthlyTransactions, accounts, currentDate]);
+
+    // Usar useDeferredValue para cálculos secundários (não bloqueiam UI)
+    const deferredYear = useDeferredValue(selectedYear);
+    const deferredSpendingView = useDeferredValue(spendingView);
 
     // 5. CÁLCULOS PESADOS (Executam em background com startTransition)
     const [heavyCalculations, setHeavyCalculations] = useState<{
@@ -223,12 +211,13 @@ export const useOptimizedFinancialDashboard = ({
         spendingChartData: []
     });
 
-    // Executar cálculos pesados em background
+    // Executar cálculos pesados em background usando valores deferred
     useEffect(() => {
-        const cacheKey = getCacheKey('heavy', dashboardAccounts.length, dashboardTransactions.length, selectedYear, spendingView);
+        const cacheKey = getCacheKey('heavy', dashboardAccounts.length, dashboardTransactions.length, deferredYear, deferredSpendingView);
         
         if (calculationCache.has(cacheKey)) {
             setHeavyCalculations(calculationCache.get(cacheKey));
+            setIsCalculatingCharts(false);
             return;
         }
 
@@ -238,7 +227,7 @@ export const useOptimizedFinancialDashboard = ({
         startTransition(() => {
             const netWorth = calculateDashboardNetWorth(dashboardAccounts, dashboardTransactions, trips);
             
-            const cashFlowData = calculateCashFlowData(dashboardTransactions, dashboardAccounts, selectedYear);
+            const cashFlowData = calculateCashFlowData(dashboardTransactions, dashboardAccounts, deferredYear);
             const hasCashFlowData = cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0 || d.Acumulado !== 0);
             
             const incomeSparkline = calculateSparklineData(dashboardTransactions, TransactionType.INCOME);
@@ -246,7 +235,7 @@ export const useOptimizedFinancialDashboard = ({
             
             const upcomingBills = getUpcomingBills(dashboardTransactions);
             
-            const spendingChartData = calculateSpendingChartData(monthlyTransactions, dashboardAccounts, spendingView);
+            const spendingChartData = calculateSpendingChartData(monthlyTransactions, dashboardAccounts, deferredSpendingView);
 
             const result = {
                 netWorth: SafeFinancialCalculator.toSafeNumber(netWorth, 0),
@@ -262,7 +251,7 @@ export const useOptimizedFinancialDashboard = ({
             setHeavyCalculations(result);
             setIsCalculatingCharts(false);
         });
-    }, [dashboardAccounts, dashboardTransactions, monthlyTransactions, selectedYear, spendingView, trips]);
+    }, [dashboardAccounts, dashboardTransactions, monthlyTransactions, deferredYear, deferredSpendingView, trips]);
 
     // 6. ANÁLISE DE SAÚDE FINANCEIRA
     const healthStatus = useMemo(() => {
@@ -273,16 +262,56 @@ export const useOptimizedFinancialDashboard = ({
     }, [monthlyTotals, projectionData]);
 
     // Limpar cache quando necessário (evitar memory leaks)
+    // LRU Cache já gerencia o tamanho automaticamente, mas mantemos limpeza periódica
     useEffect(() => {
         const cleanup = () => {
-            if (calculationCache.size > 50) { // Limite de cache
-                calculationCache.clear();
+            // LRU Cache já limita o tamanho, mas podemos limpar tudo se necessário
+            if (calculationCache.size > 15) {
+                // Não limpar tudo, apenas deixar o LRU fazer seu trabalho
+                // O cache já remove automaticamente os itens menos usados
             }
         };
 
-        const interval = setInterval(cleanup, 30000); // Limpar a cada 30s
+        const interval = setInterval(cleanup, 60000); // Verificar a cada 60s
         return () => clearInterval(interval);
     }, []);
+
+    // 7. PREFETCHING DE MESES ADJACENTES (em background)
+    useEffect(() => {
+        // Apenas fazer prefetch se não estamos calculando
+        if (isCalculatingProjection || isCalculatingCharts) {
+            return;
+        }
+
+        // Usar requestIdleCallback ou setTimeout para não bloquear
+        const prefetchTimeout = setTimeout(() => {
+            // Calcular mês anterior
+            const prevMonth = new Date(currentDate);
+            prevMonth.setMonth(prevMonth.getMonth() - 1);
+            const prevMonthKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth()}`;
+            
+            // Calcular próximo mês
+            const nextMonth = new Date(currentDate);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            const nextMonthKey = `${nextMonth.getFullYear()}-${nextMonth.getMonth()}`;
+
+            // Prefetch mês anterior se não estiver em cache
+            const prevCacheKey = getCacheKey('monthlyTx', dashboardTransactions.length, prevMonthKey);
+            if (!calculationCache.has(prevCacheKey)) {
+                const prevMonthTx = dashboardTransactions.filter((t: Transaction) => isSameMonth(t.date, prevMonth));
+                calculationCache.set(prevCacheKey, prevMonthTx);
+            }
+
+            // Prefetch próximo mês se não estiver em cache
+            const nextCacheKey = getCacheKey('monthlyTx', dashboardTransactions.length, nextMonthKey);
+            if (!calculationCache.has(nextCacheKey)) {
+                const nextMonthTx = dashboardTransactions.filter((t: Transaction) => isSameMonth(t.date, nextMonth));
+                calculationCache.set(nextCacheKey, nextMonthTx);
+            }
+        }, 500); // Aguardar 500ms após renderização
+
+        return () => clearTimeout(prefetchTimeout);
+    }, [currentDate, dashboardTransactions, isCalculatingProjection, isCalculatingCharts]);
 
     return {
         dashboardTransactions,

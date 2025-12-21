@@ -15,6 +15,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSystemNotifications } from './hooks/useSystemNotifications';
 import { useToast } from './components/ui/Toast';
+import { TransitionProvider } from './contexts/TransitionContext';
 
 import { lazyImport } from './utils/lazyImport';
 import { APP_VERSION } from './config/appVersion';
@@ -281,12 +282,13 @@ const App = () => {
 
     // 3. Main Render - Only reached if !loading and user exists
     return (
-        <MainLayout
-            activeView={activeView}
-            setActiveView={handleViewChange}
-            user={storedUser || sessionUser || { id: 'temp', name: 'Visitante', email: '' }}
-            onLogout={handleLogout}
-            onNotificationPay={handleNotificationPay}
+        <TransitionProvider initialDate={currentDate}>
+            <MainLayout
+                activeView={activeView}
+                setActiveView={handleViewChange}
+                user={storedUser || sessionUser || { id: 'temp', name: 'Visitante', email: '' }}
+                onLogout={handleLogout}
+                onNotificationPay={handleNotificationPay}
             showValues={showValues}
             togglePrivacy={() => setShowValues(!showValues)}
             currentDate={currentDate}
@@ -366,6 +368,7 @@ const App = () => {
                 }}
             />
         </MainLayout>
+        </TransitionProvider>
     );
 };
 

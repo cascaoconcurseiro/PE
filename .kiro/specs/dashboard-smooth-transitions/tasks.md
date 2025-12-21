@@ -6,43 +6,43 @@ Este plano implementa melhorias de performance e fluidez no dashboard, removendo
 
 ## Tasks
 
-- [ ] 1. Implementar LRU Cache
+- [x] 1. Implementar LRU Cache
   - Criar classe `LRUCache` com limite de tamanho
   - Implementar métodos `get`, `set`, `has`, `clear`
   - Adicionar lógica de eviction (remover item menos usado)
   - _Requirements: 3.1, 3.3, 3.4_
 
-- [ ] 1.1 Escrever testes unitários para LRU Cache
+- [x] 1.1 Escrever testes unitários para LRU Cache
   - Testar cache hit/miss
   - Testar limite de tamanho
   - Testar ordem de eviction
   - _Requirements: 3.1, 3.3, 3.4_
 
-- [ ] 2. Criar TransitionContext
+- [x] 2. Criar TransitionContext
   - Criar contexto React para estado de transição global
   - Implementar `TransitionProvider` com estado compartilhado
   - Adicionar funções `startTransition` e `endTransition`
   - _Requirements: 2.3, 5.1_
 
-- [ ] 2.1 Escrever testes para TransitionContext
+- [x] 2.1 Escrever testes para TransitionContext
   - Testar mudanças de estado
   - Testar coordenação entre componentes
   - _Requirements: 2.3, 5.1_
 
-- [ ] 3. Refatorar useOptimizedFinancialDashboard
+- [-] 3. Refatorar useOptimizedFinancialDashboard
   - Remover `useDebounce` do hook
   - Substituir cache Map por LRU Cache
   - Usar chaves de cache simples (string concatenation)
   - Integrar com TransitionContext
   - _Requirements: 1.1, 1.3, 3.1, 3.4_
 
-- [ ] 3.1 Implementar useDeferredValue para cálculos secundários
+- [x] 3.1 Implementar useDeferredValue para cálculos secundários
   - Usar `useDeferredValue` para cashFlowData
   - Usar `useDeferredValue` para spendingChartData
   - Manter cálculos críticos síncronos
   - _Requirements: 3.2_
 
-- [ ] 3.2 Adicionar prefetching de meses adjacentes
+- [x] 3.2 Adicionar prefetching de meses adjacentes
   - Calcular mês anterior em background
   - Calcular próximo mês em background
   - Armazenar em cache
@@ -73,7 +73,7 @@ Este plano implementa melhorias de performance e fluidez no dashboard, removendo
   - Navegar por muitos meses
   - Verificar cache não excede limite
 
-- [ ] 4. Refatorar SmoothMonthSelector
+- [-] 4. Refatorar SmoothMonthSelector
   - Remover delays artificiais (150ms, 100ms)
   - Integrar com TransitionContext
   - Usar estado de transição global
@@ -86,7 +86,7 @@ Este plano implementa melhorias de performance e fluidez no dashboard, removendo
   - Gerar sequências de cliques rápidos
   - Verificar apenas último clique processa
 
-- [ ] 5. Atualizar Dashboard component
+- [-] 5. Atualizar Dashboard component
   - Envolver com TransitionProvider
   - Usar estado de transição para coordenar updates
   - Manter dados anteriores visíveis durante loading
