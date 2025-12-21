@@ -1,35 +1,29 @@
-# Fix: Projection Calculation for Future Months
+# Fix: Projection and Monthly Totals Calculation for Future Months
 
 ## Problem
-When viewing future months (e.g., January 2026), the projection showed R$ 0,00 despite having pending transactions. The issue was in the `calculateProjectedBalance` function's logic for determining the reference date.
+1. **Projection showing R$ 0,00**: When viewing future months (e.g., January 2026), the projection showed R$ 0,00 despite having pending transactions
+2. **Future transactions counted as "paid"**: Transactions in future months were incorrectly appearing as "Pago" (paid) instead of "Pendente" (pending)
 
-## Root Cause
-The original logic used the current day within the viewed month as reference, which caused issues for future months:
-- When viewing January 2026 from December 2025, it would set reference to January 20, 2026
-- This made transactions on January 25, 2026 appear as "future" but with incorrect baseline
+## Root Causes
+1. **Projection reference date**: The `calculateProjectedBalance` function was using incorrect reference dates for future months
+2. **Monthly totals logic**: The `monthlyIncome` and `monthlyExpense` calculations included ALL transactions from the month, regardless of whether they had occurred yet
 
-## Solution
-Updated the reference date logic in `calculateProjectedBalance`:
+## Solutions
 
-```typescript
-// Para mês atual: usar data real de hoje
-// Para mês futuro: usar início do mês visualizado como referência  
-// Para mês passado: usar data atual daquele mês (se existir) ou início do mês
-let today: Date;
+### 1. Fixed Projection Reference Date
+Updated `calculateProjectedBalance` in `src/core/engines/financialLogic.ts`:
+- For future months: Use real current date as reference (not beginning of viewed month)
+- This ensures only truly future transactions are counted as pending
 
-if (isViewingCurrentMonth) {
-    today = now;
-} else if (safeCurrentDate > now) {
-    // Mês futuro: usar início do mês visualizado
-    today = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth(), 1);
-} else {
-    // Mês passado: usar data atual daquele mês
-    today = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth(), now.getDate());
-}
-```
+### 2. Fixed Monthly Totals Calculation  
+Updated `useOptimizedFinancialDashboard` in `src/features/dashboard/useOptimizedFinancialDashboard.ts`:
+- Added logic to separate "realized" vs "pending" transactions based on reference date
+- **Recebido/Pago**: Only transactions that occurred up to the reference date
+- **Pendente**: Only transactions after the reference date (handled by projection logic)
 
 ## Impact
-- ✅ Future months now correctly show projections based on pending transactions
+- ✅ Future months now show correct projections based on pending transactions
+- ✅ Transactions in future months correctly appear as "Pendente" instead of "Pago"
 - ✅ Current month behavior unchanged (uses real current date)
 - ✅ Past months behavior improved (more logical reference date)
 - ✅ All existing tests continue to pass
@@ -37,8 +31,9 @@ if (isViewingCurrentMonth) {
 
 ## Files Modified
 - `src/core/engines/financialLogic.ts` - Updated `calculateProjectedBalance` function
+- `src/features/dashboard/useOptimizedFinancialDashboard.ts` - Updated monthly totals calculation
 
 ## Testing
-- Verified with debug script that January 2026 transactions are now properly included
-- Build completed successfully
-- No TypeScript errors introduced
+- Verified that January 2026 transactions are now properly categorized
+- Future transactions appear as "Pendente" not "Pago"
+- Projection calculation now works correctly for future months

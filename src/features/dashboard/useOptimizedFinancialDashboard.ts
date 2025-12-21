@@ -141,13 +141,37 @@ export const useOptimizedFinancialDashboard = ({
 
     // 4. TOTAIS MENSAIS (Críticos para o dashboard)
     const monthlyTotals = useMemo(() => {
-        const cacheKey = getCacheKey('monthlyTotals', monthlyTransactions.length, accounts.length);
+        const cacheKey = getCacheKey('monthlyTotals', monthlyTransactions.length, accounts.length, debouncedCurrentDate.getTime());
         
         if (calculationCache.has(cacheKey)) {
             return calculationCache.get(cacheKey);
         }
 
-        const monthlyIncome = monthlyTransactions
+        // Determinar data de referência para separar realizadas vs pendentes
+        const now = new Date();
+        const isViewingCurrentMonth = debouncedCurrentDate.getMonth() === now.getMonth() && 
+                                    debouncedCurrentDate.getFullYear() === now.getFullYear();
+        
+        let referenceDate: Date;
+        if (isViewingCurrentMonth) {
+            referenceDate = now;
+        } else if (debouncedCurrentDate > now) {
+            // Mês futuro: usar data real atual
+            referenceDate = now;
+        } else {
+            // Mês passado: usar data atual daquele mês
+            referenceDate = new Date(debouncedCurrentDate.getFullYear(), debouncedCurrentDate.getMonth(), now.getDate());
+        }
+        referenceDate.setHours(0, 0, 0, 0);
+
+        // Separar transações realizadas (até referenceDate) das pendentes (após referenceDate)
+        const realizedTransactions = monthlyTransactions.filter((t: Transaction) => {
+            const tDate = new Date(t.date);
+            tDate.setHours(0, 0, 0, 0);
+            return tDate <= referenceDate;
+        });
+
+        const monthlyIncome = realizedTransactions
             .filter((t: Transaction) => t.type === TransactionType.INCOME)
             .reduce((acc: number, t: Transaction) => {
                 const account = accounts.find(a => a.id === t.accountId);
@@ -156,7 +180,7 @@ export const useOptimizedFinancialDashboard = ({
                 return acc + convertToBRL(amount, account?.currency || 'BRL');
             }, 0);
 
-        const monthlyExpense = monthlyTransactions
+        const monthlyExpense = realizedTransactions
             .filter((t: Transaction) => t.type === TransactionType.EXPENSE)
             .reduce((acc: number, t: Transaction) => {
                 // Skip unpaid debts
@@ -178,7 +202,7 @@ export const useOptimizedFinancialDashboard = ({
         const result = { monthlyIncome, monthlyExpense };
         calculationCache.set(cacheKey, result);
         return result;
-    }, [monthlyTransactions, accounts]);
+    }, [monthlyTransactions, accounts, debouncedCurrentDate]);
 
     // 5. CÁLCULOS PESADOS (Executam em background com startTransition)
     const [heavyCalculations, setHeavyCalculations] = useState<{

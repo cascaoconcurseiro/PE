@@ -164,15 +164,15 @@ export const calculateProjectedBalance = (
                                         safeCurrentDate.getFullYear() === now.getFullYear();
             
             // Para mês atual: usar data real de hoje
-            // Para mês futuro: usar início do mês visualizado como referência
+            // Para mês futuro: usar data real de hoje (não início do mês) para distinguir entre transações já ocorridas e futuras
             // Para mês passado: usar data atual daquele mês (se existir) ou início do mês
             let today: Date;
             
             if (isViewingCurrentMonth) {
                 today = now;
             } else if (safeCurrentDate > now) {
-                // Mês futuro: usar início do mês visualizado
-                today = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth(), 1);
+                // Mês futuro: usar data real atual para distinguir transações já ocorridas das futuras
+                today = now;
             } else {
                 // Mês passado: usar data atual daquele mês
                 today = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth(), now.getDate());
