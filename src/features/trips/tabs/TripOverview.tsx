@@ -87,7 +87,7 @@ export const TripOverview: React.FC<TripOverviewProps> = ({ trip, transactions, 
 
     const handleSettlement = async () => {
         setLoadingAi(true);
-        const settlementLines = calculateTripDebts(transactions, trip.participants);
+        const settlementLines = calculateTripDebts(transactions, trip.participants || []);
         const report = `# Resumo do Acerto de Contas\n\n${settlementLines.map(l => `- ${l}`).join('\n')}\n\n---\n*Este cálculo considera apenas dívidas não quitadas.*`;
         setAiAnalysis(report);
         setLoadingAi(false);
