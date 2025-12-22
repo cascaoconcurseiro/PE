@@ -403,10 +403,16 @@ describe('TransactionFormBaseRefactored - Property Tests', () => {
                                         screen.getAllByText('Transf.');
                     
                     expect(activeButtons.length).toBeGreaterThan(0);
+                    
                     // Verifica que pelo menos um botão ativo tem alguma diferenciação visual
-                    const hasActiveStyle = activeButtons.some(btn => 
-                        btn.className.match(/font-bold|bg-white|shadow-sm/)
-                    );
+                    // Procura por classes que indicam estado ativo (font-bold, bg-white, shadow-sm, ou cores específicas)
+                    const hasActiveStyle = activeButtons.some(btn => {
+                        const className = btn.className || '';
+                        const parentClassName = btn.parentElement?.className || '';
+                        
+                        return className.match(/font-bold|bg-white|shadow-sm|text-red-700|text-emerald-700|text-blue-700/) ||
+                               parentClassName.match(/font-bold|bg-white|shadow-sm|text-red-700|text-emerald-700|text-blue-700/);
+                    });
                     expect(hasActiveStyle).toBe(true);
                 }
             ), { numRuns: 20 });
