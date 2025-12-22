@@ -9,7 +9,7 @@ interface TripsSummaryProps {
     userId?: string;
 }
 
-export const TripsSummary: React.FC<TripsSummaryProps> = ({ trips, userId }) => {
+export const TripsSummary: React.FC<TripsSummaryProps> = ({ trips = [], userId }) => {
     // Logic to find next trip
     const now = new Date();
     now.setHours(0, 0, 0, 0);

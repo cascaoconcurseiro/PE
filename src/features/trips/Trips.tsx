@@ -22,7 +22,7 @@ export interface TripsProps {
     currentUserId?: string;
 }
 
-export const Trips: React.FC<TripsProps> = ({ trips, transactions, accounts, familyMembers, onAddTransaction, onUpdateTransaction, onDeleteTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared, onEditTransaction, currentUserId }) => {
+export const Trips: React.FC<TripsProps> = ({ trips = [], transactions = [], accounts, familyMembers, onAddTransaction, onUpdateTransaction, onDeleteTransaction, onAddTrip, onUpdateTrip, onDeleteTrip, onNavigateToShared, onEditTransaction, currentUserId }) => {
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
     const [isCreatingTrip, setIsCreatingTrip] = useState(false);
     const [editingTripId, setEditingTripId] = useState<string | null>(null);
