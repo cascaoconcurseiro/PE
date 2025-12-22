@@ -34,6 +34,8 @@ export function TestComponent() {
     
     expect(result.components).toHaveLength(1);
     expect(result.components[0].componentName).toBe('TestComponent');
+    expect(result.components[0].complexity).toBeDefined();
+    expect(result.components[0].filePath).toContain('TestComponent.tsx');
   });
 });
 

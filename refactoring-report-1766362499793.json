@@ -1,0 +1,5365 @@
+{
+  "id": "c85a2d42-2354-42d8-a594-e15cc4e08e68",
+  "timestamp": "2025-12-22T00:14:59.765Z",
+  "codebaseSnapshot": {
+    "totalFiles": 276,
+    "totalLinesOfCode": 48122,
+    "bundleSize": 6712969,
+    "averageComplexity": 0
+  },
+  "analysis": {
+    "deadCode": {
+      "unusedImports": [
+        {
+          "importName": "React",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/App.tsx",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 8,
+            "endColumn": 13
+          },
+          "modulePath": "react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "useAppLogic",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/App.tsx",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 10,
+            "endColumn": 21
+          },
+          "modulePath": "./hooks/useAppLogic",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "useKeyboardShortcuts",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/App.tsx",
+            "startLine": 14,
+            "endLine": 14,
+            "startColumn": 10,
+            "endColumn": 30
+          },
+          "modulePath": "./hooks/useKeyboardShortcuts",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "lazyImport",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/App.tsx",
+            "startLine": 18,
+            "endLine": 18,
+            "startColumn": 10,
+            "endColumn": 20
+          },
+          "modulePath": "./utils/lazyImport",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "React",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/index.tsx",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 8,
+            "endColumn": 13
+          },
+          "modulePath": "react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "au",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Accounts-Csyn43Lq.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 351,
+            "endColumn": 358
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a6",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Accounts-Csyn43Lq.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 415,
+            "endColumn": 422
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a5",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Accounts-Csyn43Lq.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 437,
+            "endColumn": 444
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "av",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Accounts-Csyn43Lq.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 445,
+            "endColumn": 452
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a9",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Accounts-Csyn43Lq.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 460,
+            "endColumn": 467
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "B",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Budgets-IXAFCEMG.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 43,
+            "endColumn": 49
+          },
+          "modulePath": "./components-dashboard-DihyDemg.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "q",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Budgets-IXAFCEMG.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 178,
+            "endColumn": 184
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "av",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Budgets-IXAFCEMG.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 192,
+            "endColumn": 199
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "j",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/CashFlowChart-Dz69Ru-r.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 8,
+            "endColumn": 14
+          },
+          "modulePath": "./components-dashboard-DihyDemg.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "f",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/CashFlowChart-Dz69Ru-r.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 17,
+            "endColumn": 23
+          },
+          "modulePath": "./components-dashboard-DihyDemg.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "D",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/CashFlowChart-Dz69Ru-r.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 72,
+            "endColumn": 78
+          },
+          "modulePath": "./SimpleCharts-oGsvXHVx.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aZ",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/CashFlowChart-Dz69Ru-r.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 119,
+            "endColumn": 126
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "j",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/CategorySpendingChart-CKY8p5ZY.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 8,
+            "endColumn": 14
+          },
+          "modulePath": "./components-dashboard-DihyDemg.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "P",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/CategorySpendingChart-CKY8p5ZY.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 22,
+            "endColumn": 28
+          },
+          "modulePath": "./components-dashboard-DihyDemg.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "f",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/CategorySpendingChart-CKY8p5ZY.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 29,
+            "endColumn": 35
+          },
+          "modulePath": "./components-dashboard-DihyDemg.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "S",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/CategorySpendingChart-CKY8p5ZY.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 84,
+            "endColumn": 90
+          },
+          "modulePath": "./SimpleCharts-oGsvXHVx.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "q",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/CategorySpendingChart-CKY8p5ZY.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 131,
+            "endColumn": 137
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "W",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/CategorySpendingChart-CKY8p5ZY.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 138,
+            "endColumn": 144
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a0",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/components-transactions-uUOu_Tnx.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 409,
+            "endColumn": 416
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a1",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/components-transactions-uUOu_Tnx.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 424,
+            "endColumn": 431
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a2",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/components-trips-BbWuSHq5.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 162,
+            "endColumn": 169
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a3",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/components-trips-BbWuSHq5.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 184,
+            "endColumn": 191
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a4",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/components-trips-BbWuSHq5.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 213,
+            "endColumn": 220
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a5",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/components-trips-BbWuSHq5.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 228,
+            "endColumn": 235
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a6",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/components-trips-BbWuSHq5.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 278,
+            "endColumn": 285
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a7",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/components-trips-BbWuSHq5.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 293,
+            "endColumn": 300
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a8",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/components-trips-BbWuSHq5.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 308,
+            "endColumn": 315
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a9",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/components-trips-BbWuSHq5.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 323,
+            "endColumn": 330
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ad",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Family-D9BtKBhs.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 206,
+            "endColumn": 213
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aE",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Family-D9BtKBhs.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 214,
+            "endColumn": 221
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aF",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Family-D9BtKBhs.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 243,
+            "endColumn": 250
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Q",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Family-D9BtKBhs.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 258,
+            "endColumn": 264
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "B",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Goals-CPld_fQl.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 29,
+            "endColumn": 35
+          },
+          "modulePath": "./components-dashboard-DihyDemg.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aj",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Goals-CPld_fQl.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 148,
+            "endColumn": 155
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ak",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Goals-CPld_fQl.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 156,
+            "endColumn": 163
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aw",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Goals-CPld_fQl.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 171,
+            "endColumn": 178
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "X",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Goals-CPld_fQl.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 179,
+            "endColumn": 185
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "W",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Goals-CPld_fQl.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 186,
+            "endColumn": 192
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "av",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Goals-CPld_fQl.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 200,
+            "endColumn": 207
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ax",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Goals-CPld_fQl.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 215,
+            "endColumn": 222
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aa",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 376,
+            "endColumn": 383
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ab",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 391,
+            "endColumn": 398
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ac",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 413,
+            "endColumn": 420
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ad",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 421,
+            "endColumn": 428
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "af",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 444,
+            "endColumn": 451
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ag",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 466,
+            "endColumn": 473
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ah",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 474,
+            "endColumn": 481
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ai",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 482,
+            "endColumn": 489
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aj",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 511,
+            "endColumn": 518
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ak",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 519,
+            "endColumn": 526
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "al",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 541,
+            "endColumn": 548
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "am",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 549,
+            "endColumn": 556
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "an",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 557,
+            "endColumn": 564
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ao",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 565,
+            "endColumn": 572
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ap",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 573,
+            "endColumn": 580
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aq",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 609,
+            "endColumn": 616
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ar",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 632,
+            "endColumn": 640
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a2",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 641,
+            "endColumn": 649
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "as",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 650,
+            "endColumn": 658
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "at",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/index-Bg8omhkt.js",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 691,
+            "endColumn": 699
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aS",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 197,
+            "endColumn": 204
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aw",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 219,
+            "endColumn": 226
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "au",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 234,
+            "endColumn": 241
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a0",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 249,
+            "endColumn": 256
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a9",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 257,
+            "endColumn": 264
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aT",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 279,
+            "endColumn": 286
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aU",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 287,
+            "endColumn": 294
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "av",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 295,
+            "endColumn": 302
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ay",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 303,
+            "endColumn": 310
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aV",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 325,
+            "endColumn": 332
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a6",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 333,
+            "endColumn": 340
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aW",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 348,
+            "endColumn": 355
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aX",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 356,
+            "endColumn": 363
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aY",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Investments-BJebz9tU.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 364,
+            "endColumn": 371
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "T",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/printUtils-D0CIF7X_.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 8,
+            "endColumn": 14
+          },
+          "modulePath": "./components-dashboard-DihyDemg.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "f",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/printUtils-D0CIF7X_.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 15,
+            "endColumn": 21
+          },
+          "modulePath": "./components-dashboard-DihyDemg.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aG",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 346,
+            "endColumn": 353
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a4",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 354,
+            "endColumn": 361
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ay",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 362,
+            "endColumn": 369
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a2",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 370,
+            "endColumn": 377
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aH",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 378,
+            "endColumn": 385
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "af",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 407,
+            "endColumn": 414
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aI",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 415,
+            "endColumn": 422
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a9",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 430,
+            "endColumn": 437
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aJ",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 438,
+            "endColumn": 445
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aK",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 446,
+            "endColumn": 453
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aL",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 454,
+            "endColumn": 461
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aM",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 462,
+            "endColumn": 469
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aN",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 470,
+            "endColumn": 477
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aO",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 478,
+            "endColumn": 485
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aP",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 500,
+            "endColumn": 507
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aQ",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 515,
+            "endColumn": 522
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aR",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 523,
+            "endColumn": 530
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "av",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 552,
+            "endColumn": 559
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ao",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 560,
+            "endColumn": 567
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "an",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Settings-BGbNN1Lv.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 568,
+            "endColumn": 575
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ay",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 218,
+            "endColumn": 225
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "at",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 247,
+            "endColumn": 254
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "az",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 283,
+            "endColumn": 290
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aA",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 291,
+            "endColumn": 298
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "au",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 306,
+            "endColumn": 313
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a9",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 314,
+            "endColumn": 321
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a2",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 329,
+            "endColumn": 336
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aB",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 344,
+            "endColumn": 351
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aC",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 359,
+            "endColumn": 366
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aD",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 381,
+            "endColumn": 388
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "av",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 389,
+            "endColumn": 396
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "aE",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 397,
+            "endColumn": 404
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "a4",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/Shared-TjINOIDC.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 405,
+            "endColumn": 412
+          },
+          "modulePath": "./icons-vendor-DD-AfFc5.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "j",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/dist/assets/SimpleCharts-oGsvXHVx.js",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 8,
+            "endColumn": 14
+          },
+          "modulePath": "./components-dashboard-DihyDemg.js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "AnalysisResult",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/BaseAnalyzer.ts",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 10,
+            "endColumn": 24
+          },
+          "modulePath": "./types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "VariableDeclaration",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/ComponentAnalyzer.ts",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 31,
+            "endColumn": 50
+          },
+          "modulePath": "ts-morph",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ArrowFunction",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/ComponentAnalyzer.ts",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 52,
+            "endColumn": 65
+          },
+          "modulePath": "ts-morph",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "React",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ErrorBoundary.tsx",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 8,
+            "endColumn": 13
+          },
+          "modulePath": "react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "AccountType",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/Investments.tsx",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 50,
+            "endColumn": 61
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ChevronLeft",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/MainLayout.tsx",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 21,
+            "endColumn": 32
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ChevronRight",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/MainLayout.tsx",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 34,
+            "endColumn": 46
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Transaction",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/MainLayout.tsx",
+            "startLine": 4,
+            "endLine": 4,
+            "startColumn": 29,
+            "endColumn": 40
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "checkDataConsistency",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/MainLayout.tsx",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 10,
+            "endColumn": 30
+          },
+          "modulePath": "../core/engines/financialLogic",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "React",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ReportsDDD.tsx",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 8,
+            "endColumn": 13
+          },
+          "modulePath": "react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "TrendingDown",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ReportsDDD.tsx",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 31,
+            "endColumn": 43
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Modal",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/Settings.tsx",
+            "startLine": 9,
+            "endLine": 9,
+            "startColumn": 10,
+            "endColumn": 15
+          },
+          "modulePath": "./ui/Modal",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "useEffect",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useAppLogic.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 10,
+            "endColumn": 19
+          },
+          "modulePath": "react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "useRef",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useAppLogic.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 21,
+            "endColumn": 27
+          },
+          "modulePath": "react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "SyncStatus",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useDataStore.ts",
+            "startLine": 5,
+            "endLine": 5,
+            "startColumn": 21,
+            "endColumn": 31
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "AssetType",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useInvestmentActions.ts",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 39,
+            "endColumn": 48
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "CacheKeys",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/usePaginatedTransactions.ts",
+            "startLine": 16,
+            "endLine": 16,
+            "startColumn": 26,
+            "endColumn": 35
+          },
+          "modulePath": "../services/cacheService",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Category",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/accountUtils.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 49,
+            "endColumn": 57
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Trip",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/exportUtils.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 39,
+            "endColumn": 43
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "formatCurrency",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/exportUtils.ts",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 10,
+            "endColumn": 24
+          },
+          "modulePath": "../utils",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Category",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/ledger.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 49,
+            "endColumn": 57
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Transaction",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/ofxParser.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 10,
+            "endColumn": 21
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Category",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/ofxParser.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 40,
+            "endColumn": 48
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Account",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/paginationService.ts",
+            "startLine": 9,
+            "endLine": 9,
+            "startColumn": 23,
+            "endColumn": 30
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Category",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/pdfService.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 32,
+            "endColumn": 40
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Trip",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/printUtils.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 39,
+            "endColumn": 43
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Transaction",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/FinancialErrorDetector.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 10,
+            "endColumn": 21
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Account",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/FinancialErrorDetector.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 23,
+            "endColumn": 30
+          },
+          "modulePath": "../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "SafeFinancialCalculator",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/FinancialErrorDetector.ts",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 10,
+            "endColumn": 33
+          },
+          "modulePath": "./SafeFinancialCalculator",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "convertToBRL",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/SafeFinancialCalculations.ts",
+            "startLine": 5,
+            "endLine": 5,
+            "startColumn": 10,
+            "endColumn": 22
+          },
+          "modulePath": "../services/currencyService",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "createClient",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/scripts/archive/deploy-old/check-trips-schema.mjs",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 10,
+            "endColumn": 22
+          },
+          "modulePath": "@supabase/supabase-js",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "fs",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/scripts/archive/deploy-old/deploy_debug_data.mjs",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 8,
+            "endColumn": 10
+          },
+          "modulePath": "fs",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "path",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/scripts/archive/deploy-old/deploy_debug_data.mjs",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 8,
+            "endColumn": 12
+          },
+          "modulePath": "path",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "BankLogo",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/AccountCard.tsx",
+            "startLine": 6,
+            "endLine": 6,
+            "startColumn": 10,
+            "endColumn": 18
+          },
+          "modulePath": "../ui/BankLogo",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ActionModal",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/BankingDetail.tsx",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 10,
+            "endColumn": 21
+          },
+          "modulePath": "./ActionModal",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ActionModal",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/CreditCardDetail.tsx",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 10,
+            "endColumn": 21
+          },
+          "modulePath": "./ActionModal",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "PieChart",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/AssetList.tsx",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 40,
+            "endColumn": 64
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "TrendingUp",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/layout/MobileNav.tsx",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 34,
+            "endColumn": 44
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "CheckCheck",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/layout/NotificationSystem.tsx",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 51,
+            "endColumn": 61
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Settings",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/layout/Sidebar.tsx",
+            "startLine": 4,
+            "endLine": 4,
+            "startColumn": 18,
+            "endColumn": 42
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Monitor",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/settings/DataManagement.tsx",
+            "startLine": 4,
+            "endLine": 4,
+            "startColumn": 43,
+            "endColumn": 50
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "EyeOff",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/settings/PrivacySettings.tsx",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 15,
+            "endColumn": 21
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "convertToBRL",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/engines/dashboardEngine.ts",
+            "startLine": 6,
+            "endLine": 6,
+            "startColumn": 10,
+            "endColumn": 22
+          },
+          "modulePath": "../../services/currencyService",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "isSameMonth",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/engines/financialLogic.ts",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 10,
+            "endColumn": 21
+          },
+          "modulePath": "../../utils",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "convertToBRL",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/engines/financialLogic.ts",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 10,
+            "endColumn": 22
+          },
+          "modulePath": "../../services/currencyService",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "SyncStatus",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/services/supabaseService.ts",
+            "startLine": 4,
+            "endLine": 4,
+            "startColumn": 21,
+            "endColumn": 31
+          },
+          "modulePath": "../../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "UserProfile",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/services/supabaseService.ts",
+            "startLine": 4,
+            "endLine": 4,
+            "startColumn": 33,
+            "endColumn": 44
+          },
+          "modulePath": "../../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "DBTransaction",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/services/supabaseService.ts",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 10,
+            "endColumn": 23
+          },
+          "modulePath": "../../types/db",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "DBAccount",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/services/supabaseService.ts",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 25,
+            "endColumn": 34
+          },
+          "modulePath": "../../types/db",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "DBTrip",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/services/supabaseService.ts",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 36,
+            "endColumn": 42
+          },
+          "modulePath": "../../types/db",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "DBBudget",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/services/supabaseService.ts",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 44,
+            "endColumn": 52
+          },
+          "modulePath": "../../types/db",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "DBGoal",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/services/supabaseService.ts",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 54,
+            "endColumn": 60
+          },
+          "modulePath": "../../types/db",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "DBFamilyMember",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/services/supabaseService.ts",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 62,
+            "endColumn": 76
+          },
+          "modulePath": "../../types/db",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "DBAsset",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/services/supabaseService.ts",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 78,
+            "endColumn": 85
+          },
+          "modulePath": "../../types/db",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "DBSnapshot",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/services/supabaseService.ts",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 87,
+            "endColumn": 97
+          },
+          "modulePath": "../../types/db",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "DBCustomCategory",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/core/services/supabaseService.ts",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 99,
+            "endColumn": 115
+          },
+          "modulePath": "../../types/db",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "PieChart",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/CategorySpendingChart.tsx",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 10,
+            "endColumn": 29
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "lazyImport",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/Dashboard.tsx",
+            "startLine": 15,
+            "endLine": 15,
+            "startColumn": 10,
+            "endColumn": 20
+          },
+          "modulePath": "../../utils/lazyImport",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Wallet",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/FinancialProjectionCard.tsx",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 10,
+            "endColumn": 16
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "TrendingUp",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/FinancialProjectionCard.tsx",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 18,
+            "endColumn": 28
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "TrendingDown",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/FinancialProjectionCard.tsx",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 30,
+            "endColumn": 42
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "CheckCircle2",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/FinancialProjectionCard.tsx",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 68,
+            "endColumn": 80
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Clock",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/FinancialProjectionCard.tsx",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 82,
+            "endColumn": 87
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "useState",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/useFinancialDashboard.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 19,
+            "endColumn": 27
+          },
+          "modulePath": "react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "useEffect",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/useFinancialDashboard.ts",
+            "startLine": 1,
+            "endLine": 1,
+            "startColumn": 29,
+            "endColumn": 38
+          },
+          "modulePath": "react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "AccountType",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/useFinancialDashboard.ts",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 49,
+            "endColumn": 60
+          },
+          "modulePath": "../../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Category",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/useFinancialDashboard.ts",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 62,
+            "endColumn": 70
+          },
+          "modulePath": "../../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "FinancialErrorDetector",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/useFinancialDashboard.ts",
+            "startLine": 19,
+            "endLine": 19,
+            "startColumn": 10,
+            "endColumn": 32
+          },
+          "modulePath": "../../utils/FinancialErrorDetector",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "AccountType",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/useSafeFinancialDashboard.ts",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 49,
+            "endColumn": 60
+          },
+          "modulePath": "../../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "calculateSafeSum",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/useSafeFinancialDashboard.ts",
+            "startLine": 8,
+            "endLine": 8,
+            "startColumn": 3,
+            "endColumn": 19
+          },
+          "modulePath": "../../utils/SafeFinancialCalculations",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "calculateSafeAverage",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/useSafeFinancialDashboard.ts",
+            "startLine": 9,
+            "endLine": 9,
+            "startColumn": 3,
+            "endColumn": 23
+          },
+          "modulePath": "../../utils/SafeFinancialCalculations",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Card",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/AnticipateInstallmentsModal.tsx",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 10,
+            "endColumn": 14
+          },
+          "modulePath": "@/components/ui/Card",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Category",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/useTransactionFilters.ts",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 40,
+            "endColumn": 48
+          },
+          "modulePath": "../../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Card",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/TripDetail.tsx",
+            "startLine": 4,
+            "endLine": 4,
+            "startColumn": 10,
+            "endColumn": 14
+          },
+          "modulePath": "@/components/ui/Card",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "SourceFile",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/analyzers/DeadCodeAnalyzer.ts",
+            "startLine": 6,
+            "endLine": 6,
+            "startColumn": 19,
+            "endColumn": 29
+          },
+          "modulePath": "ts-morph",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "RecoveryRecord",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/factory-reset/RecoveryRestorationService.ts",
+            "startLine": 9,
+            "endLine": 9,
+            "startColumn": 28,
+            "endColumn": 47
+          },
+          "modulePath": "./RecoveryRegistry",
+          "isTypeOnly": true
+        },
+        {
+          "importName": "AssetType",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/modals/CorporateActionModal.tsx",
+            "startLine": 2,
+            "endLine": 2,
+            "startColumn": 17,
+            "endColumn": 26
+          },
+          "modulePath": "../../../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "AssetType",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/modals/IRReportModal.tsx",
+            "startLine": 3,
+            "endLine": 3,
+            "startColumn": 17,
+            "endColumn": 26
+          },
+          "modulePath": "../../../types",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Save",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/modals/SellAssetModal.tsx",
+            "startLine": 5,
+            "endLine": 5,
+            "startColumn": 17,
+            "endColumn": 21
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Button",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripOverview.tsx",
+            "startLine": 5,
+            "endLine": 5,
+            "startColumn": 10,
+            "endColumn": 16
+          },
+          "modulePath": "@/components/ui/Button",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Target",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripOverview.tsx",
+            "startLine": 6,
+            "endLine": 6,
+            "startColumn": 10,
+            "endColumn": 16
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Sparkles",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripOverview.tsx",
+            "startLine": 6,
+            "endLine": 6,
+            "startColumn": 35,
+            "endColumn": 43
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "Calculator",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripOverview.tsx",
+            "startLine": 6,
+            "endLine": 6,
+            "startColumn": 45,
+            "endColumn": 55
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "ArrowRight",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripOverview.tsx",
+            "startLine": 6,
+            "endLine": 6,
+            "startColumn": 57,
+            "endColumn": 67
+          },
+          "modulePath": "lucide-react",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "getCategoryIcon",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripOverview.tsx",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 26,
+            "endColumn": 41
+          },
+          "modulePath": "../../../utils",
+          "isTypeOnly": false
+        },
+        {
+          "importName": "parseDate",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripOverview.tsx",
+            "startLine": 7,
+            "endLine": 7,
+            "startColumn": 43,
+            "endColumn": 52
+          },
+          "modulePath": "../../../utils",
+          "isTypeOnly": false
+        }
+      ],
+      "orphanedComponents": [
+        {
+          "componentName": "AiAdvisor",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/AiAdvisor.tsx",
+            "startLine": 8,
+            "endLine": 14,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "ReportsDDD",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ReportsDDD.tsx",
+            "startLine": 5,
+            "endLine": 174,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "ServiceWorkerUpdater",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ServiceWorkerUpdater.tsx",
+            "startLine": 5,
+            "endLine": 28,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "MemberSummaryCard",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/MemberSummaryCard.tsx",
+            "startLine": 17,
+            "endLine": 175,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "SettlementReviewModal",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/SettlementReviewModal.tsx",
+            "startLine": 19,
+            "endLine": 145,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "SharedRequests",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/SharedRequests.tsx",
+            "startLine": 26,
+            "endLine": 314,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "BankLogo",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/BankLogo.tsx",
+            "startLine": 18,
+            "endLine": 44,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "EmailInput",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/EmailInput.tsx",
+            "startLine": 35,
+            "endLine": 219,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "MobilePagination",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/Pagination.tsx",
+            "startLine": 214,
+            "endLine": 261,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "SimpleBarChart",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/SimpleCharts.tsx",
+            "startLine": 8,
+            "endLine": 36,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "SimpleLineChart",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/SimpleCharts.tsx",
+            "startLine": 44,
+            "endLine": 108,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "FinancialProjectionCard",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/FinancialProjectionCard.tsx",
+            "startLine": 18,
+            "endLine": 132,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "SummaryCards",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/SummaryCards.tsx",
+            "startLine": 18,
+            "endLine": 148,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "UpcomingBills",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/UpcomingBills.tsx",
+            "startLine": 14,
+            "endLine": 58,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        },
+        {
+          "componentName": "AnticipateInstallmentsModal",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/AnticipateInstallmentsModal.tsx",
+            "startLine": 18,
+            "endLine": 179,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isExported": true,
+          "usedOnlyInTests": false
+        }
+      ],
+      "unusedHooks": [
+        {
+          "hookName": "useAccountStore",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useAccountStore.ts",
+            "startLine": 17,
+            "endLine": 144,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        },
+        {
+          "hookName": "useBudgetGoalStore",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useBudgetGoalStore.ts",
+            "startLine": 17,
+            "endLine": 181,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        },
+        {
+          "hookName": "useFamilyStore",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useFamilyStore.ts",
+            "startLine": 17,
+            "endLine": 139,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        },
+        {
+          "hookName": "usePaginatedAccountTransactions",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/usePaginatedTransactions.ts",
+            "startLine": 238,
+            "endLine": 251,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        },
+        {
+          "hookName": "usePaginatedTripTransactions",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/usePaginatedTransactions.ts",
+            "startLine": 256,
+            "endLine": 269,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        },
+        {
+          "hookName": "useSmartNotifications",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useSmartNotifications.ts",
+            "startLine": 35,
+            "endLine": 225,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        },
+        {
+          "hookName": "useTransactionStore",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useTransactionStore.ts",
+            "startLine": 20,
+            "endLine": 448,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        },
+        {
+          "hookName": "useTripStore",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useTripStore.ts",
+            "startLine": 17,
+            "endLine": 104,
+            "startColumn": 14,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        },
+        {
+          "hookName": "useDebounce",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/memoHelpers.ts",
+            "startLine": 12,
+            "endLine": 26,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        },
+        {
+          "hookName": "useThrottle",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/memoHelpers.ts",
+            "startLine": 31,
+            "endLine": 46,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        },
+        {
+          "hookName": "useDeepMemo",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/memoHelpers.ts",
+            "startLine": 80,
+            "endLine": 88,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        },
+        {
+          "hookName": "useStableCallback",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/memoHelpers.ts",
+            "startLine": 93,
+            "endLine": 103,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "isCustomHook": true,
+          "dependencies": []
+        }
+      ],
+      "unusedTypes": [
+        {
+          "typeName": "BaseEntity",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types.ts",
+            "startLine": 7,
+            "endLine": 13,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "AuditLog",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types.ts",
+            "startLine": 224,
+            "endLine": 231,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "TripParticipant",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types.ts",
+            "startLine": 248,
+            "endLine": 251,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "TradeHistory",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types.ts",
+            "startLine": 327,
+            "endLine": 336,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "TestRecoveryRecord",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/__tests__/factory-reset-schema.property.test.ts",
+            "startLine": 26,
+            "endLine": 34,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TestAuditRecord",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/__tests__/factory-reset-schema.property.test.ts",
+            "startLine": 36,
+            "endLine": 43,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TestTransaction",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/__tests__/recovery-system.property.test.ts",
+            "startLine": 26,
+            "endLine": 33,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TestSharedRequest",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/__tests__/recovery-system.property.test.ts",
+            "startLine": 35,
+            "endLine": 42,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "AnalysisSummary",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 13,
+            "endLine": 19,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "FrontendReport",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 55,
+            "endLine": 61,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "HookAnalysis",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 73,
+            "endLine": 80,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "TypeAnalysis",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 82,
+            "endLine": 89,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "ImportAnalysis",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 91,
+            "endLine": 97,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "BackendReport",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 107,
+            "endLine": 112,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "TableAnalysis",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 114,
+            "endLine": 122,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "IndexAnalysis",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 124,
+            "endLine": 131,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "FunctionAnalysis",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 133,
+            "endLine": 139,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "TriggerAnalysis",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 141,
+            "endLine": 147,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "BusinessLogicReport",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 149,
+            "endLine": 154,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "CalculationAnalysis",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 156,
+            "endLine": 163,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "ValidationAnalysis",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 165,
+            "endLine": 170,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "TransformationAnalysis",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 172,
+            "endLine": 177,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DuplicationReport",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 179,
+            "endLine": 184,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "Suggestion",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 188,
+            "endLine": 192,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "OptimizationSuggestion",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/analysis/types.ts",
+            "startLine": 194,
+            "endLine": 199,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "AccountsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/Accounts.tsx",
+            "startLine": 25,
+            "endLine": 41,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "AiAdvisorProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/AiAdvisor.tsx",
+            "startLine": 4,
+            "endLine": 6,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "AuthProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/Auth.tsx",
+            "startLine": 8,
+            "endLine": 10,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "BudgetsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/Budgets.tsx",
+            "startLine": 10,
+            "endLine": 17,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "Props",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ErrorBoundary.tsx",
+            "startLine": 4,
+            "endLine": 6,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "FamilyProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/Family.tsx",
+            "startLine": 10,
+            "endLine": 17,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "GlobalSearchProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/GlobalSearch.tsx",
+            "startLine": 6,
+            "endLine": 12,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "GoalsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/Goals.tsx",
+            "startLine": 9,
+            "endLine": 16,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "InvestmentsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/Investments.tsx",
+            "startLine": 22,
+            "endLine": 33,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "MainLayoutProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/MainLayout.tsx",
+            "startLine": 11,
+            "endLine": 29,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SettingsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/Settings.tsx",
+            "startLine": 19,
+            "endLine": 38,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SharedProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/Shared.tsx",
+            "startLine": 13,
+            "endLine": 27,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "TransitionProviderProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/contexts/TransitionContext.tsx",
+            "startLine": 18,
+            "endLine": 21,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseAccountActionsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useAccountActions.ts",
+            "startLine": 6,
+            "endLine": 10,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseAccountStoreProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useAccountStore.ts",
+            "startLine": 11,
+            "endLine": 15,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseAppLogicProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useAppLogic.ts",
+            "startLine": 6,
+            "endLine": 16,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseBudgetGoalStoreProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useBudgetGoalStore.ts",
+            "startLine": 11,
+            "endLine": 15,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "ErrorTrackerContextType",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useErrorTracker.tsx",
+            "startLine": 14,
+            "endLine": 20,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseFamilyStoreProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useFamilyStore.ts",
+            "startLine": 11,
+            "endLine": 15,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseInvestmentActionsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useInvestmentActions.ts",
+            "startLine": 6,
+            "endLine": 13,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UsePaginatedTransactionsResult",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/usePaginatedTransactions.ts",
+            "startLine": 29,
+            "endLine": 48,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SettingsContextType",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useSettings.tsx",
+            "startLine": 14,
+            "endLine": 22,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SettingsProviderProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useSettings.tsx",
+            "startLine": 34,
+            "endLine": 36,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseSharedFinancesProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useSharedFinances.ts",
+            "startLine": 5,
+            "endLine": 10,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseSmartNotificationsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useSmartNotifications.ts",
+            "startLine": 26,
+            "endLine": 33,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseTransactionFormProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useTransactionForm.ts",
+            "startLine": 5,
+            "endLine": 12,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseTransactionStoreProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useTransactionStore.ts",
+            "startLine": 13,
+            "endLine": 18,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseTripStoreProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/hooks/useTripStore.ts",
+            "startLine": 11,
+            "endLine": 15,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "RefactoringEngine",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/RefactoringEngine.ts",
+            "startLine": 17,
+            "endLine": 22,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "Responsibility",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 65,
+            "endLine": 69,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DecompositionSuggestion",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 71,
+            "endLine": 78,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DependencyNode",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 86,
+            "endLine": 92,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DependencyEdge",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 94,
+            "endLine": 98,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DependencyCluster",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 100,
+            "endLine": 104,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "CircularDependency",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 106,
+            "endLine": 110,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DependencyGraph",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 112,
+            "endLine": 116,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "ConsolidationOpportunity",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 118,
+            "endLine": 124,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "HeavyDependency",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 140,
+            "endLine": 145,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "TreeshakingOpportunity",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 147,
+            "endLine": 151,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "LazyLoadingCandidate",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 153,
+            "endLine": 158,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "BundleSizeReport",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 160,
+            "endLine": 166,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "RerenderIssue",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 168,
+            "endLine": 173,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "PerformanceImprovement",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 175,
+            "endLine": 179,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "OptimizationOpportunity",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 181,
+            "endLine": 187,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "ComputationReport",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 189,
+            "endLine": 196,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "Risk",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/refactoring/types.ts",
+            "startLine": 248,
+            "endLine": 253,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DatabaseError",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/errorHandler.ts",
+            "startLine": 23,
+            "endLine": 27,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TrialBalanceItem",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/ledger.ts",
+            "startLine": 14,
+            "endLine": 19,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "LogLevel",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/logger.ts",
+            "startLine": 9,
+            "endLine": 9,
+            "startColumn": 1,
+            "endColumn": 53
+          },
+          "kind": "type",
+          "isExported": false
+        },
+        {
+          "typeName": "ReportData",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/pdfService.ts",
+            "startLine": 4,
+            "endLine": 12,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SharedParticipant",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/SharedTransactionManager.ts",
+            "startLine": 25,
+            "endLine": 30,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "ModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 20,
+            "endLine": 25,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "NotificationData",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 28,
+            "endLine": 35,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "ApiResponse",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 38,
+            "endLine": 42,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "FilterOptions",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 45,
+            "endLine": 52,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "PaginationParams",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 55,
+            "endLine": 59,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "PaginatedResponse",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 61,
+            "endLine": 67,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "AppConfig",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 74,
+            "endLine": 78,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "AppError",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 81,
+            "endLine": 87,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "ExportData",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 102,
+            "endLine": 105,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "BulkOperation",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 108,
+            "endLine": 112,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "ComponentProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 122,
+            "endLine": 125,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "UseQueryResult",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 128,
+            "endLine": 133,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "ContextValue",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 136,
+            "endLine": 140,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "CreateInput",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 8,
+            "endLine": 8,
+            "startColumn": 1,
+            "endColumn": 72
+          },
+          "kind": "type",
+          "isExported": true
+        },
+        {
+          "typeName": "UpdateInput",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 9,
+            "endLine": 9,
+            "startColumn": 1,
+            "endColumn": 81
+          },
+          "kind": "type",
+          "isExported": true
+        },
+        {
+          "typeName": "Callback",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 12,
+            "endLine": 12,
+            "startColumn": 1,
+            "endColumn": 68
+          },
+          "kind": "type",
+          "isExported": true
+        },
+        {
+          "typeName": "AsyncCallback",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 13,
+            "endLine": 13,
+            "startColumn": 1,
+            "endColumn": 66
+          },
+          "kind": "type",
+          "isExported": true
+        },
+        {
+          "typeName": "FormData",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 16,
+            "endLine": 16,
+            "startColumn": 1,
+            "endColumn": 56
+          },
+          "kind": "type",
+          "isExported": true
+        },
+        {
+          "typeName": "FormErrors",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 17,
+            "endLine": 17,
+            "startColumn": 1,
+            "endColumn": 62
+          },
+          "kind": "type",
+          "isExported": true
+        },
+        {
+          "typeName": "EventHandler",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 70,
+            "endLine": 70,
+            "startColumn": 1,
+            "endColumn": 60
+          },
+          "kind": "type",
+          "isExported": true
+        },
+        {
+          "typeName": "AsyncEventHandler",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/common.ts",
+            "startLine": 71,
+            "endLine": 71,
+            "startColumn": 1,
+            "endColumn": 74
+          },
+          "kind": "type",
+          "isExported": true
+        },
+        {
+          "typeName": "Tables",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/database.types.ts",
+            "startLine": 593,
+            "endLine": 620,
+            "startColumn": 1,
+            "endColumn": 12
+          },
+          "kind": "type",
+          "isExported": true
+        },
+        {
+          "typeName": "TablesInsert",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/database.types.ts",
+            "startLine": 622,
+            "endLine": 645,
+            "startColumn": 1,
+            "endColumn": 12
+          },
+          "kind": "type",
+          "isExported": true
+        },
+        {
+          "typeName": "TablesUpdate",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/database.types.ts",
+            "startLine": 647,
+            "endLine": 670,
+            "startColumn": 1,
+            "endColumn": 12
+          },
+          "kind": "type",
+          "isExported": true
+        },
+        {
+          "typeName": "DBBaseEntity",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/db.ts",
+            "startLine": 4,
+            "endLine": 11,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DBTransaction",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/db.ts",
+            "startLine": 13,
+            "endLine": 51,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DBAccount",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/db.ts",
+            "startLine": 53,
+            "endLine": 63,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DBTrip",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/db.ts",
+            "startLine": 65,
+            "endLine": 78,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DBBudget",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/db.ts",
+            "startLine": 80,
+            "endLine": 86,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DBGoal",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/db.ts",
+            "startLine": 88,
+            "endLine": 95,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DBAsset",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/db.ts",
+            "startLine": 97,
+            "endLine": 108,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DBSnapshot",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/db.ts",
+            "startLine": 110,
+            "endLine": 116,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DBCustomCategory",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/db.ts",
+            "startLine": 118,
+            "endLine": 120,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "DBFamilyMember",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/db.ts",
+            "startLine": 122,
+            "endLine": 126,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "SettlementPayment",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/settlement.ts",
+            "startLine": 27,
+            "endLine": 35,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "PendingSettlement",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/settlement.ts",
+            "startLine": 37,
+            "endLine": 41,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "SettlementStatus",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/settlement.ts",
+            "startLine": 19,
+            "endLine": 25,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "enum",
+          "isExported": true
+        },
+        {
+          "typeName": "ActiveSession",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/UserSettings.ts",
+            "startLine": 15,
+            "endLine": 22,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "LoginRecord",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/types/UserSettings.ts",
+            "startLine": 24,
+            "endLine": 30,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "TransactionValidationResult",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/FinancialDataValidation.ts",
+            "startLine": 18,
+            "endLine": 22,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "AccountValidationResult",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/FinancialDataValidation.ts",
+            "startLine": 24,
+            "endLine": 28,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "FinancialHealthReport",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/FinancialErrorDetector.ts",
+            "startLine": 28,
+            "endLine": 49,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "SafeCalculationResult",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/FinancialErrorDetector.ts",
+            "startLine": 51,
+            "endLine": 61,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "SafeProjectedBalanceResult",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/SafeFinancialCalculations.ts",
+            "startLine": 16,
+            "endLine": 28,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "SafeMonthlyTotalsResult",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/utils/SafeFinancialCalculations.ts",
+            "startLine": 30,
+            "endLine": 40,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "AccountCardProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/AccountCard.tsx",
+            "startLine": 9,
+            "endLine": 15,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "AddAccountCardProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/AccountCard.tsx",
+            "startLine": 147,
+            "endLine": 151,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "AccountFormProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/AccountForm.tsx",
+            "startLine": 26,
+            "endLine": 31,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "AccountListProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/AccountList.tsx",
+            "startLine": 7,
+            "endLine": 16,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "AccountSummaryCardsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/AccountSummaryCards.tsx",
+            "startLine": 5,
+            "endLine": 9,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "ActionModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/ActionModal.tsx",
+            "startLine": 11,
+            "endLine": 19,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "BankingDetailProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/BankingDetail.tsx",
+            "startLine": 17,
+            "endLine": 24,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "CreditCardDetailProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/CreditCardDetail.tsx",
+            "startLine": 18,
+            "endLine": 28,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "CreditCardImportModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/CreditCardImportModal.tsx",
+            "startLine": 20,
+            "endLine": 25,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "ImportModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/accounts/ImportModal.tsx",
+            "startLine": 9,
+            "endLine": 14,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "FamilySummaryProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/family/FamilySummary.tsx",
+            "startLine": 5,
+            "endLine": 8,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "GoalsSummaryProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/goals/GoalsSummary.tsx",
+            "startLine": 7,
+            "endLine": 9,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "AllocationChartProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/AllocationChart.tsx",
+            "startLine": 7,
+            "endLine": 11,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "AssetListProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/AssetList.tsx",
+            "startLine": 6,
+            "endLine": 15,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "BrokerageChartProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/BrokerageChart.tsx",
+            "startLine": 7,
+            "endLine": 11,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "InvestmentFiltersProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/InvestmentFilters.tsx",
+            "startLine": 6,
+            "endLine": 13,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "InvestmentOperationsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/InvestmentOperations.tsx",
+            "startLine": 5,
+            "endLine": 10,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "InvestmentSummaryCardsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/InvestmentSummaryCards.tsx",
+            "startLine": 6,
+            "endLine": 12,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "MobileNavProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/layout/MobileNav.tsx",
+            "startLine": 5,
+            "endLine": 9,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "NotificationItem",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/layout/NotificationSystem.tsx",
+            "startLine": 5,
+            "endLine": 14,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "NotificationSystemProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/layout/NotificationSystem.tsx",
+            "startLine": 16,
+            "endLine": 22,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SidebarProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/layout/Sidebar.tsx",
+            "startLine": 9,
+            "endLine": 18,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "DataImportProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/settings/DataImport.tsx",
+            "startLine": 21,
+            "endLine": 23,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "DataManagementProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/settings/DataManagement.tsx",
+            "startLine": 10,
+            "endLine": 22,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "MemberSummaryCardProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/MemberSummaryCard.tsx",
+            "startLine": 7,
+            "endLine": 15,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "ResyncNotificationBannerProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/ResyncNotificationBanner.tsx",
+            "startLine": 15,
+            "endLine": 18,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SettlementModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/SettlementModal.tsx",
+            "startLine": 6,
+            "endLine": 18,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SettlementReviewModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/SettlementReviewModal.tsx",
+            "startLine": 9,
+            "endLine": 17,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SharedFiltersProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/SharedFilters.tsx",
+            "startLine": 4,
+            "endLine": 8,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SharedInstallmentEditModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/SharedInstallmentEditModal.tsx",
+            "startLine": 8,
+            "endLine": 18,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SharedInstallmentImportProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/SharedInstallmentImport.tsx",
+            "startLine": 13,
+            "endLine": 21,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SharedMemberDetailProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/SharedMemberDetail.tsx",
+            "startLine": 16,
+            "endLine": 35,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SharedRequestsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/shared/SharedRequests.tsx",
+            "startLine": 20,
+            "endLine": 24,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "BankLogoProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/BankLogo.tsx",
+            "startLine": 5,
+            "endLine": 10,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "ButtonProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/Button.tsx",
+            "startLine": 3,
+            "endLine": 7,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "CardProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/Card.tsx",
+            "startLine": 3,
+            "endLine": 8,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "ConfirmModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/ConfirmModal.tsx",
+            "startLine": 5,
+            "endLine": 14,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "EmailInputProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/EmailInput.tsx",
+            "startLine": 22,
+            "endLine": 33,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "InconsistenciesModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/InconsistenciesModal.tsx",
+            "startLine": 13,
+            "endLine": 18,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "InputProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/Input.tsx",
+            "startLine": 3,
+            "endLine": 6,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "ModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/Modal.tsx",
+            "startLine": 4,
+            "endLine": 9,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "PrivacyBlurProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/PrivacyBlur.tsx",
+            "startLine": 3,
+            "endLine": 7,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SimpleBarChartProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/SimpleCharts.tsx",
+            "startLine": 3,
+            "endLine": 6,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SimpleLineChartProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/SimpleCharts.tsx",
+            "startLine": 38,
+            "endLine": 42,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SimplePieChartProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/SimpleCharts.tsx",
+            "startLine": 110,
+            "endLine": 113,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "DivergingBarChartProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/SimpleCharts.tsx",
+            "startLine": 167,
+            "endLine": 170,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SkeletonProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/Skeleton.tsx",
+            "startLine": 3,
+            "endLine": 5,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SmoothLoadingOverlayProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/SmoothLoadingOverlay.tsx",
+            "startLine": 4,
+            "endLine": 9,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SmoothMonthSelectorProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/SmoothMonthSelector.tsx",
+            "startLine": 5,
+            "endLine": 9,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "ThemeContextType",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/ThemeContext.tsx",
+            "startLine": 5,
+            "endLine": 8,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "Toast",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/Toast.tsx",
+            "startLine": 6,
+            "endLine": 10,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "ToastContextType",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/ui/Toast.tsx",
+            "startLine": 12,
+            "endLine": 15,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "CashFlowDataItem",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/CashFlowChart.tsx",
+            "startLine": 6,
+            "endLine": 14,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "CashFlowChartProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/CashFlowChart.tsx",
+            "startLine": 16,
+            "endLine": 22,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "CategorySpendingChartProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/CategorySpendingChart.tsx",
+            "startLine": 8,
+            "endLine": 12,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "DashboardProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/Dashboard.tsx",
+            "startLine": 26,
+            "endLine": 42,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "FinancialProjectionCardProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/FinancialProjectionCard.tsx",
+            "startLine": 6,
+            "endLine": 16,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "MiniSparklineProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/MiniSparkline.tsx",
+            "startLine": 3,
+            "endLine": 10,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SummaryCardsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/SummaryCards.tsx",
+            "startLine": 8,
+            "endLine": 16,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UpcomingBillsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/UpcomingBills.tsx",
+            "startLine": 7,
+            "endLine": 12,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseFinancialDashboardProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/useFinancialDashboard.ts",
+            "startLine": 21,
+            "endLine": 28,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "UseOptimizedFinancialDashboardProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/dashboard/useOptimizedFinancialDashboard.ts",
+            "startLine": 21,
+            "endLine": 28,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "AccountSelectorProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/AccountSelector.tsx",
+            "startLine": 6,
+            "endLine": 14,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "AnticipateInstallmentsModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/AnticipateInstallmentsModal.tsx",
+            "startLine": 9,
+            "endLine": 16,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "InstallmentAnticipationModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/InstallmentAnticipationModal.tsx",
+            "startLine": 8,
+            "endLine": 15,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SplitModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/SplitModal.tsx",
+            "startLine": 6,
+            "endLine": 23,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TransactionDeleteModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/TransactionDeleteModal.tsx",
+            "startLine": 7,
+            "endLine": 12,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TransactionFiltersProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/TransactionFilters.tsx",
+            "startLine": 5,
+            "endLine": 24,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TransactionFormProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/TransactionForm.tsx",
+            "startLine": 10,
+            "endLine": 26,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TransactionListProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/TransactionList.tsx",
+            "startLine": 8,
+            "endLine": 20,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TransactionsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/Transactions.tsx",
+            "startLine": 22,
+            "endLine": 46,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TransactionSummaryProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/transactions/TransactionSummary.tsx",
+            "startLine": 11,
+            "endLine": 17,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TripDetailProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/TripDetail.tsx",
+            "startLine": 17,
+            "endLine": 31,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TripFormProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/TripForm.tsx",
+            "startLine": 10,
+            "endLine": 17,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TripListProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/TripList.tsx",
+            "startLine": 8,
+            "endLine": 13,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TripsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/Trips.tsx",
+            "startLine": 9,
+            "endLine": 23,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "TripsSummaryProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/TripsSummary.tsx",
+            "startLine": 7,
+            "endLine": 10,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "CleanupSummary",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/factory-reset/DataCleanupEngine.ts",
+            "startLine": 23,
+            "endLine": 29,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "RecoveryRecordCreation",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/factory-reset/RecoveryRegistry.ts",
+            "startLine": 22,
+            "endLine": 26,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "RestorationSummary",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/services/factory-reset/RecoveryRestorationService.ts",
+            "startLine": 28,
+            "endLine": 34,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": true
+        },
+        {
+          "typeName": "AssetFormModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/modals/AssetFormModal.tsx",
+            "startLine": 7,
+            "endLine": 13,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "CorporateActionModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/modals/CorporateActionModal.tsx",
+            "startLine": 8,
+            "endLine": 13,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "DividendModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/modals/DividendModal.tsx",
+            "startLine": 7,
+            "endLine": 13,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "HistoryModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/modals/HistoryModal.tsx",
+            "startLine": 6,
+            "endLine": 10,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "IRReportModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/modals/IRReportModal.tsx",
+            "startLine": 11,
+            "endLine": 15,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "SellAssetModalProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/components/investments/modals/SellAssetModal.tsx",
+            "startLine": 8,
+            "endLine": 14,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TripChecklistProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripChecklist.tsx",
+            "startLine": 6,
+            "endLine": 9,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TripExchangeProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripExchange.tsx",
+            "startLine": 9,
+            "endLine": 12,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TripItineraryProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripItinerary.tsx",
+            "startLine": 8,
+            "endLine": 11,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TripOverviewProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripOverview.tsx",
+            "startLine": 12,
+            "endLine": 21,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TripShoppingProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripShopping.tsx",
+            "startLine": 8,
+            "endLine": 11,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        },
+        {
+          "typeName": "TripStatsProps",
+          "location": {
+            "filePath": "C:/Users/Wesley/dyad-apps/PE/src/features/trips/tabs/TripStats.tsx",
+            "startLine": 7,
+            "endLine": 10,
+            "startColumn": 1,
+            "endColumn": 2
+          },
+          "kind": "interface",
+          "isExported": false
+        }
+      ],
+      "totalSavings": {
+        "linesOfCode": 1596,
+        "bundleSize": 79800,
+        "files": 168
+      }
+    },
+    "complexity": {
+      "components": [],
+      "averageComplexity": 0,
+      "complexComponents": []
+    },
+    "dependencies": {
+      "graph": {
+        "nodes": [],
+        "edges": [],
+        "clusters": []
+      },
+      "circularDependencies": [],
+      "consolidationOpportunities": []
+    },
+    "performance": {
+      "bundleSize": {
+        "totalSize": 0,
+        "heavyDependencies": [],
+        "unusedDependencies": [],
+        "treeshakingOpportunities": [],
+        "lazyLoadingCandidates": []
+      },
+      "rerenderIssues": [],
+      "computations": {
+        "heavyFunctions": []
+      },
+      "optimizationOpportunities": []
+    },
+    "types": {
+      "duplicateTypes": [],
+      "unusedTypes": [],
+      "inconsistentTypes": []
+    },
+    "structure": {
+      "inconsistentNaming": [],
+      "misplacedFiles": [],
+      "organizationSuggestions": []
+    }
+  },
+  "recommendations": [],
+  "estimatedBenefits": {
+    "bundleSizeReduction": 0,
+    "performanceImprovement": 0,
+    "maintainabilityScore": 5,
+    "codeReduction": 0,
+    "complexityReduction": 0
+  }
+}

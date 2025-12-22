@@ -55,12 +55,13 @@ export abstract class BaseAnalyzer {
   }
 
   protected getSourceFiles(): SourceFile[] {
-    return this.project.getSourceFiles().filter(sf => 
-      sf.getFilePath().includes('/src/') && 
-      !sf.getFilePath().includes('/node_modules/') &&
-      !sf.getFilePath().includes('/.kiro/') &&
-      (sf.getFilePath().endsWith('.ts') || sf.getFilePath().endsWith('.tsx'))
-    );
+    return this.project.getSourceFiles().filter(sf => {
+      const filePath = sf.getFilePath();
+      return filePath.includes('/src/') && 
+             !filePath.includes('/node_modules/') &&
+             !filePath.includes('/.kiro/') &&
+             (filePath.endsWith('.ts') || filePath.endsWith('.tsx'));
+    });
   }
 
   abstract analyze(): Promise<any>;

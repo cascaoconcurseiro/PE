@@ -14,18 +14,38 @@ export class ComponentAnalyzer extends BaseAnalyzer {
       const filePath = sourceFile.getFilePath();
       
       // Find React components (functions that return JSX)
-      const functionDeclarations = sourceFile.getDescendantsOfKind(40); // FunctionDeclaration
+      const functionDeclarations = sourceFile.getFunctions();
 
       // Analyze function components
       for (const func of functionDeclarations) {
+        const funcName = func.getName() || 'Anonymous';
+        
         if (this.isReactComponent(func)) {
-          const componentName = func.getName() || 'Anonymous';
+          const componentName = funcName;
           const analysis = this.analyzeComponent(func, componentName, filePath);
           components.push(analysis);
           
           // Count usages across all files
           const usageCount = this.countComponentUsages(componentName, sourceFiles);
           componentUsages.set(componentName, usageCount);
+        }
+      }
+
+      // Also check variable declarations for arrow function components
+      const variableDeclarations = sourceFile.getVariableDeclarations();
+      
+      for (const variable of variableDeclarations) {
+        const varName = variable.getName();
+        const initializer = variable.getInitializer();
+        
+        if (initializer && (initializer.getKind() === 202 || initializer.getKind() === 201)) { // ArrowFunction
+          if (this.isReactComponent(initializer)) {
+            const analysis = this.analyzeComponent(initializer, varName, filePath);
+            components.push(analysis);
+            
+            const usageCount = this.countComponentUsages(varName, sourceFiles);
+            componentUsages.set(varName, usageCount);
+          }
         }
       }
     }
@@ -54,7 +74,7 @@ export class ComponentAnalyzer extends BaseAnalyzer {
     const text = node.getText();
     
     // Check if it returns JSX (contains JSX elements)
-    const hasJSX = text.includes('<') && text.includes('>') && text.includes('return');
+    const hasJSX = /return\s*\(?[\s\n]*</.test(text);
     
     // Check if it uses React hooks
     const hasHooks = /use[A-Z]\w*\(/.test(text);
@@ -67,11 +87,7 @@ export class ComponentAnalyzer extends BaseAnalyzer {
       hasCapitalName = name ? /^[A-Z]/.test(name) : false;
     }
 
-    // Debug logging
-    console.log(`Analyzing node: ${node.getKindName()}, hasJSX: ${hasJSX}, hasHooks: ${hasHooks}, hasCapitalName: ${hasCapitalName}`);
-    console.log(`Text: ${text.substring(0, 100)}...`);
-
-    return hasJSX || hasHooks || hasCapitalName;
+    return hasJSX || (hasHooks && hasCapitalName);
   }
 
   private analyzeComponent(node: Node, componentName: string, filePath: string): ComponentAnalysis {

@@ -11,7 +11,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "refactor": "tsx src/refactoring/cli.ts",
+    "refactor:dry-run": "tsx src/refactoring/cli.ts --dry-run"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
