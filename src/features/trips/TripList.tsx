@@ -1,18 +1,25 @@
 import React from 'react';
 import { Trip } from '../../types';
+import { BaseListProps } from '../../types/BaseProps';
 import { Button } from '@/components/ui/Button';
 import { Plane, Plus, Calendar } from 'lucide-react';
 import { parseDate } from '../../utils';
 import { TripsSummary } from './TripsSummary';
 
-interface TripListProps {
-    trips: Trip[];
-    onTripClick: (tripId: string) => void;
+/**
+ * Props para TripList usando interface consolidada
+ * Reduz duplicação de props de lista
+ */
+interface TripListProps extends BaseListProps<Trip> {
     onCreateClick: () => void;
-    userId?: string;
 }
 
-export const TripList: React.FC<TripListProps> = ({ trips, onTripClick, onCreateClick, userId }) => {
+export const TripList: React.FC<TripListProps> = ({ 
+    items: trips, 
+    onItemClick: onTripClick, 
+    onCreateClick, 
+    userId 
+}) => {
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
             <div className="flex justify-between items-center px-1">
@@ -43,7 +50,7 @@ export const TripList: React.FC<TripListProps> = ({ trips, onTripClick, onCreate
                     <div
                         key={trip.id}
                         className="group relative bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1"
-                        onClick={() => onTripClick(trip.id)}
+                        onClick={() => onTripClick && onTripClick(trip)}
                     >
                         <div className="h-44 bg-gradient-to-br from-blue-400 to-violet-500 relative overflow-hidden pointer-events-none">
                             {trip.imageUrl ? (

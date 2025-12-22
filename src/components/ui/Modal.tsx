@@ -1,14 +1,16 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { BaseModalProps } from '../../types/BaseProps';
 
-interface ModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    title: string;
-    children: React.ReactNode;
+/**
+ * Modal usando interface consolidada
+ * Reduz duplicação de props de modal
+ */
+interface ModalProps extends BaseModalProps {
+    // Props específicas do Modal podem ser adicionadas aqui
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title = '', children }) => {
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose();

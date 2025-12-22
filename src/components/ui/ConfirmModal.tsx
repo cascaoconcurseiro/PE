@@ -1,27 +1,29 @@
 import React from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { Button } from './Button';
+import { BaseModalProps } from '../../types/BaseProps';
 
-interface ConfirmModalProps {
-    isOpen: boolean;
-    title: string;
+/**
+ * ConfirmModal usando interface consolidada
+ * Reduz duplicação de props de modal
+ */
+interface ConfirmModalProps extends BaseModalProps {
     message: string;
     confirmLabel?: string;
     cancelLabel?: string;
     isDanger?: boolean;
     onConfirm: () => void;
-    onCancel: () => void;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     isOpen,
-    title,
+    title = '',
     message,
     confirmLabel = 'Confirmar',
     cancelLabel = 'Cancelar',
     isDanger = false,
     onConfirm,
-    onCancel
+    onClose: onCancel
 }) => {
     if (!isOpen) return null;
 

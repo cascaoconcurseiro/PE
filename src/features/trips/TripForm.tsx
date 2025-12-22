@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Trip, FamilyMember } from '../../types';
+import { BaseFormProps, BaseFamilyProps } from '../../types/BaseProps';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Calendar, Users, X, Clock, Globe, ChevronDown, Check, AlertCircle } from 'lucide-react';
@@ -7,16 +8,22 @@ import { AVAILABLE_CURRENCIES } from '../../services/currencyService';
 import { parseDate } from '../../utils';
 import { supabaseService } from '../../core/services/supabaseService';
 
-interface TripFormProps {
-    initialData?: Trip | null;
-    familyMembers: FamilyMember[];
-    onSave: (trip: Omit<Trip, 'id'> | Trip) => void;
-    onCancel: () => void;
+/**
+ * TripForm usando interfaces consolidadas
+ * Reduz duplicação de props de formulário
+ */
+interface TripFormProps extends BaseFormProps<Trip>, BaseFamilyProps {
     editingTripId?: string | null;
-    userId?: string;
 }
 
-export const TripForm: React.FC<TripFormProps> = ({ initialData, familyMembers, onSave, onCancel, editingTripId, userId }) => {
+export const TripForm: React.FC<TripFormProps> = ({ 
+    initialData, 
+    familyMembers = [], 
+    onSave, 
+    onCancel, 
+    editingTripId, 
+    userId 
+}) => {
     const [name, setName] = useState(initialData?.name || '');
     const [startDate, setStartDate] = useState(initialData?.startDate || new Date().toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState(initialData?.endDate || new Date().toISOString().split('T')[0]);

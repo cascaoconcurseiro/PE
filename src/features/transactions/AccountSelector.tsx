@@ -1,21 +1,20 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Account, AccountType } from '../../types';
+import { BaseSelectorProps } from '../../types/BaseProps';
 import { formatCurrency } from '../../utils';
 import { Check, ChevronDown, Wallet, CreditCard, Landmark, Banknote } from 'lucide-react';
 
-interface AccountSelectorProps {
-    label: string;
-    accounts: Account[];
-    selectedId: string;
-    onSelect: (id: string) => void;
+/**
+ * AccountSelector usando interface consolidada
+ * Reduz duplicação de props de seletor
+ */
+interface AccountSelectorProps extends BaseSelectorProps<Account> {
     filterType?: 'NO_CREDIT' | 'ALL';
-    disabled?: boolean;
-    emptyMessage?: string;
 }
 
 export const AccountSelector: React.FC<AccountSelectorProps> = ({
     label,
-    accounts,
+    options: accounts,
     selectedId,
     onSelect,
     filterType,

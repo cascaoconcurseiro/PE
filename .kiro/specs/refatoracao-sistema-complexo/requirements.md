@@ -2,137 +2,111 @@
 
 ## Introduction
 
-Este documento especifica os requisitos para uma refatoração abrangente do sistema financeiro pessoal, focando na redução de complexidade, eliminação de código desnecessário e melhoria da maintibilidade. O sistema atual possui mais de 20 hooks customizados, múltiplos serviços sobrepostos e componentes com responsabilidades mal definidas.
+O sistema financeiro atual possui aproximadamente **45.927 linhas de código** TypeScript/React e apresenta alta complexidade devido ao crescimento orgânico através de desenvolvimento orientado por LLM. O objetivo é refatorar o sistema para reduzir significativamente o volume de código mantendo todas as funcionalidades, layout, formulários e lógica financeira intactos.
 
 ## Glossary
 
-- **System**: O sistema financeiro pessoal completo (frontend + backend)
-- **Component**: Componente React individual
-- **Hook**: Hook customizado do React
-- **Service**: Módulo de serviço/utilitário
-- **Dead_Code**: Código não utilizado ou referenciado
-- **Complexity_Score**: Métrica de complexidade ciclomática
-- **Bundle_Size**: Tamanho do bundle JavaScript final
-- **Refactoring_Engine**: Sistema automatizado de análise e refatoração
+- **Sistema_Financeiro**: A aplicação completa de gestão financeira pessoal
+- **Refatoração_Conservadora**: Processo de reestruturação que mantém 100% das funcionalidades existentes
+- **Padrões_Repetitivos**: Código duplicado ou similar que pode ser consolidado
+- **Abstrações_Genéricas**: Componentes e funções reutilizáveis que reduzem duplicação
+- **Lógica_Financeira**: Cálculos, validações e regras de negócio financeiras
+- **Interface_Usuario**: Componentes visuais, formulários e layouts
 
 ## Requirements
 
-### Requirement 1
+### Requirement 1: Análise Quantitativa do Sistema
 
-**User Story:** Como desenvolvedor, quero identificar e remover código morto do sistema, para que o bundle seja menor e o código mais limpo.
-
-#### Acceptance Criteria
-
-1. WHEN the Refactoring_Engine analyzes the codebase, THE System SHALL identify all unused imports across TypeScript files
-2. WHEN the Refactoring_Engine scans components, THE System SHALL detect components that are never imported or used
-3. WHEN the Refactoring_Engine examines hooks, THE System SHALL find custom hooks with zero references
-4. WHEN the Refactoring_Engine processes types, THE System SHALL locate TypeScript interfaces and types that are never referenced
-5. WHEN dead code is identified, THE System SHALL generate a safe removal plan with dependency analysis
-
-### Requirement 2
-
-**User Story:** Como desenvolvedor, quero consolidar hooks com funcionalidades similares, para que o sistema tenha menos duplicação e seja mais maintível.
+**User Story:** Como desenvolvedor, quero uma análise detalhada do código atual, para que eu possa identificar oportunidades de redução sem perder funcionalidades.
 
 #### Acceptance Criteria
 
-1. WHEN the Refactoring_Engine analyzes hooks, THE System SHALL identify hooks with overlapping responsibilities
-2. WHEN similar hooks are found, THE System SHALL suggest consolidation strategies preserving all functionality
-3. WHEN hooks share state management patterns, THE System SHALL propose unified state management solutions
-4. WHEN consolidation is applied, THE System SHALL maintain backward compatibility for existing components
-5. WHEN hooks are merged, THE System SHALL generate comprehensive tests for the consolidated functionality
+1. WHEN analisando o sistema atual THEN o sistema SHALL identificar os arquivos com maior número de linhas
+2. WHEN calculando métricas THEN o sistema SHALL estimar o potencial de redução por categoria de código
+3. WHEN identificando padrões THEN o sistema SHALL catalogar código duplicado e repetitivo
+4. WHEN avaliando complexidade THEN o sistema SHALL medir a complexidade ciclomática dos componentes principais
+5. WHEN estimando redução THEN o sistema SHALL projetar percentual de redução possível mantendo funcionalidades
 
-### Requirement 3
+### Requirement 2: Consolidação de Hooks e Stores
 
-**User Story:** Como desenvolvedor, quero simplificar componentes com alta complexidade, para que sejam mais fáceis de entender e manter.
-
-#### Acceptance Criteria
-
-1. WHEN the Refactoring_Engine calculates component complexity, THE System SHALL identify components with Complexity_Score above 15
-2. WHEN complex components are found, THE System SHALL suggest decomposition strategies into smaller components
-3. WHEN components have multiple responsibilities, THE System SHALL propose single responsibility principle adherence
-4. WHEN large components are analyzed, THE System SHALL identify extractable sub-components and custom hooks
-5. WHEN simplification is applied, THE System SHALL preserve all existing functionality and props interfaces
-
-### Requirement 4
-
-**User Story:** Como desenvolvedor, quero otimizar a estrutura de serviços, para que não haja sobreposição de funcionalidades e responsabilidades claras.
+**User Story:** Como desenvolvedor, quero consolidar hooks e stores similares, para que eu possa reduzir a duplicação de lógica de estado.
 
 #### Acceptance Criteria
 
-1. WHEN the Refactoring_Engine examines services, THE System SHALL identify services with overlapping functionality
-2. WHEN duplicate logic is found across services, THE System SHALL suggest consolidation into shared utilities
-3. WHEN services have unclear boundaries, THE System SHALL propose clear separation of concerns
-4. WHEN service dependencies are analyzed, THE System SHALL identify circular dependencies and suggest resolutions
-5. WHEN services are optimized, THE System SHALL maintain all existing API contracts
+1. WHEN identificando hooks similares THEN o sistema SHALL mesclar funcionalidades relacionadas em hooks únicos
+2. WHEN consolidando stores THEN o sistema SHALL manter todas as funcionalidades de estado existentes
+3. WHEN refatorando useDataStore THEN o sistema SHALL reduzir as 821 linhas mantendo toda a lógica
+4. WHEN otimizando hooks THEN o sistema SHALL eliminar código morto e funções não utilizadas
+5. WHEN testando consolidação THEN o sistema SHALL validar que nenhuma funcionalidade foi perdida
 
-### Requirement 5
+### Requirement 3: Abstração de Componentes Repetitivos
 
-**User Story:** Como desenvolvedor, quero reduzir o tamanho do bundle JavaScript, para que a aplicação carregue mais rapidamente.
-
-#### Acceptance Criteria
-
-1. WHEN the Refactoring_Engine analyzes imports, THE System SHALL identify heavy libraries that could be replaced or tree-shaken
-2. WHEN bundle analysis is performed, THE System SHALL detect unused dependencies in package.json
-3. WHEN code splitting opportunities are analyzed, THE System SHALL suggest lazy loading strategies for large components
-4. WHEN optimization is applied, THE System SHALL achieve at least 20% reduction in Bundle_Size
-5. WHEN bundle optimization is complete, THE System SHALL maintain all functionality while improving load times
-
-### Requirement 6
-
-**User Story:** Como desenvolvedor, quero consolidar tipos TypeScript duplicados, para que haja uma fonte única de verdade para cada entidade.
+**User Story:** Como desenvolvedor, quero criar abstrações genéricas para componentes similares, para que eu possa reduzir código duplicado em formulários e interfaces.
 
 #### Acceptance Criteria
 
-1. WHEN the Refactoring_Engine scans TypeScript files, THE System SHALL identify duplicate or similar interface definitions
-2. WHEN type inconsistencies are found, THE System SHALL suggest unified type definitions
-3. WHEN types are consolidated, THE System SHALL maintain strict type safety across all usage points
-4. WHEN type refactoring is applied, THE System SHALL update all import statements automatically
-5. WHEN types are unified, THE System SHALL generate comprehensive type documentation
+1. WHEN analisando componentes THEN o sistema SHALL identificar padrões repetitivos em formulários
+2. WHEN criando abstrações THEN o sistema SHALL manter todos os layouts e estilos existentes
+3. WHEN consolidando modais THEN o sistema SHALL criar componentes genéricos reutilizáveis
+4. WHEN refatorando formulários THEN o sistema SHALL preservar toda validação e comportamento
+5. WHEN testando abstrações THEN o sistema SHALL garantir compatibilidade visual completa
 
-### Requirement 7
+### Requirement 4: Otimização de Serviços e Utilitários
 
-**User Story:** Como desenvolvedor, quero simplificar a estrutura de pastas e organização de arquivos, para que seja mais fácil navegar no código.
-
-#### Acceptance Criteria
-
-1. WHEN the Refactoring_Engine analyzes file structure, THE System SHALL identify inconsistent naming patterns
-2. WHEN folder organization is examined, THE System SHALL suggest logical grouping by feature or domain
-3. WHEN file placement is analyzed, THE System SHALL identify misplaced files that break architectural patterns
-4. WHEN reorganization is applied, THE System SHALL update all import paths automatically
-5. WHEN structure is optimized, THE System SHALL follow established React/TypeScript best practices
-
-### Requirement 8
-
-**User Story:** Como desenvolvedor, quero identificar e resolver problemas de performance, para que a aplicação seja mais responsiva.
+**User Story:** Como desenvolvedor, quero otimizar serviços e utilitários, para que eu possa reduzir código redundante mantendo toda a lógica de negócio.
 
 #### Acceptance Criteria
 
-1. WHEN the Refactoring_Engine analyzes React components, THE System SHALL identify unnecessary re-renders
-2. WHEN performance bottlenecks are detected, THE System SHALL suggest memoization strategies
-3. WHEN heavy computations are found, THE System SHALL propose optimization techniques
-4. WHEN database queries are analyzed, THE System SHALL identify inefficient patterns
-5. WHEN performance optimizations are applied, THE System SHALL measure and report improvement metrics
+1. WHEN analisando supabaseService THEN o sistema SHALL identificar métodos duplicados ou similares
+2. WHEN otimizando utilitários THEN o sistema SHALL consolidar funções de cálculo financeiro
+3. WHEN refatorando validações THEN o sistema SHALL manter todas as regras de validação existentes
+4. WHEN consolidando mappers THEN o sistema SHALL preservar toda a transformação de dados
+5. WHEN testando serviços THEN o sistema SHALL validar integridade de todas as operações
 
-### Requirement 9
+### Requirement 5: Eliminação de Código Morto e Redundante
 
-**User Story:** Como desenvolvedor, quero gerar um relatório detalhado de todas as melhorias propostas, para que possa priorizar e implementar as mudanças.
-
-#### Acceptance Criteria
-
-1. WHEN analysis is complete, THE System SHALL generate a comprehensive refactoring report
-2. WHEN issues are documented, THE System SHALL include severity levels and impact assessments
-3. WHEN solutions are proposed, THE System SHALL provide before/after code examples
-4. WHEN the report is generated, THE System SHALL include implementation effort estimates
-5. WHEN priorities are assigned, THE System SHALL consider impact vs effort for optimal sequencing
-
-### Requirement 10
-
-**User Story:** Como desenvolvedor, quero preservar toda a funcionalidade existente durante a refatoração, para que não haja regressões no sistema.
+**User Story:** Como desenvolvedor, quero remover código não utilizado e redundante, para que eu possa reduzir o tamanho do sistema sem afetar funcionalidades.
 
 #### Acceptance Criteria
 
-1. WHEN refactoring is applied, THE System SHALL maintain all existing component interfaces
-2. WHEN code is modified, THE System SHALL preserve all business logic and calculations
-3. WHEN changes are made, THE System SHALL ensure all existing tests continue to pass
-4. WHEN optimization occurs, THE System SHALL validate that user workflows remain unchanged
-5. WHEN refactoring is complete, THE System SHALL provide comprehensive regression testing results
+1. WHEN analisando imports THEN o sistema SHALL identificar dependências não utilizadas
+2. WHEN verificando funções THEN o sistema SHALL detectar código morto e não referenciado
+3. WHEN analisando tipos THEN o sistema SHALL consolidar definições de tipos duplicadas
+4. WHEN removendo redundâncias THEN o sistema SHALL manter todas as funcionalidades ativas
+5. WHEN validando remoções THEN o sistema SHALL garantir que nenhuma funcionalidade foi quebrada
+
+### Requirement 6: Consolidação de Testes
+
+**User Story:** Como desenvolvedor, quero consolidar e otimizar testes, para que eu possa reduzir código de teste mantendo cobertura completa.
+
+#### Acceptance Criteria
+
+1. WHEN analisando testes THEN o sistema SHALL identificar testes duplicados ou redundantes
+2. WHEN consolidando suites THEN o sistema SHALL manter cobertura de teste completa
+3. WHEN otimizando property tests THEN o sistema SHALL preservar todas as validações de propriedades
+4. WHEN refatorando mocks THEN o sistema SHALL manter comportamento de teste idêntico
+5. WHEN validando testes THEN o sistema SHALL garantir que todos os testes continuam passando
+
+### Requirement 7: Estimativa de Redução e Métricas
+
+**User Story:** Como desenvolvedor, quero métricas precisas de redução de código, para que eu possa avaliar o sucesso da refatoração.
+
+#### Acceptance Criteria
+
+1. WHEN calculando redução THEN o sistema SHALL estimar redução de 25-40% do código total
+2. WHEN medindo por categoria THEN o sistema SHALL detalhar redução por tipo de arquivo
+3. WHEN comparando complexidade THEN o sistema SHALL mostrar redução de complexidade ciclomática
+4. WHEN validando funcionalidades THEN o sistema SHALL confirmar 100% de preservação de features
+5. WHEN reportando resultados THEN o sistema SHALL gerar relatório detalhado de otimizações
+
+### Requirement 8: Preservação Absoluta de Funcionalidades
+
+**User Story:** Como usuário final, quero que todas as funcionalidades continuem idênticas, para que eu não perca nenhuma capacidade do sistema.
+
+#### Acceptance Criteria
+
+1. WHEN usando formulários THEN o sistema SHALL manter comportamento idêntico de todos os campos
+2. WHEN navegando interfaces THEN o sistema SHALL preservar todos os layouts e estilos
+3. WHEN executando cálculos THEN o sistema SHALL manter precisão financeira exata
+4. WHEN sincronizando dados THEN o sistema SHALL preservar toda lógica de sincronização
+5. WHEN testando funcionalidades THEN o sistema SHALL validar comportamento idêntico ao original
