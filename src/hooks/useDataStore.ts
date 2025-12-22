@@ -464,7 +464,7 @@ export const useDataStore = () => {
 
         // --- REALTIME SUBSCRIPTIONS (OTIMIZADO) ---
         // ✅ REESTRUTURAÇÃO: Debounce para evitar múltiplos refreshes
-        let refreshTimeout: NodeJS.Timeout | null = null;
+        let refreshTimeout: number | null = null;
         const channel = supabase.channel('global_changes')
             .on(
                 'postgres_changes',

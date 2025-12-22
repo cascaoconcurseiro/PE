@@ -6,7 +6,30 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { EventEmitter } from 'events';
+
+// Simple EventEmitter implementation for browser compatibility
+class SimpleEventEmitter {
+    private events: { [key: string]: Function[] } = {};
+
+    on(event: string, listener: Function) {
+        if (!this.events[event]) {
+            this.events[event] = [];
+        }
+        this.events[event].push(listener);
+    }
+
+    emit(event: string, ...args: any[]) {
+        if (this.events[event]) {
+            this.events[event].forEach(listener => listener(...args));
+        }
+    }
+
+    off(event: string, listener: Function) {
+        if (this.events[event]) {
+            this.events[event] = this.events[event].filter(l => l !== listener);
+        }
+    }
+}
 
 // Types
 interface SharedTransaction {
@@ -46,7 +69,7 @@ interface CacheEntry<T> {
     ttl: number;
 }
 
-class SharedTransactionManager extends EventEmitter {
+class SharedTransactionManager extends SimpleEventEmitter {
     private supabase = createClient(
         process.env.VITE_SUPABASE_URL!,
         process.env.VITE_SUPABASE_ANON_KEY!
@@ -54,7 +77,7 @@ class SharedTransactionManager extends EventEmitter {
     
     private cache = new Map<string, CacheEntry<any>>();
     private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-    private syncInterval: NodeJS.Timeout | null = null;
+    private syncInterval: number | null = null;
     
     constructor() {
         super();
