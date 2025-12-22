@@ -78,68 +78,7 @@ export class DataCleanupEngine {
     }
   }
 
-  /**
-   * Obtém resumo do que será limpo antes da execução
-   * Usado na confirmação do factory reset
-   */
-  async getCleanupSummary(userId: string): Promise<CleanupSummary> {
-    try {
-      const { data, error } = await supabase.rpc('diagnose_factory_reset_issue_v2', {
-        target_user_id: userId
-      })
 
-      if (error) {
-        console.error('Erro ao obter resumo de limpeza:', error)
-        throw new Error(`Falha ao obter resumo: ${error.message}`)
-      }
-
-      return {
-        personalTransactions: data.own_transactions || 0,
-        accounts: 0, // Será obtido de outra consulta se necessário
-        investments: 0,
-        budgetsAndGoals: 0,
-        estimatedExecutionTime: 5000 // 5 segundos estimado
-      }
-    } catch (error) {
-      console.error('Erro no DataCleanupEngine.getCleanupSummary:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Verifica se a limpeza foi completa após execução
-   * CORRIGIDO: Agora verifica TODAS as transações relacionadas
-   */
-  async verifyCleanupCompleteness(userId: string): Promise<{ isComplete: boolean, remainingData: any }> {
-    try {
-      const { data, error } = await supabase.rpc('verify_factory_reset_completeness_v2', {
-        target_user_id: userId
-      })
-
-      if (error) {
-        console.error('Erro na verificação de completude:', error)
-        throw new Error(`Falha na verificação: ${error.message}`)
-      }
-
-      return {
-        isComplete: data.is_complete || false,
-        remainingData: {
-          transactions: data.remaining_transactions || 0,
-          mirrorTransactions: data.remaining_mirror_transactions || 0,
-          sharedParticipation: data.remaining_shared_participation || 0,
-          accounts: data.remaining_accounts || 0,
-          sharedRequests: data.remaining_shared_requests || 0,
-          mirrors: data.remaining_mirrors || 0
-        }
-      }
-    } catch (error) {
-      console.error('Erro no DataCleanupEngine.verifyCleanupCompleteness:', error)
-      return {
-        isComplete: false,
-        remainingData: { error: error instanceof Error ? error.message : 'Erro desconhecido' }
-      }
-    }
-  }
 
   /**
    * Diagnostica problemas específicos do factory reset
