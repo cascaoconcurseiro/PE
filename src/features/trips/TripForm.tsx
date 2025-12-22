@@ -27,7 +27,7 @@ export const TripForm: React.FC<TripFormProps> = ({
     const [name, setName] = useState(initialData?.name || '');
     const [startDate, setStartDate] = useState(initialData?.startDate || new Date().toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState(initialData?.endDate || new Date().toISOString().split('T')[0]);
-    const [participants, setParticipants] = useState<string[]>(initialData?.participants.map(p => p.id) || []);
+    const [participants, setParticipants] = useState<string[]>(initialData?.participants?.map(p => p.id) || []);
     const [currency, setCurrency] = useState(initialData?.currency || 'BRL');
     const [formError, setFormError] = useState<string | null>(null);
 

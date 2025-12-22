@@ -83,7 +83,7 @@ export const TripList: React.FC<TripListProps> = ({
                         <div className="p-5 pointer-events-none">
                             <div className="flex items-center justify-between">
                                 <div className="flex -space-x-3 pl-1">
-                                    {trip.participants.slice(0, 4).map((p, i) => (
+                                    {(trip.participants || []).slice(0, 4).map((p, i) => (
                                         <div
                                             key={p.id}
                                             className="h-9 w-9 rounded-full ring-2 ring-white dark:ring-slate-800 bg-violet-100 dark:bg-violet-900 flex items-center justify-center text-violet-700 dark:text-violet-300 text-xs font-bold uppercase shadow-sm"
@@ -93,9 +93,9 @@ export const TripList: React.FC<TripListProps> = ({
                                             {p.name[0]}
                                         </div>
                                     ))}
-                                    {trip.participants.length > 4 && (
+                                    {(trip.participants?.length || 0) > 4 && (
                                         <div className="h-9 w-9 rounded-full ring-2 ring-white dark:ring-slate-800 bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 text-xs font-bold uppercase shadow-sm" style={{ zIndex: 0 }}>
-                                            +{trip.participants.length - 4}
+                                            +{(trip.participants?.length || 0) - 4}
                                         </div>
                                     )}
                                 </div>

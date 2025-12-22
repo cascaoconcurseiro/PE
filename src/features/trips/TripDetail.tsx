@@ -113,7 +113,7 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, acco
                         </div>
 
                         <div className="flex items-center -space-x-3 pt-2">
-                            {trip.participants.map((p, i) => (
+                            {(trip.participants || []).map((p, i) => (
                                 <div key={p.id} className="w-10 h-10 rounded-full border-2 border-indigo-500 bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-black shadow-lg hover:translate-y-1 hover:border-white transition-all z-0 hover:z-10" title={p.name}>
                                     {p.name[0]}
                                 </div>
