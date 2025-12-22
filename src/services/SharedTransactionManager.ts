@@ -70,10 +70,22 @@ interface CacheEntry<T> {
 }
 
 class SharedTransactionManager extends SimpleEventEmitter {
-    private supabase = createClient(
-        process.env.VITE_SUPABASE_URL!,
-        process.env.VITE_SUPABASE_ANON_KEY!
-    );
+    private supabase = (() => {
+        const url = import.meta.env.VITE_SUPABASE_URL;
+        const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        if (!url) {
+            console.error('VITE_SUPABASE_URL is not defined. Available env vars:', import.meta.env);
+            throw new Error('VITE_SUPABASE_URL environment variable is required');
+        }
+        
+        if (!key) {
+            console.error('VITE_SUPABASE_ANON_KEY is not defined. Available env vars:', import.meta.env);
+            throw new Error('VITE_SUPABASE_ANON_KEY environment variable is required');
+        }
+        
+        return createClient(url, key);
+    })();
     
     private cache = new Map<string, CacheEntry<any>>();
     private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes

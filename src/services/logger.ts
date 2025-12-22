@@ -13,9 +13,7 @@ interface LogMetadata {
 }
 
 // Detectar ambiente de forma segura
-const isDev = typeof import.meta !== 'undefined' 
-    ? import.meta.env?.DEV ?? false 
-    : process.env.NODE_ENV !== 'production';
+const isDev = import.meta.env?.DEV ?? false;
 
 const formatMessage = (level: LogLevel, message: string, metadata?: LogMetadata): string => {
     const timestamp = new Date().toISOString();
