@@ -1,62 +1,32 @@
-# 📁 Estrutura de Documentação
+# Documentation Index
 
-## 📖 Guias Práticos (`guides/`)
-Documentação passo a passo para usuários e desenvolvedores:
+This index provides an overview of all project documentation.
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `DEPLOY_INSTRUCTIONS.md` | Instruções de deploy |
-| `GUIA_CORRECOES_PRIORITARIAS.md` | Correções prioritárias |
-| `GUIA_RAPIDO.md` | Guia rápido de início |
-| `GUIA_CONFIGURAR_ENV.md` | Configuração de ambiente |
-| `GUIA_CONFIGURAR_PRODUCAO.md` | Configuração de produção |
-| `PASSO_A_PASSO_LIMPEZA.md` | Limpeza do sistema |
-| `GUIA_RESET_*.md` | Guias de reset do banco |
-| `CONFIGURAR_VERCEL_AGORA.md` | Configuração Vercel |
-| `CHECKLIST_TESTES.md` | Checklist de testes |
+## User Documentation
 
-## 🔧 Documentação Técnica (`technical/`)
-Análises técnicas e arquiteturais:
+- [README.md](./docs/user/README.md)
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `ANALISE_TECNICA_SISTEMA_FINANCEIRO.md` | Análise completa do sistema |
-| `ANALISE_REESTRUTURACAO.md` | Análise de reestruturação |
-| `REESTRUTURACAO_COMPLETA.md` | Plano de reestruturação |
-| `LIMPEZA_E_MELHORIAS.md` | Limpeza e melhorias |
-| `ARQUITETURA_MOTOR_COMPARTILHADO.md` | Arquitetura do motor |
-| `ANALISE_SCHEMA_SUPABASE.md` | Análise do schema |
-| `PERFORMANCE_*.md` | Otimizações de performance |
-| `REFATORACAO_*.md` | Planos de refatoração |
+## Technical Documentation
 
-## 📜 Scripts SQL (`sql-scripts/`)
-Scripts SQL auxiliares e de diagnóstico:
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `SUPABASE_SCHEMA.sql` | Schema completo |
-| `RESET_SUPABASE.sql` | Reset do banco |
-| `APPLY_INDEXES.sql` | Aplicar índices |
-| `CONSTRAINTS_VALIDACAO.sql` | Constraints de validação |
-| `CREATE_RPC_*.sql` | Funções RPC |
-| `SHARED_EXPENSES_MIGRATION.sql` | Migration despesas compartilhadas |
-
-## 📦 Arquivo (`archive/`)
-Documentação antiga arquivada (correções aplicadas, bugs resolvidos, resumos antigos)
-
----
-
-## 🚀 Início Rápido
-
-1. **Primeira vez?** Leia: `guides/DEPLOY_INSTRUCTIONS.md`
-2. **Problemas?** Veja: `guides/GUIA_CORRECOES_PRIORITARIAS.md`
-3. **Análise técnica?** Veja: `technical/ANALISE_TECNICA_SISTEMA_FINANCEIRO.md`
-
----
-
-## 🔍 Buscar Documentação
-
-- **Deploy e configuração:** `guides/`
-- **Análises técnicas:** `technical/`
-- **Scripts SQL:** `sql-scripts/`
-- **Documentação antiga:** `archive/`
+- [ANALISE_REESTRUTURACAO.md](./docs/technical/ANALISE_REESTRUTURACAO.md)
+- [ANALISE_SCHEMA_SUPABASE.md](./docs/technical/ANALISE_SCHEMA_SUPABASE.md)
+- [ANALISE_TECNICA_SISTEMA_FINANCEIRO.md](./docs/technical/ANALISE_TECNICA_SISTEMA_FINANCEIRO.md)
+- [ARQUITETURA_MOTOR_COMPARTILHADO.md](./docs/technical/ARQUITETURA_MOTOR_COMPARTILHADO.md)
+- [CONEXAO_SUPABASE.md](./docs/technical/CONEXAO_SUPABASE.md)
+- [FACTORY_RESET_IMPLEMENTATION_SUMMARY.md](./docs/technical/FACTORY_RESET_IMPLEMENTATION_SUMMARY.md)
+- [GUIA_RAPIDO.md](./docs/technical/GUIA_RAPIDO.md)
+- [IMPLEMENTACAO_MELHORIAS.md](./docs/technical/IMPLEMENTACAO_MELHORIAS.md)
+- [IMPROVEMENTS.md](./docs/technical/IMPROVEMENTS.md)
+- [LIMPEZA_E_MELHORIAS.md](./docs/technical/LIMPEZA_E_MELHORIAS.md)
+- [MELHORIAS_CODIGO_E_LOGICA_FINANCEIRA.md](./docs/technical/MELHORIAS_CODIGO_E_LOGICA_FINANCEIRA.md)
+- [ORGANIZACAO_PROJETO.md](./docs/technical/ORGANIZACAO_PROJETO.md)
+- [PAGINATION_IMPLEMENTATION_SUMMARY.md](./docs/technical/PAGINATION_IMPLEMENTATION_SUMMARY.md)
+- [PERFORMANCE_CRITICAL_PLAN.md](./docs/technical/PERFORMANCE_CRITICAL_PLAN.md)
+- [PERFORMANCE_OPTIMIZATIONS.md](./docs/technical/PERFORMANCE_OPTIMIZATIONS.md)
+- [PERFORMANCE_OPTIMIZATIONS_2025-12-05.md](./docs/technical/PERFORMANCE_OPTIMIZATIONS_2025-12-05.md)
+- [PLANO_LIMPEZA.md](./docs/technical/PLANO_LIMPEZA.md)
+- [PROBLEMA_REAL_PERFORMANCE.md](./docs/technical/PROBLEMA_REAL_PERFORMANCE.md)
+- [RECOMMENDATIONS.md](./docs/technical/RECOMMENDATIONS.md)
+- [REESTRUTURACAO_COMPLETA.md](./docs/technical/REESTRUTURACAO_COMPLETA.md)
+- [REFATORACAO_COMPLETA_PLANO.md](./docs/technical/REFATORACAO_COMPLETA_PLANO.md)
+- [REFATORACAO_COMPLETA_RESUMO.md](./docs/technical/REFATORACAO_COMPLETA_RESUMO.md)

@@ -15,6 +15,7 @@ export interface CleanupResult {
   settingsReset: boolean
   sharedRequestsDeleted: number
   mirrorsDeleted: number
+  sharedParticipationRemoved: number
   executionTimeMs: number
   errors: string[]
   success: boolean
@@ -32,11 +33,12 @@ export class DataCleanupEngine {
   /**
    * Remove todos os dados pessoais do usuário
    * Requirement 1.1-1.6: Apagar todos os dados pessoais mantendo apenas autenticação
+   * CORRIGIDO: Agora deleta TODAS as transações relacionadas (próprias, espelhos, compartilhadas)
    */
   async cleanupUserData(userId: string): Promise<CleanupResult> {
     try {
-      // Usar a função corrigida que deleta TODAS as transações
-      const { data, error } = await supabase.rpc('execute_factory_reset_complete', {
+      // Usar a função v2 corrigida que deleta TODAS as transações relacionadas
+      const { data, error } = await supabase.rpc('execute_factory_reset_complete_v2', {
         target_user_id: userId
       })
 
@@ -46,13 +48,14 @@ export class DataCleanupEngine {
       }
 
       return {
-        transactionsRemoved: data.transactions_deleted || 0,
+        transactionsRemoved: (data.transactions_deleted || 0) + (data.mirror_transactions_deleted || 0),
         accountsRemoved: data.accounts_deleted || 0,
         investmentsRemoved: data.investments_deleted || 0,
         budgetsRemoved: data.budgets_deleted || 0,
         settingsReset: true,
         sharedRequestsDeleted: data.shared_requests_deleted || 0,
         mirrorsDeleted: data.mirrors_deleted || 0,
+        sharedParticipationRemoved: data.shared_participation_removed || 0,
         executionTimeMs: data.execution_time_ms || 0,
         errors: [],
         success: data.success || false
@@ -67,6 +70,7 @@ export class DataCleanupEngine {
         settingsReset: false,
         sharedRequestsDeleted: 0,
         mirrorsDeleted: 0,
+        sharedParticipationRemoved: 0,
         executionTimeMs: 0,
         errors: [error instanceof Error ? error.message : 'Erro desconhecido'],
         success: false
@@ -78,6 +82,86 @@ export class DataCleanupEngine {
    * Obtém resumo do que será limpo antes da execução
    * Usado na confirmação do factory reset
    */
+  async getCleanupSummary(userId: string): Promise<CleanupSummary> {
+    try {
+      const { data, error } = await supabase.rpc('diagnose_factory_reset_issue_v2', {
+        target_user_id: userId
+      })
+
+      if (error) {
+        console.error('Erro ao obter resumo de limpeza:', error)
+        throw new Error(`Falha ao obter resumo: ${error.message}`)
+      }
+
+      return {
+        personalTransactions: data.own_transactions || 0,
+        accounts: 0, // Será obtido de outra consulta se necessário
+        investments: 0,
+        budgetsAndGoals: 0,
+        estimatedExecutionTime: 5000 // 5 segundos estimado
+      }
+    } catch (error) {
+      console.error('Erro no DataCleanupEngine.getCleanupSummary:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Verifica se a limpeza foi completa após execução
+   * CORRIGIDO: Agora verifica TODAS as transações relacionadas
+   */
+  async verifyCleanupCompleteness(userId: string): Promise<{ isComplete: boolean, remainingData: any }> {
+    try {
+      const { data, error } = await supabase.rpc('verify_factory_reset_completeness_v2', {
+        target_user_id: userId
+      })
+
+      if (error) {
+        console.error('Erro na verificação de completude:', error)
+        throw new Error(`Falha na verificação: ${error.message}`)
+      }
+
+      return {
+        isComplete: data.is_complete || false,
+        remainingData: {
+          transactions: data.remaining_transactions || 0,
+          mirrorTransactions: data.remaining_mirror_transactions || 0,
+          sharedParticipation: data.remaining_shared_participation || 0,
+          accounts: data.remaining_accounts || 0,
+          sharedRequests: data.remaining_shared_requests || 0,
+          mirrors: data.remaining_mirrors || 0
+        }
+      }
+    } catch (error) {
+      console.error('Erro no DataCleanupEngine.verifyCleanupCompleteness:', error)
+      return {
+        isComplete: false,
+        remainingData: { error: error instanceof Error ? error.message : 'Erro desconhecido' }
+      }
+    }
+  }
+
+  /**
+   * Diagnostica problemas específicos do factory reset
+   * NOVO: Função para identificar exatamente qual é o problema
+   */
+  async diagnoseFactoryResetIssue(userId: string): Promise<any> {
+    try {
+      const { data, error } = await supabase.rpc('diagnose_factory_reset_issue_v2', {
+        target_user_id: userId
+      })
+
+      if (error) {
+        console.error('Erro no diagnóstico:', error)
+        throw new Error(`Falha no diagnóstico: ${error.message}`)
+      }
+
+      return data
+    } catch (error) {
+      console.error('Erro no DataCleanupEngine.diagnoseFactoryResetIssue:', error)
+      throw error
+    }
+  }
   async getCleanupSummary(userId: string): Promise<CleanupSummary> {
     try {
       // Usar função de diagnóstico para obter contadores
@@ -119,7 +203,7 @@ export class DataCleanupEngine {
     details: any
   }> {
     try {
-      const { data, error } = await supabase.rpc('verify_factory_reset_completeness', {
+      const { data, error } = await supabase.rpc('verify_factory_reset_completeness_v2', {
         target_user_id: userId
       })
 

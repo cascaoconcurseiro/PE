@@ -13,7 +13,12 @@
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "refactor": "tsx src/refactoring/cli.ts",
-    "refactor:dry-run": "tsx src/refactoring/cli.ts --dry-run"
+    "refactor:dry-run": "tsx src/refactoring/cli.ts --dry-run",
+    "cleanup:analyze": "tsx src/cleanup/cli.ts analyze",
+    "cleanup:plan": "tsx src/cleanup/cli.ts plan",
+    "cleanup:validate": "tsx src/cleanup/cli.ts validate",
+    "cleanup:scan": "tsx src/cleanup/cli.ts scan",
+    "cleanup:execute": "tsx src/cleanup/cli.ts execute"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

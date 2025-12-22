@@ -13,7 +13,7 @@ async function testFactoryReset() {
   
   // 2. Executar factory reset
   console.log('🔄 Executando factory reset...');
-  const { data: resetResult } = await supabase.rpc('execute_factory_reset_complete', {
+  const { data: resetResult } = await supabase.rpc('execute_factory_reset_complete_v2', {
     target_user_id: (await supabase.auth.getUser()).data.user.id
   });
   console.log('Resultado do reset:', resetResult);
@@ -34,7 +34,7 @@ async function testFactoryReset() {
   
   // 5. Verificar completude
   console.log('✅ Verificando completude:');
-  const { data: completeness } = await supabase.rpc('verify_factory_reset_completeness', {
+  const { data: completeness } = await supabase.rpc('verify_factory_reset_completeness_v2', {
     target_user_id: (await supabase.auth.getUser()).data.user.id
   });
   console.log('Completude:', completeness);
