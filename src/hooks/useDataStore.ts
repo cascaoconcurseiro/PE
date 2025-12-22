@@ -802,7 +802,7 @@ export const useDataStore = () => {
             setAssets([]);
             setSnapshots([]);
             setCustomCategories([]);
-            window.location.reload();
+            // Não fazer window.location.reload() aqui - o FactoryResetService já faz
         }, 'Sistema restaurado para o padrão de fábrica.'),
     }), [
         user, accounts, transactions, trips, budgets, goals, familyMembers, assets, snapshots, customCategories,

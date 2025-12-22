@@ -135,8 +135,41 @@ export class FactoryResetService {
 
       const completionTime = Date.now() - startTime
 
+      const isSuccess = cleanupResult.success && verification.isComplete && sharedDataExitResult.success;
+
+      // 🔧 FIX: Limpar TODOS os caches após factory reset bem-sucedido
+      if (isSuccess) {
+        try {
+          // 1. Limpar localStorage (cache de dados, configurações, etc.)
+          localStorage.clear();
+          
+          // 2. Limpar sessionStorage (cache temporário)
+          sessionStorage.clear();
+          
+          // 3. Limpar cache do service worker se disponível
+          if ('serviceWorker' in navigator && 'caches' in window) {
+            caches.keys().then(cacheNames => {
+              cacheNames.forEach(cacheName => {
+                caches.delete(cacheName);
+              });
+            }).catch(e => console.warn('Erro ao limpar cache do service worker:', e));
+          }
+          
+          console.log('✅ Factory reset completo - todos os caches limpos');
+          
+          // 4. Forçar reload completo da aplicação após um pequeno delay
+          setTimeout(() => {
+            window.location.href = window.location.origin; // Força navegação completa
+          }, 500);
+          
+        } catch (error) {
+          console.warn('Erro ao limpar caches locais:', error);
+          // Não falhar o factory reset por causa de erro de cache
+        }
+      }
+
       return {
-        success: cleanupResult.success && verification.isComplete && sharedDataExitResult.success,
+        success: isSuccess,
         cleanupResult,
         sharedDataExitResult,
         recoveryRecordsCreated,
@@ -231,8 +264,41 @@ export class FactoryResetService {
 
       const completionTime = Date.now() - startTime
 
+      const isSuccess = cleanupResult.success && verification.isComplete;
+
+      // 🔧 FIX: Limpar TODOS os caches após factory reset bem-sucedido
+      if (isSuccess) {
+        try {
+          // 1. Limpar localStorage (cache de dados, configurações, etc.)
+          localStorage.clear();
+          
+          // 2. Limpar sessionStorage (cache temporário)
+          sessionStorage.clear();
+          
+          // 3. Limpar cache do service worker se disponível
+          if ('serviceWorker' in navigator && 'caches' in window) {
+            caches.keys().then(cacheNames => {
+              cacheNames.forEach(cacheName => {
+                caches.delete(cacheName);
+              });
+            }).catch(e => console.warn('Erro ao limpar cache do service worker:', e));
+          }
+          
+          console.log('✅ Factory reset completo - todos os caches limpos');
+          
+          // 4. Forçar reload completo da aplicação após um pequeno delay
+          setTimeout(() => {
+            window.location.href = window.location.origin; // Força navegação completa
+          }, 500);
+          
+        } catch (error) {
+          console.warn('Erro ao limpar caches locais:', error);
+          // Não falhar o factory reset por causa de erro de cache
+        }
+      }
+
       return {
-        success: cleanupResult.success && verification.isComplete,
+        success: isSuccess,
         cleanupResult,
         recoveryRecordsCreated,
         sharedTransactionsPreserved,
