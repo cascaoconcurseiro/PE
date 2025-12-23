@@ -6,6 +6,7 @@ import { Plus, Edit2, Trash2, AlertTriangle, PieChart } from 'lucide-react';
 import { formatCurrency, getCategoryIcon, parseDate } from '../utils';
 import { shouldShowTransaction } from '../utils/transactionFilters';
 import { calculateEffectiveTransactionValue } from '../core/engines/financialLogic';
+import { EXPENSE_CATEGORIES } from '../utils/categoryConstants';
 
 interface BudgetsProps {
     transactions: Transaction[];
@@ -106,7 +107,7 @@ export const Budgets: React.FC<BudgetsProps> = ({ transactions, budgets, onAddBu
             {isFormOpen && (
                 <Card className="bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700" title={editingBudget ? "Editar Orçamento" : "Novo Orçamento"}>
                     <form onSubmit={handleSave} className="space-y-4">
-                        <div><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Categoria</label><select className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg outline-none text-slate-900 dark:text-white" value={newBudget.categoryId || ''} onChange={e => setNewBudget({ ...newBudget, categoryId: e.target.value })} required><option value="">Selecione...</option>{Object.values(Category).map(c => (<option key={c} value={c}>{c}</option>))}</select></div>
+                        <div><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Categoria</label><select className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg outline-none text-slate-900 dark:text-white" value={newBudget.categoryId || ''} onChange={e => setNewBudget({ ...newBudget, categoryId: e.target.value })} required><option value="">Selecione...</option>{EXPENSE_CATEGORIES.map((group, index) => (<optgroup key={index} label={group.label}>{group.options.map(cat => (<option key={cat} value={cat}>{cat}</option>))}</optgroup>))}</select></div>
                         <div><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Limite Mensal</label><input type="number" step="0.01" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg outline-none text-slate-900 dark:text-white" value={newBudget.amount || ''} onChange={e => setNewBudget({ ...newBudget, amount: Number(e.target.value) })} placeholder="0,00" required /></div>
                         <div className="flex items-center gap-2"><input type="checkbox" id="rollover" checked={newBudget.rollover || false} onChange={e => setNewBudget({ ...newBudget, rollover: e.target.checked })} className="w-4 h-4 rounded" /><label htmlFor="rollover" className="text-sm font-medium text-slate-700 dark:text-slate-300">Rollover (Acumular saldo)</label></div>
                         <div className="flex gap-3"><Button type="submit" className="flex-1">Salvar</Button><Button type="button" variant="ghost" onClick={() => { setIsFormOpen(false); setEditingBudget(null); }} className="flex-1">Cancelar</Button></div>

@@ -2,20 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Calendar, DollarSign, ChevronLeft, ChevronRight, Tag } from 'lucide-react';
 import { Account, Transaction, TransactionType, Category } from '../../types';
 import { Button } from '../ui/Button';
-
-// Categorias de despesa agrupadas (sem receitas)
-const EXPENSE_CATEGORIES = [
-    { group: '🏠 Moradia', items: [Category.HOUSING, Category.RENT, Category.MAINTENANCE, Category.FURNITURE, Category.UTILITIES] },
-    { group: '🍽️ Alimentação', items: [Category.FOOD, Category.RESTAURANTS, Category.GROCERY, Category.SNACKS] },
-    { group: '🚗 Transporte', items: [Category.TRANSPORTATION, Category.UBER, Category.FUEL, Category.PUBLIC_TRANSPORT, Category.VEHICLE_MAINTENANCE, Category.PARKING] },
-    { group: '❤️ Saúde', items: [Category.HEALTH, Category.PHARMACY, Category.DOCTOR, Category.EXAMS, Category.GYM] },
-    { group: '🎉 Lazer', items: [Category.LEISURE, Category.ENTERTAINMENT, Category.STREAMING, Category.TRAVEL, Category.HOBBIES] },
-    { group: '🛍️ Compras', items: [Category.SHOPPING, Category.CLOTHING, Category.ELECTRONICS, Category.BEAUTY, Category.HOME_SHOPPING] },
-    { group: '📚 Educação', items: [Category.EDUCATION, Category.COURSES, Category.BOOKS] },
-    { group: '👤 Pessoal', items: [Category.PERSONAL, Category.PERSONAL_CARE, Category.PETS, Category.GIFTS, Category.DONATION] },
-    { group: '💰 Financeiro', items: [Category.FINANCIAL, Category.INSURANCE, Category.TAXES, Category.FEES, Category.LOANS] },
-    { group: '📦 Especiais', items: [Category.MISCELLANEOUS, Category.ADJUSTMENT, Category.OPENING_BALANCE] },
-];
+import { EXPENSE_CATEGORIES } from '../../utils/categoryConstants';
 
 interface CreditCardImportModalProps {
     isOpen: boolean;
@@ -158,9 +145,9 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                             onChange={e => setCategory(e.target.value as Category)}
                             className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 dark:text-slate-300"
                         >
-                            {EXPENSE_CATEGORIES.map(group => (
-                                <optgroup key={group.group} label={group.group}>
-                                    {group.items.map(cat => (
+                            {EXPENSE_CATEGORIES.map((group, index) => (
+                                <optgroup key={index} label={group.label}>
+                                    {group.options.map(cat => (
                                         <option key={cat} value={cat}>{cat}</option>
                                     ))}
                                 </optgroup>

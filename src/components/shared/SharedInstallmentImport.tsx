@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { X, Calendar, DollarSign, Layers, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { useToast } from '../ui/Toast';
 import { sharedTransactionManager } from '../../services/SharedTransactionManager';
+import { EXPENSE_CATEGORIES } from '../../utils/categoryConstants';
 
 // Helper for currency format inside component
 const formatCurrency = (val: number) => {
@@ -360,8 +361,12 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                             value={category}
                             onChange={e => setCategory(e.target.value as Category)}
                         >
-                            {Object.values(Category).map(c => (
-                                <option key={c} value={c}>{c}</option>
+                            {EXPENSE_CATEGORIES.map((group, index) => (
+                                <optgroup key={index} label={group.label}>
+                                    {group.options.map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </optgroup>
                             ))}
                         </select>
                     </div>
