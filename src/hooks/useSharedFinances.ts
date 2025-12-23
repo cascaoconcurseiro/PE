@@ -68,11 +68,24 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                 // If we use targetMemberId and it's not in invoiceMap (initially populated by members), we must init it.
                 if (!invoiceMap[targetMemberId]) invoiceMap[targetMemberId] = [];
 
-                const totalSplits = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
-                const myShare = t.amount - totalSplits;
+                // CORREÇÃO: Verificar se EU estou no shared_with como devedor
+                // Se sim, usar o meu assignedAmount diretamente
+                const myUserId = t.userId; // ID do usuário atual (dono da transação)
+                const mySplit = t.sharedWith?.find(s => s.memberId === myUserId);
+                
+                let myShare: number;
+                if (mySplit) {
+                    // EU estou explicitamente no shared_with, usar o valor atribuído
+                    myShare = mySplit.assignedAmount;
+                } else {
+                    // Lógica antiga: calcular o resto (para compatibilidade)
+                    const totalSplits = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
+                    myShare = t.amount - totalSplits;
+                }
 
                 if (myShare < 0) {
                     // Divisão maior que o total da transação - erro de dados
+                    console.warn('Divisão maior que o total da transação:', t.id);
                 }
 
                 if (myShare > 0.01) {
@@ -100,6 +113,16 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
 
     const getFilteredInvoice = (memberId: string) => {
         const allItems = invoices[memberId] || [];
+        
+        // DEBUG: Log para ver o que está sendo filtrado
+        console.log('🔍 DEBUG getFilteredInvoice:', {
+            memberId,
+            activeTab,
+            currentDate: currentDate.toISOString(),
+            totalItems: allItems.length,
+            itemDates: allItems.map(i => i.date).slice(0, 5)
+        });
+        
         if (activeTab === 'TRAVEL') {
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else if (activeTab === 'HISTORY') {
@@ -108,11 +131,26 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
         } else {
             // Only show items from the current month (same as credit card logic)
             // Each installment appears only in its respective month
-            return allItems.filter(i => {
+            const filtered = allItems.filter(i => {
                 if (i.tripId) return false;
                 const itemDate = parseDate(i.date);
-                return isSameMonth(itemDate, currentDate);
+                const matches = isSameMonth(itemDate, currentDate);
+                
+                // DEBUG: Log cada item
+                if (!matches && allItems.length < 20) {
+                    console.log('❌ Item filtrado:', {
+                        description: i.description,
+                        itemDate: itemDate.toISOString(),
+                        currentDate: currentDate.toISOString(),
+                        matches
+                    });
+                }
+                
+                return matches;
             }).sort((a, b) => b.date.localeCompare(a.date));
+            
+            console.log('✅ Itens após filtro:', filtered.length);
+            return filtered;
         }
     };
 
