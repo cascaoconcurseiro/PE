@@ -123,7 +123,7 @@ export const TransactionDeleteModal: React.FC<TransactionDeleteModalProps> = ({ 
             title="Excluir Transação"
             message="Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita."
             onConfirm={() => onConfirm('SINGLE')}
-            onCancel={onClose}
+            onClose={onClose}
             isDanger
         />
     );

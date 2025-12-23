@@ -413,7 +413,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                         {payerId === 'me' ? (
                             <AccountSelector
                                 label={isTransfer ? 'Sai de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}
-                                accounts={React.useMemo(() => {
+                                options={React.useMemo(() => {
                                     // 1. Base Filter: Available Accounts (already filtered by user access)
                                     let accs = availableAccounts;
 
@@ -480,7 +480,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
                                 <AccountSelector
                                     label="Vai para (Destino)"
-                                    accounts={filteredDestinationAccounts}
+                                    options={filteredDestinationAccounts}
                                     selectedId={destinationAccountId}
                                     onSelect={setDestinationAccountId}
                                 // filterType="NO_CREDIT" -> Already filtered in filteredDestinationAccounts

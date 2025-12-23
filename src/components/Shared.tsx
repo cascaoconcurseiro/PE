@@ -223,14 +223,14 @@ export const Shared: React.FC<SharedProps> = ({
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-24">
             {/* Banner de Ressincronização */}
-            <ResyncNotificationBanner 
+            <ResyncNotificationBanner
                 currentUserId={currentUserId}
                 onResyncComplete={() => {
                     // Recarregar dados se necessário
                     window.location.reload();
                 }}
             />
-            
+
             <SharedFilters
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -330,11 +330,13 @@ export const Shared: React.FC<SharedProps> = ({
             <SharedInstallmentImport
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
-                onImport={(txs) => {
-                    if (onAddTransactions) {
-                        onAddTransactions(txs);
-                    } else {
-                        txs.forEach(t => onAddTransaction(t));
+                onImport={(txs?: any[]) => {
+                    if (txs && txs.length > 0) {
+                        if (onAddTransactions) {
+                            onAddTransactions(txs);
+                        } else {
+                            txs.forEach(t => onAddTransaction(t));
+                        }
                     }
                     setIsImportModalOpen(false);
                 }}
@@ -385,7 +387,7 @@ export const Shared: React.FC<SharedProps> = ({
 
             <ConfirmModal
                 isOpen={bulkDeleteConfirm.isOpen}
-                onCancel={() => setBulkDeleteConfirm({ isOpen: false, ids: [] })}
+                onClose={() => setBulkDeleteConfirm({ isOpen: false, ids: [] })}
                 onConfirm={confirmBulkDelete}
                 title="Excluir Itens"
                 message={`Tem certeza que deseja excluir ${bulkDeleteConfirm.ids.length} itens?`}
@@ -395,7 +397,7 @@ export const Shared: React.FC<SharedProps> = ({
 
             <ConfirmModal
                 isOpen={undoSettlementConfirm.isOpen}
-                onCancel={() => setUndoSettlementConfirm({ isOpen: false, item: null })}
+                onClose={() => setUndoSettlementConfirm({ isOpen: false, item: null })}
                 onConfirm={confirmUndoSettlement}
                 title="Desfazer Acerto"
                 message="Deseja desfazer o acerto deste item? Ele voltará a aparecer como pendente."

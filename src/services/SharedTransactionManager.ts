@@ -73,24 +73,24 @@ class SharedTransactionManager extends SimpleEventEmitter {
     private supabase = (() => {
         const url = import.meta.env.VITE_SUPABASE_URL;
         const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        
+
         if (!url) {
             console.error('VITE_SUPABASE_URL is not defined. Available env vars:', import.meta.env);
             throw new Error('VITE_SUPABASE_URL environment variable is required');
         }
-        
+
         if (!key) {
             console.error('VITE_SUPABASE_ANON_KEY is not defined. Available env vars:', import.meta.env);
             throw new Error('VITE_SUPABASE_ANON_KEY environment variable is required');
         }
-        
+
         return createClient(url, key);
     })();
-    
+
     private cache = new Map<string, CacheEntry<any>>();
     private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
     private syncInterval: number | null = null;
-    
+
     constructor() {
         super();
         this.startAutoSync();
@@ -116,12 +116,12 @@ class SharedTransactionManager extends SimpleEventEmitter {
     private getCache<T>(key: string): T | null {
         const entry = this.cache.get(key);
         if (!entry) return null;
-        
+
         if (Date.now() - entry.timestamp > entry.ttl) {
             this.cache.delete(key);
             return null;
         }
-        
+
         return entry.data as T;
     }
 
@@ -169,10 +169,10 @@ class SharedTransactionManager extends SimpleEventEmitter {
             // Invalidate relevant caches
             this.invalidateCache('shared_transactions');
             this.invalidateCache('shared_requests');
-            
+
             // Emit event for UI updates
             this.emit('transactionCreated', result);
-            
+
             return { success: true, data: result };
         } catch (error) {
             console.error('Unexpected error creating shared transaction:', error);
@@ -182,7 +182,7 @@ class SharedTransactionManager extends SimpleEventEmitter {
 
     async getSharedTransactions(userId: string, forceRefresh: boolean = false): Promise<SharedTransaction[]> {
         const cacheKey = this.getCacheKey('shared_transactions', userId);
-        
+
         if (!forceRefresh) {
             const cached = this.getCache<SharedTransaction[]>(cacheKey);
             if (cached) return cached;
@@ -223,7 +223,7 @@ class SharedTransactionManager extends SimpleEventEmitter {
 
     async getSharedRequests(userId: string, forceRefresh: boolean = false): Promise<SharedRequest[]> {
         const cacheKey = this.getCacheKey('shared_requests', userId);
-        
+
         if (!forceRefresh) {
             const cached = this.getCache<SharedRequest[]>(cacheKey);
             if (cached) return cached;
@@ -249,7 +249,7 @@ class SharedTransactionManager extends SimpleEventEmitter {
     }
 
     async respondToSharedRequest(
-        requestId: string, 
+        requestId: string,
         response: 'accept' | 'reject',
         accountId?: string
     ): Promise<{ success: boolean; error?: string }> {
@@ -269,10 +269,10 @@ class SharedTransactionManager extends SimpleEventEmitter {
             // Invalidate caches
             this.invalidateCache('shared_requests');
             this.invalidateCache('shared_transactions');
-            
+
             // Emit event
             this.emit('requestResponded', { requestId, response, data });
-            
+
             return { success: true };
         } catch (error) {
             console.error('Unexpected error responding to request:', error);
@@ -299,10 +299,10 @@ class SharedTransactionManager extends SimpleEventEmitter {
 
             // Invalidate caches
             this.invalidateCache('shared_transactions');
-            
+
             // Emit event
             this.emit('transactionSynced', { transactionId, data });
-            
+
             return { success: true };
         } catch (error) {
             console.error('Unexpected error syncing transaction:', error);
@@ -319,7 +319,7 @@ class SharedTransactionManager extends SimpleEventEmitter {
             description: string;
             amount: number;
             category_id: string;
-            account_id: string; // Será ignorado na nova função
+            account_id: string | null; // Será ignorado na nova função
             shared_with: { user_id: string; amount: number }[];
             installment_number: number;
             total_installments: number;
@@ -374,7 +374,7 @@ class SharedTransactionManager extends SimpleEventEmitter {
         // Subscribe to shared transaction requests
         this.supabase
             .channel('shared_requests')
-            .on('postgres_changes', 
+            .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'shared_transaction_requests' },
                 (payload) => {
                     this.handleRealtimeUpdate('shared_requests', payload);
@@ -397,10 +397,10 @@ class SharedTransactionManager extends SimpleEventEmitter {
     private handleRealtimeUpdate(type: string, payload: any): void {
         // Invalidate relevant caches
         this.invalidateCache(type);
-        
+
         // Emit events for UI updates
         this.emit('realtimeUpdate', { type, payload });
-        
+
         switch (payload.eventType) {
             case 'INSERT':
                 this.emit(`${type}Created`, payload.new);
@@ -475,7 +475,7 @@ class SharedTransactionManager extends SimpleEventEmitter {
             clearInterval(this.syncInterval);
             this.syncInterval = null;
         }
-        
+
         this.cache.clear();
         this.removeAllListeners();
     }

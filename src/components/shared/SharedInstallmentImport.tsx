@@ -13,7 +13,7 @@ const formatCurrency = (val: number) => {
 interface SharedInstallmentImportProps {
     isOpen: boolean;
     onClose: () => void;
-    onImport: () => void; // Simplified - just trigger refresh
+    onImport: (txs?: any[]) => void; // Trigger refresh and optional data update
     members: FamilyMember[];
     accounts: Account[];
     currentUserId: string;
@@ -21,12 +21,12 @@ interface SharedInstallmentImportProps {
 }
 
 export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = ({
-    isOpen, 
-    onClose, 
-    onImport, 
-    members, 
-    accounts, 
-    currentUserId, 
+    isOpen,
+    onClose,
+    onImport,
+    members,
+    accounts,
+    currentUserId,
     currentUserName
 }) => {
     const [description, setDescription] = useState('');
@@ -36,16 +36,16 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
     const [category, setCategory] = useState<Category>(Category.OTHER);
     const [assigneeId, setAssigneeId] = useState<string>('');
     const [accountId, setAccountId] = useState('');
-    
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [errors, setErrors] = useState<string[]>([]);
-    
+
     const { addToast } = useToast();
 
     // Filter out "Me" from assignee list
-    const availableMembers = React.useMemo(() => 
-        members.filter(m => m.id !== 'me'), 
+    const availableMembers = React.useMemo(() =>
+        members.filter(m => m.id !== 'me'),
         [members]
     );
 
@@ -61,7 +61,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             setIsSubmitting(false);
             setProgress({ current: 0, total: 0 });
             setErrors([]);
-            
+
             // Default to first available member
             if (availableMembers.length > 0) {
                 setAssigneeId(availableMembers[0].id);
@@ -71,31 +71,31 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
     const validateForm = (): boolean => {
         const newErrors: string[] = [];
-        
+
         if (!description.trim()) {
             newErrors.push('Descrição é obrigatória');
         }
-        
+
         if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
             newErrors.push('Valor da parcela deve ser maior que zero');
         }
-        
+
         if (!installments || isNaN(parseInt(installments)) || parseInt(installments) < 1) {
             newErrors.push('Número de parcelas deve ser pelo menos 1');
         }
-        
+
         if (parseInt(installments) > 99) {
             newErrors.push('Número máximo de parcelas é 99');
         }
-        
+
         if (!assigneeId) {
             newErrors.push('Selecione quem vai pagar as parcelas');
         }
-        
+
         if (!date) {
             newErrors.push('Data da primeira parcela é obrigatória');
         }
-        
+
         setErrors(newErrors);
         return newErrors.length === 0;
     };
@@ -151,7 +151,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
         try {
             const transactions = generateInstallmentTransactions();
-            
+
             // Use the batch import method from SharedTransactionManager
             const result = await sharedTransactionManager.importSharedInstallments({
                 transactions
@@ -159,7 +159,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
             if (result.success) {
                 addToast(
-                    `${result.results.length} parcelas importadas com sucesso!`, 
+                    `${result.results.length} parcelas importadas com sucesso!`,
                     'success'
                 );
                 onImport(); // Trigger parent refresh
@@ -167,7 +167,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             } else {
                 setErrors(result.errors);
                 addToast(
-                    `${result.results.length} parcelas importadas, ${result.errors.length} falharam`, 
+                    `${result.results.length} parcelas importadas, ${result.errors.length} falharam`,
                     'warning'
                 );
             }
@@ -188,21 +188,21 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
     return (
         <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
-            <div 
-                className={`absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`} 
-                onClick={!isSubmitting ? onClose : undefined} 
+            <div
+                className={`absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`}
+                onClick={!isSubmitting ? onClose : undefined}
             />
             <div className={`bg-white dark:bg-slate-900 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 flex flex-col transition-transform duration-300 ${isOpen ? 'translate-y-0 pointer-events-auto' : 'translate-y-full'}`}>
-                
+
                 {/* Header */}
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                     <h3 className="font-bold text-lg dark:text-white flex items-center gap-2">
-                        <Layers className="w-5 h-5 text-indigo-500" /> 
+                        <Layers className="w-5 h-5 text-indigo-500" />
                         Importar Parcelado Compartilhado
                     </h3>
-                    <button 
-                        type="button" 
-                        onClick={onClose} 
+                    <button
+                        type="button"
+                        onClick={onClose}
                         disabled={isSubmitting}
                         className="disabled:opacity-50"
                     >
@@ -212,7 +212,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
                 {/* Form */}
                 <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                    
+
                     {/* Progress indicator */}
                     {isSubmitting && (
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/50 rounded-xl p-4">
@@ -224,7 +224,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                                     </p>
                                     {progress.total > 0 && (
                                         <div className="mt-2 bg-blue-200 dark:bg-blue-800 rounded-full h-2">
-                                            <div 
+                                            <div
                                                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                                                 style={{ width: `${(progress.current / progress.total) * 100}%` }}
                                             />
@@ -259,12 +259,12 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         <label className="block text-xs font-bold text-slate-500 mb-1">
                             Descrição *
                         </label>
-                        <input 
+                        <input
                             disabled={isSubmitting}
-                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white disabled:opacity-50" 
-                            value={description} 
-                            onChange={e => setDescription(e.target.value)} 
-                            placeholder="Ex: Compra Geladeira" 
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white disabled:opacity-50"
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            placeholder="Ex: Compra Geladeira"
                         />
                     </div>
 
@@ -276,14 +276,14 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                             </label>
                             <div className="relative">
                                 <DollarSign className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                                <input 
+                                <input
                                     disabled={isSubmitting}
-                                    type="number" 
+                                    type="number"
                                     step="0.01"
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white disabled:opacity-50" 
-                                    value={amount} 
-                                    onChange={e => setAmount(e.target.value)} 
-                                    placeholder="0.00" 
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white disabled:opacity-50"
+                                    value={amount}
+                                    onChange={e => setAmount(e.target.value)}
+                                    placeholder="0.00"
                                 />
                             </div>
                         </div>
@@ -291,15 +291,15 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                             <label className="block text-xs font-bold text-slate-500 mb-1">
                                 Parcelas *
                             </label>
-                            <input 
+                            <input
                                 disabled={isSubmitting}
-                                type="number" 
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white disabled:opacity-50" 
-                                value={installments} 
-                                onChange={e => setInstallments(e.target.value)} 
-                                placeholder="1" 
-                                min="1" 
-                                max="99" 
+                                type="number"
+                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white disabled:opacity-50"
+                                value={installments}
+                                onChange={e => setInstallments(e.target.value)}
+                                placeholder="1"
+                                min="1"
+                                max="99"
                             />
                         </div>
                     </div>
@@ -322,12 +322,12 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         </label>
                         <div className="relative">
                             <Calendar className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                            <input 
+                            <input
                                 disabled={isSubmitting}
-                                type="date" 
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white disabled:opacity-50" 
-                                value={date} 
-                                onChange={e => setDate(e.target.value)} 
+                                type="date"
+                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 font-bold dark:text-white disabled:opacity-50"
+                                value={date}
+                                onChange={e => setDate(e.target.value)}
                             />
                         </div>
                     </div>
@@ -337,10 +337,10 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         <label className="block text-xs font-bold text-slate-500 mb-1">
                             Categoria *
                         </label>
-                        <select 
+                        <select
                             disabled={isSubmitting}
-                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white disabled:opacity-50" 
-                            value={category} 
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white disabled:opacity-50"
+                            value={category}
                             onChange={e => setCategory(e.target.value as Category)}
                         >
                             {Object.values(Category).map(c => (
@@ -377,11 +377,10 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                                     key={member.id}
                                     disabled={isSubmitting}
                                     onClick={() => setAssigneeId(member.id)}
-                                    className={`px-4 py-3 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2 ${
-                                        assigneeId === member.id 
-                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30' 
+                                    className={`px-4 py-3 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2 ${assigneeId === member.id
+                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30'
                                             : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-                                    } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     {assigneeId === member.id && <Check className="w-4 h-4" />}
                                     {member.name}
@@ -398,8 +397,8 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
                 {/* Footer */}
                 <div className="p-6 pt-0">
-                    <Button 
-                        onClick={handleConfirm} 
+                    <Button
+                        onClick={handleConfirm}
                         disabled={isSubmitting || availableMembers.length === 0}
                         className="w-full h-12 text-lg rounded-xl shadow-xl shadow-indigo-500/20 disabled:opacity-50"
                     >
@@ -412,7 +411,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                             `Confirmar ${installments}x de ${amount && !isNaN(parseFloat(amount)) ? formatCurrency(parseFloat(amount)) : '...'}`
                         )}
                     </Button>
-                    
+
                     {totalAmount > 0 && (
                         <p className="text-center text-sm text-slate-500 mt-2">
                             Total: {formatCurrency(totalAmount)}

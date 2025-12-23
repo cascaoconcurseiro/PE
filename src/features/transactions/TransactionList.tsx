@@ -307,7 +307,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
             <ConfirmModal
                 isOpen={deleteConfirm.isOpen}
-                onCancel={() => setDeleteConfirm({ isOpen: false, txId: null })}
+                onClose={() => setDeleteConfirm({ isOpen: false, txId: null })}
                 onConfirm={() => {
                     if (deleteConfirm.txId) onDelete(deleteConfirm.txId);
                     setDeleteConfirm({ isOpen: false, txId: null });

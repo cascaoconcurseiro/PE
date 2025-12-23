@@ -4,7 +4,7 @@ import { supabase } from './integrations/supabase/client';
 import { Auth } from './components/Auth';
 import { View, UserProfile } from './types';
 import { useDataStore } from './hooks/useDataStore';
-import { useAppLogic } from './hooks/useAppLogic';
+// import { useAppLogic } from './hooks/useAppLogic';
 import { useAppCalculations } from './hooks/useAppCalculations';
 import { MainLayout } from './components/MainLayout';
 import { InconsistenciesModal } from './components/ui/InconsistenciesModal';
@@ -287,85 +287,85 @@ const App = () => {
                 user={storedUser || sessionUser || { id: 'temp', name: 'Visitante', email: '' }}
                 onLogout={handleLogout}
                 onNotificationPay={handleNotificationPay}
-            showValues={showValues}
-            togglePrivacy={() => setShowValues(!showValues)}
-            currentDate={currentDate}
-            onDateChange={(e) => {
-                if (e.target.value) {
-                    const [year, month] = e.target.value.split('-');
-                    setCurrentDate(new Date(parseInt(year), parseInt(month) - 1, 1));
-                }
-            }}
-            onMonthChange={(dir) => {
-                const d = new Date(currentDate);
-                d.setDate(1);
-                d.setMonth(d.getMonth() + (dir === 'next' ? 1 : -1));
-                setCurrentDate(d);
-            }}
-            notifications={activeNotifications}
-            onNotificationClick={handleNotificationClick}
-            onNotificationDismiss={handleDismissNotification}
-            onOpenTxModal={() => setIsTxModalOpen(true)}
-            dataInconsistencies={dataInconsistencies}
-            onOpenInconsistenciesModal={() => setIsInconsistenciesModalOpen(true)}
-        >
-            <ErrorBoundary>
-                <Suspense fallback={<LoadingScreen />}>
-                    {renderContent()}
-                </Suspense>
-            </ErrorBoundary>
+                showValues={showValues}
+                togglePrivacy={() => setShowValues(!showValues)}
+                currentDate={currentDate}
+                onDateChange={(e) => {
+                    if (e.target.value) {
+                        const [year, month] = e.target.value.split('-');
+                        setCurrentDate(new Date(parseInt(year), parseInt(month) - 1, 1));
+                    }
+                }}
+                onMonthChange={(dir) => {
+                    const d = new Date(currentDate);
+                    d.setDate(1);
+                    d.setMonth(d.getMonth() + (dir === 'next' ? 1 : -1));
+                    setCurrentDate(d);
+                }}
+                notifications={activeNotifications}
+                onNotificationClick={handleNotificationClick}
+                onNotificationDismiss={handleDismissNotification}
+                onOpenTxModal={() => setIsTxModalOpen(true)}
+                dataInconsistencies={dataInconsistencies}
+                onOpenInconsistenciesModal={() => setIsInconsistenciesModalOpen(true)}
+            >
+                <ErrorBoundary>
+                    <Suspense fallback={<LoadingScreen />}>
+                        {renderContent()}
+                    </Suspense>
+                </ErrorBoundary>
 
-            {isTxModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsTxModalOpen(false)} />
-                    <div className="bg-white dark:bg-slate-900 w-full sm:max-w-2xl h-[90vh] sm:h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 flex flex-col animate-in slide-in-from-bottom-full duration-300 overflow-hidden border dark:border-slate-800">
-                        <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>}>
-                            <Transactions
-                                transactions={transactions}
-                                accounts={calculatedAccounts}
-                                trips={trips}
-                                familyMembers={familyMembers}
-                                customCategories={customCategories}
-                                onAddTransaction={handlers.handleAddTransaction}
-                                onUpdateTransaction={handlers.handleUpdateTransaction}
-                                onDeleteTransaction={handlers.handleDeleteTransaction}
-                                onAnticipate={handlers.handleAnticipateInstallments}
-                                modalMode={true}
-                                onCancel={() => setIsTxModalOpen(false)}
-                                currentDate={currentDate}
-                                showValues={showValues}
-                                onNavigateToAccounts={() => { setIsTxModalOpen(false); handleViewChange(View.ACCOUNTS); }}
-                                onNavigateToTrips={() => { setIsTxModalOpen(false); handleViewChange(View.TRIPS); }}
-                                onNavigateToFamily={() => { setIsTxModalOpen(false); handleViewChange(View.FAMILY); }}
-                                currentUserName={sessionUser?.name || 'Eu'}
-                                currentUserId={sessionUser?.id}
-                            />
-                        </Suspense>
+                {isTxModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsTxModalOpen(false)} />
+                        <div className="bg-white dark:bg-slate-900 w-full sm:max-w-2xl h-[90vh] sm:h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 flex flex-col animate-in slide-in-from-bottom-full duration-300 overflow-hidden border dark:border-slate-800">
+                            <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>}>
+                                <Transactions
+                                    transactions={transactions}
+                                    accounts={calculatedAccounts}
+                                    trips={trips}
+                                    familyMembers={familyMembers}
+                                    customCategories={customCategories}
+                                    onAddTransaction={handlers.handleAddTransaction}
+                                    onUpdateTransaction={handlers.handleUpdateTransaction}
+                                    onDeleteTransaction={handlers.handleDeleteTransaction}
+                                    onAnticipate={handlers.handleAnticipateInstallments}
+                                    modalMode={true}
+                                    onCancel={() => setIsTxModalOpen(false)}
+                                    currentDate={currentDate}
+                                    showValues={showValues}
+                                    onNavigateToAccounts={() => { setIsTxModalOpen(false); handleViewChange(View.ACCOUNTS); }}
+                                    onNavigateToTrips={() => { setIsTxModalOpen(false); handleViewChange(View.TRIPS); }}
+                                    onNavigateToFamily={() => { setIsTxModalOpen(false); handleViewChange(View.FAMILY); }}
+                                    currentUserName={sessionUser?.name || 'Eu'}
+                                    currentUserId={sessionUser?.id}
+                                />
+                            </Suspense>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            <InconsistenciesModal
-                isOpen={isInconsistenciesModalOpen}
-                onClose={() => setIsInconsistenciesModalOpen(false)}
-                issues={dataInconsistencies}
-                onNavigateToTransaction={(id) => {
-                    handleViewChange(View.TRANSACTIONS);
-                    setEditTxId(id);
-                }}
-            />
+                <InconsistenciesModal
+                    isOpen={isInconsistenciesModalOpen}
+                    onClose={() => setIsInconsistenciesModalOpen(false)}
+                    issues={dataInconsistencies}
+                    onNavigateToTransaction={(id) => {
+                        handleViewChange(View.TRANSACTIONS);
+                        setEditTxId(id);
+                    }}
+                />
 
-            <GlobalSearch
-                isOpen={isSearchOpen}
-                onClose={() => setIsSearchOpen(false)}
-                transactions={transactions}
-                onSelectTransaction={(tx) => {
-                    handleViewChange(View.TRANSACTIONS);
-                    setEditTxId(tx.id);
-                    setIsSearchOpen(false);
-                }}
-            />
-        </MainLayout>
+                <GlobalSearch
+                    isOpen={isSearchOpen}
+                    onClose={() => setIsSearchOpen(false)}
+                    transactions={transactions}
+                    onSelectTransaction={(tx) => {
+                        handleViewChange(View.TRANSACTIONS);
+                        setEditTxId(tx.id);
+                        setIsSearchOpen(false);
+                    }}
+                />
+            </MainLayout>
         </TransitionProvider>
     );
 };

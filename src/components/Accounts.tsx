@@ -236,7 +236,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
                 {importBillModal.isOpen && importBillModal.account && (<CreditCardImportModal isOpen={importBillModal.isOpen} onClose={() => setImportBillModal({ isOpen: false, account: null })} account={importBillModal.account} onImport={handleImportBills} />)}
                 <ConfirmModal
                     isOpen={!!accountToDelete}
-                    onCancel={() => setAccountToDelete(null)}
+                    onClose={() => setAccountToDelete(null)}
                     onConfirm={() => {
                         if (accountToDelete) {
                             onDeleteAccount(accountToDelete.id);

@@ -67,6 +67,8 @@ export const Trips: React.FC<TripsProps> = ({ trips = [], transactions = [], acc
                 familyMembers={familyMembers}
                 onSave={handleCreateOrUpdateTrip}
                 onCancel={() => { setIsCreatingTrip(false); setEditingTripId(null); }}
+                isOpen={true}
+                onClose={() => { setIsCreatingTrip(false); setEditingTripId(null); }}
                 editingTripId={editingTripId}
                 userId={currentUserId}
             />
@@ -100,8 +102,8 @@ export const Trips: React.FC<TripsProps> = ({ trips = [], transactions = [], acc
 
     return (
         <TripList
-            trips={trips}
-            onTripClick={setSelectedTripId}
+            items={trips}
+            onItemClick={setSelectedTripId}
             onCreateClick={() => setIsCreatingTrip(true)}
             userId={currentUserId}
         />

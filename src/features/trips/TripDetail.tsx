@@ -182,7 +182,7 @@ export const TripDetail: React.FC<TripDetailProps> = ({ trip, transactions, acco
 
             <ConfirmModal
                 isOpen={isDeleteModalOpen}
-                onCancel={() => setIsDeleteModalOpen(false)}
+                onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={() => {
                     onDelete(trip.id);
                     setIsDeleteModalOpen(false);
