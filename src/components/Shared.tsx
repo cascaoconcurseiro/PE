@@ -332,11 +332,15 @@ export const Shared: React.FC<SharedProps> = ({
                 onClose={() => setIsImportModalOpen(false)}
                 onImport={(txs?: any[]) => {
                     if (txs && txs.length > 0) {
+                        // Transações passadas explicitamente (modo antigo)
                         if (onAddTransactions) {
                             onAddTransactions(txs);
                         } else {
                             txs.forEach(t => onAddTransaction(t));
                         }
+                    } else {
+                        // Transações já foram criadas no banco, forçar reload da página
+                        window.location.reload();
                     }
                     setIsImportModalOpen(false);
                 }}

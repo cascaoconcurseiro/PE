@@ -180,6 +180,8 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     'success'
                 );
                 
+                // Chamar onImport sem parâmetros para forçar refresh
+                // As transações já foram criadas no banco, não precisamos passá-las
                 onImport();
                 onClose();
             } else {
