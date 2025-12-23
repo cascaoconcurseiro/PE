@@ -15,28 +15,34 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
         const invoiceMap: Record<string, InvoiceItem[]> = {};
         members.forEach(m => invoiceMap[m.id] = []);
 
-        console.log('🔍 DEBUG useSharedFinances - Processando transações:', {
-            totalTransactions: transactions.length,
-            sharedTransactions: transactions.filter(t => 
-                t.type === TransactionType.EXPENSE && 
-                (t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me'))
-            ).length,
-            members: members.map(m => ({ id: m.id, name: m.name }))
-        });
+        const sharedTxs = transactions.filter(t => 
+            t.type === TransactionType.EXPENSE && 
+            (t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me'))
+        );
+
+        if (window.PEMEIA_DEBUG) {
+            window.PEMEIA_DEBUG.log('SHARED', 'Processando transações compartilhadas', {
+                totalTransactions: transactions.length,
+                sharedTransactions: sharedTxs.length,
+                members: members.map(m => ({ id: m.id, name: m.name }))
+            });
+        }
 
         transactions.forEach(t => {
             const isSharedExpense = t.type === TransactionType.EXPENSE && (t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me'));
             
             if (!isSharedExpense) return;
 
-            console.log('📝 Processando transação compartilhada:', {
-                id: t.id,
-                description: t.description,
-                amount: t.amount,
-                date: t.date,
-                payerId: t.payerId,
-                sharedWith: t.sharedWith
-            });
+            if (window.PEMEIA_DEBUG) {
+                window.PEMEIA_DEBUG.log('TRANSACTION', 'Processando transação', {
+                    id: t.id,
+                    description: t.description,
+                    amount: t.amount,
+                    date: t.date,
+                    payerId: t.payerId,
+                    sharedWith: t.sharedWith
+                });
+            }
 
             const txCurrency = t.currency || 'BRL';
 
@@ -133,14 +139,15 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
     const getFilteredInvoice = (memberId: string) => {
         const allItems = invoices[memberId] || [];
         
-        // DEBUG: Log para ver o que está sendo filtrado
-        console.log('🔍 DEBUG getFilteredInvoice:', {
-            memberId,
-            activeTab,
-            currentDate: currentDate.toISOString(),
-            totalItems: allItems.length,
-            itemDates: allItems.map(i => i.date).slice(0, 5)
-        });
+        if (window.PEMEIA_DEBUG) {
+            window.PEMEIA_DEBUG.log('FILTER', 'Filtrando fatura', {
+                memberId,
+                memberName: members.find(m => m.id === memberId)?.name,
+                activeTab,
+                currentDate: currentDate.toISOString(),
+                totalItems: allItems.length
+            });
+        }
         
         if (activeTab === 'TRAVEL') {
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -155,20 +162,24 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                 const itemDate = parseDate(i.date);
                 const matches = isSameMonth(itemDate, currentDate);
                 
-                // DEBUG: Log cada item
-                if (!matches && allItems.length < 20) {
-                    console.log('❌ Item filtrado:', {
+                if (window.PEMEIA_DEBUG && !matches) {
+                    window.PEMEIA_DEBUG.log('FILTER', 'Item filtrado (data não bate)', {
                         description: i.description,
                         itemDate: itemDate.toISOString(),
-                        currentDate: currentDate.toISOString(),
-                        matches
+                        currentDate: currentDate.toISOString()
                     });
                 }
                 
                 return matches;
             }).sort((a, b) => b.date.localeCompare(a.date));
             
-            console.log('✅ Itens após filtro:', filtered.length);
+            if (window.PEMEIA_DEBUG) {
+                window.PEMEIA_DEBUG.log('FILTER', 'Resultado do filtro', {
+                    itemsAntes: allItems.length,
+                    itemsDepois: filtered.length
+                });
+            }
+            
             return filtered;
         }
     };

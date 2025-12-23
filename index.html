@@ -12,19 +12,73 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
 
-  <!-- STRICT STORAGE BLOCKER & POLYFILL + ERROR SUPPRESSION -->
+  <!-- SISTEMA DE DEBUG REAL -->
   <script>
     (function () {
       // ═══════════════════════════════════════════════════════════════════
-      // 🔧 DEBUG MODE - Set to true to see detailed error tracking
+      // 🔧 SISTEMA DE DEBUG COMPARTILHADO
       // ═══════════════════════════════════════════════════════════════════
-      var DEBUG_MODE = true; // ← MUDE PARA false PARA DESATIVAR O RASTREAMENTO
+      window.PEMEIA_DEBUG = {
+        enabled: true,
+        logs: [],
+        
+        log: function(category, message, data) {
+          const entry = {
+            timestamp: new Date().toISOString(),
+            category: category,
+            message: message,
+            data: data
+          };
+          this.logs.push(entry);
+          
+          const colors = {
+            'SHARED': '#8b5cf6',
+            'TRANSACTION': '#3b82f6',
+            'IMPORT': '#10b981',
+            'ERROR': '#ef4444',
+            'FILTER': '#f59e0b'
+          };
+          
+          const color = colors[category] || '#6b7280';
+          console.log(
+            `%c[${category}] ${message}`,
+            `background: ${color}; color: white; padding: 2px 8px; border-radius: 3px; font-weight: bold`,
+            data || ''
+          );
+        },
+        
+        getLogs: function(category) {
+          if (category) {
+            return this.logs.filter(l => l.category === category);
+          }
+          return this.logs;
+        },
+        
+        clear: function() {
+          this.logs = [];
+          console.clear();
+          console.log('%c✨ Debug logs limpos', 'color: #10b981; font-weight: bold');
+        },
+        
+        export: function() {
+          const data = JSON.stringify(this.logs, null, 2);
+          const blob = new Blob([data], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `pemeia-debug-${Date.now()}.json`;
+          a.click();
+        }
+      };
+      
+      console.log('%c🔍 PEMEIA DEBUG ATIVO', 'background: #10b981; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; font-size: 14px;');
+      console.log('%cComandos disponíveis:', 'color: #3b82f6; font-weight: bold');
+      console.log('  PEMEIA_DEBUG.getLogs()        - Ver todos os logs');
+      console.log('  PEMEIA_DEBUG.getLogs("SHARED") - Ver logs de compartilhado');
+      console.log('  PEMEIA_DEBUG.clear()          - Limpar logs');
+      console.log('  PEMEIA_DEBUG.export()         - Exportar logs para arquivo');
 
-      // Confirmação visual de que o script está ativo
-      if (DEBUG_MODE) {
-        console.log('%c🛡️ PEMEIA DEBUG MODE ATIVO - Rastreando erros suprimidos...', 'background: #10b981; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; font-size: 14px;');
-      }
-
+      // Suprimir erros conhecidos
       var suppressPatterns = [
         'access to storage',
         'storage is not allowed',
@@ -62,21 +116,6 @@
         return false;
       }
 
-      // Debug logger - shows where errors come from
-      function debugLog(type, message, source, stack) {
-        if (!DEBUG_MODE) return;
-        console.groupCollapsed('%c🔍 [DEBUG] ' + type + ': ' + (message || '').substring(0, 80), 'color: #f59e0b; font-weight: bold');
-        console.log('%cMensagem:', 'color: #6366f1; font-weight: bold', message);
-        console.log('%cFonte:', 'color: #10b981; font-weight: bold', source || 'Desconhecida');
-        if (stack) {
-          console.log('%cStack Trace:', 'color: #ef4444; font-weight: bold');
-          console.log(stack);
-        }
-        console.log('%cPadrão detectado:', 'color: #8b5cf6; font-weight: bold',
-          suppressPatterns.find(function (p) { return (message || '').toLowerCase().indexOf(p) !== -1; }) || 'N/A');
-        console.groupEnd();
-      }
-
       // EARLIEST INTERCEPTION: Replace console methods IMMEDIATELY
       var noop = function () { };
       var originalError = console.error;
@@ -86,8 +125,7 @@
         var args = Array.prototype.slice.call(arguments);
         var msgStr = args.map(function (a) { return String(a); }).join(' ');
         if (shouldSuppress(msgStr)) {
-          debugLog('console.error SUPRIMIDO', msgStr, 'console.error()', new Error().stack);
-          return;
+          return; // Silenciosamente suprimir
         }
         originalError.apply(console, arguments);
       };
@@ -96,8 +134,9 @@
         var args = Array.prototype.slice.call(arguments);
         var msgStr = args.map(function (a) { return String(a); }).join(' ');
         if (shouldSuppress(msgStr)) {
-          debugLog('console.warn SUPRIMIDO', msgStr, 'console.warn()', new Error().stack);
-          return;
+          return; // Silenciosamente suprimir
+        }
+        originalWarn.apply(console, arguments);
         }
         originalWarn.apply(console, arguments);
       };
