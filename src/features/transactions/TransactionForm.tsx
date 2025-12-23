@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Transaction, TransactionType, Category, Account, Trip, FamilyMember, CustomCategory, Frequency, AccountType } from '../../types';
 import { getCategoryIcon, parseDate } from '../../utils';
+import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '../../utils/categoryConstants';
 import { Calendar, ChevronDown, DollarSign, X, RefreshCcw, BellRing, Undo2, Plane, Pencil, CreditCard, User, Plus, ArrowDownLeft, ArrowUpRight, Globe, Repeat, Bell, Users } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { AccountSelector } from './AccountSelector';
@@ -316,89 +317,23 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                                         <select disabled={isReadOnly} value={category} onChange={e => setCategory(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-slate-900 disabled:cursor-not-allowed">
                                             {isIncome ? (
                                                 <>
-                                                    <optgroup label="💰 Entradas">
-                                                        <option value={Category.INCOME}>{Category.INCOME}</option>
-                                                        <option value={Category.FREELANCE}>{Category.FREELANCE}</option>
-                                                        <option value={Category.BUSINESS}>{Category.BUSINESS}</option>
-                                                        <option value={Category.SALES}>{Category.SALES}</option>
-                                                    </optgroup>
-                                                    <optgroup label="📈 Rendimentos">
-                                                        <option value={Category.DIVIDENDS}>{Category.DIVIDENDS}</option>
-                                                        <option value={Category.INVESTMENT}>{Category.INVESTMENT}</option>
-                                                    </optgroup>
-                                                    <optgroup label="↩️ Outros">
-                                                        <option value={Category.REFUND}>{Category.REFUND}</option>
-                                                        <option value={Category.GIFT_RECEIVED}>{Category.GIFT_RECEIVED}</option>
-                                                        <option value={Category.OTHER}>{Category.OTHER}</option>
-                                                    </optgroup>
+                                                    {INCOME_CATEGORIES.map((group, index) => (
+                                                        <optgroup key={index} label={group.label}>
+                                                            {group.options.map(cat => (
+                                                                <option key={cat} value={cat}>{cat}</option>
+                                                            ))}
+                                                        </optgroup>
+                                                    ))}
                                                 </>
                                             ) : (
                                                 <>
-                                                    <optgroup label="🏠 Moradia">
-                                                        <option value={Category.HOUSING}>{Category.HOUSING}</option>
-                                                        <option value={Category.RENT}>{Category.RENT}</option>
-                                                        <option value={Category.MAINTENANCE}>{Category.MAINTENANCE}</option>
-                                                        <option value={Category.FURNITURE}>{Category.FURNITURE}</option>
-                                                        <option value={Category.UTILITIES}>{Category.UTILITIES}</option>
-                                                    </optgroup>
-                                                    <optgroup label="🍽️ Alimentação">
-                                                        <option value={Category.FOOD}>{Category.FOOD}</option>
-                                                        <option value={Category.RESTAURANTS}>{Category.RESTAURANTS}</option>
-                                                        <option value={Category.GROCERY}>{Category.GROCERY}</option>
-                                                        <option value={Category.SNACKS}>{Category.SNACKS}</option>
-                                                    </optgroup>
-                                                    <optgroup label="🚗 Transporte">
-                                                        <option value={Category.TRANSPORTATION}>{Category.TRANSPORTATION}</option>
-                                                        <option value={Category.UBER}>{Category.UBER}</option>
-                                                        <option value={Category.FUEL}>{Category.FUEL}</option>
-                                                        <option value={Category.PUBLIC_TRANSPORT}>{Category.PUBLIC_TRANSPORT}</option>
-                                                        <option value={Category.VEHICLE_MAINTENANCE}>{Category.VEHICLE_MAINTENANCE}</option>
-                                                        <option value={Category.PARKING}>{Category.PARKING}</option>
-                                                    </optgroup>
-                                                    <optgroup label="🏥 Saúde">
-                                                        <option value={Category.HEALTH}>{Category.HEALTH}</option>
-                                                        <option value={Category.PHARMACY}>{Category.PHARMACY}</option>
-                                                        <option value={Category.DOCTOR}>{Category.DOCTOR}</option>
-                                                        <option value={Category.EXAMS}>{Category.EXAMS}</option>
-                                                        <option value={Category.GYM}>{Category.GYM}</option>
-                                                    </optgroup>
-                                                    <optgroup label="🎬 Lazer">
-                                                        <option value={Category.LEISURE}>{Category.LEISURE}</option>
-                                                        <option value={Category.ENTERTAINMENT}>{Category.ENTERTAINMENT}</option>
-                                                        <option value={Category.STREAMING}>{Category.STREAMING}</option>
-                                                        <option value={Category.TRAVEL}>{Category.TRAVEL}</option>
-                                                        <option value={Category.HOBBIES}>{Category.HOBBIES}</option>
-                                                    </optgroup>
-                                                    <optgroup label="🛍️ Compras">
-                                                        <option value={Category.SHOPPING}>{Category.SHOPPING}</option>
-                                                        <option value={Category.CLOTHING}>{Category.CLOTHING}</option>
-                                                        <option value={Category.ELECTRONICS}>{Category.ELECTRONICS}</option>
-                                                        <option value={Category.BEAUTY}>{Category.BEAUTY}</option>
-                                                        <option value={Category.HOME_SHOPPING}>{Category.HOME_SHOPPING}</option>
-                                                    </optgroup>
-                                                    <optgroup label="🎓 Educação">
-                                                        <option value={Category.EDUCATION}>{Category.EDUCATION}</option>
-                                                        <option value={Category.COURSES}>{Category.COURSES}</option>
-                                                        <option value={Category.BOOKS}>{Category.BOOKS}</option>
-                                                    </optgroup>
-                                                    <optgroup label="👤 Pessoal">
-                                                        <option value={Category.PERSONAL}>{Category.PERSONAL}</option>
-                                                        <option value={Category.PERSONAL_CARE}>{Category.PERSONAL_CARE}</option>
-                                                        <option value={Category.PETS}>{Category.PETS}</option>
-                                                        <option value={Category.GIFTS}>{Category.GIFTS}</option>
-                                                        <option value={Category.DONATION}>{Category.DONATION}</option>
-                                                    </optgroup>
-                                                    <optgroup label="💰 Financeiro">
-                                                        <option value={Category.FINANCIAL}>{Category.FINANCIAL}</option>
-                                                        <option value={Category.INVESTMENT}>{Category.INVESTMENT}</option>
-                                                        <option value={Category.INSURANCE}>{Category.INSURANCE}</option>
-                                                        <option value={Category.TAXES}>{Category.TAXES}</option>
-                                                        <option value={Category.FEES}>{Category.FEES}</option>
-                                                        <option value={Category.LOANS}>{Category.LOANS}</option>
-                                                    </optgroup>
-                                                    <optgroup label="📦 Outros">
-                                                        <option value={Category.OTHER}>{Category.OTHER}</option>
-                                                    </optgroup>
+                                                    {EXPENSE_CATEGORIES.map((group, index) => (
+                                                        <optgroup key={index} label={group.label}>
+                                                            {group.options.map(cat => (
+                                                                <option key={cat} value={cat}>{cat}</option>
+                                                            ))}
+                                                        </optgroup>
+                                                    ))}
                                                 </>
                                             )}
                                             {customCategories.length > 0 && (

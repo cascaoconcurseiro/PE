@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../../ui/Modal';
 import { Button } from '../../ui/Button';
 import { Asset, AssetType, Account, AccountType } from '../../../types';
+import { ASSET_CATEGORIES } from '../../../utils/categoryConstants';
 import { Plus, Save } from 'lucide-react';
 
 interface AssetFormModalProps {
@@ -67,7 +68,13 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                     <div>
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Tipo</label>
                         <select name="type" required defaultValue={editingAsset?.type || AssetType.STOCK} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white">
-                            {(Object.values(AssetType) as string[]).map(t => <option key={t} value={t}>{t}</option>)}
+                            {ASSET_CATEGORIES.map((group, index) => (
+                                <optgroup key={index} label={group.label}>
+                                    {group.options.map(t => (
+                                        <option key={t} value={t}>{t}</option>
+                                    ))}
+                                </optgroup>
+                            ))}
                         </select>
                     </div>
                     <div>
