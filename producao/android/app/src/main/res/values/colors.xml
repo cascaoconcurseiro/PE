@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- We define colors in the Compose Theme, but this file is here to satisfy the legacy build system -->
+</resources>
