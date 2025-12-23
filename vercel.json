@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd producao && npm install && npm run build",
+  "outputDirectory": "producao/dist",
+  "installCommand": "cd producao && npm install",
+  "framework": null
+}
