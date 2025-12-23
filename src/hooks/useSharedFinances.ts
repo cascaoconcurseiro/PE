@@ -15,9 +15,28 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
         const invoiceMap: Record<string, InvoiceItem[]> = {};
         members.forEach(m => invoiceMap[m.id] = []);
 
+        console.log('🔍 DEBUG useSharedFinances - Processando transações:', {
+            totalTransactions: transactions.length,
+            sharedTransactions: transactions.filter(t => 
+                t.type === TransactionType.EXPENSE && 
+                (t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me'))
+            ).length,
+            members: members.map(m => ({ id: m.id, name: m.name }))
+        });
+
         transactions.forEach(t => {
             const isSharedExpense = t.type === TransactionType.EXPENSE && (t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me'));
+            
             if (!isSharedExpense) return;
+
+            console.log('📝 Processando transação compartilhada:', {
+                id: t.id,
+                description: t.description,
+                amount: t.amount,
+                date: t.date,
+                payerId: t.payerId,
+                sharedWith: t.sharedWith
+            });
 
             const txCurrency = t.currency || 'BRL';
 
