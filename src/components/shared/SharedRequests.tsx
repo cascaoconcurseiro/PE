@@ -40,8 +40,10 @@ export const SharedRequests: React.FC<SharedRequestsProps> = ({
             setIsLoading(true);
             setError(null);
             
-            const requestsData = await sharedTransactionManager.getSharedRequests(currentUserId, true);
-            setRequests(requestsData);
+            // TEMPORARIAMENTE DESABILITADO: Tabela shared_transaction_requests não existe
+            // const requestsData = await sharedTransactionManager.getSharedRequests(currentUserId, true);
+            // setRequests(requestsData);
+            setRequests([]); // Retornar array vazio por enquanto
         } catch (error: any) {
             console.error('Error fetching shared requests:', error);
             setError('Erro ao carregar solicitações');
