@@ -239,6 +239,12 @@ export const useTransactionForm = ({
             if (totalSplitAmount > activeAmount + 0.05) {
                 newErrors.amount = `Erro: A soma das divisões (R$ ${totalSplitAmount.toFixed(2)}) excede o valor da transação!`;
             }
+            
+            // CORREÇÃO: Validar se sobra algo para o pagador quando necessário
+            const remainder = activeAmount - totalSplitAmount;
+            if (remainder < 0.01 && payerId === 'me' && !isShared) {
+                newErrors.amount = `Erro: Nenhum valor restou para o pagador! Ajuste as divisões.`;
+            }
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -324,7 +330,9 @@ export const useTransactionForm = ({
                 notificationDate: enableNotification ? notificationDate : undefined,
                 isRefund,
                 currency: activeCurrency,
-                exchangeRate: (manualExchangeRate && parseFloat(manualExchangeRate) > 0) ? parseFloat(manualExchangeRate) : undefined
+                exchangeRate: (manualExchangeRate && parseFloat(manualExchangeRate) > 0) ? parseFloat(manualExchangeRate) : undefined,
+                // CORREÇÃO: Domain consistente baseado no contexto
+                domain: tripId ? 'TRAVEL' : (shouldBeShared ? 'SHARED' : 'PERSONAL')
             };
 
             await onSave(data, !!initialData, updateFuture);

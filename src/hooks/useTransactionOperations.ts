@@ -148,6 +148,12 @@ export const useTransactionOperations = ({
                     ));
                 }
             }
+
+            // CORREÇÃO: Invalidar cache se transação for compartilhada
+            if (newTx.isShared || (newTx.sharedWith && newTx.sharedWith.length > 0)) {
+                const { sharedTransactionManager } = await import('../services/SharedTransactionManager');
+                sharedTransactionManager.clearCache();
+            }
         }, 'Transação adicionada com sucesso!');
     }, [validateTransaction, generateInstallments, performOperation, setTransactions]);
 

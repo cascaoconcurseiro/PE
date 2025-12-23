@@ -81,8 +81,10 @@ export const processRecurringTransactions = (
                 );
 
                 if (!alreadyExists && !inBatch) {
-                    // Validação: Conta obrigatória
-                    if (!t.accountId || t.accountId.trim() === '' || t.accountId === 'EXTERNAL') {
+                    // CORREÇÃO: Validação menos restritiva para transações compartilhadas
+                    // Transações compartilhadas podem ter accountId=null se payerId != 'me'
+                    if (!t.accountId && (!t.isShared || !t.payerId || t.payerId === 'me')) {
+                        console.warn('Skipping recurring transaction: missing accountId for non-shared transaction', t.id);
                         return; // Skip invalid
                     }
 
@@ -92,7 +94,9 @@ export const processRecurringTransactions = (
                         isRecurring: false,
                         isInstallment: false,
                         lastGenerated: undefined,
-                        description: `${t.description} (Recorrente)`
+                        description: `${t.description} (Recorrente)`,
+                        // CORREÇÃO: Manter domain consistente
+                        domain: t.tripId ? 'TRAVEL' : (t.isShared ? 'SHARED' : 'PERSONAL')
                     };
 
                     result.newTransactions.push(newTx);

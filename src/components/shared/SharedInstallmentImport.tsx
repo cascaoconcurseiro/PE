@@ -125,7 +125,16 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 category_id: category,
                 account_id: null, // CORREÇÃO: Não usar conta específica para importações compartilhadas
                 shared_with: [{
-                    user_id: assigneeId,
+                    user_id: (() => {
+                        const member = members.find(m => m.id === assigneeId);
+                        const userId = member?.linkedUserId || assigneeId;
+                        console.log('DEBUG: Mapeamento de usuário', {
+                            assigneeId,
+                            member: member ? { id: member.id, name: member.name, linkedUserId: member.linkedUserId } : null,
+                            finalUserId: userId
+                        });
+                        return userId;
+                    })(),
                     amount: installmentValue
                 }],
                 installment_number: i + 1,
@@ -151,18 +160,26 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
         try {
             const transactions = generateInstallmentTransactions();
+            
+            console.log('DEBUG: Transações geradas para importação:', transactions);
 
             // Use the batch import method from SharedTransactionManager
             const result = await sharedTransactionManager.importSharedInstallments({
                 transactions
             });
 
+            console.log('DEBUG: Resultado da importação:', result);
+
             if (result.success) {
+                // CORREÇÃO: Limpar cache para garantir que parcelas apareçam imediatamente
+                sharedTransactionManager.clearCache();
+                
                 addToast(
                     `${result.results.length} parcelas importadas com sucesso!`,
                     'success'
                 );
-                onImport(); // Trigger parent refresh
+                
+                onImport();
                 onClose();
             } else {
                 setErrors(result.errors);

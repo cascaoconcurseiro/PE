@@ -90,11 +90,17 @@ class SharedTransactionManager extends SimpleEventEmitter {
     private cache = new Map<string, CacheEntry<any>>();
     private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
     private syncInterval: number | null = null;
+    private getMemberByUserId: ((userId: string) => { email?: string } | null) | null = null;
 
     constructor() {
         super();
         this.startAutoSync();
         this.setupRealtimeSubscriptions();
+    }
+
+    // Método para configurar callback de busca de membros
+    setMemberLookup(callback: (userId: string) => { email?: string } | null) {
+        this.getMemberByUserId = callback;
     }
 
     // ==================
@@ -329,33 +335,103 @@ class SharedTransactionManager extends SimpleEventEmitter {
         const results: any[] = [];
         const errors: string[] = [];
 
+        // Agrupar parcelas por série (mesmo description base)
+        const seriesMap = new Map<string, typeof data.transactions>();
+        
         for (const transaction of data.transactions) {
+            // Extrair descrição base removendo " (X/Y)"
+            const baseDescription = transaction.description.replace(/\s*\(\d+\/\d+\)$/, '');
+            
+            if (!seriesMap.has(baseDescription)) {
+                seriesMap.set(baseDescription, []);
+            }
+            seriesMap.get(baseDescription)!.push(transaction);
+        }
+
+        // Processar cada série de parcelas
+        for (const [baseDescription, installments] of seriesMap.entries()) {
             try {
-                // CORREÇÃO: Usar função específica para importação que não afeta contas
-                const { data: result, error } = await this.supabase.rpc('import_shared_installment_v2', {
-                    p_description: transaction.description,
-                    p_amount: transaction.amount,
-                    p_category: transaction.category_id,
-                    p_date: transaction.due_date,
-                    p_shared_splits: transaction.shared_with.map(split => ({
+                // Ordenar parcelas por número
+                installments.sort((a, b) => a.installment_number - b.installment_number);
+                
+                const firstInstallment = installments[0];
+                const totalInstallments = firstInstallment.total_installments;
+                
+                console.log('DEBUG: Processando série de parcelas:', {
+                    baseDescription,
+                    totalInstallments,
+                    firstInstallment
+                });
+                
+                // Preparar dados para create_shared_transaction_v2
+                const sharedSplits = firstInstallment.shared_with.map(split => {
+                    // CORREÇÃO: Buscar email do usuário autenticado se disponível
+                    return {
                         user_id: split.user_id,
                         amount: split.amount,
-                        email: '' // Será preenchido pela função se necessário
-                    })),
+                        email: `user-${split.user_id.substring(0, 8)}@shared.local` // Email placeholder válido
+                    };
+                });
+
+                console.log('DEBUG: Shared splits preparados:', sharedSplits);
+
+                // Criar primeira parcela usando create_shared_transaction_v2
+                const { data: result, error } = await this.supabase.rpc('create_shared_transaction_v2', {
+                    p_description: baseDescription,
+                    p_amount: firstInstallment.amount,
+                    p_category: firstInstallment.category_id,
+                    p_date: firstInstallment.due_date,
+                    p_account_id: null, // CORREÇÃO: Não usar conta específica para importações compartilhadas
+                    p_shared_splits: sharedSplits,
+                    p_trip_id: null,
                     p_installment_data: {
-                        current: transaction.installment_number,
-                        total: transaction.total_installments,
+                        total: totalInstallments,
                         series_id: null // Será gerado automaticamente
                     }
                 });
 
+                console.log('DEBUG: Resultado da RPC create_shared_transaction_v2:', { result, error });
+
                 if (error) {
-                    errors.push(`Failed to import installment ${transaction.installment_number}: ${error.message}`);
-                } else {
+                    errors.push(`Failed to import installment series "${baseDescription}": ${error.message}`);
+                } else if (result?.success) {
+                    const seriesId = result.data?.series_id;
+                    
+                    // Criar parcelas restantes se houver mais de uma
+                    for (let i = 1; i < installments.length; i++) {
+                        const installment = installments[i];
+                        
+                        const { data: nextResult, error: nextError } = await this.supabase.rpc('create_shared_transaction_v2', {
+                            p_description: `${baseDescription} (${installment.installment_number}/${totalInstallments})`,
+                            p_amount: installment.amount,
+                            p_category: installment.category_id,
+                            p_date: installment.due_date,
+                            p_account_id: null,
+                            p_shared_splits: installment.shared_with.map(split => ({
+                                user_id: split.user_id,
+                                amount: split.amount,
+                                email: `user-${split.user_id.substring(0, 8)}@shared.local`
+                            })),
+                            p_trip_id: null,
+                            p_installment_data: {
+                                total: totalInstallments,
+                                series_id: seriesId // Usar o mesmo series_id
+                            }
+                        });
+                        
+                        if (nextError) {
+                            errors.push(`Failed to import installment ${installment.installment_number}/${totalInstallments} of "${baseDescription}": ${nextError.message}`);
+                        } else {
+                            results.push(nextResult);
+                        }
+                    }
+                    
                     results.push(result);
+                } else {
+                    errors.push(`Failed to import installment series "${baseDescription}": Unknown error`);
                 }
             } catch (error: any) {
-                errors.push(`Failed to import installment ${transaction.installment_number}: ${error.message}`);
+                errors.push(`Failed to import installment series "${baseDescription}": ${error.message}`);
             }
         }
 
