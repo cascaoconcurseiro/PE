@@ -46,11 +46,11 @@ interface TransactionsProps {
 }
 
 export const Transactions: React.FC<TransactionsProps> = ({
-    transactions,
-    accounts,
-    trips,
-    familyMembers,
-    customCategories,
+    transactions = [],
+    accounts = [],
+    trips = [],
+    familyMembers = [],
+    customCategories = [],
     onAddTransaction,
     onUpdateTransaction,
     onDeleteTransaction,
@@ -101,14 +101,14 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
     // Use Custom Hook for Filtering Logic (legacy mode)
     const { filteredTransactions } = useTransactionFilters(transactions, currentDate);
-    
+
     // Choose data source based on pagination mode
-    const displayTransactions = usePagination ? paginationResult.data : filteredTransactions;
-    const isLoading = usePagination ? paginationResult.isLoading : false;
+    const displayTransactions = usePagination ? paginationResult.transactions : filteredTransactions;
+    const isLoading = usePagination ? paginationResult.loading : false;
     const pagination = usePagination ? paginationResult.pagination : undefined;
-    
+
     // Group transactions by date for display
-    const groupedTxs = displayTransactions.reduce((groups: Record<string, Transaction[]>, tx) => {
+    const groupedTxs = displayTransactions.reduce((groups: Record<string, Transaction[]>, tx: Transaction) => {
         const dateKey = tx.date;
         if (!groups[dateKey]) {
             groups[dateKey] = [];
@@ -119,11 +119,11 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
     // Calculate summary (simplified for now)
     const income = displayTransactions
-        .filter(t => t.type === TransactionType.INCOME)
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter((t: Transaction) => t.type === TransactionType.INCOME)
+        .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
     const expense = displayTransactions
-        .filter(t => t.type === TransactionType.EXPENSE)
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter((t: Transaction) => t.type === TransactionType.EXPENSE)
+        .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
     const balance = income - expense;
     const currency = 'BRL';
 
@@ -141,7 +141,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
     useEffect(() => {
         if (initialEditId && transactions.length > 0) {
-            const txToEdit = transactions.find(t => t.id === initialEditId);
+            const txToEdit = transactions.find((t: Transaction) => t.id === initialEditId);
             if (txToEdit) {
                 setEditingTransaction(txToEdit);
                 setFormMode(txToEdit.type);
@@ -169,12 +169,12 @@ export const Transactions: React.FC<TransactionsProps> = ({
             if (updateFuture) {
                 // Logic for future recurrences update
                 const original = editingTransaction;
-                const futureTxs = transactions.filter(t =>
+                const futureTxs = transactions.filter((t: Transaction) =>
                     (t.seriesId === original.seriesId || (t.isRecurring && t.description === original.description)) &&
                     t.id !== original.id &&
                     parseDate(t.date) > parseDate(original.date)
                 );
-                futureTxs.forEach(ft => {
+                futureTxs.forEach((ft: Transaction) => {
                     onUpdateTransaction({
                         ...ft,
                         amount: data.amount,
@@ -191,7 +191,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
     };
 
     const handleDeleteRequest = (id: string) => {
-        const tx = transactions.find(t => t.id === id);
+        const tx = transactions.find((t: Transaction) => t.id === id);
         const isSeries = !!tx?.seriesId;
         setDeleteModal({ isOpen: true, id, isSeries });
     };
@@ -218,14 +218,14 @@ export const Transactions: React.FC<TransactionsProps> = ({
     const handleFiltersChange = (newFilters: typeof filters) => {
         setFilters(newFilters);
         if (usePagination) {
-            paginationResult.refetch();
+            paginationResult.refresh();
         }
     };
 
     // Handle page changes
     const handlePageChange = (page: number) => {
-        if (usePagination && paginationResult.goToPage) {
-            paginationResult.goToPage(page);
+        if (usePagination && paginationResult.loadPage) {
+            paginationResult.loadPage(page);
         }
     };
 
@@ -285,7 +285,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                             setSearchTerm('');
                             setFilters({});
                             if (usePagination) {
-                                paginationResult.refetch();
+                                paginationResult.refresh();
                             }
                         }}
                         onAnticipateInstallments={handleAnticipateRequest}
@@ -294,12 +294,9 @@ export const Transactions: React.FC<TransactionsProps> = ({
                     {usePagination && pagination && pagination.totalPages > 1 && (
                         <div className="flex justify-center pt-6">
                             <Pagination
-                                currentPage={pagination.currentPage}
-                                totalPages={pagination.totalPages}
+                                pagination={pagination}
                                 onPageChange={handlePageChange}
                                 showInfo={true}
-                                totalItems={pagination.totalItems}
-                                itemsPerPage={pagination.pageSize}
                             />
                         </div>
                     )}
