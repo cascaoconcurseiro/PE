@@ -103,7 +103,7 @@ export const Trips: React.FC<TripsProps> = ({ trips = [], transactions = [], acc
     return (
         <TripList
             items={trips}
-            onItemClick={setSelectedTripId}
+            onItemClick={(prop) => setSelectedTripId(prop.id)}
             onCreateClick={() => setIsCreatingTrip(true)}
             userId={currentUserId}
         />

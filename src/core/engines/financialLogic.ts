@@ -42,7 +42,7 @@ export const calculateEffectiveTransactionValue = (t: Transaction): number => {
                         amount: s.assignedAmount
                     }))
                 });
-                
+
                 // Retornar total como fallback para evitar valores negativos
                 FinancialErrorDetector.logError(
                     'DATA_CORRUPTION',
@@ -160,7 +160,7 @@ export const calculateProjectedBalance = (
             );
 
             const liquidityAccountIds = new Set(liquidityAccounts.map(a => a.id));
-            
+
             const currentBalance = SafeFinancialCalculator.safeOperation(
                 () => liquidityAccounts.reduce((acc, a) => {
                     const safeBalance = SafeFinancialCalculator.toSafeNumber(a.balance, 0);
@@ -173,14 +173,14 @@ export const calculateProjectedBalance = (
 
             // Definir intervalo de tempo baseado na data que o usuário está visualizando
             const now = new Date();
-            const isViewingCurrentMonth = safeCurrentDate.getMonth() === now.getMonth() && 
-                                        safeCurrentDate.getFullYear() === now.getFullYear();
-            
+            const isViewingCurrentMonth = safeCurrentDate.getMonth() === now.getMonth() &&
+                safeCurrentDate.getFullYear() === now.getFullYear();
+
             // Para mês atual: usar data real de hoje
             // Para mês futuro: usar data real de hoje (não início do mês) para distinguir entre transações já ocorridas e futuras
             // Para mês passado: usar data atual daquele mês (se existir) ou início do mês
             let today: Date;
-            
+
             if (isViewingCurrentMonth) {
                 today = now;
             } else if (safeCurrentDate > now) {
@@ -190,7 +190,7 @@ export const calculateProjectedBalance = (
                 // Mês passado: usar data atual daquele mês
                 today = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth(), now.getDate());
             }
-            
+
             today.setHours(0, 0, 0, 0);
 
             const endOfMonth = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth() + 1, 0);
@@ -318,7 +318,7 @@ export const calculateProjectedBalance = (
                             const destAcc = safeAccounts.find(a => a.id === t.destinationAccountId);
                             if (destAcc && destAcc.currency !== 'BRL') {
                                 pendingIncome += SafeFinancialCalculator.safeCurrencyConversion(
-                                    SafeFinancialCalculator.toSafeNumber(t.destinationAmount, 0), 
+                                    SafeFinancialCalculator.toSafeNumber(t.destinationAmount, 0),
                                     destAcc.currency
                                 );
                             } else {
@@ -473,7 +473,9 @@ export const calculateCashFlowData = (
 
                 // Effective Amount Logic
                 let amount = SafeFinancialCalculator.toSafeNumber(t.amount, 0);
-                if (t.type === TransactionType.EXPENSE && t.isShared && t.payerId && t.payerId !== 'me') {
+                const isSharedContext = t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me');
+
+                if (t.type === TransactionType.EXPENSE && isSharedContext) {
                     amount = calculateEffectiveTransactionValue(t);
                 }
 
@@ -529,7 +531,8 @@ export const calculateCashFlowData = (
 
                 let amount = SafeFinancialCalculator.toSafeNumber(t.amount, 0);
                 if (t.type === TransactionType.EXPENSE) {
-                    if (t.isShared && t.payerId && t.payerId !== 'me') {
+                    const isSharedContext = t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me');
+                    if (isSharedContext) {
                         amount = calculateEffectiveTransactionValue(t);
                     }
                 }
@@ -593,13 +596,13 @@ export const calculateSparklineData = (transactions: Transaction[], type: Transa
         () => {
             const safeTransactions = SafeFinancialCalculator.sanitizeTransactions(transactions || []);
             const safeDays = SafeFinancialCalculator.toSafeNumber(days, 7);
-            
+
             const data: number[] = [];
             for (let i = safeDays - 1; i >= 0; i--) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
                 const dateStr = d.toISOString().split('T')[0];
-                
+
                 const dayTotal = SafeFinancialCalculator.safeOperation(
                     () => safeTransactions
                         .filter(t => t.date.startsWith(dateStr) && t.type === type)
@@ -610,7 +613,7 @@ export const calculateSparklineData = (transactions: Transaction[], type: Transa
                     0,
                     'sparkline_day_total'
                 );
-                
+
                 data.push(dayTotal);
             }
             return data;

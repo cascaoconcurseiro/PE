@@ -15,13 +15,13 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
         const invoiceMap: Record<string, InvoiceItem[]> = {};
         members.forEach(m => invoiceMap[m.id] = []);
 
-        const sharedTxs = transactions.filter(t => 
-            t.type === TransactionType.EXPENSE && 
+        const sharedTxs = transactions.filter(t =>
+            t.type === TransactionType.EXPENSE &&
             (t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me'))
         );
 
-        if (window.PEMEIA_DEBUG) {
-            window.PEMEIA_DEBUG.log('SHARED', 'Processando transações compartilhadas', {
+        if ((window as any).PEMEIA_DEBUG) {
+            (window as any).PEMEIA_DEBUG.log('SHARED', 'Processando transações compartilhadas', {
                 totalTransactions: transactions.length,
                 sharedTransactions: sharedTxs.length,
                 members: members.map(m => ({ id: m.id, name: m.name }))
@@ -30,11 +30,11 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
 
         transactions.forEach(t => {
             const isSharedExpense = t.type === TransactionType.EXPENSE && (t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me'));
-            
+
             if (!isSharedExpense) return;
 
-            if (window.PEMEIA_DEBUG) {
-                window.PEMEIA_DEBUG.log('TRANSACTION', 'Processando transação', {
+            if ((window as any).PEMEIA_DEBUG) {
+                (window as any).PEMEIA_DEBUG.log('TRANSACTION', 'Processando transação', {
                     id: t.id,
                     description: t.description,
                     amount: t.amount,
@@ -97,7 +97,7 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                 // Se sim, usar o meu assignedAmount diretamente
                 const myUserId = t.userId; // ID do usuário atual (dono da transação)
                 const mySplit = t.sharedWith?.find(s => s.memberId === myUserId);
-                
+
                 let myShare: number;
                 if (mySplit) {
                     // EU estou explicitamente no shared_with, usar o valor atribuído
@@ -138,9 +138,9 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
 
     const getFilteredInvoice = (memberId: string) => {
         const allItems = invoices[memberId] || [];
-        
-        if (window.PEMEIA_DEBUG) {
-            window.PEMEIA_DEBUG.log('FILTER', 'Filtrando fatura', {
+
+        if ((window as any).PEMEIA_DEBUG) {
+            (window as any).PEMEIA_DEBUG.log('FILTER', 'Filtrando fatura', {
                 memberId,
                 memberName: members.find(m => m.id === memberId)?.name,
                 activeTab,
@@ -148,7 +148,7 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
                 totalItems: allItems.length
             });
         }
-        
+
         if (activeTab === 'TRAVEL') {
             return allItems.filter(i => !!i.tripId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else if (activeTab === 'HISTORY') {
@@ -159,27 +159,38 @@ export const useSharedFinances = ({ transactions, members, currentDate, activeTa
             // Each installment appears only in its respective month
             const filtered = allItems.filter(i => {
                 if (i.tripId) return false;
+
+                // FIX 2025-12-23: Future Invoice Visibility
+                // If it's a SINGLE transaction (not installment) AND it's UNPAID, show it!
+                // This allows users to see/settle future items immediately.
+                // Installments MUST respect the month to avoid showing all future installments at once.
+                const isInstallment = (i.totalInstallments || 0) > 1;
+
+                if (!isInstallment && !i.isPaid) {
+                    return true;
+                }
+
                 const itemDate = parseDate(i.date);
                 const matches = isSameMonth(itemDate, currentDate);
-                
-                if (window.PEMEIA_DEBUG && !matches) {
-                    window.PEMEIA_DEBUG.log('FILTER', 'Item filtrado (data não bate)', {
+
+                if ((window as any).PEMEIA_DEBUG && !matches) {
+                    (window as any).PEMEIA_DEBUG.log('FILTER', 'Item filtrado (data não bate)', {
                         description: i.description,
                         itemDate: itemDate.toISOString(),
                         currentDate: currentDate.toISOString()
                     });
                 }
-                
+
                 return matches;
             }).sort((a, b) => b.date.localeCompare(a.date));
-            
-            if (window.PEMEIA_DEBUG) {
-                window.PEMEIA_DEBUG.log('FILTER', 'Resultado do filtro', {
+
+            if ((window as any).PEMEIA_DEBUG) {
+                (window as any).PEMEIA_DEBUG.log('FILTER', 'Resultado do filtro', {
                     itemsAntes: allItems.length,
                     itemsDepois: filtered.length
                 });
             }
-            
+
             return filtered;
         }
     };

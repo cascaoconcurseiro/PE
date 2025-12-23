@@ -32,7 +32,7 @@ const calculationCache = new LRUCache<string, any>(20);
 
 // Função para gerar chave de cache simples (sem JSON.stringify)
 const getCacheKey = (prefix: string, ...deps: (string | number)[]): string => {
-  return `${prefix}:${deps.join(':')}`;
+    return `${prefix}:${deps.join(':')}`;
 };
 
 export const useOptimizedFinancialDashboard = ({
@@ -43,7 +43,7 @@ export const useOptimizedFinancialDashboard = ({
     currentDate,
     spendingView
 }: UseOptimizedFinancialDashboardProps) => {
-    
+
     // Estados para controlar loading de diferentes seções
     const [isCalculatingProjection, setIsCalculatingProjection] = useState(false);
     const [isCalculatingCharts, setIsCalculatingCharts] = useState(false);
@@ -54,7 +54,7 @@ export const useOptimizedFinancialDashboard = ({
     // 1. FILTROS BÁSICOS (Mais leves, executam primeiro)
     const dashboardTransactions = useMemo(() => {
         const cacheKey = getCacheKey('dashboardTx', transactions.length, accounts.length, trips?.length || 0);
-        
+
         if (calculationCache.has(cacheKey)) {
             return calculationCache.get(cacheKey);
         }
@@ -66,7 +66,7 @@ export const useOptimizedFinancialDashboard = ({
 
     const dashboardAccounts = useMemo(() => {
         const cacheKey = getCacheKey('dashboardAcc', accounts.length);
-        
+
         if (calculationCache.has(cacheKey)) {
             return calculationCache.get(cacheKey);
         }
@@ -78,7 +78,7 @@ export const useOptimizedFinancialDashboard = ({
 
     const dashboardProjectedAccounts = useMemo(() => {
         const cacheKey = getCacheKey('projectedAcc', projectedAccounts?.length || accounts.length);
-        
+
         if (calculationCache.has(cacheKey)) {
             return calculationCache.get(cacheKey);
         }
@@ -91,7 +91,7 @@ export const useOptimizedFinancialDashboard = ({
     // 2. TRANSAÇÕES MENSAIS (Dependem da data, mas são mais leves)
     const monthlyTransactions = useMemo(() => {
         const cacheKey = getCacheKey('monthlyTx', dashboardTransactions.length, monthKey);
-        
+
         if (calculationCache.has(cacheKey)) {
             return calculationCache.get(cacheKey);
         }
@@ -104,24 +104,24 @@ export const useOptimizedFinancialDashboard = ({
     // 3. CÁLCULOS CRÍTICOS (Projeção - executam com prioridade)
     const projectionData = useMemo(() => {
         const cacheKey = getCacheKey('projection', dashboardProjectedAccounts.length, dashboardTransactions.length, monthKey);
-        
+
         if (calculationCache.has(cacheKey)) {
             return calculationCache.get(cacheKey);
         }
 
         setIsCalculatingProjection(true);
-        
+
         try {
             const result = calculateProjectedBalance(dashboardProjectedAccounts, dashboardTransactions, currentDate);
-            
+
             calculationCache.set(cacheKey, result);
             setIsCalculatingProjection(false);
-            
+
             return result;
         } catch (error) {
             console.error('Error calculating projection:', error);
             setIsCalculatingProjection(false);
-            
+
             // Return safe default values
             return {
                 currentBalance: 0,
@@ -135,16 +135,16 @@ export const useOptimizedFinancialDashboard = ({
     // 4. TOTAIS MENSAIS (Críticos para o dashboard)
     const monthlyTotals = useMemo(() => {
         const cacheKey = getCacheKey('monthlyTotals', monthlyTransactions.length, accounts.length, currentDate.getTime());
-        
+
         if (calculationCache.has(cacheKey)) {
             return calculationCache.get(cacheKey);
         }
 
         // Determinar data de referência para separar realizadas vs pendentes
         const now = new Date();
-        const isViewingCurrentMonth = currentDate.getMonth() === now.getMonth() && 
-                                    currentDate.getFullYear() === now.getFullYear();
-        
+        const isViewingCurrentMonth = currentDate.getMonth() === now.getMonth() &&
+            currentDate.getFullYear() === now.getFullYear();
+
         let referenceDate: Date;
         if (isViewingCurrentMonth) {
             referenceDate = now;
@@ -183,8 +183,9 @@ export const useOptimizedFinancialDashboard = ({
 
                 const account = accounts.find(a => a.id === t.accountId);
                 let expenseValue = (t.amount !== undefined && t.amount !== null && !isNaN(t.amount)) ? t.amount : 0;
-                
-                if (t.isShared && t.payerId && t.payerId !== 'me') {
+
+                const isSharedContext = t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me');
+                if (isSharedContext) {
                     expenseValue = calculateEffectiveTransactionValue(t);
                 }
 
@@ -222,7 +223,7 @@ export const useOptimizedFinancialDashboard = ({
     // Executar cálculos pesados em background usando valores deferred
     useEffect(() => {
         const cacheKey = getCacheKey('heavy', dashboardAccounts.length, dashboardTransactions.length, selectedYear, deferredSpendingView);
-        
+
         if (calculationCache.has(cacheKey)) {
             setHeavyCalculations(calculationCache.get(cacheKey));
             setIsCalculatingCharts(false);
@@ -235,15 +236,15 @@ export const useOptimizedFinancialDashboard = ({
         startTransition(() => {
             try {
                 const netWorth = calculateDashboardNetWorth(dashboardAccounts, dashboardTransactions, trips);
-                
+
                 const cashFlowData = calculateCashFlowData(dashboardTransactions, dashboardAccounts, selectedYear);
                 const hasCashFlowData = cashFlowData.some(d => d.Receitas > 0 || d.Despesas > 0 || d.Acumulado !== 0);
-                
+
                 const incomeSparkline = calculateSparklineData(dashboardTransactions, TransactionType.INCOME);
                 const expenseSparkline = calculateSparklineData(dashboardTransactions, TransactionType.EXPENSE);
-                
+
                 const upcomingBills = getUpcomingBills(dashboardTransactions);
-                
+
                 const spendingChartData = calculateSpendingChartData(monthlyTransactions, dashboardAccounts, deferredSpendingView);
 
                 const result = {
@@ -270,7 +271,7 @@ export const useOptimizedFinancialDashboard = ({
     // 6. ANÁLISE DE SAÚDE FINANCEIRA
     const healthStatus = useMemo(() => {
         return analyzeFinancialHealth(
-            monthlyTotals.monthlyIncome + projectionData.pendingIncome, 
+            monthlyTotals.monthlyIncome + projectionData.pendingIncome,
             monthlyTotals.monthlyExpense + projectionData.pendingExpenses
         );
     }, [monthlyTotals, projectionData]);
@@ -303,7 +304,7 @@ export const useOptimizedFinancialDashboard = ({
             const prevMonth = new Date(currentDate);
             prevMonth.setMonth(prevMonth.getMonth() - 1);
             const prevMonthKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth()}`;
-            
+
             // Calcular próximo mês
             const nextMonth = new Date(currentDate);
             nextMonth.setMonth(nextMonth.getMonth() + 1);
@@ -343,7 +344,7 @@ export const useOptimizedFinancialDashboard = ({
         expenseSparkline: heavyCalculations.expenseSparkline,
         upcomingBills: heavyCalculations.upcomingBills,
         spendingChartData: heavyCalculations.spendingChartData,
-        
+
         // Estados de loading para feedback visual
         isCalculatingProjection,
         isCalculatingCharts
