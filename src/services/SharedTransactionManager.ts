@@ -408,17 +408,18 @@ class SharedTransactionManager extends SimpleEventEmitter {
     // Método auxiliar para inserção direta
     private async createTransactionDirect(installment: any, userId: string, seriesId: string) {
         // LÓGICA CORRETA:
-        // Se "Fran vai pagar" foi selecionado, significa:
-        // - Fran é a pagadora (payer_id = ID da Fran)
-        // - Eu devo a ela (eu apareço no shared_with como devedor)
-        // - Isso gera um DEBIT para mim (eu devo) e aparece na fatura dela como CREDIT (ela me emprestou)
+        // "Quem vai pagar as parcelas?" = Quem é o DEVEDOR
+        // Se seleciono "Fran vai pagar", significa:
+        // - EU estou pagando/emprestando o dinheiro (payer_id = 'me')
+        // - FRAN é a devedora (ela aparece no shared_with)
+        // - Isso gera CRÉDITO para mim (ela me deve)
         
-        // O installment.shared_with[0].user_id contém o ID do membro que vai pagar
-        const payerUserId = installment.shared_with[0].user_id;
+        // O installment.shared_with[0].user_id contém o ID do membro DEVEDOR
+        const debtorUserId = installment.shared_with[0].user_id;
         
-        // Eu (userId atual) sou quem deve, então apareço no shared_with
+        // Fran é a devedora, aparece no shared_with
         const sharedWithJson = [{
-            memberId: userId, // EU sou o devedor
+            memberId: debtorUserId, // Fran é a devedora
             percentage: 100,
             assignedAmount: installment.amount
         }];
@@ -426,7 +427,7 @@ class SharedTransactionManager extends SimpleEventEmitter {
         const { data, error } = await this.supabase
             .from('transactions')
             .insert({
-                user_id: userId, // Transação pertence ao meu user_id (para aparecer nas minhas queries)
+                user_id: userId, // Transação pertence ao meu user_id
                 description: installment.description,
                 amount: installment.amount,
                 type: 'DESPESA',
@@ -436,7 +437,7 @@ class SharedTransactionManager extends SimpleEventEmitter {
                 currency: 'BRL',
                 is_shared: true,
                 shared_with: sharedWithJson,
-                payer_id: payerUserId, // O membro selecionado é quem pagou
+                payer_id: 'me', // EU sou o pagador/credor
                 is_installment: installment.total_installments > 1,
                 current_installment: installment.installment_number,
                 total_installments: installment.total_installments,
