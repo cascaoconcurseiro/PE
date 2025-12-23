@@ -363,78 +363,25 @@ class SharedTransactionManager extends SimpleEventEmitter {
                     parcelas: installments.length
                 });
 
-                // ESTRATÉGIA 1: Tentar usar create_shared_transaction_v2
-                let useComplexRPC = true;
+                // Obter userId uma vez para toda a série
+                const userId = await this.getCurrentUserId();
+                
+                // ESTRATÉGIA: Usar inserção direta (mais confiável)
+                // As funções RPC podem não existir no banco, então vamos direto para a inserção
+                console.log('📝 Usando inserção direta para parcelas compartilhadas');
                 
                 for (let i = 0; i < installments.length; i++) {
                     const installment = installments[i];
                     
                     try {
-                        if (useComplexRPC) {
-                            // Tentar função RPC complexa primeiro
-                            const sharedSplits = installment.shared_with.map(split => ({
-                                user_id: split.user_id,
-                                amount: split.amount,
-                                email: `user-${split.user_id.substring(0, 8)}@shared.local`
-                            }));
-
-                            const { data: result, error } = await this.supabase.rpc('create_shared_transaction_v2', {
-                                p_description: installment.description,
-                                p_amount: installment.amount,
-                                p_category: installment.category_id,
-                                p_date: installment.due_date,
-                                p_account_id: null,
-                                p_shared_splits: sharedSplits,
-                                p_trip_id: null,
-                                p_installment_data: {
-                                    total: totalInstallments,
-                                    series_id: i === 0 ? null : seriesId
-                                }
-                            });
-
-                            if (error) {
-                                if (error.message?.includes('function') && error.message?.includes('does not exist')) {
-                                    console.warn('⚠️ Função RPC complexa não existe, usando estratégia alternativa');
-                                    useComplexRPC = false;
-                                    // Continuar com estratégia alternativa
-                                } else {
-                                    throw error;
-                                }
-                            } else {
-                                results.push(result);
-                                continue; // Sucesso, próxima parcela
-                            }
-                        }
+                        // Criar transação com splits embutidos no JSONB
+                        const transactionData = await this.createTransactionDirect(installment, userId, seriesId);
                         
-                        // ESTRATÉGIA 2: Usar função RPC simples
-                        if (!useComplexRPC) {
-                            const userId = await this.getCurrentUserId();
-                            
-                            const { data: transactionId, error: simpleError } = await this.supabase.rpc('create_shared_installment_simple', {
-                                p_description: installment.description,
-                                p_amount: installment.amount,
-                                p_category: installment.category_id,
-                                p_date: installment.due_date,
-                                p_user_id: userId,
-                                p_installment_number: installment.installment_number,
-                                p_total_installments: totalInstallments,
-                                p_series_id: seriesId
-                            });
-
-                            if (simpleError) {
-                                if (simpleError.message?.includes('function') && simpleError.message?.includes('does not exist')) {
-                                    console.warn('⚠️ Função RPC simples também não existe, usando inserção direta');
-                                    // ESTRATÉGIA 3: Inserção direta
-                                    await this.createTransactionDirect(installment, userId, seriesId);
-                                } else {
-                                    throw simpleError;
-                                }
-                            } else {
-                                results.push({ transaction_id: transactionId });
-                            }
-                        }
+                        results.push(transactionData[0]);
+                        console.log(`✅ Parcela ${installment.installment_number}/${totalInstallments} criada com sucesso`);
                         
                     } catch (error: any) {
+                        console.error(`❌ Erro ao criar parcela ${installment.installment_number}/${totalInstallments}:`, error);
                         errors.push(`Failed to import installment ${installment.installment_number}/${totalInstallments}: ${error.message}`);
                     }
                 }
@@ -442,6 +389,13 @@ class SharedTransactionManager extends SimpleEventEmitter {
             } catch (error: any) {
                 errors.push(`Failed to import installment series "${baseDescription}": ${error.message}`);
             }
+        }
+
+        // Invalidar cache após importação
+        if (results.length > 0) {
+            this.invalidateCache('shared_transactions');
+            this.invalidateCache('transactions');
+            this.emit('transactionsImported', { count: results.length });
         }
 
         return {
@@ -453,6 +407,13 @@ class SharedTransactionManager extends SimpleEventEmitter {
 
     // Método auxiliar para inserção direta
     private async createTransactionDirect(installment: any, userId: string, seriesId: string) {
+        // Preparar shared_with como JSONB
+        const sharedWithJson = installment.shared_with.map((split: any) => ({
+            memberId: split.user_id,
+            percentage: (split.amount / installment.amount) * 100,
+            assignedAmount: split.amount
+        }));
+
         const { data, error } = await this.supabase
             .from('transactions')
             .insert({
@@ -465,6 +426,8 @@ class SharedTransactionManager extends SimpleEventEmitter {
                 account_id: null,
                 currency: 'BRL',
                 is_shared: true,
+                shared_with: sharedWithJson,
+                payer_id: 'me',
                 is_installment: installment.total_installments > 1,
                 current_installment: installment.installment_number,
                 total_installments: installment.total_installments,
