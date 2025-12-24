@@ -117,18 +117,24 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         const transactions = [];
 
         for (let i = 0; i < numInstallments; i++) {
-            // FIX: Robust Date Calculation ensuring monthly progression
-            // Create a date object in Local Time from the input (YYYY-MM-DD treated as Local Midnight)
-            const baseDate = new Date(startYear, startMonth, startDay, 12, 0, 0);
+            // MANUAL CALCULATION (Foolproof against Timezones/Rollovers)
+            // Parse YYYY-MM-DD manually
+            const [y, m, d] = date.split('-').map(Number);
 
-            // Add months safely
-            baseDate.setMonth(baseDate.getMonth() + i);
+            // Calculate target month (0-indexed logic for math, but input m is 1-indexed)
+            let totalMonths = (y * 12) + (m - 1) + i;
+            let targetYear = Math.floor(totalMonths / 12);
+            let targetMonth = totalMonths % 12; // 0 = Jan, 11 = Dec
 
-            // Format back to YYYY-MM-DD
-            const year = baseDate.getFullYear();
-            const month = String(baseDate.getMonth() + 1).padStart(2, '0');
-            const day = String(baseDate.getDate()).padStart(2, '0');
-            const dateStr = `${year}-${month}-${day}`;
+            // Calculate max days in target month
+            // Day 0 of next month gives last day of current month
+            const maxDays = new Date(targetYear, targetMonth + 1, 0).getDate();
+            const targetDay = Math.min(d, maxDays);
+
+            // Format YYYY-MM-DD
+            const mm = String(targetMonth + 1).padStart(2, '0');
+            const dd = String(targetDay).padStart(2, '0');
+            const dateStr = `${targetYear}-${mm}-${dd}`;
 
             transactions.push({
                 description: `${description.trim()} (${i + 1}/${numInstallments})`,
@@ -142,7 +148,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 }],
                 installment_number: i + 1,
                 total_installments: numInstallments,
-                due_date: dateStr // Properly incremented
+                due_date: dateStr
             });
         }
 
