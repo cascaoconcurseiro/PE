@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FamilyMember, Account, Category } from '../../types';
+import { FamilyMember, Account, Category, AccountType } from '../../types';
 import { Button } from '../ui/Button';
 import { X, Calendar, DollarSign, Layers, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { useToast } from '../ui/Toast';
@@ -132,7 +132,8 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 account_id: accountId, // Use selected Account
                 shared_with: [{
                     user_id: assigneeId, // Use Member ID (Row ID) consistent with Frontend Views
-                    amount: installmentValue
+                    amount: installmentValue,
+                    email: members.find(m => m.id === assigneeId)?.email || undefined
                 }],
                 installment_number: i + 1,
                 total_installments: numInstallments,
@@ -369,10 +370,10 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         </select>
                     </div>
 
-                    {/* Account Selection (Restored for Ledger Integrity) */}
+                    {/* Credit Card Selection (Required for Shared Invoice Import) */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">
-                            Conta/Cartão de Origem *
+                            Cartão de Crédito *
                         </label>
                         <select
                             disabled={isSubmitting}
@@ -380,15 +381,17 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                             value={accountId}
                             onChange={e => setAccountId(e.target.value)}
                         >
-                            <option value="">Selecione uma conta...</option>
-                            {accounts.map(acc => (
-                                <option key={acc.id} value={acc.id}>
-                                    {acc.name}
-                                </option>
-                            ))}
+                            <option value="">Selecione um cartão...</option>
+                            {accounts
+                                .filter(a => a.type === AccountType.CREDIT_CARD)
+                                .map(acc => (
+                                    <option key={acc.id} value={acc.id}>
+                                        {acc.name}
+                                    </option>
+                                ))}
                         </select>
                         <p className="text-[10px] text-slate-400 mt-1">
-                            Necessário para registrar a origem do pagamento no sistema.
+                            O valor será lançado como despesa na fatura deste cartão.
                         </p>
                     </div>
 

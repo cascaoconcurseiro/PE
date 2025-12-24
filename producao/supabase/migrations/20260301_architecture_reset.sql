@@ -115,7 +115,7 @@ BEGIN
     IF v_credit_acc IS NULL THEN
         -- Tenta criar on-the-fly se for conta existente no sistema antigo
         INSERT INTO public.chart_of_accounts (user_id, name, type, linked_account_id)
-        SELECT id, name, CASE WHEN type IN ('CREDIT_CARD', 'LOAN') THEN 'LIABILITY' ELSE 'ASSET' END, id
+        SELECT user_id, name, CASE WHEN type IN ('CREDIT_CARD', 'LOAN') THEN 'LIABILITY' ELSE 'ASSET' END, id
         FROM public.accounts WHERE id = p_account_id
         RETURNING id INTO v_credit_acc;
     END IF;
@@ -194,7 +194,7 @@ BEGIN
             SELECT id INTO v_dest_acc FROM public.chart_of_accounts WHERE linked_account_id = p_destination_account_id;
             IF v_dest_acc IS NULL THEN
                   INSERT INTO public.chart_of_accounts (user_id, name, type, linked_account_id)
-                  SELECT id, name, 'ASSET', id FROM public.accounts WHERE id = p_destination_account_id
+                  SELECT user_id, name, 'ASSET', id FROM public.accounts WHERE id = p_destination_account_id
                   RETURNING id INTO v_dest_acc;
             END IF;
             

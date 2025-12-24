@@ -424,11 +424,17 @@ class SharedTransactionManager extends SimpleEventEmitter {
         // O installment.shared_with[0].user_id contém o ID do membro DEVEDOR
         const debtorUserId = installment.shared_with[0].user_id;
 
+        // Propagate email if available to avoid NULL description in Ledger Entries
+        const debtorEmail = installment.shared_with[0].email;
+
         // Fran é a devedora, aparece no shared_with
         const sharedWithJson = [{
-            memberId: debtorUserId, // Fran é a devedora
+            memberId: debtorUserId, // Frontend compatibility
+            user_id: debtorUserId, // DB compatibility
             percentage: 100,
-            assignedAmount: installment.amount
+            amount: installment.amount, // REQUIRED for SQL create_financial_record (Fixes Null Constraint)
+            assignedAmount: installment.amount, // Frontend compatibility
+            email: debtorEmail // For description generation
         }];
 
         // PREPARE TRANSACTION OBJECT
