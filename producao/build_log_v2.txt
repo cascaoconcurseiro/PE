@@ -1,0 +1,337 @@
+
+> p├®-de-meia@0.0.2 typecheck
+> tsc --noEmit
+
+src/__tests__/code-reduction.property.test.ts(151,21): error TS18046: 'sum' is of type 'unknown'.
+src/__tests__/code-reduction.property.test.ts(173,21): error TS18046: 'sum' is of type 'unknown'.
+src/__tests__/complexity-reduction.property.test.ts(9,30): error TS2307: Cannot find module '../../complexity-analysis-report.json' or its corresponding type declarations.
+src/__tests__/factory-reset-schema.property.test.ts(253,20): error TS18047: 'secondError' is possibly 'null'.
+src/__tests__/factory-reset-schema.property.test.ts(347,20): error TS18047: 'userRecords' is possibly 'null'.
+src/__tests__/factory-reset-schema.property.test.ts(350,13): error TS18047: 'userRecords' is possibly 'null'.
+src/__tests__/factory-reset-schema.property.test.ts(405,20): error TS18047: 'allRecoveryRecords' is possibly 'null'.
+src/__tests__/factory-reset-schema.property.test.ts(414,20): error TS18047: 'allAuditRecords' is possibly 'null'.
+src/__tests__/factory-reset-schema.property.test.ts(417,34): error TS18047: 'allRecoveryRecords' is possibly 'null'.
+src/__tests__/factory-reset-schema.property.test.ts(418,34): error TS18047: 'allRecoveryRecords' is possibly 'null'.
+src/__tests__/factory-reset-schema.property.test.ts(460,20): error TS18047: 'typeError' is possibly 'null'.
+src/__tests__/factory-reset-schema.property.test.ts(510,20): error TS18047: 'actionError' is possibly 'null'.
+src/__tests__/recovery-system.property.test.ts(111,9): error TS2345: Argument of type 'PostgrestFilterBuilder<any, any, any, { id: any; }[], "shared_inconsistencies", unknown, "GET">' is not assignable to parameter of type 'readonly any[]'.
+  Type 'PostgrestFilterBuilder<any, any, any, { id: any; }[], "shared_inconsistencies", unknown, "GET">' is missing the following properties from type 'readonly any[]': length, concat, join, slice, and 19 more.
+src/__tests__/recovery-system.property.test.ts(212,20): error TS18047: 'queueItem' is possibly 'null'.
+src/__tests__/recovery-system.property.test.ts(213,20): error TS18047: 'queueItem' is possibly 'null'.
+src/__tests__/recovery-system.property.test.ts(214,29): error TS18047: 'queueItem' is possibly 'null'.
+src/__tests__/recovery-system.property.test.ts(331,24): error TS18047: 'completedOp' is possibly 'null'.
+src/__tests__/recovery-system.property.test.ts(332,24): error TS18047: 'completedOp' is possibly 'null'.
+src/__tests__/recovery-system.property.test.ts(382,24): error TS18047: 'inconsistencies' is possibly 'null'.
+src/components/forms/__tests__/BaseForm.test.tsx(66,5): error TS2304: Cannot find name 'beforeEach'.
+src/components/Investments.tsx(215,14): error TS2741: Property 'onClose' is missing in type '{ isOpen: boolean; onCancel: () => void; onConfirm: () => void; title: string; message: string; }' but required in type 'ConfirmModalProps'.
+src/components/Settings.tsx(378,18): error TS2741: Property 'onClose' is missing in type '{ isOpen: boolean; onCancel: () => void; onConfirm: () => void; title: string; message: string; }' but required in type 'ConfirmModalProps'.
+src/core/services/GenericCRUDService.ts(445,40): error TS2345: Argument of type 'Omit<{ id: string; } & Partial<T> & Record<string, any>, "id">' is not assignable to parameter of type 'Partial<T> & Record<string, any>'.
+  Type 'Omit<{ id: string; } & Partial<T> & Record<string, any>, "id">' is not assignable to type 'Partial<T>'.
+    Type 'keyof T' is not assignable to type 'string | Exclude<keyof T, "id">'.
+      Type 'string | number | symbol' is not assignable to type 'string | Exclude<keyof T, "id">'.
+        Type 'number' is not assignable to type 'string | Exclude<keyof T, "id">'.
+src/features/transactions/__tests__/TransactionFormBaseRefactored.property.test.tsx(109,29): error TS2322: Type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }[]' is not assignable to type 'Account[]'.
+  Property 'initialBalance' is missing in type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }' but required in type 'Account'.
+src/features/transactions/__tests__/TransactionFormBaseRefactored.property.test.tsx(146,29): error TS2322: Type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }[]' is not assignable to type 'Account[]'.
+  Property 'initialBalance' is missing in type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }' but required in type 'Account'.
+src/features/transactions/__tests__/TransactionFormBaseRefactored.property.test.tsx(175,29): error TS2322: Type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }[]' is not assignable to type 'Account[]'.
+  Property 'initialBalance' is missing in type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }' but required in type 'Account'.
+src/features/transactions/__tests__/TransactionFormBaseRefactored.property.test.tsx(206,29): error TS2322: Type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }[]' is not assignable to type 'Account[]'.
+  Property 'initialBalance' is missing in type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }' but required in type 'Account'.
+src/features/transactions/__tests__/TransactionFormBaseRefactored.property.test.tsx(207,29): error TS2322: Type '{ id: string; name: string; currency: "BRL" | "USD" | "EUR"; startDate: string; endDate: string; }[]' is not assignable to type 'Trip[]'.
+  Type '{ id: string; name: string; currency: "BRL" | "USD" | "EUR"; startDate: string; endDate: string; }' is missing the following properties from type 'Trip': userId, participants, budget
+src/features/transactions/__tests__/TransactionFormBaseRefactored.property.test.tsx(244,29): error TS2322: Type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }[]' is not assignable to type 'Account[]'.
+  Property 'initialBalance' is missing in type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }' but required in type 'Account'.
+src/features/transactions/__tests__/TransactionFormBaseRefactored.property.test.tsx(292,29): error TS2322: Type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }[]' is not assignable to type 'Account[]'.
+  Property 'initialBalance' is missing in type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }' but required in type 'Account'.
+src/features/transactions/__tests__/TransactionFormBaseRefactored.property.test.tsx(324,29): error TS2322: Type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }[]' is not assignable to type 'Account[]'.
+  Property 'initialBalance' is missing in type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }' but required in type 'Account'.
+src/features/transactions/__tests__/TransactionFormBaseRefactored.property.test.tsx(357,29): error TS2322: Type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }[]' is not assignable to type 'Account[]'.
+  Property 'initialBalance' is missing in type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }' but required in type 'Account'.
+src/features/transactions/__tests__/TransactionFormBaseRefactored.property.test.tsx(387,29): error TS2322: Type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }[]' is not assignable to type 'Account[]'.
+  Property 'initialBalance' is missing in type '{ id: string; name: string; type: AccountType.CHECKING | AccountType.SAVINGS | AccountType.CREDIT_CARD; currency: "BRL" | "USD" | "EUR"; balance: number; isInternational: boolean; }' but required in type 'Account'.
+src/features/transactions/TransactionFormBaseRefactored.tsx(473,33): error TS2322: Type '{ label: string; selectedId: string; onSelect: Dispatch<SetStateAction<string>>; accounts: Account[]; filterType: "ALL" | "NO_CREDIT"; disabled: boolean; emptyMessage: string; }' is not assignable to type 'IntrinsicAttributes & AccountSelectorProps'.
+  Property 'accounts' does not exist on type 'IntrinsicAttributes & AccountSelectorProps'.
+src/features/transactions/TransactionFormBaseRefactored.tsx(522,33): error TS2322: Type '{ label: string; selectedId: string; onSelect: Dispatch<SetStateAction<string>>; accounts: Account[]; }' is not assignable to type 'IntrinsicAttributes & AccountSelectorProps'.
+  Property 'accounts' does not exist on type 'IntrinsicAttributes & AccountSelectorProps'.
+src/features/transactions/TransactionFormBaseRefactored.tsx(737,25): error TS2322: Type '{ isOpen: true; onClose: () => void; onConfirm: () => void; splits: TransactionSplit[]; setSplits: Dispatch<SetStateAction<TransactionSplit[]>>; ... 10 more ...; setIsInstallment: Dispatch<...>; }' is not assignable to type 'IntrinsicAttributes & SplitModalProps'.
+  Property 'amount' does not exist on type 'IntrinsicAttributes & SplitModalProps'.
+src/features/transactions/TransactionFormRefactored.tsx(416,33): error TS2322: Type '{ label: string; accounts: Account[]; selectedId: string; onSelect: Dispatch<SetStateAction<string>>; filterType: "ALL" | "NO_CREDIT"; disabled: boolean; emptyMessage: string; }' is not assignable to type 'IntrinsicAttributes & AccountSelectorProps'.
+  Property 'accounts' does not exist on type 'IntrinsicAttributes & AccountSelectorProps'.
+src/features/transactions/TransactionFormRefactored.tsx(483,37): error TS2322: Type '{ label: string; accounts: Account[]; selectedId: string; onSelect: Dispatch<SetStateAction<string>>; }' is not assignable to type 'IntrinsicAttributes & AccountSelectorProps'.
+  Property 'accounts' does not exist on type 'IntrinsicAttributes & AccountSelectorProps'.
+src/hooks/__tests__/useCrudOperations.test.ts(5,1): error TS2708: Cannot use namespace 'jest' as a value.
+src/hooks/__tests__/useCrudOperations.test.ts(7,53): error TS2694: Namespace 'global.jest' has no exported member 'Mocked'.
+src/hooks/__tests__/useCrudOperations.test.ts(8,30): error TS2708: Cannot use namespace 'jest' as a value.
+src/hooks/__tests__/useCrudOperations.test.ts(9,26): error TS2708: Cannot use namespace 'jest' as a value.
+src/hooks/__tests__/useCrudOperations.test.ts(11,1): error TS2304: Cannot find name 'beforeEach'.
+src/hooks/__tests__/useCrudOperations.test.ts(12,5): error TS2708: Cannot use namespace 'jest' as a value.
+src/hooks/__tests__/useCrudOperations.test.ts(13,52): error TS7006: Parameter 'operation' implicitly has an 'any' type.
+src/hooks/__tests__/useCrudOperations.test.ts(18,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(26,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(40,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(41,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(43,21): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(47,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(48,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(53,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(68,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(69,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(71,28): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(75,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(76,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(81,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(90,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(92,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(93,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(98,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(112,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(113,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(114,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(116,25): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(117,32): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(118,32): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(120,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(122,25): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(123,32): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(124,32): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(129,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(129,55): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(132,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(146,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(147,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(148,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(151,32): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(153,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(156,32): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(161,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(161,55): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(164,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(175,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(177,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(177,55): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(180,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(199,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(199,59): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(206,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(207,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(209,21): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(214,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(225,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(226,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(228,21): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(233,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(233,55): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(238,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(239,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(241,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(245,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(254,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(255,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(258,28): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(263,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(266,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(280,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(280,55): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(287,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(288,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(290,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(292,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(294,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(298,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(312,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(312,55): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(324,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(325,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(329,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(335,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useCrudOperations.test.ts(346,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(346,55): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(359,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useCrudOperations.test.ts(360,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useDataStore.refactored.test.ts(31,36): error TS1308: 'await' expressions are only allowed within async functions and at the top levels of modules.
+src/hooks/__tests__/useDataStore.refactored.test.ts(32,34): error TS2339: Property 'mockResolvedValue' does not exist on type '() => Promise<{ data: { session: Session; }; error: null; } | { data: { session: null; }; error: AuthError; } | { data: { session: null; }; error: null; }>'.
+src/hooks/__tests__/useDataStore.refactored.test.ts(35,26): error TS2339: Property 'mockReturnValue' does not exist on type '(name: string, opts?: RealtimeChannelOptions | undefined) => RealtimeChannel'.
+src/hooks/__tests__/useDataStore.refactored.test.ts(70,55): error TS2345: Argument of type '{ id: string; email: string; }' is not assignable to parameter of type 'UserProfile'.
+  Property 'name' is missing in type '{ id: string; email: string; }' but required in type 'UserProfile'.
+src/hooks/__tests__/useDataStore.refactored.test.ts(81,55): error TS2345: Argument of type '{ id: string; email: string; }' is not assignable to parameter of type 'UserProfile'.
+  Property 'name' is missing in type '{ id: string; email: string; }' but required in type 'UserProfile'.
+src/hooks/__tests__/useDataStore.refactored.test.ts(107,60): error TS2345: Argument of type '{ name: string; type: string; initialBalance: number; }' is not assignable to parameter of type 'Partial<Account> & { initialBalance?: number | undefined; }'.
+  Type '{ name: string; type: string; initialBalance: number; }' is not assignable to type 'Partial<Account>'.
+    Types of property 'type' are incompatible.
+      Type 'string' is not assignable to type 'AccountType | undefined'.
+src/hooks/__tests__/useDataStore.refactored.test.ts(226,62): error TS2345: Argument of type '{ amount: number; name: string; category: Category; period: string; id: string; }' is not assignable to parameter of type 'Budget'.
+  Type '{ amount: number; name: string; category: Category; period: string; id: string; }' is missing the following properties from type 'Budget': categoryId, alertThreshold
+src/hooks/__tests__/useDataStore.refactored.test.ts(306,61): error TS2345: Argument of type '{ value: number; name: string; type: string; purchaseDate: string; id: string; }' is not assignable to parameter of type 'Asset'.
+  Type '{ value: number; name: string; type: string; purchaseDate: string; id: string; }' is missing the following properties from type 'Asset': ticker, quantity, averagePrice, currentPrice, and 2 more.
+src/hooks/__tests__/useGenericForm.test.ts(29,3): error TS2304: Cannot find name 'beforeEach'.
+src/hooks/__tests__/useGenericForm.test.ts(524,38): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'never'.
+  Type 'string' is not assignable to type 'never'.
+src/hooks/__tests__/useGenericForm.test.ts(530,38): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'never'.
+  Type 'string' is not assignable to type 'never'.
+src/hooks/__tests__/useModalManager.test.ts(237,29): error TS2353: Object literal may only specify known properties, and 'new' does not exist in type '{ initial: string; }'.
+src/hooks/__tests__/useTransactionOperations.test.ts(6,1): error TS2708: Cannot use namespace 'jest' as a value.
+src/hooks/__tests__/useTransactionOperations.test.ts(8,53): error TS2694: Namespace 'global.jest' has no exported member 'Mocked'.
+src/hooks/__tests__/useTransactionOperations.test.ts(9,30): error TS2708: Cannot use namespace 'jest' as a value.
+src/hooks/__tests__/useTransactionOperations.test.ts(10,29): error TS2708: Cannot use namespace 'jest' as a value.
+src/hooks/__tests__/useTransactionOperations.test.ts(29,1): error TS2304: Cannot find name 'beforeEach'.
+src/hooks/__tests__/useTransactionOperations.test.ts(30,5): error TS2708: Cannot use namespace 'jest' as a value.
+src/hooks/__tests__/useTransactionOperations.test.ts(31,52): error TS7006: Parameter 'operation' implicitly has an 'any' type.
+src/hooks/__tests__/useTransactionOperations.test.ts(36,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(39,13): error TS2322: Type '{ id: string; name: string; balance: number; }[]' is not assignable to type 'Account[]'.
+  Type '{ id: string; name: string; balance: number; }' is missing the following properties from type 'Account': type, initialBalance, currency
+src/hooks/__tests__/useTransactionOperations.test.ts(46,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(61,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(61,24): error TS18046: 'error' is of type 'unknown'.
+src/hooks/__tests__/useTransactionOperations.test.ts(66,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(82,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(82,24): error TS18046: 'error' is of type 'unknown'.
+src/hooks/__tests__/useTransactionOperations.test.ts(87,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(105,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(106,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(108,21): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(110,28): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(111,28): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(115,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(116,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(121,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(142,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(145,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(146,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(151,27): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(156,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(175,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(176,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(178,28): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(183,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(213,17): error TS2322: Type '{ id: string; name: string; balance: number; }[]' is not assignable to type 'Account[]'.
+  Type '{ id: string; name: string; balance: number; }' is missing the following properties from type 'Account': type, initialBalance, currency
+src/hooks/__tests__/useTransactionOperations.test.ts(232,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(234,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(235,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(240,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(245,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(254,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(272,17): error TS2322: Type '{ id: string; name: string; balance: number; }[]' is not assignable to type 'Account[]'.
+  Type '{ id: string; name: string; balance: number; }' is missing the following properties from type 'Account': type, initialBalance, currency
+src/hooks/__tests__/useTransactionOperations.test.ts(288,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(288,24): error TS18046: 'error' is of type 'unknown'.
+src/hooks/__tests__/useTransactionOperations.test.ts(293,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(302,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(302,58): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(303,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(304,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(306,28): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(311,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(325,17): error TS2322: Type '{ id: string; name: string; balance: number; }[]' is not assignable to type 'Account[]'.
+  Type '{ id: string; name: string; balance: number; }' is missing the following properties from type 'Account': type, initialBalance, currency
+src/hooks/__tests__/useTransactionOperations.test.ts(338,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(341,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(360,36): error TS2339: Property 'TRANSPORT' does not exist on type 'typeof Category'.
+src/hooks/__tests__/useTransactionOperations.test.ts(369,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(369,58): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(370,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(371,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(372,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(377,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(390,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(391,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(392,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(394,32): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(400,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(413,9): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(414,13): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(415,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(418,34): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(419,32): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(425,5): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/hooks/__tests__/useTransactionOperations.test.ts(432,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(432,24): error TS18046: 'error' is of type 'unknown'.
+src/hooks/__tests__/useTransactionOperations.test.ts(440,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(440,24): error TS18046: 'error' is of type 'unknown'.
+src/hooks/__tests__/useTransactionOperations.test.ts(448,17): error TS2304: Cannot find name 'expect'.
+src/hooks/__tests__/useTransactionOperations.test.ts(448,24): error TS18046: 'error' is of type 'unknown'.
+src/hooks/useCrudOperations.ts(140,34): error TS2352: Conversion of type '(Omit<T, "id"> & { id: `${string}-${string}-${string}-${string}-${string}`; createdAt: string; updatedAt: string; })[]' to type 'T[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Omit<T, "id"> & { id: `${string}-${string}-${string}-${string}-${string}`; createdAt: string; updatedAt: string; }' is not comparable to type 'T'.
+    'Omit<T, "id"> & { id: `${string}-${string}-${string}-${string}-${string}`; createdAt: string; updatedAt: string; }' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint '{ id?: string | undefined; }'.
+src/hooks/useDataFetcher.ts(169,26): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/hooks/useDataFetcher.ts(199,21): error TS2322: Type 'Timeout' is not assignable to type 'number'.
+src/hooks/useResyncNotifications.ts(92,39): error TS18046: 'error' is of type 'unknown'.
+src/hooks/useResyncNotifications.ts(135,39): error TS18046: 'error' is of type 'unknown'.
+src/hooks/useResyncNotifications.ts(179,39): error TS18046: 'error' is of type 'unknown'.
+src/hooks/useTransactionOperations.ts(153,73): error TS2339: Property 'length' does not exist on type '{}'.
+src/refactoring/__tests__/ComplexityAnalyzer.property.test.ts(352,35): error TS7006: Parameter 'feature' implicitly has an 'any' type.
+src/refactoring/__tests__/ComplexityAnalyzer.property.test.ts(352,44): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(15,21): error TS2339: Property 'totalFiles' does not exist on type 'DependencyReport'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(16,21): error TS2339: Property 'totalDependencies' does not exist on type 'DependencyReport'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(18,21): error TS2339: Property 'unusedDependencies' does not exist on type 'DependencyReport'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(19,21): error TS2339: Property 'externalDependencies' does not exist on type 'DependencyReport'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(40,21): error TS2339: Property 'totalFiles' does not exist on type 'DependencyReport'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(41,21): error TS2339: Property 'totalDependencies' does not exist on type 'DependencyReport'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(42,21): error TS2339: Property 'externalDependencies' does not exist on type 'DependencyReport'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(62,21): error TS2339: Property 'unusedDependencies' does not exist on type 'DependencyReport'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(88,45): error TS2339: Property 'files' does not exist on type 'CircularDependency'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(89,45): error TS2339: Property 'files' does not exist on type 'CircularDependency'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(124,21): error TS2339: Property 'externalDependencies' does not exist on type 'DependencyReport'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(127,21): error TS2339: Property 'externalDependencies' does not exist on type 'DependencyReport'.
+src/refactoring/__tests__/DependencyAnalyzer.test.ts(130,21): error TS2339: Property 'externalDependencies' does not exist on type 'DependencyReport'.
+src/refactoring/__tests__/RefactoringEngine.property.test.ts(209,40): error TS7006: Parameter 'usedImport' implicitly has an 'any' type.
+src/refactoring/__tests__/RefactoringEngine.property.test.ts(212,43): error TS7006: Parameter 'usedComponent' implicitly has an 'any' type.
+src/refactoring/__tests__/RefactoringEngine.property.test.ts(215,38): error TS7006: Parameter 'usedHook' implicitly has an 'any' type.
+src/refactoring/__tests__/RefactoringEngine.property.test.ts(218,38): error TS7006: Parameter 'usedType' implicitly has an 'any' type.
+src/refactoring/analyzers/ComplexityAnalyzer.ts(75,57): error TS2551: Property 'TypeLiteralNode' does not exist on type 'typeof SyntaxKind'. Did you mean 'TypeLiteral'?
+src/refactoring/analyzers/ComplexityAnalyzer.ts(76,56): error TS2551: Property 'TypeLiteralNode' does not exist on type 'typeof SyntaxKind'. Did you mean 'TypeLiteral'?
+src/refactoring/analyzers/ComplexityAnalyzer.ts(76,73): error TS2339: Property 'getMembers' does not exist on type 'Node<Node>'.
+src/refactoring/analyzers/ComplexityAnalyzer.ts(77,64): error TS2551: Property 'TypeReferenceNode' does not exist on type 'typeof SyntaxKind'. Did you mean 'TypeReference'?
+src/refactoring/analyzers/ComplexityAnalyzer.ts(79,35): error TS2339: Property 'getTypeName' does not exist on type 'TypeNode<TypeNode>'.
+src/refactoring/analyzers/ComplexityAnalyzer.ts(92,82): error TS2551: Property 'TypeLiteralNode' does not exist on type 'typeof SyntaxKind'. Did you mean 'TypeLiteral'?
+src/refactoring/analyzers/ComplexityAnalyzer.ts(93,77): error TS2551: Property 'TypeLiteralNode' does not exist on type 'typeof SyntaxKind'. Did you mean 'TypeLiteral'?
+src/refactoring/analyzers/ComplexityAnalyzer.ts(93,94): error TS2339: Property 'getMembers' does not exist on type 'Node<Node>'.
+src/refactoring/analyzers/DependencyAnalyzer.ts(7,48): error TS2305: Module '"../types"' has no exported member 'UnusedDependency'.
+src/refactoring/analyzers/DependencyAnalyzer.ts(23,5): error TS2353: Object literal may only specify known properties, and 'dependencyGraph' does not exist in type 'DependencyReport'.
+src/refactoring/analyzers/DependencyAnalyzer.ts(49,9): error TS2739: Type '{}' is missing the following properties from type 'DependencyGraph': nodes, edges, clusters
+src/refactoring/analyzers/DependencyAnalyzer.ts(55,5): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'DependencyGraph'.
+  No index signature with a parameter of type 'string' was found on type 'DependencyGraph'.
+src/refactoring/analyzers/DependencyAnalyzer.ts(215,9): error TS2322: Type '"CRITICAL" | "MEDIUM" | "HIGH" | "LOW"' is not assignable to type '"MEDIUM" | "HIGH" | "LOW"'.
+  Type '"CRITICAL"' is not assignable to type '"MEDIUM" | "HIGH" | "LOW"'.
+src/refactoring/analyzers/DependencyAnalyzer.ts(228,18): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'DependencyGraph'.
+  No index signature with a parameter of type 'string' was found on type 'DependencyGraph'.
+src/refactoring/analyzers/DependencyAnalyzer.ts(263,18): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'DependencyGraph'.
+  No index signature with a parameter of type 'string' was found on type 'DependencyGraph'.
+src/refactoring/analyzers/DependencyAnalyzer.ts(287,18): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'DependencyGraph'.
+  No index signature with a parameter of type 'string' was found on type 'DependencyGraph'.
+src/refactoring/analyzers/DependencyAnalyzer.ts(331,3): error TS2322: Type 'boolean | null' is not assignable to type 'boolean'.
+  Type 'null' is not assignable to type 'boolean'.
+src/refactoring/index.ts(5,10): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
+src/services/factory-reset/FactoryResetService.ts(186,9): error TS2741: Property 'sharedParticipationRemoved' is missing in type '{ transactionsRemoved: number; accountsRemoved: number; investmentsRemoved: number; budgetsRemoved: number; settingsReset: false; sharedRequestsDeleted: number; mirrorsDeleted: number; executionTimeMs: number; errors: string[]; success: false; }' but required in type 'CleanupResult'.
+src/services/factory-reset/FactoryResetService.ts(300,7): error TS2741: Property 'sharedDataExitResult' is missing in type '{ success: boolean; cleanupResult: CleanupResult; recoveryRecordsCreated: number; sharedTransactionsPreserved: number; completionTime: number; errors: string[]; }' but required in type 'ResetResult'.
+src/services/factory-reset/FactoryResetService.ts(314,9): error TS2741: Property 'sharedParticipationRemoved' is missing in type '{ transactionsRemoved: number; accountsRemoved: number; investmentsRemoved: number; budgetsRemoved: number; settingsReset: false; sharedRequestsDeleted: number; mirrorsDeleted: number; executionTimeMs: number; errors: string[]; success: false; }' but required in type 'CleanupResult'.
+src/services/factory-reset/SharedDataExitManager.ts(334,39): error TS18046: 'error' is of type 'unknown'.
+src/types/__tests__/BaseProps.test.ts(70,24): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(71,25): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(72,27): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(73,27): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(74,25): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(88,24): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(101,26): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(115,26): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(116,25): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(117,27): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(141,30): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(142,31): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(144,33): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(165,27): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(243,19): error TS2322: Type '{ data: string; }' is not assignable to type 'WithOptionalHandlers<TestProps>'.
+  Type '{ data: string; }' is missing the following properties from type 'TestProps': onSave, onCancel, onEdit
+src/types/__tests__/BaseProps.test.ts(259,35): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(263,28): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(266,25): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(267,39): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(285,25): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(286,25): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(287,27): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(312,26): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(340,30): error TS2304: Cannot find name 'vi'.
+src/types/__tests__/BaseProps.test.ts(341,32): error TS2304: Cannot find name 'vi'.
+src/utils/LRUCache.ts(49,25): error TS2345: Argument of type 'K | undefined' is not assignable to parameter of type 'K'.
+  'K' could be instantiated with an arbitrary type which could be unrelated to 'K | undefined'.

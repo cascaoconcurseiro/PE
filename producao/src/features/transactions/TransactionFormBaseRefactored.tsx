@@ -470,7 +470,7 @@ export const TransactionFormBaseRefactored: React.FC<TransactionFormProps> = ({
                                 label={isTransfer ? 'Sair de (Origem)' : (isExpense ? 'Pagar com' : 'Receber em')}
                                 selectedId={accountId}
                                 onSelect={setAccountId}
-                                accounts={availableAccounts}
+                                options={availableAccounts}
                                 filterType={(isIncome || isTransfer) ? 'NO_CREDIT' : 'ALL'}
                                 disabled={!!initialData || isReadOnly}
                                 emptyMessage={activeCurrency !== 'BRL' ? `Você não possui conta em ${activeCurrency}. Crie uma conta internacional.` : 'Nenhuma conta encontrada.'}
@@ -519,7 +519,7 @@ export const TransactionFormBaseRefactored: React.FC<TransactionFormProps> = ({
                                 label="Vai para (Destino)"
                                 selectedId={destinationAccountId}
                                 onSelect={setDestinationAccountId}
-                                accounts={filteredDestinationAccounts}
+                                options={filteredDestinationAccounts}
                             />
 
                             {/* Exchange Rate Input */}
@@ -566,7 +566,7 @@ export const TransactionFormBaseRefactored: React.FC<TransactionFormProps> = ({
                     {/* Opções Adicionais */}
                     <div className="space-y-3">
                         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">Opções Adicionais</label>
-                        
+
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {/* Repetir */}
                             <button
@@ -621,7 +621,7 @@ export const TransactionFormBaseRefactored: React.FC<TransactionFormProps> = ({
                                 <BellRing className="w-5 h-5" />
                                 <span className="text-sm font-bold">Configurar Lembrete</span>
                             </div>
-                            
+
                             <div className="space-y-3">
                                 <div className="flex gap-3">
                                     <select
@@ -734,10 +734,9 @@ export const TransactionFormBaseRefactored: React.FC<TransactionFormProps> = ({
                         payerId={payerId}
                         setPayerId={setPayerId}
                         familyMembers={familyMembers}
-                        amount={activeAmount}
+                        activeAmount={activeAmount}
                         onNavigateToFamily={onNavigateToFamily}
                         currentUserName={currentUserName}
-                        currentUserId={currentUserId}
                         totalInstallments={totalInstallments}
                         setTotalInstallments={setTotalInstallments}
                         isInstallment={isInstallment}

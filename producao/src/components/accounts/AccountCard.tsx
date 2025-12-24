@@ -3,7 +3,7 @@ import { Account, AccountType, Transaction } from '../../types';
 import { CreditCard, Wallet, Banknote, Landmark, Plus } from 'lucide-react';
 import { formatCurrency } from '../../utils';
 import { getInvoiceData } from '../../services/accountUtils';
-import { BankLogo } from '../ui/BankLogo';
+
 import { getBankSvg } from '../../utils/bankLogos';
 
 interface AccountCardProps {
@@ -37,14 +37,14 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
         const limit = account.limit || 0;
         const committedBalance = Math.abs(account.balance);
         const percentageUsed = limit > 0 ? Math.min((committedBalance / limit) * 100, 100) : 0;
-        
+
         // Pegar logo do banco (prioriza bankCode, depois tenta pelo nome)
         const bankSvg = account.bankCode ? getBankSvg(account.bankCode) : getBankSvg(account.name);
         const brandSvg = account.cardBrand ? getBankSvg(account.cardBrand) : null;
 
         return (
-            <div 
-                onClick={() => onClick(account)} 
+            <div
+                onClick={() => onClick(account)}
                 className="group relative w-full max-w-[300px] aspect-[1.586/1] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden text-white p-4 flex flex-col justify-between"
             >
                 {/* Textura sutil */}
@@ -53,10 +53,10 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
                         backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.03) 10px, rgba(255,255,255,.03) 20px)`
                     }}></div>
                 </div>
-                
+
                 {/* Brilho no hover */}
                 <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
-                
+
                 {/* Header: Logo do Banco */}
                 <div className="relative z-10 flex justify-between items-start">
                     {bankSvg ? (
@@ -67,7 +67,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
                     {/* Chip do cartão */}
                     <div className="w-10 h-8 bg-gradient-to-br from-yellow-300 to-yellow-500 rounded-md opacity-80"></div>
                 </div>
-                
+
                 {/* Footer: Valor + Bandeira */}
                 <div className="relative z-10 flex justify-between items-end">
                     <div>
@@ -86,7 +86,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
                         )}
                     </div>
                 </div>
-                
+
                 {/* Barra de limite */}
                 <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-700/50">
                     <div className={`h-full transition-all duration-1000 ${percentageUsed > 90 ? 'bg-red-500' : 'bg-emerald-400'}`} style={{ width: `${percentageUsed}%` }}></div>
@@ -97,16 +97,16 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
 
     // RENDER: CONTA BANCÁRIA - Formato de cartão
     const isInternational = account.currency !== 'BRL';
-    const bgGradient = isInternational 
-        ? 'from-blue-600 via-blue-700 to-blue-800' 
+    const bgGradient = isInternational
+        ? 'from-blue-600 via-blue-700 to-blue-800'
         : 'from-emerald-600 via-emerald-700 to-emerald-800';
-    
+
     // Pegar logo do banco (prioriza bankCode, depois tenta pelo nome)
     const bankSvg = account.bankCode ? getBankSvg(account.bankCode) : getBankSvg(account.name);
-    
+
     return (
-        <div 
-            onClick={() => onClick(account)} 
+        <div
+            onClick={() => onClick(account)}
             className={`group relative w-full max-w-[300px] aspect-[1.586/1] bg-gradient-to-br ${bgGradient} rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden text-white p-4 flex flex-col justify-between`}
         >
             {/* Textura sutil */}
@@ -115,10 +115,10 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
                     backgroundImage: `repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(255,255,255,.05) 10px, rgba(255,255,255,.05) 20px)`
                 }}></div>
             </div>
-            
+
             {/* Brilho no hover */}
             <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
-            
+
             {/* Header: Logo + Tipo */}
             <div className="relative z-10 flex justify-between items-start">
                 {bankSvg ? (
@@ -132,7 +132,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, transactions 
                     {isInternational ? account.currency : account.type === AccountType.SAVINGS ? 'Poupança' : account.type === AccountType.CASH ? 'Dinheiro' : 'Corrente'}
                 </span>
             </div>
-            
+
             {/* Footer: Nome + Saldo */}
             <div className="relative z-10">
                 <h3 className="font-bold text-base mb-1 truncate">{account.name}</h3>
@@ -155,8 +155,8 @@ export const AddAccountCard: React.FC<AddAccountCardProps> = ({ onClick, label, 
     const textColor = variant === 'blue' ? 'text-blue-400 hover:text-blue-600' : 'text-emerald-400 hover:text-emerald-600';
 
     return (
-        <button 
-            onClick={onClick} 
+        <button
+            onClick={onClick}
             className={`w-full max-w-[300px] aspect-[1.586/1] border-2 border-dashed ${borderColor} rounded-xl flex flex-col items-center justify-center gap-3 ${textColor} transition-all group hover:bg-slate-50 dark:hover:bg-slate-800/50`}
         >
             <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform">

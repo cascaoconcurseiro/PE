@@ -377,7 +377,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 <ConfirmModal
                     isOpen={confirmModal.isOpen}
-                    onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                    onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
                     onConfirm={() => {
                         confirmModal.onConfirm();
                         setConfirmModal(prev => ({ ...prev, isOpen: false }));

@@ -7,14 +7,24 @@
  */
 
 // Core Services
-export { SharedTransactionDetector, sharedTransactionDetector } from './SharedTransactionDetector'
-export { RecoveryRegistry, recoveryRegistry } from './RecoveryRegistry'
-export { DataCleanupEngine, dataCleanupEngine } from './DataCleanupEngine'
-export { FactoryResetService, factoryResetService } from './FactoryResetService'
+// Core Services
+import { SharedTransactionDetector, sharedTransactionDetector } from './SharedTransactionDetector'
+import { RecoveryRegistry, recoveryRegistry } from './RecoveryRegistry'
+import { DataCleanupEngine, dataCleanupEngine } from './DataCleanupEngine'
+import { FactoryResetService, factoryResetService } from './FactoryResetService'
 
 // Recovery Services
-export { RecoveryDetectionService, recoveryDetectionService } from './RecoveryDetectionService'
-export { RecoveryRestorationService, recoveryRestorationService } from './RecoveryRestorationService'
+import { RecoveryDetectionService, recoveryDetectionService } from './RecoveryDetectionService'
+import { RecoveryRestorationService, recoveryRestorationService } from './RecoveryRestorationService'
+
+export {
+  SharedTransactionDetector, sharedTransactionDetector,
+  RecoveryRegistry, recoveryRegistry,
+  DataCleanupEngine, dataCleanupEngine,
+  FactoryResetService, factoryResetService,
+  RecoveryDetectionService, recoveryDetectionService,
+  RecoveryRestorationService, recoveryRestorationService
+}
 
 // Types - SharedTransactionDetector
 export type {

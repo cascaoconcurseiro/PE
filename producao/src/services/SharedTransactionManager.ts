@@ -28,33 +28,16 @@ class SimpleEventEmitter {
         if (this.events[event]) {
             this.events[event] = this.events[event].filter(l => l !== listener);
         }
-        removeAllListeners() {
-            this.events = {};
-        }
     }
+
+    removeAllListeners() {
+        this.events = {};
+    }
+}
 
 // Types
 interface SharedTransaction {
-    // ... (skip types)
-    // ...
-    private startAutoSync(): void {
-    // Sync every 30 seconds
-    this.syncInterval = setInterval(() => {
-        this.performAutoSync();
-    }, 30000) as unknown as number; // Force cast to number to avoid Node.js Timeout type conflict
-}
 
-    private async performAutoSync(): Promise < void> {
-    // ...
-    destroy(): void {
-        if (this.syncInterval) {
-            clearInterval(this.syncInterval);
-            this.syncInterval = null;
-        }
-
-        this.cache.clear();
-        this.removeAllListeners();
-    }
     id: string;
     user_id: string;
     description: string;
@@ -540,7 +523,7 @@ class SharedTransactionManager extends SimpleEventEmitter {
         // Sync every 30 seconds
         this.syncInterval = setInterval(() => {
             this.performAutoSync();
-        }, 30000);
+        }, 30000) as unknown as number;
     }
 
     private async performAutoSync(): Promise<void> {

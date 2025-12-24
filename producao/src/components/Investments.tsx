@@ -214,7 +214,7 @@ export const Investments: React.FC<InvestmentsProps> = ({
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
-                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
                 onConfirm={confirmModal.onConfirm}
                 title={confirmModal.title}
                 message={confirmModal.message}

@@ -29,7 +29,7 @@ export class LRUCache<K, V> {
     const value = this.cache.get(key)!;
     this.cache.delete(key);
     this.cache.set(key, value);
-    
+
     return value;
   }
 
@@ -45,8 +45,10 @@ export class LRUCache<K, V> {
 
     // If cache is full, remove the least recently used (first item)
     if (this.cache.size >= this.maxSize) {
-      const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      const iteratorResult = this.cache.keys().next();
+      if (!iteratorResult.done) {
+        this.cache.delete(iteratorResult.value);
+      }
     }
 
     // Add new item at the end (most recently used)

@@ -49,10 +49,10 @@ export class FactoryResetService {
     try {
       // 1. Detectar transações compartilhadas
       const sharedTransactions = await sharedTransactionDetector.detectSharedTransactions(userId)
-      
+
       // 2. Obter resumo de limpeza
       const cleanupSummary = await dataCleanupEngine.getCleanupSummary(userId)
-      
+
       // 3. Converter para formato de resumo
       const sharedSummary = sharedTransactionDetector.convertToSummary(sharedTransactions)
       const recoverableTransactions = sharedTransactionDetector.getRecoverableTransactions(sharedTransactions)
@@ -93,7 +93,7 @@ export class FactoryResetService {
 
       // 1. NOVO: Sair de todos os dados compartilhados ANTES da limpeza
       const sharedDataExitResult = await sharedDataExitManager.exitAllSharedData(userId)
-      
+
       if (!sharedDataExitResult.success) {
         errors.push(...sharedDataExitResult.errors)
         console.warn('Alguns erros ocorreram na saída de dados compartilhados:', sharedDataExitResult.errors)
@@ -101,12 +101,12 @@ export class FactoryResetService {
 
       // 2. Detectar e preservar transações compartilhadas se solicitado
       let sharedTransactions: SharedTransaction[] = []
-      
+
       if (confirmation.preserveSharedTransactions) {
         try {
           sharedTransactions = await sharedTransactionDetector.detectSharedTransactions(userId)
           const recoverableTransactions = sharedTransactionDetector.getRecoverableTransactions(sharedTransactions)
-          
+
           if (recoverableTransactions.length > 0) {
             await recoveryRegistry.createRecoveryRecords(userId, recoverableTransactions)
             recoveryRecordsCreated = recoverableTransactions.length
@@ -120,14 +120,14 @@ export class FactoryResetService {
 
       // 3. Executar limpeza completa dos dados
       const cleanupResult = await dataCleanupEngine.cleanupUserData(userId)
-      
+
       if (!cleanupResult.success) {
         errors.push(...cleanupResult.errors)
       }
 
       // 4. Verificar se a limpeza foi completa
       const verification = await dataCleanupEngine.verifyCleanupCompleteness(userId)
-      
+
       if (!verification.isComplete) {
         errors.push('Factory reset não foi completamente executado - alguns dados podem ter permanecido')
         console.warn('Factory reset incompleto:', verification.remainingData)
@@ -142,10 +142,10 @@ export class FactoryResetService {
         try {
           // 1. Limpar localStorage (cache de dados, configurações, etc.)
           localStorage.clear();
-          
+
           // 2. Limpar sessionStorage (cache temporário)
           sessionStorage.clear();
-          
+
           // 3. Limpar cache do service worker se disponível
           if ('serviceWorker' in navigator && 'caches' in window) {
             caches.keys().then(cacheNames => {
@@ -154,14 +154,14 @@ export class FactoryResetService {
               });
             }).catch(e => console.warn('Erro ao limpar cache do service worker:', e));
           }
-          
+
           console.log('✅ Factory reset completo - todos os caches limpos');
-          
+
           // 4. Forçar reload completo da aplicação após um pequeno delay
           setTimeout(() => {
             window.location.href = window.location.origin; // Força navegação completa
           }, 500);
-          
+
         } catch (error) {
           console.warn('Erro ao limpar caches locais:', error);
           // Não falhar o factory reset por causa de erro de cache
@@ -180,7 +180,7 @@ export class FactoryResetService {
     } catch (error) {
       console.error('Erro no FactoryResetService.executeResetWithSharedDataExit:', error)
       const completionTime = Date.now() - startTime
-      
+
       return {
         success: false,
         cleanupResult: {
@@ -193,7 +193,8 @@ export class FactoryResetService {
           mirrorsDeleted: 0,
           executionTimeMs: completionTime,
           errors: [error instanceof Error ? error.message : 'Erro desconhecido'],
-          success: false
+          success: false,
+          sharedParticipationRemoved: 0
         },
         sharedDataExitResult: {
           success: false,
@@ -230,12 +231,12 @@ export class FactoryResetService {
 
       // 1. Detectar e preservar transações compartilhadas se solicitado
       let sharedTransactions: SharedTransaction[] = []
-      
+
       if (confirmation.preserveSharedTransactions) {
         try {
           sharedTransactions = await sharedTransactionDetector.detectSharedTransactions(userId)
           const recoverableTransactions = sharedTransactionDetector.getRecoverableTransactions(sharedTransactions)
-          
+
           if (recoverableTransactions.length > 0) {
             await recoveryRegistry.createRecoveryRecords(userId, recoverableTransactions)
             recoveryRecordsCreated = recoverableTransactions.length
@@ -249,14 +250,14 @@ export class FactoryResetService {
 
       // 2. Executar limpeza completa dos dados
       const cleanupResult = await dataCleanupEngine.cleanupUserData(userId)
-      
+
       if (!cleanupResult.success) {
         errors.push(...cleanupResult.errors)
       }
 
       // 3. Verificar se a limpeza foi completa
       const verification = await dataCleanupEngine.verifyCleanupCompleteness(userId)
-      
+
       if (!verification.isComplete) {
         errors.push('Factory reset não foi completamente executado - alguns dados podem ter permanecido')
         console.warn('Factory reset incompleto:', verification.remainingData)
@@ -271,10 +272,10 @@ export class FactoryResetService {
         try {
           // 1. Limpar localStorage (cache de dados, configurações, etc.)
           localStorage.clear();
-          
+
           // 2. Limpar sessionStorage (cache temporário)
           sessionStorage.clear();
-          
+
           // 3. Limpar cache do service worker se disponível
           if ('serviceWorker' in navigator && 'caches' in window) {
             caches.keys().then(cacheNames => {
@@ -283,14 +284,14 @@ export class FactoryResetService {
               });
             }).catch(e => console.warn('Erro ao limpar cache do service worker:', e));
           }
-          
+
           console.log('✅ Factory reset completo - todos os caches limpos');
-          
+
           // 4. Forçar reload completo da aplicação após um pequeno delay
           setTimeout(() => {
             window.location.href = window.location.origin; // Força navegação completa
           }, 500);
-          
+
         } catch (error) {
           console.warn('Erro ao limpar caches locais:', error);
           // Não falhar o factory reset por causa de erro de cache
@@ -303,13 +304,29 @@ export class FactoryResetService {
         recoveryRecordsCreated,
         sharedTransactionsPreserved,
         completionTime,
+        sharedDataExitResult: {
+          success: true,
+          tripsExited: 0,
+          familyGroupsExited: 0,
+          notificationsSent: 0,
+          errors: [],
+          exitedData: { trips: [], familyGroups: [] }
+        },
         errors
       }
     } catch (error) {
       console.error('Erro no FactoryResetService.executeReset:', error)
       const completionTime = Date.now() - startTime
-      
+
       return {
+        sharedDataExitResult: {
+          success: false,
+          tripsExited: 0,
+          familyGroupsExited: 0,
+          notificationsSent: 0,
+          errors: [],
+          exitedData: { trips: [], familyGroups: [] }
+        },
         success: false,
         cleanupResult: {
           transactionsRemoved: 0,
@@ -321,7 +338,8 @@ export class FactoryResetService {
           mirrorsDeleted: 0,
           executionTimeMs: completionTime,
           errors: [error instanceof Error ? error.message : 'Erro desconhecido'],
-          success: false
+          success: false,
+          sharedParticipationRemoved: 0
         },
         recoveryRecordsCreated,
         sharedTransactionsPreserved,
@@ -350,11 +368,11 @@ export class FactoryResetService {
   }> {
     try {
       const summary = await this.getResetSummary(userId)
-      
-      const hasData = summary.personalTransactions > 0 || 
-                     summary.accounts > 0 || 
-                     summary.investments > 0 || 
-                     summary.budgetsAndGoals > 0
+
+      const hasData = summary.personalTransactions > 0 ||
+        summary.accounts > 0 ||
+        summary.investments > 0 ||
+        summary.budgetsAndGoals > 0
 
       if (!hasData) {
         return {
