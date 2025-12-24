@@ -115,6 +115,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         const startDay = parseInt(dayStr);
 
         const transactions = [];
+        console.log(`DEBUG: Generating installments. Count: ${numInstallments}, Date: ${date}, Amount: ${installmentValue}`);
 
         for (let i = 0; i < numInstallments; i++) {
             // MANUAL CALCULATION (Foolproof against Timezones/Rollovers)
@@ -155,7 +156,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         return transactions;
     };
 
-    const handleConfirm = async () => {
+    const handleConfirm = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+
         if (isSubmitting) return;
 
         if (!validateForm()) {
@@ -164,6 +167,11 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         }
 
         setIsSubmitting(true);
+        console.log('DEBUG: Starting import process...');
+
+        // Safety timeout to prevent race conditions
+        await new Promise(r => setTimeout(r, 100));
+
         setProgress({ current: 0, total: parseInt(installments) });
         setErrors([]);
 
@@ -439,7 +447,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 {/* Footer */}
                 <div className="p-6 pt-0">
                     <Button
-                        onClick={handleConfirm}
+                        onClick={(e) => handleConfirm(e)}
                         disabled={isSubmitting || availableMembers.length === 0}
                         className="w-full h-12 text-lg rounded-xl shadow-xl shadow-indigo-500/20 disabled:opacity-50"
                     >
