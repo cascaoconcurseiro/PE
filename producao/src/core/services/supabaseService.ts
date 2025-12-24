@@ -228,8 +228,22 @@ export const supabaseService = {
             p_destination_account_id: transaction.destinationAccountId || null,
             p_splits: transaction.sharedWith || null,
             p_trip_id: transaction.tripId || null,
-            p_notes: transaction.observation || null // Mapping observation to notes
+            p_notes: transaction.observation || null, // Mapping observation to notes
+
+            // New Installment Fields (Matches RPC)
+            p_is_installment: !!transaction.isInstallment,
+            p_current_installment: transaction.currentInstallment || null,
+            p_total_installments: transaction.totalInstallments || null,
+            p_series_id: transaction.seriesId || null
         };
+
+        // 🔍 DEBUG: Log dos parâmetros sendo enviados para o RPC
+        console.log('🔍 DEBUG createTransactionWithValidation - params:', {
+            description: params.p_description,
+            amount: params.p_amount,
+            splits: params.p_splits,
+            splits_length: Array.isArray(params.p_splits) ? params.p_splits.length : 'not array'
+        });
 
         const { data, error } = await supabase.rpc('create_financial_record', params);
 

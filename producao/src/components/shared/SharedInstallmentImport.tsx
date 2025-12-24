@@ -107,15 +107,16 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
     };
 
     const generateInstallmentTransactions = () => {
-        const installmentValue = parseFloat(amount);
+        const totalValue = parseFloat(amount); // Valor TOTAL a ser parcelado
         const numInstallments = parseInt(installments);
+        const installmentValue = totalValue / numInstallments; // Valor de CADA parcela
         const [yearStr, monthStr, dayStr] = date.split('-');
         const startYear = parseInt(yearStr);
         const startMonth = parseInt(monthStr) - 1;
         const startDay = parseInt(dayStr);
 
         const transactions = [];
-        console.log(`DEBUG: Generating installments. Count: ${numInstallments}, Date: ${date}, Amount: ${installmentValue}`);
+        console.log(`DEBUG: Generating installments. Total: ${totalValue}, Count: ${numInstallments}, Per Installment: ${installmentValue}`);
 
         for (let i = 0; i < numInstallments; i++) {
             // MANUAL CALCULATION (Foolproof against Timezones/Rollovers)
@@ -137,14 +138,19 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             const dd = String(targetDay).padStart(2, '0');
             const dateStr = `${targetYear}-${mm}-${dd}`;
 
+            // Ajustar última parcela para garantir soma exata
+            const currentInstallmentValue = (i === numInstallments - 1)
+                ? totalValue - (installmentValue * (numInstallments - 1))
+                : installmentValue;
+
             transactions.push({
                 description: `${description.trim()} (${i + 1}/${numInstallments})`,
-                amount: installmentValue,
+                amount: currentInstallmentValue, // Valor de CADA parcela, não o total
                 category_id: category,
                 account_id: accountId, // Use selected Account
                 shared_with: [{
                     user_id: assigneeId, // Use Member ID (Row ID) consistent with Frontend Views
-                    amount: installmentValue,
+                    amount: currentInstallmentValue, // Valor de CADA parcela
                     email: members.find(m => m.id === assigneeId)?.email || undefined
                 }],
                 installment_number: i + 1,
@@ -219,7 +225,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
     };
 
     const totalAmount = amount && !isNaN(parseFloat(amount)) && installments && !isNaN(parseInt(installments))
-        ? parseFloat(amount) * parseInt(installments)
+        ? parseFloat(amount) // O valor digitado JÁ É o total
         : 0;
 
     return (
@@ -322,6 +328,11 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                                     placeholder="0.00"
                                 />
                             </div>
+                            {amount && installments && parseFloat(amount) > 0 && parseInt(installments) > 1 && (
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Total: {parseInt(installments)}x {parseFloat(amount).toFixed(2)} = R$ {(parseFloat(amount) * parseInt(installments)).toFixed(2)}
+                                </p>
+                            )}
                         </div>
                         <div className="w-1/3">
                             <label className="block text-xs font-bold text-slate-500 mb-1">
@@ -457,7 +468,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                                 Processando...
                             </>
                         ) : (
-                            `Confirmar ${installments}x de ${amount && !isNaN(parseFloat(amount)) ? formatCurrency(parseFloat(amount)) : '...'}`
+                            amount && !isNaN(parseFloat(amount)) && installments && !isNaN(parseInt(installments))
+                                ? `Confirmar ${installments}x de ${formatCurrency(parseFloat(amount) / parseInt(installments))}`
+                                : 'Confirmar'
                         )}
                     </Button>
 

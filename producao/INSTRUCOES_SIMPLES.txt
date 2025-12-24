@@ -1,0 +1,39 @@
+═══════════════════════════════════════════════════════════════════
+  🚨 INSTRUÇÕES SIMPLES - SIGA EXATAMENTE NESTA ORDEM
+═══════════════════════════════════════════════════════════════════
+
+1️⃣ ABRA O SUPABASE
+   https://supabase.com/dashboard/project/mlqzeihukezlozooqhko/sql
+
+2️⃣ COPIE O ARQUIVO
+   Abra: producao/SCRIPT_FINAL_SUPABASE.sql
+   Copie TODO o conteúdo (Ctrl+A, Ctrl+C)
+
+3️⃣ COLE NO SUPABASE
+   Cole no SQL Editor
+   Clique em "Run" (ou Ctrl+Enter)
+
+4️⃣ VERIFIQUE O RESULTADO
+   Deve mostrar:
+   - DEPOIS DE DELETAR: 0 parcelas
+   - APOS REMOVER FUNCAO ANTIGA: 1 função
+
+5️⃣ RECARREGUE A APLICAÇÃO
+   Pressione Ctrl+Shift+R no navegador
+
+6️⃣ TESTE
+   Crie uma transação:
+   - Valor: 100
+   - Parcelas: 10
+   - Deve criar 10x de R$ 10,00
+
+═══════════════════════════════════════════════════════════════════
+
+❓ SE AINDA NÃO FUNCIONAR:
+
+Me envie um print mostrando:
+1. O resultado do script SQL
+2. A tela onde você cria a transação
+3. O console do navegador (F12)
+
+═══════════════════════════════════════════════════════════════════

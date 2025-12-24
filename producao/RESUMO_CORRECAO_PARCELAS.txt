@@ -1,0 +1,69 @@
+═══════════════════════════════════════════════════════════════════
+  CORREÇÃO DE PARCELAS - RESUMO EXECUTIVO
+═══════════════════════════════════════════════════════════════════
+
+🔴 PROBLEMAS IDENTIFICADOS:
+
+1. ERRO DE BANCO DE DADOS
+   Mensagem: "Could not choose the best candidate function"
+   Causa: Conflito entre duas versões da função create_financial_record
+   
+2. CÁLCULO ERRADO DE PARCELAS
+   Comportamento: 95x10 criava 10 parcelas de R$ 95 (total R$ 950)
+   Esperado: 95x10 deveria criar 10 parcelas de R$ 9,50 (total R$ 95)
+
+═══════════════════════════════════════════════════════════════════
+
+✅ CORREÇÕES APLICADAS:
+
+📄 ARQUIVO: supabase/migrations/20260302_fix_installments_conflict.sql
+   - Remove função antiga sem campos de parcelas
+   - Recria função com assinatura completa (16 parâmetros)
+   - Inclui: p_is_installment, p_current_installment, p_total_installments, p_series_id
+
+📄 ARQUIVO: src/components/shared/SharedInstallmentImport.tsx
+   - Corrigido cálculo: totalValue / numInstallments
+   - Label alterado: "Valor Total" (antes era "Valor da Parcela")
+   - Botão mostra: "Confirmar 10x de R$ 9,50" (valor correto por parcela)
+   - Adicionado preview: "10x de R$ 9,50" abaixo do campo de valor
+   - Ajuste da última parcela para garantir soma exata
+
+═══════════════════════════════════════════════════════════════════
+
+🚀 COMO APLICAR:
+
+1. BANCO DE DADOS:
+   npx supabase db push
+   
+   OU copie o SQL de:
+   supabase/migrations/20260302_fix_installments_conflict.sql
+   e execute no Supabase Dashboard
+
+2. FRONTEND:
+   O código já foi corrigido, basta recarregar a aplicação
+
+═══════════════════════════════════════════════════════════════════
+
+✓ TESTE RÁPIDO:
+
+1. Abra "Importar Parcelado Compartilhado"
+2. Digite:
+   - Valor Total: 95
+   - Parcelas: 10
+3. Verifique que mostra: "10x de R$ 9,50"
+4. Confirme e verifique que criou 10 parcelas de R$ 9,50 cada
+
+═══════════════════════════════════════════════════════════════════
+
+📊 RESULTADO ESPERADO:
+
+ANTES:
+- 95 total, 10 parcelas → 10x R$ 95,00 = R$ 950,00 ❌
+- Erro ao importar (conflito de função) ❌
+
+DEPOIS:
+- 95 total, 10 parcelas → 10x R$ 9,50 = R$ 95,00 ✅
+- Importação funciona sem erros ✅
+- Parcelas distribuídas mensalmente ✅
+
+═══════════════════════════════════════════════════════════════════

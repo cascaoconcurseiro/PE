@@ -379,6 +379,14 @@ class SharedTransactionManager extends SimpleEventEmitter {
                     const installment = installments[i];
 
                     try {
+                        // 🔍 DEBUG: Log detalhado do que está sendo enviado
+                        console.log(`🔍 DEBUG Parcela ${installment.installment_number}/${totalInstallments}:`, {
+                            description: installment.description,
+                            amount: installment.amount,
+                            shared_with: installment.shared_with,
+                            shared_with_length: installment.shared_with?.length
+                        });
+
                         // Criar transação com splits embutidos no JSONB
                         const transactionData = await this.createTransactionDirect(installment, userId, seriesId);
 
@@ -427,15 +435,23 @@ class SharedTransactionManager extends SimpleEventEmitter {
         // Propagate email if available to avoid NULL description in Ledger Entries
         const debtorEmail = installment.shared_with[0].email;
 
-        // Fran é a devedora, aparece no shared_with
+        // CORREÇÃO: Cada parcela deve ter apenas UM split (o devedor desta parcela específica)
+        // NÃO passar array com todas as parcelas, apenas a parcela atual
         const sharedWithJson = [{
             memberId: debtorUserId, // Frontend compatibility
             user_id: debtorUserId, // DB compatibility
             percentage: 100,
-            amount: installment.amount, // REQUIRED for SQL create_financial_record (Fixes Null Constraint)
+            amount: installment.amount, // Valor DESTA parcela específica
             assignedAmount: installment.amount, // Frontend compatibility
             email: debtorEmail // For description generation
         }];
+
+        // 🔍 DEBUG: Log do que está sendo montado
+        console.log('🔍 DEBUG createTransactionDirect - sharedWithJson:', {
+            sharedWithJson,
+            installment_amount: installment.amount,
+            installment_shared_with: installment.shared_with
+        });
 
         // PREPARE TRANSACTION OBJECT
         const txData = {
