@@ -131,16 +131,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 category_id: category,
                 account_id: accountId, // Use selected Account
                 shared_with: [{
-                    user_id: (() => {
-                        const member = members.find(m => m.id === assigneeId);
-                        const userId = member?.linkedUserId || assigneeId;
-                        console.log('DEBUG: Mapeamento de usuário', {
-                            assigneeId,
-                            member: member ? { id: member.id, name: member.name, linkedUserId: member.linkedUserId } : null,
-                            finalUserId: userId
-                        });
-                        return userId;
-                    })(),
+                    user_id: assigneeId, // Use Member ID (Row ID) consistent with Frontend Views
                     amount: installmentValue
                 }],
                 installment_number: i + 1,
