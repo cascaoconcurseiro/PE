@@ -239,7 +239,7 @@ export const useTransactionForm = ({
             if (totalSplitAmount > activeAmount + 0.05) {
                 newErrors.amount = `Erro: A soma das divisões (R$ ${totalSplitAmount.toFixed(2)}) excede o valor da transação!`;
             }
-            
+
             // CORREÇÃO: Validar se sobra algo para o pagador quando necessário
             const remainder = activeAmount - totalSplitAmount;
             if (remainder < 0.01 && payerId === 'me' && !isShared) {
@@ -292,7 +292,8 @@ export const useTransactionForm = ({
                 .filter(s => s.percentage > 0)
                 .map(s => ({
                     ...s,
-                    assignedAmount: (activeAmount * s.percentage) / 100
+                    assignedAmount: (activeAmount * s.percentage) / 100,
+                    amount: (activeAmount * s.percentage) / 100 // REQUIRED for SQL Ledger
                 }));
 
             const isExternalPayer = payerId !== '' && payerId !== 'me';

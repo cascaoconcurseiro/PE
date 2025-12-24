@@ -117,13 +117,18 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         const transactions = [];
 
         for (let i = 0; i < numInstallments; i++) {
-            const currentMonthIndex = startMonth + i;
-            const targetYear = startYear + Math.floor(currentMonthIndex / 12);
-            const targetMonth = currentMonthIndex % 12;
-            const maxDaysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-            const finalDay = Math.min(startDay, maxDaysInMonth);
-            const utcDate = new Date(Date.UTC(targetYear, targetMonth, finalDay, 12, 0, 0));
-            const dateStr = utcDate.toISOString().split('T')[0];
+            // FIX: Robust Date Calculation ensuring monthly progression
+            // Create a date object in Local Time from the input (YYYY-MM-DD treated as Local Midnight)
+            const baseDate = new Date(startYear, startMonth, startDay, 12, 0, 0);
+
+            // Add months safely
+            baseDate.setMonth(baseDate.getMonth() + i);
+
+            // Format back to YYYY-MM-DD
+            const year = baseDate.getFullYear();
+            const month = String(baseDate.getMonth() + 1).padStart(2, '0');
+            const day = String(baseDate.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
 
             transactions.push({
                 description: `${description.trim()} (${i + 1}/${numInstallments})`,
@@ -137,7 +142,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 }],
                 installment_number: i + 1,
                 total_installments: numInstallments,
-                due_date: dateStr
+                due_date: dateStr // Properly incremented
             });
         }
 
