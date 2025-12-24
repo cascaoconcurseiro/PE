@@ -337,11 +337,11 @@ class SharedTransactionManager extends SimpleEventEmitter {
 
         // Agrupar parcelas por série (mesmo description base)
         const seriesMap = new Map<string, typeof data.transactions>();
-        
+
         for (const transaction of data.transactions) {
             // Extrair descrição base removendo " (X/Y)"
             const baseDescription = transaction.description.replace(/\s*\(\d+\/\d+\)$/, '');
-            
+
             if (!seriesMap.has(baseDescription)) {
                 seriesMap.set(baseDescription, []);
             }
@@ -353,10 +353,10 @@ class SharedTransactionManager extends SimpleEventEmitter {
             try {
                 // Ordenar parcelas por número
                 installments.sort((a, b) => a.installment_number - b.installment_number);
-                
+
                 const totalInstallments = installments[0].total_installments;
                 const seriesId = crypto.randomUUID();
-                
+
                 console.log('DEBUG: Processando série de parcelas:', {
                     baseDescription,
                     totalInstallments,
@@ -365,27 +365,27 @@ class SharedTransactionManager extends SimpleEventEmitter {
 
                 // Obter userId uma vez para toda a série
                 const userId = await this.getCurrentUserId();
-                
+
                 // ESTRATÉGIA: Usar inserção direta (mais confiável)
                 // As funções RPC podem não existir no banco, então vamos direto para a inserção
                 console.log('📝 Usando inserção direta para parcelas compartilhadas');
-                
+
                 for (let i = 0; i < installments.length; i++) {
                     const installment = installments[i];
-                    
+
                     try {
                         // Criar transação com splits embutidos no JSONB
                         const transactionData = await this.createTransactionDirect(installment, userId, seriesId);
-                        
+
                         results.push(transactionData[0]);
                         console.log(`✅ Parcela ${installment.installment_number}/${totalInstallments} criada com sucesso`);
-                        
+
                     } catch (error: any) {
                         console.error(`❌ Erro ao criar parcela ${installment.installment_number}/${totalInstallments}:`, error);
                         errors.push(`Failed to import installment ${installment.installment_number}/${totalInstallments}: ${error.message}`);
                     }
                 }
-                
+
             } catch (error: any) {
                 errors.push(`Failed to import installment series "${baseDescription}": ${error.message}`);
             }
@@ -405,18 +405,20 @@ class SharedTransactionManager extends SimpleEventEmitter {
         };
     }
 
-    // Método auxiliar para inserção direta
+    // Método auxiliar para inserção via RPC (Ledger Compliant)
     private async createTransactionDirect(installment: any, userId: string, seriesId: string) {
+        const { supabaseService } = await import('../core/services/supabaseService');
+
         // LÓGICA CORRETA:
         // "Quem vai pagar as parcelas?" = Quem é o DEVEDOR
         // Se seleciono "Fran vai pagar", significa:
         // - EU estou pagando/emprestando o dinheiro (payer_id = 'me')
         // - FRAN é a devedora (ela aparece no shared_with)
         // - Isso gera CRÉDITO para mim (ela me deve)
-        
+
         // O installment.shared_with[0].user_id contém o ID do membro DEVEDOR
         const debtorUserId = installment.shared_with[0].user_id;
-        
+
         // Fran é a devedora, aparece no shared_with
         const sharedWithJson = [{
             memberId: debtorUserId, // Fran é a devedora
@@ -424,36 +426,35 @@ class SharedTransactionManager extends SimpleEventEmitter {
             assignedAmount: installment.amount
         }];
 
-        const { data, error } = await this.supabase
-            .from('transactions')
-            .insert({
-                user_id: userId, // Transação pertence ao meu user_id
-                description: installment.description,
-                amount: installment.amount,
-                type: 'DESPESA',
-                category: installment.category_id,
-                date: installment.due_date,
-                account_id: null,
-                currency: 'BRL',
-                is_shared: true,
-                shared_with: sharedWithJson,
-                payer_id: 'me', // EU sou o pagador/credor
-                is_installment: installment.total_installments > 1,
-                current_installment: installment.installment_number,
-                total_installments: installment.total_installments,
-                series_id: seriesId,
-                domain: 'SHARED',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                deleted: false
-            })
-            .select();
+        // PREPARE TRANSACTION OBJECT
+        const txData = {
+            description: installment.description,
+            amount: installment.amount,
+            type: 'DESPESA' as any, // Cast carefully or import TransactionType
+            category: installment.category_id,
+            date: installment.due_date,
+            accountId: installment.account_id, // Must be provided now!
+            isShared: true,
+            sharedWith: sharedWithJson,
+            payerId: 'me',
+            isInstallment: installment.total_installments > 1,
+            currentInstallment: installment.installment_number,
+            totalInstallments: installment.total_installments,
+            seriesId: seriesId,
+            domain: 'SHARED' as const
+        };
 
-        if (error) {
-            throw error;
-        }
+        // CALL SERVICE
+        // This ensures Ledger Entry creation + Validation + Triggers
+        const newId = await supabaseService.createTransactionWithValidation(txData);
 
-        return data;
+        // Return a shape similar to what SELECT returns (for compatibility)
+        return [{
+            ...txData,
+            id: newId,
+            user_id: userId,
+            created_at: new Date().toISOString()
+        }];
     }
 
     // Método auxiliar para obter user ID atual

@@ -379,12 +379,25 @@ export const calculateSafeMonthlyTotals = (
           // Calculate effective value for shared transactions
           let expenseValue = safeAmount;
           
-          if (transaction.isShared && transaction.payerId && transaction.payerId !== 'me') {
-            expenseValue = SafeFinancialCalculator.safeOperation(
-              () => calculateEffectiveTransactionValue(transaction),
-              safeAmount,
-              'effective_transaction_value'
-            );
+          if (transaction.isShared) {
+            if (!transaction.payerId || transaction.payerId === 'me') {
+              // I paid: my expense = total - amount shared with others
+              const sharedAmount = (transaction.sharedWith || []).reduce((sum, split) => {
+                if (!split.isSettled) {
+                  const splitAmount = SafeFinancialCalculator.toSafeNumber(split.assignedAmount, 0);
+                  return sum + splitAmount;
+                }
+                return sum;
+              }, 0);
+              expenseValue = safeAmount - sharedAmount;
+            } else if (transaction.payerId !== 'me') {
+              // Someone else paid: my expense = my assigned amount
+              expenseValue = SafeFinancialCalculator.safeOperation(
+                () => calculateEffectiveTransactionValue(transaction),
+                safeAmount,
+                'effective_transaction_value'
+              );
+            }
           }
 
           const amount = transaction.isRefund ? -expenseValue : expenseValue;

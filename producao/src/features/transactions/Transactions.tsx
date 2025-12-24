@@ -117,6 +117,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
         return groups;
     }, {});
 
+    // TODO: Move to backend RPC - use get_monthly_summary() instead of local calculation
+    // This calculation uses transactions table directly, should use ledger_entries
     // Calculate summary (simplified for now)
     const income = displayTransactions
         .filter((t: Transaction) => t.type === TransactionType.INCOME)

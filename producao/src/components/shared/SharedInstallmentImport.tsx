@@ -58,7 +58,8 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             setInstallments('1');
             setDate(new Date().toISOString().split('T')[0]);
             setCategory(Category.OTHER);
-            // CORREÇÃO: Não precisamos mais de accountId para importações compartilhadas
+            setCategory(Category.OTHER);
+            setAccountId(''); // Reset account
             setIsSubmitting(false);
             setProgress({ current: 0, total: 0 });
             setErrors([]);
@@ -97,6 +98,10 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             newErrors.push('Data da primeira parcela é obrigatória');
         }
 
+        if (!accountId) {
+            newErrors.push('Conta de origem é obrigatória');
+        }
+
         setErrors(newErrors);
         return newErrors.length === 0;
     };
@@ -124,7 +129,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 description: `${description.trim()} (${i + 1}/${numInstallments})`,
                 amount: installmentValue,
                 category_id: category,
-                account_id: null, // CORREÇÃO: Não usar conta específica para importações compartilhadas
+                account_id: accountId, // Use selected Account
                 shared_with: [{
                     user_id: (() => {
                         const member = members.find(m => m.id === assigneeId);
@@ -161,7 +166,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
         try {
             const transactions = generateInstallmentTransactions();
-            
+
             console.log('DEBUG: Transações geradas para importação:', transactions);
 
             // Use the batch import method from SharedTransactionManager
@@ -174,12 +179,12 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             if (result.success) {
                 // CORREÇÃO: Limpar cache para garantir que parcelas apareçam imediatamente
                 sharedTransactionManager.clearCache();
-                
+
                 addToast(
                     `${result.results.length} parcelas importadas com sucesso!`,
                     'success'
                 );
-                
+
                 // Chamar onImport sem parâmetros para forçar refresh
                 // As transações já foram criadas no banco, não precisamos passá-las
                 onImport();
@@ -373,20 +378,27 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         </select>
                     </div>
 
-                    {/* CORREÇÃO: Removida seção de seleção de conta */}
-                    {/* Parcelas compartilhadas importadas não devem afetar contas específicas */}
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/50 rounded-xl p-4">
-                        <div className="flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                            <div>
-                                <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
-                                    Importação Compartilhada
-                                </p>
-                                <p className="text-sm text-blue-700 dark:text-blue-300">
-                                    Estas parcelas aparecerão apenas na fatura do compartilhado, sem afetar suas contas ou cartões.
-                                </p>
-                            </div>
-                        </div>
+                    {/* Account Selection (Restored for Ledger Integrity) */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">
+                            Conta/Cartão de Origem *
+                        </label>
+                        <select
+                            disabled={isSubmitting}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white disabled:opacity-50"
+                            value={accountId}
+                            onChange={e => setAccountId(e.target.value)}
+                        >
+                            <option value="">Selecione uma conta...</option>
+                            {accounts.map(acc => (
+                                <option key={acc.id} value={acc.id}>
+                                    {acc.name}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-[10px] text-slate-400 mt-1">
+                            Necessário para registrar a origem do pagamento no sistema.
+                        </p>
                     </div>
 
                     {/* Assignee Selection */}
@@ -402,8 +414,8 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                                     disabled={isSubmitting}
                                     onClick={() => setAssigneeId(member.id)}
                                     className={`px-4 py-3 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2 ${assigneeId === member.id
-                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
+                                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
                                         } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     {assigneeId === member.id && <Check className="w-4 h-4" />}

@@ -212,41 +212,33 @@ export const supabaseService = {
         }
     },
 
-    // NEW (Phase 8): RPC-Based Transaction Creation
+    // NEW (Phase 8): RPC-Based Transaction Creation (LEDGER V2)
     async createTransactionWithValidation(transaction: Partial<Transaction>) {
         const userId = await getUserId();
 
-        // Map Application Object to RPC Parameters
+        // 🚀 ROUTING: Redirect to new Ledger-First RPC
         const params = {
-            p_description: transaction.description,
+            p_user_id: userId,
             p_amount: transaction.amount,
-            p_type: transaction.type,
-            p_category: transaction.category,
+            p_description: transaction.description,
             p_date: transaction.date,
+            p_type: transaction.type, // RECEITA, DESPESA, TRANSFERÊNCIA
+            p_category: transaction.category,
             p_account_id: transaction.accountId,
             p_destination_account_id: transaction.destinationAccountId || null,
+            p_splits: transaction.sharedWith || null,
             p_trip_id: transaction.tripId || null,
-            p_is_shared: transaction.isShared || false,
-            p_domain: transaction.domain || null,
-            // Extended Fields (Phase 8 Fix)
-            p_is_installment: transaction.isInstallment || false,
-            p_current_installment: transaction.currentInstallment || null,
-            p_total_installments: transaction.totalInstallments || null,
-            p_series_id: transaction.seriesId || null,
-            p_is_recurring: transaction.isRecurring || false,
-            p_frequency: transaction.frequency || null,
-            p_shared_with: transaction.sharedWith || [] // Enabling Mirroring Data
+            p_notes: transaction.observation || null // Mapping observation to notes
         };
 
-        const { data, error } = await supabase.rpc('create_transaction', params);
+        const { data, error } = await supabase.rpc('create_financial_record', params);
 
         if (error) {
-            logger.error('Failed to create transaction via RPC', error);
+            logger.error('Failed to create ledger record via RPC', error);
             throw error;
         }
-        // ✅ FIX: Return the ID (RPC returns the new UUID as a scalar string or inside an object?)
-        // If RPC returns `RETURNS uuid`, then `data` is the UUID string.
-        return data as string;
+
+        return (data as any).transaction_id;
     },
 
     // NEW (Phase 8): Debt Settlement
@@ -427,17 +419,26 @@ export const supabaseService = {
         }
     },
 
-    // SPECIFIC FETCHERS
     async getAccountBalances() {
         try {
             const userId = await getUserId();
-            // Call RPC
-            const { data, error } = await supabase.rpc('get_account_totals', { p_user_id: userId });
+            // Call View directly (Ledger V2)
+            const { data, error } = await supabase
+                .from('view_account_balances')
+                .select('account_id, balance')
+                .eq('user_id', userId);
+
             if (error) throw error;
-            return data as { account_id: string, calculated_balance: number }[];
+
+            // Map to expected format { account_id, calculated_balance }
+            return data.map(d => ({
+                account_id: d.account_id,
+                calculated_balance: d.balance
+            }));
         } catch (e) {
             // Error logged via errorHandler
-            return []; // Fallback will be handled by client using local calculation if needed
+            logger.error('Error fetching ledger balances', e);
+            return [];
         }
     },
 
@@ -497,7 +498,8 @@ export const supabaseService = {
     // PHASE 5: REPORTING & HYDRATION
     async getMonthlyCashflow(year: number): Promise<{ month: number, income: number, expense: number }[]> {
         const userId = await getUserId();
-        const { data, error } = await supabase.rpc('get_monthly_cashflow', {
+        // Updated to use new calculate_cash_flow function (ledger-based, no duplication)
+        const { data, error } = await supabase.rpc('calculate_cash_flow', {
             p_year: year,
             p_user_id: userId
         });
@@ -564,7 +566,7 @@ export const supabaseService = {
         try {
             // Usar o novo serviço de factory reset com saída automática
             const { factoryResetService } = await import('../../services/factory-reset/FactoryResetService');
-            
+
             const confirmation = factoryResetService.createConfirmation({
                 preserveSharedTransactions: true
             });
@@ -587,7 +589,7 @@ export const supabaseService = {
             return result;
         } catch (error) {
             logger.error('Erro no performSmartReset:', error);
-            
+
             // Fallback para o método antigo se o novo falhar
             logger.warn('Tentando fallback para método antigo de reset...');
             const { error: fallbackError } = await supabase.rpc('fn_smart_factory_reset', {
@@ -681,7 +683,7 @@ export const supabaseService = {
     // Trip Budget Methods
     async getMyTripBudget(tripId: string): Promise<number> {
         const userId = await getUserId();
-        
+
         // Try to get personal trip budget from a hypothetical table
         // For now, we'll return 0 as fallback
         try {
@@ -703,7 +705,7 @@ export const supabaseService = {
 
     async setMyTripBudget(tripId: string, budget: number): Promise<void> {
         const userId = await getUserId();
-        
+
         try {
             const { error } = await supabase
                 .from('trip_budgets')

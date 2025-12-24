@@ -352,19 +352,29 @@ export const useDataStore = () => {
 
         try {
             // --- TIER 1: CRITICAL DATA (Dashboard Immediate Render) ---
-            // ✅ REESTRUTURAÇÃO: Backend é fonte de verdade - usar balance do banco diretamente
+            // ✅ REESTRUTURAÇÃO: Backend é fonte de verdade (LEDGER V2)
             console.time("Tier1_Accounts");
+
+            // 1. Fetch Accounts Metadata (Name, Type, etc)
             const accs = await supabaseService.getAccounts();
             if (signal.aborted) return;
 
-            // Backend já calcula balance via trigger, usar diretamente
-            // Se balance for null, usar initialBalance como fallback
-            const initialAccountsState = accs.map(account => ({
-                ...account,
-                balance: account.balance ?? account.initialBalance ?? 0
-            }));
+            // 2. Fetch Real Balances from Ledger View
+            const ledgerBalances = await supabaseService.getAccountBalances();
+
+            // 3. Merge Metadata with Ledger Balances
+            const initialAccountsState = accs.map(account => {
+                const ledgerData = ledgerBalances.find(l => l.account_id === account.id);
+                // If ledger data exists, use it. Otherwise 0 (or initial if migration fails, but 0 is safer for ledger purity)
+                const realBalance = ledgerData ? ledgerData.calculated_balance : 0;
+
+                return {
+                    ...account,
+                    balance: realBalance
+                };
+            });
+
             setAccounts(initialAccountsState);
-            // Performance tracking removed
 
 
             // --- TIER 1.5: TRANSACTIONS (SMART WINDOW) ---
@@ -382,7 +392,9 @@ export const useDataStore = () => {
             const fetchPromises = periodsToFetch.map(period => {
                 const [year, month] = period.split('-').map(Number);
                 const start = `${year}-${String(month).padStart(2, '0')}-01`;
-                const end = new Date(year, month, 0).toISOString().split('T')[0];
+                // Fix: Calculate last day reliably without timezone offsets
+                const lastDay = new Date(year, month, 0).getDate();
+                const end = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
                 return supabaseService.getTransactionsByRange(start, end);
             });
 

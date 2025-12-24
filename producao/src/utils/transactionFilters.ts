@@ -18,8 +18,9 @@ export const shouldShowTransaction = (t: Transaction): boolean => {
     }
 
     // Filter transactions without account (Pending/Shadow/Orphan)
-    // These should not appear in the main ledger until linked to an account
-    if (!t.accountId) return false;
+    // Exception: shared transactions where someone else paid might not have accountId yet
+    const isSharedPending = t.isShared && t.payerId && t.payerId !== 'me';
+    if (!t.accountId && !isSharedPending) return false;
 
     return true;
 };
