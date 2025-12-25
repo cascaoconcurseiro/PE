@@ -32,17 +32,17 @@ interface AccountsProps {
     onAddTransactions?: (transactions: Omit<Transaction, 'id'>[]) => void;
     showValues: boolean;
     currentDate?: Date;
+    onDateChange?: (date: Date) => void; // ✅ Callback para sincronizar seletor de mês
     onAnticipate: (ids: string[], date: string, accountId: string) => void;
     initialAccountId?: string | null;
     onClearInitialAccount?: () => void;
     members?: import('../types').FamilyMember[];
-    handlers?: any; // ✅ FIX: Adicionar handlers para acessar ensurePeriodLoaded
-    // Actually Account defines FamilyMember import usually.
+    handlers?: any;
     onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
 }
 
-export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onDeleteTransaction, onAddTransaction, onAddTransactions, showValues, currentDate = new Date(), onAnticipate, initialAccountId, onClearInitialAccount, handlers }) => {
-    const accountsProps = { accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onDeleteTransaction, onAddTransaction, onAddTransactions, showValues, currentDate, onAnticipate, initialAccountId, onClearInitialAccount, handlers };
+export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onDeleteTransaction, onAddTransaction, onAddTransactions, showValues, currentDate = new Date(), onDateChange, onAnticipate, initialAccountId, onClearInitialAccount, handlers }) => {
+    const accountsProps = { accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onDeleteTransaction, onAddTransaction, onAddTransactions, showValues, currentDate, onDateChange, onAnticipate, initialAccountId, onClearInitialAccount, handlers };
     const [viewState, setViewState] = useState<'LIST' | 'DETAIL'>('LIST');
     const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS' | 'INTERNATIONAL'>('BANKING');
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -245,7 +245,17 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
                 </div>
 
                 {selectedAccount.type === AccountType.CREDIT_CARD ? (
-                    <CreditCardDetail account={selectedAccount} transactions={transactions} currentDate={currentDate} showValues={showValues} onAction={(type, amount) => openActionModal(type, amount)} onAnticipateInstallments={handleAnticipateRequest} onImportBills={() => setImportBillModal({ isOpen: true, account: selectedAccount })} onDeleteTransaction={onDeleteTransaction} />
+                    <CreditCardDetail 
+                        account={selectedAccount} 
+                        transactions={transactions} 
+                        currentDate={currentDate} 
+                        showValues={showValues} 
+                        onAction={(type, amount) => openActionModal(type, amount)} 
+                        onAnticipateInstallments={handleAnticipateRequest} 
+                        onImportBills={() => setImportBillModal({ isOpen: true, account: selectedAccount })} 
+                        onDeleteTransaction={onDeleteTransaction}
+                        onMonthChange={onDateChange} // ✅ Sincronizar com seletor global
+                    />
                 ) : (
                     <BankingDetail account={selectedAccount} transactions={transactions} showValues={showValues} currentDate={currentDate} onAction={(type) => openActionModal(type)} onDeleteTransaction={onDeleteTransaction} />
                 )}

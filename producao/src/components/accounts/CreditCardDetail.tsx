@@ -25,10 +25,11 @@ interface CreditCardDetailProps {
     onAnticipateInstallments: (tx: Transaction) => void;
     onImportBills: () => void;
     onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
+    onMonthChange?: (date: Date) => void; // ✅ Callback para sincronizar com seletor global
 }
 
 export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
-    account, transactions, currentDate, showValues, onAction, onAnticipateInstallments, onImportBills, onDeleteTransaction
+    account, transactions, currentDate, showValues, onAction, onAnticipateInstallments, onImportBills, onDeleteTransaction, onMonthChange
 }) => {
     // Get all accounts for correct name resolution (e.g. transfers)
     const { accounts, familyMembers, handlers } = useDataStore();
@@ -52,9 +53,10 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     // Initialize with smart logic
     const [selectedDate, setSelectedDate] = useState(() => getTargetDate(currentDate, account.closingDay));
 
-    // ✅ FIX: Removido useEffect que sincronizava com currentDate
-    // A fatura deve usar APENAS seu próprio seletor (← →)
-    // Não deve ser afetada pelo seletor global do TopBar
+    // ✅ SINCRONIZAÇÃO: Quando seletor global muda, atualiza fatura
+    useEffect(() => {
+        setSelectedDate(getTargetDate(currentDate, account.closingDay));
+    }, [currentDate, account.closingDay]);
 
     // Load transactions for the selected month when navigating
     useEffect(() => {
@@ -67,6 +69,12 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
         const newDate = new Date(selectedDate);
         newDate.setMonth(newDate.getMonth() + offset);
         setSelectedDate(newDate);
+        
+        // ✅ SINCRONIZAÇÃO: Quando seletor da fatura muda, atualiza global
+        // Propagar mudança para o seletor global via callback
+        if (onMonthChange) {
+            onMonthChange(newDate);
+        }
     };
 
     // Use getInvoiceData with SELECTED DATE (Strict Month/Year)
