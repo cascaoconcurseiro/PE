@@ -127,29 +127,21 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
 
         try {
             // New "Author vs Owner" Logic
-            let ownerUserId = currentUserId;
-            let mirrorUserId = null;
+            // The user requested to REMOVE "Me" from the list.
+            // So we assume the Assignee is ALWAYS someone else (The Owner).
 
-            // 1. Determine Owner (Who Pays)
-            if (assigneeId === 'me' || assigneeId === currentUserId) {
-                // I am the Payer (Owner)
-                ownerUserId = currentUserId;
+            const selectedMember = members.find(m => m.id === assigneeId);
+            if (!selectedMember) throw new Error('Membro não encontrado.');
 
-                // IF I am paying and it's an "Import", implies Shared.
-                // Try to find the Partner to create a Mirror for them
-                const partner = members.find(m => m.id !== 'me' && m.id !== currentUserId);
-                mirrorUserId = partner?.linkedUserId || null;
-            } else {
-                // Someone else is Payer (Owner)
-                const selectedMember = members.find(m => m.id === assigneeId);
-                if (!selectedMember?.linkedUserId) {
-                    throw new Error('O usuário selecionado para pagamento não possui conta vinculada (ID ausente).');
-                }
-                ownerUserId = selectedMember.linkedUserId;
-
-                // If they pay, I get the Mirror (so I can see it as shared/debt)
-                mirrorUserId = currentUserId;
+            const ownerUserId = selectedMember.linkedUserId;
+            if (!ownerUserId) {
+                throw new Error('O usuário selecionado não possui conta vinculada (ID ausente).');
             }
+
+            // WE DO NOT need a mirror anymore!
+            // With RLS "view_author_or_owner", I (Author) see the record created for Him (Owner).
+            // Creating a mirror would duplicate the view.
+            const mirrorUserId = null;
 
             console.log('DEBUG: RPC Params', {
                 owner: ownerUserId,
@@ -158,15 +150,15 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             });
 
             const { data, error } = await supabase.rpc('import_shared_installments', {
-                p_user_id: ownerUserId,       // Dívida vai para quem paga
-                p_author_id: currentUserId,   // Eu criei
+                p_user_id: ownerUserId,       // Dívida vai para quem paga (Fran)
+                p_author_id: currentUserId,   // Eu criei (Tenho permissão RLS para ver/editar)
                 p_description: description,
                 p_parcel_amount: parseFloat(amount),
                 p_installments: parseInt(installments),
                 p_first_due_date: date,
                 p_category: category,
                 p_account_id: null,
-                p_shared_with_user_id: mirrorUserId
+                p_shared_with_user_id: mirrorUserId // NULL (Sem espelho, apenas acesso via RLS)
             });
 
             if (error) throw error;
@@ -370,22 +362,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                             Quem vai pagar as parcelas? *
                         </label>
                         <div className="grid grid-cols-2 gap-2">
-                            <button
-                                type="button"
-                                disabled={isSubmitting}
-                                onClick={() => setAssigneeId('me')}
-                                className={`
-                                    p-3 rounded-xl border font-bold text-sm transition-all
-                                    ${assigneeId === 'me'
-                                        ? 'bg-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-500 hover:text-indigo-500'}
-                                `}
-                            >
-                                <div className="flex items-center justify-center gap-2">
-                                    {assigneeId === 'me' && <Check className="w-4 h-4" />}
-                                    Eu ({currentUserName?.split(' ')[0] || 'Mim'})
-                                </div>
-                            </button>
+                            {/* "Eu" option removed as per user request */}
 
                             {availableMembers.map(member => (
                                 <button
