@@ -222,6 +222,27 @@ export const calculateProjectedBalance = (
             const viewMonthEnd = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth() + 1, 0);
             viewMonthEnd.setHours(23, 59, 59, 999);
 
+            // ✅ FIX: Incluir faturas pendentes de cartão no cálculo de projeção
+            // Faturas importadas (isPendingInvoice) devem aparecer como despesa pendente
+            safeTransactions.forEach(t => {
+                if (t.deleted) return;
+                
+                // Processar faturas pendentes separadamente
+                if (t.isPendingInvoice && !t.isSettled) {
+                    const tDate = new Date(t.date);
+                    tDate.setHours(0, 0, 0, 0);
+                    
+                    const isViewMonth = tDate.getMonth() === safeCurrentDate.getMonth() && 
+                                       tDate.getFullYear() === safeCurrentDate.getFullYear();
+                    
+                    if (isViewMonth && tDate > today) {
+                        // Fatura vence neste mês e ainda não venceu
+                        pendingExpenses += toBRL(SafeFinancialCalculator.toSafeNumber(t.amount, 0), t);
+                    }
+                    return; // Não processar novamente abaixo
+                }
+            });
+
             safeTransactions.forEach(t => {
                 if (t.deleted) return;
 
