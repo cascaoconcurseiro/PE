@@ -72,6 +72,10 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         }
     }, [isOpen, availableMembers]);
 
+
+    // Calculate Total for Display (Since input is Parcel)
+    const totalAmount = (parseFloat(amount) || 0) * (parseInt(installments) || 0);
+
     const validateForm = (): boolean => {
         const newErrors: string[] = [];
 
@@ -99,9 +103,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             newErrors.push('Data da primeira parcela é obrigatória');
         }
 
-        if (!accountId) {
-            newErrors.push('Conta de origem é obrigatória');
-        }
+        // Account validation removed as per user request (No bank link)
 
         setErrors(newErrors);
         return newErrors.length === 0;
@@ -127,9 +129,6 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             // Determine Shared With User ID
             let sharedWithUserId = null;
 
-            // "Quem vai pagar" logic:
-            // If "Me", it's personal (or shared with default partner?). 
-            // If "Other", it's shared with that person.
             if (assigneeId !== 'me' && assigneeId !== currentUserId) {
                 const selectedMember = members.find(m => m.id === assigneeId);
                 sharedWithUserId = selectedMember?.linkedUserId || null;
@@ -142,36 +141,26 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
             const { data, error } = await supabase.rpc('import_shared_installments', {
                 p_user_id: currentUserId,
                 p_description: description,
-                p_parcel_amount: parseFloat(amount), // Amount is PARCEL value now
+                p_parcel_amount: parseFloat(amount),
                 p_installments: parseInt(installments),
                 p_first_due_date: date,
                 p_category: category,
-                p_account_id: accountId,
+                p_account_id: null, // No bank linkage as requested
                 p_shared_with_user_id: sharedWithUserId
             });
 
             if (error) throw error;
 
             console.log('DEBUG: Import Success:', data);
-
-            // Clear cache
             sharedTransactionManager.clearCache();
 
-            addToast(
-                'Importação concluída com sucesso!',
-                'success'
-            );
-
-            // Notify parent to refresh
-            onImport(data); // data contains {original_id, mirror_id} list
+            addToast('Importação concluída com sucesso!', 'success');
+            onImport(data);
             onClose();
 
         } catch (error: any) {
             console.error('Erro ao importar:', error);
-            addToast(
-                'Erro ao importar transações. Tente novamente.',
-                'error'
-            );
+            addToast('Erro ao importar transações. Tente novamente.', 'error');
             setErrors(['Falha na comunicação com o servidor.']);
         } finally {
             setIsSubmitting(false);
@@ -179,9 +168,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         }
     };
 
-    const totalAmount = amount && !isNaN(parseFloat(amount)) && installments && !isNaN(parseInt(installments))
-        ? parseFloat(amount) // O valor digitado JÁ É o total
-        : 0;
+    if (!isOpen) return null;
 
     return (
         <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
