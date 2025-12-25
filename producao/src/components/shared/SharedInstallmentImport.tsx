@@ -177,7 +177,8 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                     isShared: true,
                     sharedWith: [{
                         memberId: selectedMember.id,
-                        assignedAmount: parcelAmount,
+                        assignedAmount: parcelAmount,  // ✅ Campo obrigatório
+                        amount: parcelAmount,          // ✅ Alias para compatibilidade
                         isSettled: false,
                         percentage: 100
                     }],
