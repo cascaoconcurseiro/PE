@@ -362,30 +362,7 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                         </select>
                     </div>
 
-                    {/* Credit Card Selection (Required for Shared Invoice Import) */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">
-                            Cartão de Crédito *
-                        </label>
-                        <select
-                            disabled={isSubmitting}
-                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 font-bold dark:text-white disabled:opacity-50"
-                            value={accountId}
-                            onChange={e => setAccountId(e.target.value)}
-                        >
-                            <option value="">Selecione um cartão...</option>
-                            {accounts
-                                .filter(a => a.type === AccountType.CREDIT_CARD)
-                                .map(acc => (
-                                    <option key={acc.id} value={acc.id}>
-                                        {acc.name}
-                                    </option>
-                                ))}
-                        </select>
-                        <p className="text-[10px] text-slate-400 mt-1">
-                            O valor será lançado como despesa na fatura deste cartão.
-                        </p>
-                    </div>
+                    {/* Credit Card Selector REMOVED */}
 
                     {/* Assignee Selection */}
                     <div>
@@ -393,19 +370,40 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                             Quem vai pagar as parcelas? *
                         </label>
                         <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                disabled={isSubmitting}
+                                onClick={() => setAssigneeId('me')}
+                                className={`
+                                    p-3 rounded-xl border font-bold text-sm transition-all
+                                    ${assigneeId === 'me'
+                                        ? 'bg-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-500 hover:text-indigo-500'}
+                                `}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    {assigneeId === 'me' && <Check className="w-4 h-4" />}
+                                    Eu ({currentUserName?.split(' ')[0] || 'Mim'})
+                                </div>
+                            </button>
+
                             {availableMembers.map(member => (
                                 <button
-                                    type="button"
                                     key={member.id}
+                                    type="button"
                                     disabled={isSubmitting}
                                     onClick={() => setAssigneeId(member.id)}
-                                    className={`px-4 py-3 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2 ${assigneeId === member.id
-                                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-                                        } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className={`
+                                        p-3 rounded-xl border font-bold text-sm transition-all
+                                        ${assigneeId === member.id
+                                            ? 'bg-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-500 hover:text-indigo-500'}
+                                    `}
                                 >
-                                    {assigneeId === member.id && <Check className="w-4 h-4" />}
-                                    {member.name}
+                                    <div className="flex items-center justify-center gap-2">
+                                        {assigneeId === member.id && <Check className="w-4 h-4" />}
+                                        {member.name.split(' ')[0]}
+                                    </div>
                                 </button>
                             ))}
                         </div>
@@ -418,26 +416,23 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 pt-0">
+                <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
                     <Button
-                        onClick={(e) => handleConfirm(e)}
-                        disabled={isSubmitting || availableMembers.length === 0}
-                        className="w-full h-12 text-lg rounded-xl shadow-xl shadow-indigo-500/20 disabled:opacity-50"
+                        onClick={handleConfirm}
+                        disabled={isSubmitting}
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
                     >
                         {isSubmitting ? (
-                            <>
-                                <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                                Processando...
-                            </>
+                            <RefreshCw className="w-5 h-5 animate-spin mx-auto" />
                         ) : (
+                            // Logic Fixed: Display PARCEL Value directly
                             amount && !isNaN(parseFloat(amount)) && installments && !isNaN(parseInt(installments))
-                                ? `Confirmar ${installments}x de ${formatCurrency(parseFloat(amount) / parseInt(installments))}`
+                                ? `Confirmar ${installments}x de ${formatCurrency(parseFloat(amount))}`
                                 : 'Confirmar'
                         )}
                     </Button>
-
                     {totalAmount > 0 && (
-                        <p className="text-center text-sm text-slate-500 mt-2">
+                        <p className="text-center text-xs text-slate-500 mt-2">
                             Total: {formatCurrency(totalAmount)}
                         </p>
                     )}
