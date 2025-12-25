@@ -36,12 +36,13 @@ interface AccountsProps {
     initialAccountId?: string | null;
     onClearInitialAccount?: () => void;
     members?: import('../types').FamilyMember[];
+    handlers?: any; // ✅ FIX: Adicionar handlers para acessar ensurePeriodLoaded
     // Actually Account defines FamilyMember import usually.
     onDeleteTransaction: (id: string, scope?: 'SINGLE' | 'SERIES') => void;
 }
 
-export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onDeleteTransaction, onAddTransaction, onAddTransactions, showValues, currentDate = new Date(), onAnticipate, initialAccountId, onClearInitialAccount }) => {
-    const accountsProps = { accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onDeleteTransaction, onAddTransaction, onAddTransactions, showValues, currentDate, onAnticipate, initialAccountId, onClearInitialAccount };
+export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onDeleteTransaction, onAddTransaction, onAddTransactions, showValues, currentDate = new Date(), onAnticipate, initialAccountId, onClearInitialAccount, handlers }) => {
+    const accountsProps = { accounts, transactions, members, onAddAccount, onUpdateAccount, onDeleteAccount, onDeleteTransaction, onAddTransaction, onAddTransactions, showValues, currentDate, onAnticipate, initialAccountId, onClearInitialAccount, handlers };
     const [viewState, setViewState] = useState<'LIST' | 'DETAIL'>('LIST');
     const [activeTab, setActiveTab] = useState<'BANKING' | 'CARDS' | 'INTERNATIONAL'>('BANKING');
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -173,7 +174,26 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, memb
         setImportModal({ isOpen: false, transactions: [] });
     };
 
-    const handleImportBills = (txs: Omit<Transaction, 'id'>[]) => {
+    const handleImportBills = async (txs: Omit<Transaction, 'id'>[]) => {
+        // ✅ FIX: Extrair períodos únicos das transações importadas
+        const uniquePeriods = new Set<string>();
+        txs.forEach(tx => {
+            const date = new Date(tx.date);
+            const periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            uniquePeriods.add(periodKey);
+        });
+
+        // ✅ FIX: Carregar todos os períodos ANTES de adicionar as transações
+        // Isso garante que quando o refresh automático acontecer, os dados estarão carregados
+        if (handlers?.ensurePeriodLoaded) {
+            for (const period of uniquePeriods) {
+                const [year, month] = period.split('-').map(Number);
+                const periodDate = new Date(year, month - 1, 1);
+                await handlers.ensurePeriodLoaded(periodDate);
+            }
+        }
+
+        // Agora adicionar as transações
         if (onAddTransactions) {
             onAddTransactions(txs);
         } else {

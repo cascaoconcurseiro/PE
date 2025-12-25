@@ -51,8 +51,10 @@ export const TransactionFormBaseRefactored: React.FC<TransactionFormProps> = ({
 }) => {
     const topRef = useRef<HTMLDivElement>(null);
 
-    // OWNERSHIP CHECK
-    const isOwner = !initialData || !initialData.userId || !currentUserId || initialData.userId === currentUserId;
+    // OWNERSHIP CHECK - User can edit if they are the owner OR if they created the transaction
+    const isOwner = !initialData || !initialData.userId || !currentUserId || 
+                    initialData.userId === currentUserId || 
+                    initialData.createdBy === currentUserId;
     const isReadOnly = !isOwner;
 
     const {

@@ -47,9 +47,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
     // OWNERSHIP CHECK
     // If we have initialData (Edit Mode) AND we have IDs to compare:
-    // User can ONLY edit if they are the owner (userId matches).
+    // User can edit if they are the owner (userId matches) OR if they created the transaction (createdBy matches).
     // Legacy support: If initialData.userId is missing, allow edit (assume migration or lax rule).
-    const isOwner = !initialData || !initialData.userId || !currentUserId || initialData.userId === currentUserId;
+    const isOwner = !initialData || !initialData.userId || !currentUserId || 
+                    initialData.userId === currentUserId || 
+                    initialData.createdBy === currentUserId;
     const isReadOnly = !isOwner;
 
     const {
