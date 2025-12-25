@@ -174,6 +174,7 @@ export interface TransactionSplit {
 export interface Transaction extends BaseEntity {
   id: string;
   userId?: string; // Ownership tracking
+  createdBy?: string; // ✅ Criador da transação (usado em transações compartilhadas)
   date: string;
   amount: number;
   type: TransactionType;
@@ -217,9 +218,23 @@ export interface Transaction extends BaseEntity {
   exchangeRate?: number;
 
   reconciled?: boolean;
+  reconciledAt?: string; // ✅ Data de reconciliação
+  reconciledBy?: string; // ✅ Usuário que reconciliou
   reconciledWith?: string;
-  externalId?: string;
+  
+  linkedTransactionId?: string; // ✅ Transação vinculada
+  mirrorTransactionId?: string; // ✅ Transação espelhada
   sourceTransactionId?: string;
+  
+  isMirror?: boolean; // ✅ Flag de transação espelhada
+  notes?: string; // ✅ Notas adicionais
+  
+  // Campos de planos (opcional - para uso futuro)
+  installmentPlanId?: string;
+  recurringRuleId?: string;
+  statementId?: string;
+  bankStatementId?: string;
+  
   domain?: 'PERSONAL' | 'TRAVEL' | 'SHARED' | 'BUSINESS'; // Phase 6: Domain Separation
 }
 
