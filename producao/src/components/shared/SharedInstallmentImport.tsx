@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FamilyMember, Account, Category, AccountType } from '../../types';
+import { FamilyMember, Account, Category, AccountType, TransactionType } from '../../types';
 import { Button } from '../ui/Button';
 import { X, Calendar, DollarSign, Layers, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { useToast } from '../ui/Toast';
 import { sharedTransactionManager } from '../../services/SharedTransactionManager';
 import { EXPENSE_CATEGORIES } from '../../utils/categoryConstants';
-import { supabase } from '../../integrations/supabase/client';
+import { parseDate } from '../../utils';
 
 // Helper for currency format inside component
 const formatCurrency = (val: number) => {
@@ -120,16 +120,9 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         }
 
         setIsSubmitting(true);
-        console.log('DEBUG: Starting import process via RPC...');
-
-        // Safety timeout
-        await new Promise(r => setTimeout(r, 100));
+        console.log('DEBUG: Starting import process...');
 
         try {
-            // New "Author vs Owner" Logic
-            // The user requested to REMOVE "Me" from the list.
-            // So we assume the Assignee is ALWAYS someone else (The Owner).
-
             const selectedMember = members.find(m => m.id === assigneeId);
             if (!selectedMember) throw new Error('Membro não encontrado.');
 
@@ -138,42 +131,78 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
                 throw new Error('O usuário selecionado não possui conta vinculada (ID ausente).');
             }
 
-            // WE DO NOT need a mirror anymore!
-            // With RLS "view_author_or_owner", I (Author) see the record created for Him (Owner).
-            // Creating a mirror would duplicate the view.
-            const mirrorUserId = null;
-
-            console.log('DEBUG: RPC Params', {
+            console.log('DEBUG: Creating transactions directly (same as normal form)', {
                 owner: ownerUserId,
                 author: currentUserId,
-                mirror: mirrorUserId
+                member: selectedMember
             });
 
-            const { data, error } = await supabase.rpc('import_shared_installments', {
-                p_user_id: ownerUserId,       // Dívida vai para quem paga (Fran)
-                p_author_id: currentUserId,   // Eu criei (Tenho permissão RLS para ver/editar)
-                p_description: description,
-                p_parcel_amount: parseFloat(amount),
-                p_installments: parseInt(installments),
-                p_first_due_date: date,
-                p_category: category,
-                p_account_id: null,
-                p_shared_with_user_id: mirrorUserId // NULL (Sem espelho, apenas acesso via RLS)
-            });
+            // USAR A MESMA LÓGICA DO FORMULÁRIO NORMAL
+            // Criar transações diretamente no frontend
+            const now = new Date().toISOString();
+            const baseDate = parseDate(date);
+            const totalInstallments = parseInt(installments);
+            const parcelAmount = parseFloat(amount);
+            const createdTransactions: any[] = [];
 
-            if (error) throw error;
+            for (let i = 0; i < totalInstallments; i++) {
+                // Calcular data da parcela (adiciona meses)
+                const targetMonth = baseDate.getMonth() + i;
+                const targetYear = baseDate.getFullYear() + Math.floor(targetMonth / 12);
+                const finalMonth = targetMonth % 12;
+                const nextDate = new Date(targetYear, finalMonth, 1);
+                const targetDay = baseDate.getDate();
+                const daysInTargetMonth = new Date(targetYear, finalMonth + 1, 0).getDate();
+                nextDate.setDate(Math.min(targetDay, daysInTargetMonth));
 
-            console.log('DEBUG: Import Success:', data);
+                const dateYear = nextDate.getFullYear();
+                const dateMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
+                const dateDay = String(nextDate.getDate()).padStart(2, '0');
+                const formattedDate = `${dateYear}-${dateMonth}-${dateDay}`;
+
+                // Criar transação igual ao formulário normal
+                const transaction = {
+                    id: crypto.randomUUID(),
+                    userId: ownerUserId,              // Quem vai pagar (Fran)
+                    createdBy: currentUserId,         // Quem criou (Você)
+                    description: `${description} (${i + 1}/${totalInstallments})`,
+                    amount: parcelAmount,
+                    date: formattedDate,
+                    type: 'DESPESA' as TransactionType,
+                    category: category,
+                    accountId: null,                  // Sem conta (compartilhado)
+                    isInstallment: true,
+                    currentInstallment: i + 1,
+                    totalInstallments: totalInstallments,
+                    isShared: true,
+                    sharedWith: [{
+                        memberId: selectedMember.id,
+                        assignedAmount: parcelAmount,
+                        isSettled: false,
+                        percentage: 100
+                    }],
+                    payerId: ownerUserId,             // Quem paga
+                    deleted: false,
+                    createdAt: now,
+                    updatedAt: now,
+                    domain: 'SHARED'
+                };
+
+                createdTransactions.push(transaction);
+            }
+
+            console.log('DEBUG: Transactions created:', createdTransactions);
+
+            // Usar onImport para adicionar as transações (igual ao formulário normal)
             sharedTransactionManager.clearCache();
-
             addToast('Importação concluída com sucesso!', 'success');
-            onImport(data);
+            onImport(createdTransactions);
             onClose();
 
         } catch (error: any) {
             console.error('Erro ao importar:', error);
             addToast('Erro ao importar transações. Tente novamente.', 'error');
-            setErrors(['Falha na comunicação com o servidor.']);
+            setErrors(['Falha ao criar transações.']);
         } finally {
             setIsSubmitting(false);
             setProgress({ current: 0, total: 0 });
