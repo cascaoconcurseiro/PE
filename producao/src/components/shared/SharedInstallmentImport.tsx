@@ -5,6 +5,7 @@ import { X, Calendar, DollarSign, Layers, Check, AlertCircle, RefreshCw } from '
 import { useToast } from '../ui/Toast';
 import { sharedTransactionManager } from '../../services/SharedTransactionManager';
 import { EXPENSE_CATEGORIES } from '../../utils/categoryConstants';
+import { supabase } from '../../integrations/supabase/client';
 
 // Helper for currency format inside component
 const formatCurrency = (val: number) => {
