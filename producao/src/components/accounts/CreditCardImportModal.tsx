@@ -81,8 +81,16 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                 deleted: false
             }));
 
+        if (transactionsToCreate.length === 0) {
+            return;
+        }
+
         onImport(transactionsToCreate);
         onClose();
+        
+        // Mostrar toast informativo sobre navegação
+        // Note: addToast would need to be imported from useToast hook
+        // For now, we'll rely on the parent component's success message
     };
 
     // Helper to format date string (yyyy-mm-dd) to pt-BR (dd/mm/yyyy) without timezone shift
@@ -157,6 +165,13 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                    {/* Info Banner */}
+                    <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/50 rounded-xl">
+                        <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
+                            💡 <strong>Dica:</strong> Após importar, use as setas (← →) no topo da tela para navegar até o mês da fatura importada.
+                        </p>
+                    </div>
+                    
                     <div className="grid gap-4">
                         {months.map((month, index) => (
                             <div key={month.date} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">

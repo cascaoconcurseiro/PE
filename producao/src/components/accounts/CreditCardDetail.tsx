@@ -31,7 +31,7 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     account, transactions, currentDate, showValues, onAction, onAnticipateInstallments, onImportBills, onDeleteTransaction
 }) => {
     // Get all accounts for correct name resolution (e.g. transfers)
-    const { accounts, familyMembers } = useDataStore();
+    const { accounts, familyMembers, handlers } = useDataStore();
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id: string | null, isSeries: boolean }>({ isOpen: false, id: null, isSeries: false });
 
     // Logic to determine the most relevant invoice view
@@ -56,6 +56,13 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     useEffect(() => {
         setSelectedDate(getTargetDate(currentDate, account.closingDay));
     }, [currentDate, account.closingDay]);
+
+    // Load transactions for the selected month when navigating
+    useEffect(() => {
+        if (handlers?.ensurePeriodLoaded) {
+            handlers.ensurePeriodLoaded(selectedDate);
+        }
+    }, [selectedDate, handlers]);
 
     const changeMonth = (offset: number) => {
         const newDate = new Date(selectedDate);
