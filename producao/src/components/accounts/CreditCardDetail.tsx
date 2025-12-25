@@ -52,10 +52,9 @@ export const CreditCardDetail: React.FC<CreditCardDetailProps> = ({
     // Initialize with smart logic
     const [selectedDate, setSelectedDate] = useState(() => getTargetDate(currentDate, account.closingDay));
 
-    // Sync when prop changes (applying same logic to track user intent of "Time Period")
-    useEffect(() => {
-        setSelectedDate(getTargetDate(currentDate, account.closingDay));
-    }, [currentDate, account.closingDay]);
+    // ✅ FIX: Removido useEffect que sincronizava com currentDate
+    // A fatura deve usar APENAS seu próprio seletor (← →)
+    // Não deve ser afetada pelo seletor global do TopBar
 
     // Load transactions for the selected month when navigating
     useEffect(() => {
