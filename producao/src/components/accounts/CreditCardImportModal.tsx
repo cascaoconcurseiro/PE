@@ -89,10 +89,11 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                     description: `Fatura Importada - ${m.label}`,
                     accountId: account.id,
                     isSettled: false,
+                    isPendingInvoice: true, // ✅ Marca como fatura pendente (não aparece em transações até ser paga)
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
                     deleted: false
-                };
+                } as any; // Type assertion para incluir isPendingInvoice
             });
 
         if (transactionsToCreate.length === 0) {

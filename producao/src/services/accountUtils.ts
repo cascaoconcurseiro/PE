@@ -67,8 +67,19 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
 
     const activeTransactions = transactions.filter(shouldShowTransaction);
 
+    // ✅ FIX: Incluir faturas pendentes (isPendingInvoice) na visualização da fatura
+    // Mesmo que não apareçam em transações gerais, devem aparecer na fatura do cartão
+    const pendingInvoices = transactions.filter(t => 
+        !t.deleted && 
+        t.accountId === account.id && 
+        (t as any).isPendingInvoice && 
+        !t.isSettled
+    );
+
+    const allTransactionsForInvoice = [...activeTransactions, ...pendingInvoices];
+
     // FILTRAGEM ROBUSTA - Apenas por intervalo de datas
-    const txs = activeTransactions.filter(t => {
+    const txs = allTransactionsForInvoice.filter(t => {
         if (t.accountId !== account.id) return false;
 
         // 1. Verificar Intervalo de Datas (Padrão)
