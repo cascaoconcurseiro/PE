@@ -106,62 +106,6 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         return newErrors.length === 0;
     };
 
-    const generateInstallmentTransactions = () => {
-        const totalValue = parseFloat(amount); // Valor TOTAL a ser parcelado
-        const numInstallments = parseInt(installments);
-        const installmentValue = totalValue / numInstallments; // Valor de CADA parcela
-        const [yearStr, monthStr, dayStr] = date.split('-');
-        const startYear = parseInt(yearStr);
-        const startMonth = parseInt(monthStr) - 1;
-        const startDay = parseInt(dayStr);
-
-        const transactions = [];
-        console.log(`DEBUG: Generating installments. Total: ${totalValue}, Count: ${numInstallments}, Per Installment: ${installmentValue}`);
-
-        for (let i = 0; i < numInstallments; i++) {
-            // MANUAL CALCULATION (Foolproof against Timezones/Rollovers)
-            // Parse YYYY-MM-DD manually
-            const [y, m, d] = date.split('-').map(Number);
-
-            // Calculate target month (0-indexed logic for math, but input m is 1-indexed)
-            let totalMonths = (y * 12) + (m - 1) + i;
-            let targetYear = Math.floor(totalMonths / 12);
-            let targetMonth = totalMonths % 12; // 0 = Jan, 11 = Dec
-
-            // Calculate max days in target month
-            // Day 0 of next month gives last day of current month
-            const maxDays = new Date(targetYear, targetMonth + 1, 0).getDate();
-            const targetDay = Math.min(d, maxDays);
-
-            // Format YYYY-MM-DD
-            const mm = String(targetMonth + 1).padStart(2, '0');
-            const dd = String(targetDay).padStart(2, '0');
-            const dateStr = `${targetYear}-${mm}-${dd}`;
-
-            // Ajustar última parcela para garantir soma exata
-            const currentInstallmentValue = (i === numInstallments - 1)
-                ? totalValue - (installmentValue * (numInstallments - 1))
-                : installmentValue;
-
-            transactions.push({
-                description: `${description.trim()} (${i + 1}/${numInstallments})`,
-                amount: currentInstallmentValue, // Valor de CADA parcela, não o total
-                category_id: category,
-                account_id: accountId, // Use selected Account
-                shared_with: [{
-                    user_id: assigneeId, // Use Member ID (Row ID) consistent with Frontend Views
-                    amount: currentInstallmentValue, // Valor de CADA parcela
-                    email: members.find(m => m.id === assigneeId)?.email || undefined
-                }],
-                installment_number: i + 1,
-                total_installments: numInstallments,
-                due_date: dateStr
-            });
-        }
-
-        return transactions;
-    };
-
     const handleConfirm = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
 
@@ -173,51 +117,61 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         }
 
         setIsSubmitting(true);
-        console.log('DEBUG: Starting import process...');
+        console.log('DEBUG: Starting import process via RPC...');
 
-        // Safety timeout to prevent race conditions
+        // Safety timeout
         await new Promise(r => setTimeout(r, 100));
 
-        setProgress({ current: 0, total: parseInt(installments) });
-        setErrors([]);
-
         try {
-            const transactions = generateInstallmentTransactions();
+            // Determine Shared With User ID
+            let sharedWithUserId = null;
 
-            console.log('DEBUG: Transações geradas para importação:', transactions);
+            // "Quem vai pagar" logic:
+            // If "Me", it's personal (or shared with default partner?). 
+            // If "Other", it's shared with that person.
+            if (assigneeId !== 'me' && assigneeId !== currentUserId) {
+                const selectedMember = members.find(m => m.id === assigneeId);
+                sharedWithUserId = selectedMember?.linkedUserId || null;
 
-            // Use the batch import method from SharedTransactionManager
-            const result = await sharedTransactionManager.importSharedInstallments({
-                transactions
-            });
-
-            console.log('DEBUG: Resultado da importação:', result);
-
-            if (result.success) {
-                // CORREÇÃO: Limpar cache para garantir que parcelas apareçam imediatamente
-                sharedTransactionManager.clearCache();
-
-                addToast(
-                    `${result.results.length} parcelas importadas com sucesso!`,
-                    'success'
-                );
-
-                // Chamar onImport sem parâmetros para forçar refresh
-                // As transações já foram criadas no banco, não precisamos passá-las
-                onImport();
-                onClose();
-            } else {
-                setErrors(result.errors);
-                addToast(
-                    `${result.results.length} parcelas importadas, ${result.errors.length} falharam`,
-                    'warning'
-                );
+                if (!sharedWithUserId) {
+                    console.warn('Selected member has no linked account. Mirror transaction will not be created.');
+                }
             }
 
+            const { data, error } = await supabase.rpc('import_shared_installments', {
+                p_user_id: currentUserId,
+                p_description: description,
+                p_parcel_amount: parseFloat(amount), // Amount is PARCEL value now
+                p_installments: parseInt(installments),
+                p_first_due_date: date,
+                p_category: category,
+                p_account_id: accountId,
+                p_shared_with_user_id: sharedWithUserId
+            });
+
+            if (error) throw error;
+
+            console.log('DEBUG: Import Success:', data);
+
+            // Clear cache
+            sharedTransactionManager.clearCache();
+
+            addToast(
+                'Importação concluída com sucesso!',
+                'success'
+            );
+
+            // Notify parent to refresh
+            onImport(data); // data contains {original_id, mirror_id} list
+            onClose();
+
         } catch (error: any) {
-            console.error('Error importing installments:', error);
-            setErrors([error.message || 'Erro inesperado ao importar parcelas']);
-            addToast('Erro ao importar parcelas', 'error');
+            console.error('Erro ao importar:', error);
+            addToast(
+                'Erro ao importar transações. Tente novamente.',
+                'error'
+            );
+            setErrors(['Falha na comunicação com o servidor.']);
         } finally {
             setIsSubmitting(false);
             setProgress({ current: 0, total: 0 });
