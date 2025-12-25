@@ -26,6 +26,7 @@ interface MainLayoutProps {
     onOpenTxModal: () => void;
     dataInconsistencies: string[];
     onOpenInconsistenciesModal: () => void;
+    hideMonthSelector?: boolean; // ✅ Nova prop para esconder seletor de mês
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
@@ -45,7 +46,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     onNotificationPay,
     onOpenTxModal,
     dataInconsistencies,
-    onOpenInconsistenciesModal
+    onOpenInconsistenciesModal,
+    hideMonthSelector = false // ✅ Default false
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -97,12 +99,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                             </h2>
                         </div>
 
-                        {/* Month Selector */}
-                        <SmoothMonthSelector
-                            currentDate={currentDate}
-                            onDateChange={onDateChange}
-                            onMonthChange={onMonthChange}
-                        />
+                        {/* Month Selector - Escondido quando visualizando detalhes de conta */}
+                        {!hideMonthSelector && (
+                            <SmoothMonthSelector
+                                currentDate={currentDate}
+                                onDateChange={onDateChange}
+                                onMonthChange={onMonthChange}
+                            />
+                        )}
 
                         {/* Top Right Actions */}
                         <div className="flex items-center gap-1 sm:gap-2">

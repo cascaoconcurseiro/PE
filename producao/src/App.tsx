@@ -308,6 +308,7 @@ const App = () => {
                 onOpenTxModal={() => setIsTxModalOpen(true)}
                 dataInconsistencies={dataInconsistencies}
                 onOpenInconsistenciesModal={() => setIsInconsistenciesModalOpen(true)}
+                hideMonthSelector={activeView === View.ACCOUNTS && navigatedAccountId !== null} // ✅ Esconder quando visualizando conta
             >
                 <ErrorBoundary>
                     <Suspense fallback={<LoadingScreen />}>
