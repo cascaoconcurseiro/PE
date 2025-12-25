@@ -126,27 +126,47 @@ export const SharedInstallmentImport: React.FC<SharedInstallmentImportProps> = (
         await new Promise(r => setTimeout(r, 100));
 
         try {
-            // Determine Shared With User ID
-            let sharedWithUserId = null;
+            // New "Author vs Owner" Logic
+            let ownerUserId = currentUserId;
+            let mirrorUserId = null;
 
-            if (assigneeId !== 'me' && assigneeId !== currentUserId) {
+            // 1. Determine Owner (Who Pays)
+            if (assigneeId === 'me' || assigneeId === currentUserId) {
+                // I am the Payer (Owner)
+                ownerUserId = currentUserId;
+
+                // IF I am paying and it's an "Import", implies Shared.
+                // Try to find the Partner to create a Mirror for them
+                const partner = members.find(m => m.id !== 'me' && m.id !== currentUserId);
+                mirrorUserId = partner?.linkedUserId || null;
+            } else {
+                // Someone else is Payer (Owner)
                 const selectedMember = members.find(m => m.id === assigneeId);
-                sharedWithUserId = selectedMember?.linkedUserId || null;
-
-                if (!sharedWithUserId) {
-                    console.warn('Selected member has no linked account. Mirror transaction will not be created.');
+                if (!selectedMember?.linkedUserId) {
+                    throw new Error('O usuário selecionado para pagamento não possui conta vinculada (ID ausente).');
                 }
+                ownerUserId = selectedMember.linkedUserId;
+
+                // If they pay, I get the Mirror (so I can see it as shared/debt)
+                mirrorUserId = currentUserId;
             }
 
+            console.log('DEBUG: RPC Params', {
+                owner: ownerUserId,
+                author: currentUserId,
+                mirror: mirrorUserId
+            });
+
             const { data, error } = await supabase.rpc('import_shared_installments', {
-                p_user_id: currentUserId,
+                p_user_id: ownerUserId,       // Dívida vai para quem paga
+                p_author_id: currentUserId,   // Eu criei
                 p_description: description,
                 p_parcel_amount: parseFloat(amount),
                 p_installments: parseInt(installments),
                 p_first_due_date: date,
                 p_category: category,
-                p_account_id: null, // No bank linkage as requested
-                p_shared_with_user_id: sharedWithUserId
+                p_account_id: null,
+                p_shared_with_user_id: mirrorUserId
             });
 
             if (error) throw error;
