@@ -211,6 +211,8 @@ export interface Transaction extends BaseEntity {
   settledAt?: string;
   settledByTxId?: string;
 
+  isPendingInvoice?: boolean; // ✅ Marca faturas de cartão não pagas (não aparecem em transações)
+
   destinationAmount?: number;
   exchangeRate?: number;
 

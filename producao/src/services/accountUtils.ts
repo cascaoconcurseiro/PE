@@ -72,7 +72,7 @@ export const getInvoiceData = (account: Account, transactions: Transaction[], re
     const pendingInvoices = transactions.filter(t => 
         !t.deleted && 
         t.accountId === account.id && 
-        (t as any).isPendingInvoice && 
+        t.isPendingInvoice && 
         !t.isSettled
     );
 

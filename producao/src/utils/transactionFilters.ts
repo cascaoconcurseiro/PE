@@ -14,7 +14,7 @@ export const shouldShowTransaction = (t: Transaction): boolean => {
 
     // ✅ FIX: Filter pending credit card invoices (imported but not paid yet)
     // These should ONLY appear in the card's invoice view, not in transactions list
-    if ((t as any).isPendingInvoice && !t.isSettled) {
+    if (t.isPendingInvoice && !t.isSettled) {
         return false;
     }
 

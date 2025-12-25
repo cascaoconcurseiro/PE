@@ -93,7 +93,7 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
                     deleted: false
-                } as any; // Type assertion para incluir isPendingInvoice
+                };
             });
 
         if (transactionsToCreate.length === 0) {
