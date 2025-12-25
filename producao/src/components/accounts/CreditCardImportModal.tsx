@@ -68,18 +68,32 @@ export const CreditCardImportModal: React.FC<CreditCardImportModalProps> = ({ is
     const handleSave = () => {
         const transactionsToCreate: Omit<Transaction, 'id'>[] = months
             .filter(m => m.amount && parseFloat(m.amount) > 0)
-            .map(m => ({
-                date: m.date,
-                amount: parseFloat(m.amount),
-                type: TransactionType.EXPENSE,
-                category: category,
-                description: `Fatura Importada - ${m.label}`,
-                accountId: account.id,
-                isSettled: false,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                deleted: false
-            }));
+            .map(m => {
+                // ✅ FIX: Usar dia de fechamento do cartão como data da transação
+                // Isso garante que a transação apareça na fatura correta
+                const [year, month] = m.date.split('-').map(Number);
+                const closingDay = account.closingDay || 1;
+                
+                // Criar data no dia de fechamento do mês
+                const transactionDate = new Date(year, month - 1, closingDay);
+                const y = transactionDate.getFullYear();
+                const mo = String(transactionDate.getMonth() + 1).padStart(2, '0');
+                const d = String(transactionDate.getDate()).padStart(2, '0');
+                const dateStr = `${y}-${mo}-${d}`;
+
+                return {
+                    date: dateStr,
+                    amount: parseFloat(m.amount),
+                    type: TransactionType.EXPENSE,
+                    category: category,
+                    description: `Fatura Importada - ${m.label}`,
+                    accountId: account.id,
+                    isSettled: false,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    deleted: false
+                };
+            });
 
         if (transactionsToCreate.length === 0) {
             return;
