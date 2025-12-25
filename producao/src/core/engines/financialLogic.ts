@@ -487,6 +487,11 @@ export const calculateCashFlowData = (
                 const tDate = new Date(t.date);
                 tDate.setHours(0, 0, 0, 0);
 
+                // ✅ FIX 2025-12-25: Skip pending invoices from time travel calculation
+                if (t.isPendingInvoice && !t.isSettled) {
+                    return;
+                }
+
                 // Skip unpaid debts for cash flow calculations
                 if (t.type === TransactionType.EXPENSE && t.payerId && t.payerId !== 'me' && !t.isSettled) {
                     return; // Skip unpaid debts - they don't affect cash flow until settled
@@ -542,6 +547,12 @@ export const calculateCashFlowData = (
                 const tDate = new Date(t.date);
                 if (tDate.getFullYear() !== safeSelectedYear) return;
 
+                // ✅ FIX 2025-12-25: Skip pending invoices - they should only appear when paid
+                // Faturas de cartão importadas não devem aparecer no fluxo de caixa até serem pagas
+                if (t.isPendingInvoice && !t.isSettled) {
+                    return;
+                }
+
                 // Skip unpaid debts for cash flow calculations
                 if (t.type === TransactionType.EXPENSE && t.payerId && t.payerId !== 'me' && !t.isSettled) {
                     return; // Skip unpaid debts - they don't affect cash flow until settled
@@ -551,29 +562,15 @@ export const calculateCashFlowData = (
                 const account = safeAccounts.find(a => a.id === t.accountId);
 
                 let amount = SafeFinancialCalculator.toSafeNumber(t.amount, 0);
+                
+                // ✅ FIX 2025-12-25: Corrigir lógica de transações compartilhadas no fluxo de caixa
+                // Problema: Transação de R$ 199 aparecia como +199 (crédito) e -199 (débito)
+                // Solução: Usar apenas o valor efetivo (minha parte) sem adicionar reembolso como receita
                 if (t.type === TransactionType.EXPENSE) {
                     const isSharedContext = t.isShared || (t.sharedWith && t.sharedWith.length > 0) || (t.payerId && t.payerId !== 'me');
                     if (isSharedContext) {
-                        // FIX 2025-12-23: Shared Expense Splitting for Visualization
-                        // User Scenario: "I paid 190. 95 is mine, 95 is reimbursement."
-                        // Old Logic: Expense = 95. Net = -95.
-                        // New Logic: Expense = 190. Income = 95 (Reimbursement). Net = -95.
-                        // This allows the user to see the "Receita" (Reimbursement) they expect.
-
-                        if (!t.payerId || t.payerId === 'me') {
-                            // I paid. Expense is the FULL amount. Reimbursement is Income.
-                            amount = SafeFinancialCalculator.toSafeNumber(t.amount, 0);
-
-                            // Calculate Reimbursement (What I get back)
-                            const splitsTotal = t.sharedWith?.reduce((sum, s) => sum + s.assignedAmount, 0) || 0;
-                            const reimbursementBRL = SafeFinancialCalculator.safeCurrencyConversion(splitsTotal, account?.currency || 'BRL');
-
-                            // ADD Reimbursement to Income immediately here
-                            data[monthIndex].Receitas += reimbursementBRL;
-                        } else {
-                            // I owe. My Expense is just my share.
-                            amount = calculateEffectiveTransactionValue(t);
-                        }
+                        // Usar apenas o valor efetivo (minha parte da despesa)
+                        amount = calculateEffectiveTransactionValue(t);
                     }
                 }
 

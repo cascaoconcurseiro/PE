@@ -229,6 +229,9 @@ export interface Transaction extends BaseEntity {
   isMirror?: boolean; // ✅ Flag de transação espelhada
   notes?: string; // ✅ Notas adicionais
   
+  // ✅ CAMPOS ADICIONADOS NA AUDITORIA 25/12/2024
+  syncStatus?: 'SYNCED' | 'PENDING' | 'ERROR'; // Status de sincronização
+  
   // Campos de planos (opcional - para uso futuro)
   installmentPlanId?: string;
   recurringRuleId?: string;

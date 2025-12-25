@@ -159,6 +159,11 @@ export const useOptimizedFinancialDashboard = ({
 
         // Separar transações realizadas (até referenceDate) das pendentes (após referenceDate)
         const realizedTransactions = monthlyTransactions.filter((t: Transaction) => {
+            // ✅ FIX 2025-12-25: Skip pending invoices
+            if (t.isPendingInvoice && !t.isSettled) {
+                return false;
+            }
+            
             const tDate = new Date(t.date);
             tDate.setHours(0, 0, 0, 0);
             return tDate <= referenceDate;
