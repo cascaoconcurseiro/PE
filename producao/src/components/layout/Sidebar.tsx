@@ -85,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="space-y-1 mb-6">
                     <p className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Visão Geral</p>
                     <SidebarItem view={View.DASHBOARD} icon={LayoutDashboard} label="Início" activeBg="bg-emerald-50 dark:bg-emerald-900/20" activeText="text-emerald-700 dark:text-emerald-400" />
-                    <SidebarItem view={View.TRANSACTIONS} icon={List} label="Extrato" activeBg="bg-blue-50 dark:bg-blue-900/20" activeText="text-blue-700 dark:text-blue-400" />
+                    <SidebarItem view={View.TRANSACTIONS} icon={List} label="Transações" activeBg="bg-blue-50 dark:bg-blue-900/20" activeText="text-blue-700 dark:text-blue-400" />
                     <SidebarItem view={View.ACCOUNTS} icon={Wallet} label="Minhas Contas" activeBg="bg-violet-50 dark:bg-violet-900/20" activeText="text-violet-700 dark:text-violet-400" />
                     <SidebarItem view={View.INVESTMENTS} icon={TrendingUp} label="Investimentos" activeBg="bg-indigo-50 dark:bg-indigo-900/20" activeText="text-indigo-700 dark:text-indigo-400" />
 

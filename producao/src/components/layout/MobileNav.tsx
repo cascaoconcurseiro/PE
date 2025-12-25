@@ -35,7 +35,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ activeView, setActiveView,
                 <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] h-[80px] rounded-3xl flex items-center justify-between pointer-events-auto relative px-2">
                     <div className="flex items-center justify-around w-[40%]">
                         <NavItem view={View.DASHBOARD} icon={Home} label="Início" activeColor="text-emerald-600 dark:text-emerald-400" />
-                        <NavItem view={View.TRANSACTIONS} icon={FileText} label="Extrato" activeColor="text-blue-600 dark:text-blue-400" />
+                        <NavItem view={View.TRANSACTIONS} icon={FileText} label="Transações" activeColor="text-blue-600 dark:text-blue-400" />
                     </div>
 
                     <div className="absolute left-1/2 -top-6 transform -translate-x-1/2 z-[60] pointer-events-auto">
